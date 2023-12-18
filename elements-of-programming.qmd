@@ -20,40 +20,164 @@ This chapter will provide a survey of important concepts in computer science tha
 
 ## Data Types
 
-Data types are a way of categorizing information by intrinsic characteristics. We instinctively know that `13.24` is different than `"this set of words"` and types are how we will formalize this distinction. This is a key conceptual point, and mathematically it's like we have different sets of objects to perform specialized operations on. Beyond this set-like abstraction is implementation details related to computer hardware. You probably know that computers only natively "speak" in binary zeros and ones. Data types are a primary way that a computer can understand if it should interpret `01000010` as `B` or as `66`.
+Data types are a way of categorizing information by intrinsic characteristics. We instinctively know that `13.24` is different than `"this set of words"` and types are how we will formalize this distinction. This is a key conceptual point, and mathematically it's like we have different sets of objects to perform specialized operations on. Beyond this set-like abstraction is implementation details related to computer hardware. You probably know that computers only natively "speak" in binary zeros and ones. Data types are a primary way that a computer can understand if it should interpret `01000010` as `B` or as `66`[^elements-of-programming-2].
 
-Each `0` or `1` within a computer is called a **bit** and eight bits in a row form a **byte** (such as `01000010` ). This is where we get terms like "gigabytes" or "kilobits per second" as a measure of the quantity or rate of bits something can handle[^elements-of-programming-2].
+[^elements-of-programming-2]: This binary representations correspond to `B` and `66` with the *ASCII character set* and 8-bit integer encodings, discussed later in this chapter.
 
-[^elements-of-programming-2]: Some distinctions you may encounter: in short-form, "kb" means kilo*bits* while the upper-case "B" in "kB" means kilo*bytes*. Also confusingly, sometimes the "k" can be binary or decimal - because computers speak in binary, a binary "k" means 1024 (equal to 2\^10) instead of the usual decimal 1000. In most computer contexts, the binary (multiples of 1024) is more common.
+Each `0` or `1` within a computer is called a **bit** and eight bits in a row form a **byte** (such as `01000010` ). This is where we get terms like "gigabytes" or "kilobits per second" as a measure of the quantity or rate of bits something can handle[^elements-of-programming-3].
 
-### Numbers
+[^elements-of-programming-3]: Some distinctions you may encounter: in short-form, "kb" means kilo*bits* while the upper-case "B" in "kB" means kilo*bytes*. Also confusingly, sometimes the "k" can be binary or decimal - because computers speak in binary, a binary "k" means 1024 (equal to 2\^10) instead of the usual decimal 1000. In most computer contexts, the binary (multiples of 1024) is more common.
 
-Numbers are usually grouped into two categories: **integers** and **floating-point**[^elements-of-programming-3] numbers. Integers are like the mathematical set of integers while floating-point is a way of representing decimal numbers. Both have some limitations since computers can only natively represent a finite set of numbers due to the hardware (more on this in @sec-hardware).. Here are four integers:
+### Numbers {#sec-number-types}
 
-[^elements-of-programming-3]: The term floating point refers to the fact that the number's radix (decimal) point can "float" between the significant digits of the number.
+Numbers are usually grouped into two categories: **integers** and **floating-point**[^elements-of-programming-4] numbers. Integers are like the mathematical set of integers while floating-point is a way of representing decimal numbers. Both have some limitations since computers can only natively represent a finite set of numbers due to the hardware (more on this in @sec-hardware). Here are three integers:
 
-``` julia
-1 
--20
+[^elements-of-programming-4]: The term floating point refers to the fact that the number's radix (decimal) point can "float" between the significant digits of the number.
+
+```{julia}
+2
+```
+
+```{julia}
 423
+```
+
+```{julia}
 1929234
 ```
 
-And four floating-point numbers:
+And three floating-point numbers:
 
-``` julia
+```{julia}
 0.2
-12.1234
+```
+
+```{julia}
 -23.3421
+```
+
+```{julia}
 14e3      # the same as 14,000.0
 ```
 
-Types can be **abstract** or **concrete**. On most systems, `0.2` will be interpreted as a 64-bit floating point type called `Float64` in Julia since most architectures these days are 64-bit[^elements-of-programming-4], while on a 32-bit system `0.2` would be interpreted as a `Float32`.
+On most systems, `0.2` will be interpreted as a 64-bit floating point type called `Float64` in Julia since most architectures these days are 64-bit[^elements-of-programming-5], while on a 32-bit system `0.2` would be interpreted as a `Float32`. Given that there are a finite amount of bits attempting to represent a continuous, infinite set of numbers means that some numbers are not able to be represented with perfect precision. For example, if we ask for `0.2`, the closest representations in 64 and 32 bit are:
 
-[^elements-of-programming-4]: This means that their central processing units (CPUs) use instructions that are 64 bits long.
+[^elements-of-programming-5]: This means that their central processing units (CPUs) use instructions that are 64 bits long.
+
+-   `0.20000000298023223876953125` in 32-bit
+
+-   `0.200000000000000011102230246251565404236316680908203125` in 64-bit
+
+This leads to special considerations that computers take when performing calculations on floating point maths, some of which will be covered in more detail in @sec-hardware. For now, just note that floating point numbers have limited precision and even if we input `0.2`, your computations will use the above decimal representations even if it will print out a number with fewer digits shown:
+
+```{julia}
+x = 0.2
+# using arbitrary precision instead of
+# being limited to 32/64 bits
+big(x)
+```
+
+Integers are similarly represented as 32 or 64 bits (with `Int32` and `Int64`) and are limited to exact precision:
+
+-   -32,767 to 32,767 for `Int32`
+
+-   -2,147,483,647 to 2,147,483,647 for `Int64`
+
+Additional range in the positive direction if one chooses to use "unsigned", non-negative numbers (`UInt32` and `UInt64`). Unlike floating point numbers, the integers have a type `Int` which will use the system bit architecture by default (that is, `Int(30)` will create a 64 bit integer on 64-bit systems and 32-bit on 32-bit systems)
+
+### Type Hierarchy
+
+The numeric types described so far are known as **concrete** types because the computer can tell how many bits will be needed for the number (64 and 32 for `Float64` and `Float32` respectively. However, we can describe a *hierarchy* of types. Both `Float64` and `Int64` are examples of `Real` numbers (here, `Real` is an **abstract** Julia type which corresponds to the mathematical set of real numbers commonly denoted with $\mathbb{R}$ ). Both `Float64` and `Int32` are `Real` numbers, so why not just call all numbers a `Real` type? Because for performant calculations, the computer must know in advance how many bits each number is represented with.
+
+```{mermaid}
+%%| label: fig-julia-numeric-types
+%%| fig-cap: "Numeric Type Hierarchy in Julia"
+graph TD
+    Number --> Real
+    Number --> Complex
+
+    Real --> Integer
+    Real --> AbstractFloat
+    Real --> Rational
+    Real --> Irrational
+
+    Integer --> Signed
+    Integer --> Unsigned
+
+    Signed --> Int8
+    Signed --> Int16
+    Signed --> Int32
+    Signed --> Int64
+    Signed --> Int128
+    Signed --> BigInt
+
+    Unsigned --> UInt8
+    Unsigned --> UInt16
+    Unsigned --> UInt32
+    Unsigned --> UInt64
+    Unsigned --> UInt128
+
+    AbstractFloat --> Float16
+    AbstractFloat --> Float32
+    AbstractFloat --> Float64
+    AbstractFloat --> BigFloat
+```
 
 ### Arrays
 
-Characters are represented in most programming languages as letters within quotation marks.
+Arrays are the most common way to represent a collection of similar data. For example, we can represent a set of integers as follows:
 
-## Dynamic vs Static Typing
+```{julia}
+[1, 10, 300]
+```
+
+And a floating point array:
+
+```{julia}
+[0.2, 1.3, 300.0]
+```
+
+Note the above two arrays are different types of arrays. The first is `Vector{Int64}` and the second is `Vector{Float64}`. These are arrays of concrete types and so Julia will know that each element of an array is the same amount of bits which will enable more efficient computations. With the following set of mixed numbers, Julia will **promote** the integers to floating point since the integers can be accurately represented[^elements-of-programming-6] in floating point.
+
+[^elements-of-programming-6]: Accurate only to a limited precision, as described in @sec-number-types.
+
+```{julia}
+[1, 1.3, 300.0, 21]
+```
+
+However, if we explicitly ask Julia to use a `Real`-typed array, the type is now `Vector{Real}`. Recall that `Real` is an abstract type. Having heterogeneous types within the array is conceptually fine, but in practice limits performance. Again, this will be covered in more detail in @sec-hardware.
+
+### Characters, Strings, and Symbols
+
+Characters are represented in most programming languages as letters within quotation marks. In Julia, individual characters are represented using single quotes:
+
+```{julia}
+'a'
+```
+
+Letters and other characters present more difficulties than numbers to represent within a computer (think of how many languages and alphabets exist!), and it essentially only works because the world at large has agreed to a given representation. Originally **ASCII** (American Standard Code for Information Interchange) was used to represent just 95 of the most common English characters ("a" through "z", zero through nine, etc.). Now, UTF (Unicode Transformation Format) can encode more than a million characters and symbols from many human languages.
+
+**Strings** are a collection[^elements-of-programming-7] of characters, and can be created in Julia with double quotes:
+
+[^elements-of-programming-7]: Under the hood, strings are essentially a vector of characters but there are complexities with character encoding that don't allow a lossless conversion to individual characters of uniform bit length. This is for historical compatibility reasons and to avoid making most documents' file sizes larger than it needs to be.
+
+```{julia}
+"hello world"
+```
+
+It's easy to ascertain how 'normal' characters can be inserted into a string, but what about things like new lines or tabs? They are represented by their own characters but are normally not printed in computer output. However, those otherwise invisible characters do exist. For example, here we will use a **string literal** (indicated by the `"""` ) to tell Julia to interpret the string as given, including the invisible new line created by hitting return on the keyboard between the two words:
+
+```{julia}
+"""
+hello
+world
+"""
+```
+
+The output above shows the `\n` character contained within the string.
+
+**Symbols** are a way of representing an identifier which cannot be seen as a collection of individual characters. `:helloworld` is distinct from `"helloworld"` - you can kind of think of the former as an un-executed bit of code - if we were to execute it (with `eval(:helloworld)`), we would get an error `` UndefVarError: `a` not defined `` . Symbols can *look* like strings but do not behave like them. For now, it is best to not worry about symbols but it is an important aspect of Julia which allows the language to represent aspects of itself as data. This allows for powerful self-reference and self-modification of code but this is a more advanced topic generally out of scope of this book.
+
+### Creating User Defined Types
+
+...
