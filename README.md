@@ -15,3 +15,8 @@
 #### Render
 
 `quarto render` will render the book to HTML and PDF in the `_book` directory.
+
+
+## Code Environments
+
+Each chapter should stand alone as it's own `.qmd` file. This allows us to render each chapter individually, and also to render the entire book. For dependencies, create a folder in the `env` folder to correspond to a single chanpter, and at the start of the file activate the environment (use the REPL to create/edit the environment to avoid running package operations on each quarto preview/render).
