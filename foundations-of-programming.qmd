@@ -1,4 +1,4 @@
-# Elements of Programming
+# Elements of Programming {sec-elements-programming}
 
 > "Programming is not about typing, it's about thinking." — Rich Hickey (2011)
 
@@ -21,6 +21,22 @@ We will build up the concepts over this and the following chapter:
 - This chapter will provide a survey of important concepts in computer science that will prove useful for our financial modeling. First, we will talk about data types, boolean logic, and basic expressions. We'll build on those to discuss algorithms (functions) which perform useful work and use control flow and recursion. 
 - The following chapter will step back and discuss higher level concepts: the "schools of thought" around organizing the relationship between data and functions (functional versus object-oriented programming), design patterns, computational complexity, and compilation.
 
+## Assignment and Variables
+
+One of the first things it will be convienient to understand is the concept of variables. In virtually every programming language, we can assign values to make our program more organized and meaningul to the human reader. In the following example, we assign values to intermediate symbols to benefit us humons as we convert (silly!) American distance units:
+
+```{julia}
+feet_per_yard = 3
+yards_per_mile = 1760
+
+feet = 3000
+miles = feet / feet_per_yard / yards_per_mile
+```
+
+Beyond readability, variables are a form of **abstraction** which allows us to think beyond specific instances of data and numbers to a more general representation. For example, the last line in the prior code example is a very generic computation of a unit converion relationship and `feet` could be any number and the expression remains a valid calculation. 
+
+We will return to this subject in more detail in @ref-assignment.
+
 ## Data Types
 
 Data types are a way of categorizing information by intrinsic characteristics. We instinctively know that `13.24` is different than `"this set of words"` and types are how we will formalize this distinction. This is a key conceptual point, and mathematically it's like we have different sets of objects to perform specialized operations on. Beyond this set-like abstraction is implementation details related to computer hardware. You probably know that computers only natively "speak" in binary zeros and ones. Data types are a primary way that a computer can understand if it should interpret `01000010` as `B` or as `66`[^2].
@@ -33,7 +49,7 @@ Each `0` or `1` within a computer is called a **bit** and eight bits in a row fo
 
 ### Numbers {#sec-number-types}
 
-Numbers are usually grouped into two categories: **integers** and **floating-point**[^4] numbers. Integers are like the mathematical set of integers while floating-point is a way of representing decimal numbers. Both have some limitations since computers can only natively represent a finite set of numbers due to the hardware (more on this in @sec-hardware). Here are three integers:
+Numbers are usually grouped into two categories: **integers** and **floating-point**[^4] numbers. Integers are like the mathematical set of integers while floating-point is a way of representing decimal numbers. Both have some limitations since computers can only natively represent a finite set of numbers due to the hardware (more on this in @sec-hardware). Here are three integers that are input into the **REPL** (Read-Eval-Print-Loop)^[That is, it *reads* the code input from the user, *evaluates* what code was given to it, *prints* the result of the input to the screen, and *loops* through the process again.] and the result is **printed** below the input:
 
 [^4]: The term floating point refers to the fact that the number's radix (decimal) point can "float" between the significant digits of the number.
 
@@ -74,11 +90,18 @@ On most systems, `0.2` will be interpreted as a 64-bit floating point type calle
 This leads to special considerations that computers take when performing calculations on floating point maths, some of which will be covered in more detail in @sec-hardware. For now, just note that floating point numbers have limited precision and even if we input `0.2`, your computations will use the above decimal representations even if it will print out a number with fewer digits shown:
 
 ```{julia}
-x = 0.2
-# using arbitrary precision instead of
-# being limited to 32/64 bits
-big(x)
+x = 0.2 # <1>
+
+big(x) # <2>
 ```
+1. Here, we **assign** the value `0.2` to a **variable** `x`. More on variables/assignments in @sec-assignment.
+2. `big(x)` is a arbitrary precision floating point number and by default prints the full precision that was embedded in our variable `x`, which was originally `Float64`.
+
+::: {.callout-note}
+Note the difference in what printed between the last example and when we input `0.2` earlier in the chapter. The former had the same (not-exactly equal to $0.2$) *value*, but it printed an abbreviated set of digits as a nicety for the user, who usally doesn't want to look at floating point numbers with their full machine precision. The system has the full precision (`0.20...3125`) but is truncating the ouput. 
+
+In the last example, we've converted the normal `Float64` to a `BigFloat` which will not truncate the output when printing.
+:::
 
 Integers are similarly represented as 32 or 64 bits (with `Int32` and `Int64`) and are limited to exact precision:
 
@@ -133,6 +156,10 @@ The integer and floating point types described in the prior section are known as
 
 ### Arrays
 
+::: {.column-margin}
+[]{.juliadots} Julia has very powerful and friendly array types.
+
+:::
 Arrays are the most common way to represent a collection of similar data. For example, we can represent a set of integers as follows:
 
 ```{julia}
@@ -154,6 +181,58 @@ Note the above two arrays are different types of arrays. The first is `Vector{In
 ```
 
 However, if we explicitly ask Julia to use a `Real`-typed array, the type is now `Vector{Real}`. Recall that `Real` is an abstract type. Having heterogeneous types within the array is conceptually fine, but in practice limits performance. Again, this will be covered in more detail in @sec-hardware.
+
+In Julia, arrays can be multi-dimensional. Here are are two three-dimensional arrays with length three in each dimension:
+
+```{julia}
+rand(3,3,3)
+```
+
+```{julia}
+[ x + y + z for x in 1:3, y in 11:13, z in 21:23 ]
+```
+
+The above example demonstrates **array comprehension** syntax which is a convienient way to create arrays in Julia.
+
+A two-dimensional array has the rows by semi-colons (`;`):
+
+```{julia}
+x = [1 2 3; 4 5 6]
+```
+
+
+::: {.callout-note}
+In Julia, a `Vector{Float64}` is simply a one-dimensional array of floating pointsand a `Matrix{Float64}` is a two-dimentional array. More precisely, they are **type aliases** of the more generic `Array{Float64,1}` and `Array{Float64,2}` names.
+:::
+
+#### Array indexing
+
+Array elements are accessed with the integer position, starting at `1` for the first element^[Whether an index starts at `1` or `0` is sometimes debated. Zero-based indexing is natural in the context of low-level programming which deal with bits and positional *offsets* in computer memory. For higher level programming one-based indexing is more natural: in a set of data stored in an array,  it is much more natural to reference the *first* (through $n^{th}$) datum instead of the *zeroth* (through $(n-1)^{th}$ datum.] ^[Arrays in Julia can actually be indexed with an arbitrary starting point: see the package [OffsetArrays.jl](https://github.com/JuliaArrays/OffsetArrays.jl)]:
+
+```{julia}
+v = [10,20,30,40,50]
+v[2]
+```
+
+We can also access a subset of the vector's contents by passing a range:
+
+```{julia}
+v[2:4]
+```
+
+And we can generically reference the array's contents, such as:
+
+```{julia}
+v[begin+1:end-1]
+```
+
+We can assign values into the array as well, as well as combine arrays and push new elements to the end:
+
+```{julia}
+v[2] = -1
+push!(v,5)
+vcat(v,[1,2,3])
+```
 
 ### Characters, Strings, and Symbols
 
@@ -188,15 +267,19 @@ The output above shows the `\n` character contained within the string.
 
 ### Creating User Defined Types
 
+### Parametric Types
+
 ## Expressions and Control Flow
 
-### Assignment and Variables
-
-## Functions
+### More on Assignment and Variables {#sec-assignment}
 
 ### Operators
 
 unary/binary
+
+## Functions
+
+### Broadcasting
 
 ## Scope
 
