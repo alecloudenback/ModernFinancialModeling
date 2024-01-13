@@ -1,0 +1,290 @@
+# Elements of Programming {sec-elements-programming}
+
+> "Programming is not about typing, it's about thinking." — Rich Hickey (2011)
+
+## In this section
+
+Start building up computer science concepts by introducing tangible programming essentials. Data types, variables, control flow, functions, and scope are introduced.
+
+## Computer Science, Programming, and Coding
+
+Computer Science is the study of computing and information. As a science, it is distinct from programming languages which are merely coarse implementations of specific computer science concepts[^1]. Programming (or "coding") is the art and science of writing code in programming languages to have the computer perform desired tasks. While this may sound mechanistic, programming truly is one of the highest forms of abstract thinking and the design space of potential solutions is so large and potentially complex that much art and experience is needed to create a well-made program.
+
+[^1]: Said differently, computer science may contemplate ideas and abstractions more generally than a specific implementation, as in mathematics where a theorem may be proved ($a^2 + b^2 = c^2$) without resorting to specific numeric examples ($3^2 + 4^2 = 5^2$).
+
+The language of computer science also provides a lexicon so that financial practitioners can discuss model architecture and problem characteristics. Having the language to describe a concept will also help see aspects of the problem in new ways, opening one up to more innovative solutions.
+
+In the context of this financial modeling that we do, we can consider a financial model to be a type of computer program. It takes as input abstract information (data), performs calculations (an algorithm), and returns new data as an output. In this context, we generally do not need to consider many things that a software engineer may contemplate such as a graphical user interface, networking, or access restrictions. But there are many similarities: a good financial modeler must understand data types, algorithms, and some hardware details.
+
+We will build up the concepts over this and the following chapter:
+
+- This chapter will provide a survey of important concepts in computer science that will prove useful for our financial modeling. First, we will talk about data types, boolean logic, and basic expressions. We'll build on those to discuss algorithms (functions) which perform useful work and use control flow and recursion. 
+- The following chapter will step back and discuss higher level concepts: the "schools of thought" around organizing the relationship between data and functions (functional versus object-oriented programming), design patterns, computational complexity, and compilation.
+
+## Assignment and Variables
+
+One of the first things it will be convienient to understand is the concept of variables. In virtually every programming language, we can assign values to make our program more organized and meaningul to the human reader. In the following example, we assign values to intermediate symbols to benefit us humons as we convert (silly!) American distance units:
+
+```{julia}
+feet_per_yard = 3
+yards_per_mile = 1760
+
+feet = 3000
+miles = feet / feet_per_yard / yards_per_mile
+```
+
+Beyond readability, variables are a form of **abstraction** which allows us to think beyond specific instances of data and numbers to a more general representation. For example, the last line in the prior code example is a very generic computation of a unit converion relationship and `feet` could be any number and the expression remains a valid calculation. 
+
+We will return to this subject in more detail in @ref-assignment.
+
+## Data Types
+
+Data types are a way of categorizing information by intrinsic characteristics. We instinctively know that `13.24` is different than `"this set of words"` and types are how we will formalize this distinction. This is a key conceptual point, and mathematically it's like we have different sets of objects to perform specialized operations on. Beyond this set-like abstraction is implementation details related to computer hardware. You probably know that computers only natively "speak" in binary zeros and ones. Data types are a primary way that a computer can understand if it should interpret `01000010` as `B` or as `66`[^2].
+
+[^2]: This binary representations correspond to `B` and `66` with the *ASCII character set* and 8-bit integer encodings, discussed later in this chapter.
+
+Each `0` or `1` within a computer is called a **bit** and eight bits in a row form a **byte** (such as `01000010` ). This is where we get terms like "gigabytes" or "kilobits per second" as a measure of the quantity or rate of bits something can handle[^3].
+
+[^3]: Some distinctions you may encounter: in short-form, "kb" means kilo*bits* while the upper-case "B" in "kB" means kilo*bytes*. Also confusingly, sometimes the "k" can be binary or decimal - because computers speak in binary, a binary "k" means 1024 (equal to 2\^10) instead of the usual decimal 1000. In most computer contexts, the binary (multiples of 1024) is more common.
+
+### Numbers {#sec-number-types}
+
+Numbers are usually grouped into two categories: **integers** and **floating-point**[^4] numbers. Integers are like the mathematical set of integers while floating-point is a way of representing decimal numbers. Both have some limitations since computers can only natively represent a finite set of numbers due to the hardware (more on this in @sec-hardware). Here are three integers that are input into the **REPL** (Read-Eval-Print-Loop)^[That is, it *reads* the code input from the user, *evaluates* what code was given to it, *prints* the result of the input to the screen, and *loops* through the process again.] and the result is **printed** below the input:
+
+[^4]: The term floating point refers to the fact that the number's radix (decimal) point can "float" between the significant digits of the number.
+
+```{julia}
+2
+```
+
+```{julia}
+423
+```
+
+```{julia}
+1929234
+```
+
+And three floating-point numbers:
+
+```{julia}
+0.2
+```
+
+```{julia}
+-23.3421
+```
+
+```{julia}
+14e3      # the same as 14,000.0
+```
+
+On most systems, `0.2` will be interpreted as a 64-bit floating point type called `Float64` in Julia since most architectures these days are 64-bit[^5], while on a 32-bit system `0.2` would be interpreted as a `Float32`. Given that there are a finite amount of bits attempting to represent a continuous, infinite set of numbers means that some numbers are not able to be represented with perfect precision. For example, if we ask for `0.2`, the closest representations in 64 and 32 bit are:
+
+[^5]: This means that their central processing units (CPUs) use instructions that are 64 bits long.
+
+-   `0.20000000298023223876953125` in 32-bit
+
+-   `0.200000000000000011102230246251565404236316680908203125` in 64-bit
+
+This leads to special considerations that computers take when performing calculations on floating point maths, some of which will be covered in more detail in @sec-hardware. For now, just note that floating point numbers have limited precision and even if we input `0.2`, your computations will use the above decimal representations even if it will print out a number with fewer digits shown:
+
+```{julia}
+x = 0.2 # <1>
+
+big(x) # <2>
+```
+1. Here, we **assign** the value `0.2` to a **variable** `x`. More on variables/assignments in @sec-assignment.
+2. `big(x)` is a arbitrary precision floating point number and by default prints the full precision that was embedded in our variable `x`, which was originally `Float64`.
+
+::: {.callout-note}
+Note the difference in what printed between the last example and when we input `0.2` earlier in the chapter. The former had the same (not-exactly equal to $0.2$) *value*, but it printed an abbreviated set of digits as a nicety for the user, who usally doesn't want to look at floating point numbers with their full machine precision. The system has the full precision (`0.20...3125`) but is truncating the ouput. 
+
+In the last example, we've converted the normal `Float64` to a `BigFloat` which will not truncate the output when printing.
+:::
+
+Integers are similarly represented as 32 or 64 bits (with `Int32` and `Int64`) and are limited to exact precision:
+
+-   -32,767 to 32,767 for `Int32`
+
+-   -2,147,483,647 to 2,147,483,647 for `Int64`
+
+Additional range in the positive direction if one chooses to use "unsigned", non-negative numbers (`UInt32` and `UInt64`). Unlike floating point numbers, the integers have a type `Int` which will use the system bit architecture by default (that is, `Int(30)` will create a 64 bit integer on 64-bit systems and 32-bit on 32-bit systems)
+
+### Type Hierarchy
+
+We can describe a *hierarchy* of types. Both `Float64` and `Int64` are examples of `Real` numbers (here, `Real` is an **abstract** Julia type which corresponds to the mathematical set of real numbers commonly denoted with $\mathbb{R}$ ). Both `Float64` and `Int32` are `Real` numbers, so why not just define all numbers as a `Real` type? Because for performant calculations, the computer must know in advance how many bits each number is represented with.
+
+@fig-julia-numeric-types shows the type hiearchy for most built-in Julia number types.
+
+```{mermaid}
+%%| label: fig-julia-numeric-types
+%%| fig-cap: "Numeric Type Hierarchy in Julia. Leafs of the tree are concrete types."
+%%| fig-width: 6.5
+graph TD
+    Number --> Real
+    Number --> Complex
+
+    Real --> Integer
+    Real --> AbstractFloat
+    Real --> Rational
+    Real --> Irrational
+
+    Integer --> Signed
+    Integer --> Unsigned
+
+    Signed --> Int8
+    Signed --> Int16
+    Signed --> Int32
+    Signed --> Int64
+    Signed --> Int128
+    Signed --> BigInt
+
+    Unsigned --> UInt8
+    Unsigned --> UInt16
+    Unsigned --> UInt32
+    Unsigned --> UInt64
+    Unsigned --> UInt128
+
+    AbstractFloat --> Float16
+    AbstractFloat --> Float32
+    AbstractFloat --> Float64
+    AbstractFloat --> BigFloat
+```
+
+The integer and floating point types described in the prior section are known as **concrete** types because there are no possible sub types (child types). Further, a concrete type can be a **bit type** if the data type will always have the same number of bits in memory: a `Float32` will always be 32 bits in memory, for example. Contrast this with strings (described below) which can contain an arbitrary number of characters.
+
+### Arrays
+
+::: {.column-margin}
+[]{.juliadots} Julia has very powerful and friendly array types.
+
+:::
+Arrays are the most common way to represent a collection of similar data. For example, we can represent a set of integers as follows:
+
+```{julia}
+[1, 10, 300]
+```
+
+And a floating point array:
+
+```{julia}
+[0.2, 1.3, 300.0]
+```
+
+Note the above two arrays are different types of arrays. The first is `Vector{Int64}` and the second is `Vector{Float64}`. These are arrays of concrete types and so Julia will know that each element of an array is the same amount of bits which will enable more efficient computations. With the following set of mixed numbers, Julia will **promote** the integers to floating point since the integers can be accurately represented[^6] in floating point.
+
+[^6]: Accurate only to a limited precision, as described in @sec-number-types.
+
+```{julia}
+[1, 1.3, 300.0, 21]
+```
+
+However, if we explicitly ask Julia to use a `Real`-typed array, the type is now `Vector{Real}`. Recall that `Real` is an abstract type. Having heterogeneous types within the array is conceptually fine, but in practice limits performance. Again, this will be covered in more detail in @sec-hardware.
+
+In Julia, arrays can be multi-dimensional. Here are are two three-dimensional arrays with length three in each dimension:
+
+```{julia}
+rand(3,3,3)
+```
+
+```{julia}
+[ x + y + z for x in 1:3, y in 11:13, z in 21:23 ]
+```
+
+The above example demonstrates **array comprehension** syntax which is a convienient way to create arrays in Julia.
+
+A two-dimensional array has the rows by semi-colons (`;`):
+
+```{julia}
+x = [1 2 3; 4 5 6]
+```
+
+
+::: {.callout-note}
+In Julia, a `Vector{Float64}` is simply a one-dimensional array of floating pointsand a `Matrix{Float64}` is a two-dimentional array. More precisely, they are **type aliases** of the more generic `Array{Float64,1}` and `Array{Float64,2}` names.
+:::
+
+#### Array indexing
+
+Array elements are accessed with the integer position, starting at `1` for the first element^[Whether an index starts at `1` or `0` is sometimes debated. Zero-based indexing is natural in the context of low-level programming which deal with bits and positional *offsets* in computer memory. For higher level programming one-based indexing is more natural: in a set of data stored in an array,  it is much more natural to reference the *first* (through $n^{th}$) datum instead of the *zeroth* (through $(n-1)^{th}$ datum.] ^[Arrays in Julia can actually be indexed with an arbitrary starting point: see the package [OffsetArrays.jl](https://github.com/JuliaArrays/OffsetArrays.jl)]:
+
+```{julia}
+v = [10,20,30,40,50]
+v[2]
+```
+
+We can also access a subset of the vector's contents by passing a range:
+
+```{julia}
+v[2:4]
+```
+
+And we can generically reference the array's contents, such as:
+
+```{julia}
+v[begin+1:end-1]
+```
+
+We can assign values into the array as well, as well as combine arrays and push new elements to the end:
+
+```{julia}
+v[2] = -1
+push!(v,5)
+vcat(v,[1,2,3])
+```
+
+### Characters, Strings, and Symbols
+
+Characters are represented in most programming languages as letters within quotation marks. In Julia, individual characters are represented using single quotes:
+
+```{julia}
+'a'
+```
+
+Letters and other characters present more difficulties than numbers to represent within a computer (think of how many languages and alphabets exist!), and it essentially only works because the world at large has agreed to a given representation. Originally **ASCII** (American Standard Code for Information Interchange) was used to represent just 95 of the most common English characters ("a" through "z", zero through nine, etc.). Now, UTF (Unicode Transformation Format) can encode more than a million characters and symbols from many human languages.
+
+**Strings** are a collection[^7] of characters, and can be created in Julia with double quotes:
+
+[^7]: Under the hood, strings are essentially a vector of characters but there are complexities with character encoding that don't allow a lossless conversion to individual characters of uniform bit length. This is for historical compatibility reasons and to avoid making most documents' file sizes larger than it needs to be.
+
+```{julia}
+"hello world"
+```
+
+It's easy to ascertain how 'normal' characters can be inserted into a string, but what about things like new lines or tabs? They are represented by their own characters but are normally not printed in computer output. However, those otherwise invisible characters do exist. For example, here we will use a **string literal** (indicated by the `"""` ) to tell Julia to interpret the string as given, including the invisible new line created by hitting return on the keyboard between the two words:
+
+```{julia}
+"""
+hello
+world
+"""
+```
+
+The output above shows the `\n` character contained within the string.
+
+**Symbols** are a way of representing an identifier which cannot be seen as a collection of individual characters. `:helloworld` is distinct from `"helloworld"` - you can kind of think of the former as an un-executed bit of code - if we were to execute it (with `eval(:helloworld)`), we would get an error `` UndefVarError: `a` not defined `` . Symbols can *look* like strings but do not behave like them. For now, it is best to not worry about symbols but it is an important aspect of Julia which allows the language to represent aspects of itself as data. This allows for powerful self-reference and self-modification of code but this is a more advanced topic generally out of scope of this book.
+
+### Creating User Defined Types
+
+### Parametric Types
+
+## Expressions and Control Flow
+
+### More on Assignment and Variables {#sec-assignment}
+
+### Operators
+
+unary/binary
+
+## Functions
+
+### Broadcasting
+
+## Scope
+
+### Local Scope
+
+### Global Scope
+
+### Modules
