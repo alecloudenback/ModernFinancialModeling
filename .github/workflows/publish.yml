@@ -14,8 +14,22 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Download and Install Fonts
+        run: |
+          # Download the ZIP file
+          curl -L -o fonts.zip https://github.com/cormullion/juliamono/releases/download/v0.053/JuliaMono.zip
+
+          # Unzip the file
+          unzip fonts.zip -d ./fonts
+
+          # Install fonts (example for Linux)
+          sudo cp ./fonts/*.ttf /usr/share/fonts/
+          sudo fc-cache -fv
+
       - name: Set up Quarto
         uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          tinytex: true 
 
       - name: Install Python and Dependencies
         uses: actions/setup-python@v4
@@ -30,11 +44,10 @@ jobs:
             version: '1'
       - name: Install dependencies
         run: julia -e 'import Pkg; Pkg.add("IJulia"); using IJulia' 
-
+        
       - name: Render and Publish
         uses: quarto-dev/quarto-actions/publish@v2
         with:
-          to: html
           target: gh-pages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
