@@ -25,12 +25,12 @@ We will build up the concepts over this and the following chapter:
 There will be brief references to hardware considerations for completeness, but hardware knowledge is not necessary to understand most programming languages (including Julia). It's impossible to completely avoid talking about hardware when you care about the performance of your code, so feel free to gloss over the reference to hardware details on the first read and come back later after @sec-hardware.
 :::
 
-It's highly recommended that you follow along and have a Julia session open (e.g. a REPL or a notebook) when first going through this chapter. See @sec-julia-basics if you haven't gotten that set up yet. Follow along with the examples as we go. 
+It's highly recommended that you follow along and have a Julia session open (e.g. a REPL or a notebook) when first going through this chapter. See @sec-julia-basics if you haven't gotten that set up yet. Follow along with the examples as we go.
 
 ::: callout-tip
 You can get some help in the REPL by typing a `?` followed by the symbol you want help with, for example:
 
-```julia-repl
+``` julia-repl
  help?> sum
 search: sum sum! summary cumsum cumsum! isnumeric MethodSummary VersionNumber issubnormal get_zero_subnormals
 
@@ -300,18 +300,20 @@ Tuples are a set of values that belong together and are denoted by a values insi
 ```{julia}
 x = 3
 y = 4
-location = (x, y)
+p1 = (x, y)
 ```
 
 Tuple's values can be accessed like arrays:
 
-`{location[1]}`
+```{julia}
+p1[1]
+```
 
 Tuples fill a middle ground between scalar types and arrays in more ways that one:
 
 -   Tuples have no problem having heterogeneous types in the different slots.
 
--   Tuples are **immutable**, meaning that you cannot overwrite the value in memory.
+-   Tuples are **immutable**, meaning that you cannot overwrite the value in memory (an error will be thrown if we try to do `p[1] = 5`).
 
 -   It's generally expected that within an array, you would be able to apply the same operation to all the elements (e.g. square each element) or do something like sum all of the elements together which isn't generally case for a tuple.
 
@@ -324,13 +326,13 @@ Tuples fill a middle ground between scalar types and arrays in more ways that on
 Named tuples provide a way to give each field within the tuple a specific name. For example, our x-y coordinate example above could become:
 
 ```{julia}
-location2 = (x=3, y=4)
+p2 = (x=3, y=4)
 ```
 
 The benefit is that we can give more meaning to each field and access the values in a nicer way. Previously, we used `location[1]` to access the x-value, but with the new definition we can access it by name:
 
 ```{julia}
-location2.x
+p2.x
 ```
 
 ### Parametric Types
@@ -338,7 +340,7 @@ location2.x
 We just saw how tuples can contain heterogeneous types of data inside a common container. Let's look at this a little bit closer by looking at the full type:
 
 ```{julia}
-typeof(location)
+typeof(p1)
 ```
 
 `location` is a `Tuple{Int64,Int64}` type, which means that its first and second elements are both `Int64`. Contrast this with:
@@ -359,16 +361,18 @@ struct BasicPoint
     y::Int64
 end
 
-p1 = BasicPoint(3, 4)
+p3 = BasicPoint(3, 4)
 ```
 
 Fields are accessed the same way as named tuples:
 
 ```{julia}
-p1.x, p1.y
+p3.x, p3.y # <1>
 ```
 
-Line 1 Note that here, Julia will return a tuple instead of a single value due to the comma separated expressions.
+1.  Note that here, Julia will return a tuple instead of a single value due to the comma separated expressions.
+
+`structs` in Julia are immutable like tuples above.
 
 But wait, didn't tuples let us mix types too via parametric types? Yes, and we can do the same with our type!
 
@@ -384,27 +388,27 @@ Line 1 The `{T}` after the type's name allows for different `Point`s to be creat
 Here's two new points which now have different types:
 
 ```{julia}
-p2 = Point(1, 4)
-p3 = Point(2.0, 3.0)
+p4 = Point(1, 4)
+p5 = Point(2.0, 3.0)
 
-p2, p3
+p4, p5
 ```
 
 Note that the types are not equal because they have different type parameters!
 
 ```{julia}
-typeof(p2), typeof(p3), typeof(p2) == typeof(p3)
+typeof(p4), typeof(p5), typeof(p4) == typeof(p5)
 ```
 
 But both are now subtypes of `PPoint2D`. The expression `X isa Y` is `true` when `X` is a (sub)type of `Y`:
 
 ```{julia}
-p2 isa Point, p3 isa Point
+p4 isa Point, p5 isa Point
 ```
 
 Note though, that the `x` and `y` are both of the same type in each `PPoint2D` that we created. If instead we wanted to allow the coordinates to be of different types, then we could have defined `PPoint2D` as follows:
 
-```julia
+``` julia
 struct Point{T,U}
     x::T
     y::U
@@ -414,7 +418,7 @@ end
 ::: callout-note
 Can we define the `struct`s above without indicating a (parametric) type? Yes!
 
-```julia
+``` julia
 struct Point
     x # no type here!
     y # no type declared here either!
@@ -451,19 +455,134 @@ struct Polar2D{T} <: PolarCoordinate
 end
 ```
 
-::: {.callout-tip}
+::: callout-tip
 ## Unicode Characters
 
-Julia has wonderful Unicode support, meaning that it's not a problem to include characters like θ
-:::
+Julia has wonderful Unicode support, meaning that it's not a problem to include characters like `θ`. The character can be typed in Julia editors by entering `\theta` and then pressing the TAB key on the keyboard.
 
+Unicode is helpful for following conventions that you may be used to in math. For example, the math formula $\text{circumference}(r) = 2 \times r \times \pi$ can be written in Julia with `circumference(r) = 2 * r * π`.
+
+The name for the characters follows the same for LaTeX, so you can search the internet for,e.g. "theta LaTeX" to find the appropriate name. Furhter, you can use the REPL help mode to find out how to enter a character if you can copy and paste it from somewhere:
+
+``` julia-repl
+help?> θ
+"θ" can be typed by \theta<tab>
+```
+:::
 
 ### Mutable structs
 
+It is possible to define `struct`s where the data can be modified - such a data field is said to be **mutable** because it can be changed or mutated. Here's an example of what it would look like if we made `Point2D` mutable:
+
+``` julia
+mutable struct Point2D{T}
+    x::T
+    y::T
+end
+```
+
+You may find that this more naturally represents what you are trying to do. However, recall that an advantage of an immutable datatype is that costly memory doesn't necessarily have to be allocated for it. So you may think that you're being more efficient by re-using the same object... but it may not actually be faster. Again, more will be revealed in @sec-hardware.
+
+::: callout-tip
+## Financial Modeling Pro-tip
+
+Generally you should default to using immutable types and consider only moving to `mutable` types in specific circumstances. You'll see some examples in the applications later in the book.
+:::
 
 ## Expressions and Control Flow
 
+Having already seen some more illustrative examples above, we can zoom in onto smaller pieces called **expressions** which are effectively the basic block of code that gets evaluated. Here is an expression that adds two integers together that evaluate to a new integer (`3` in this case):
+
+```{julia}
+1 + 2
+```
+
+### Compound Expression
+
+There's two kinds of blocks where we can ensure that subexpressions get evaluated in order and return the last expression as the overall return value: `begin` and `let` blocks.
+
+```{julia}
+c = begin
+    a = 3
+    b = 4
+    a + b
+end
+
+a, b, c
+```
+
+The variables inside the `begin` block are evaluated in the same scope as `c` and therefore have the assigned values when we call `a` and `b` in the last line. Contrast that with the `let` block below, where `d` and `e` are not available when we try to get the value of `f`. This is because `let` creates a new inner scope that's not available in `f`'s scope. More on scope later in the chapter.
+
+```{julia}
+
+f = let
+    d = 1
+    e = 2
+    d + e
+end
+f
+```
+
+```{julia}
+#| error: true
+d
+```
+
 ### Conditional Expressions
+
+**Conditionals** are expressions that evaluate to a **boolean** `true` or `false`. This is the beginning of really being able to assemble complex logic to perform useful work. Here are a handful expressions that would evaluate to `true`:
+
+```         
+1 > 0
+1 == 1
+Float64 isa Rational
+(5 > 0) & (-1 < 2) # "and" expression
+(5 > 0) | (-1 > 2) # "or" expression
+1 != 2
+```
+
+#### Equality
+
+The "Ship of Theseus[^foundations-of-programming-12]" problem is an example of how equality can be philosophically complex concept. In computer science we have the advantage that while we may not be able to resolve what's the "right" type of equality, we can be more precise about it.
+
+[^foundations-of-programming-12]: The Ship of Theseus problem specifically refers to a legendary ancient Greek ship, owned by the hero Theseus. The paradox arises from the scenario where, over time, each wooden part of the ship is replaced with identical materials, leading to the question of whether the fully restored ship is still the same ship as the original. The Ship of Theseus problem is a thought experiment in philosophy that explores the nature of identity and change. It questions whether an object that has had all of its components replaced remains fundamentally the same object.
+
+Here is an example for which we can see the difference between two types of equality:
+
+-   **Egal** equality is when a program could not distinguish between two objects at all
+
+-   **Equal** equality is when the values of two objects are the same
+
+If two things are egal, then they are also equal.
+
+In the following example, `s` and `t` are equal but not egal:
+
+```{julia}
+s = [1, 2, 3]
+t = [1, 2, 3]
+s == t, s === t
+```
+
+One way to think about this is that while the values are equal, there is a way that one of the arrays could be made not equal to the other:
+
+```{julia}
+t[2] = 5
+t
+```
+
+Now `t` is no longer equal to `s`:
+
+```{julia}
+s == t
+```
+
+Recall that arrays are able to be modified, but other types like tuples are immutable. Immutable types with the same value are egal because there is no way for us to make them different:
+
+```{julia}
+(2, 4) === (2, 4)
+```
+
+Using this terminology, we could now interpret the "Ship of Theseus" as that his ship is "equal" but not "egal".
 
 ### More on Assignment and Variables {#sec-assignment}
 
