@@ -27,7 +27,7 @@ There will be brief references to hardware considerations for completeness, but 
 
 It's highly recommended that you follow along and have a Julia session open (e.g. a REPL or a notebook) when first going through this chapter. See @sec-julia-basics if you haven't gotten that set up yet. Follow along with the examples as we go.
 
-::: callout-tip
+::: {.callout-tip .column-page}
 You can get some help in the REPL by typing a `?` followed by the symbol you want help with, for example:
 
 ``` julia-repl
@@ -63,9 +63,9 @@ We will return to this subject in more detail in @ref-assignment.
 
 Data types are a way of categorizing information by intrinsic characteristics. We instinctively know that `13.24` is different than `"this set of words"` and types are how we will formalize this distinction. This is a key conceptual point, and mathematically it's like we have different sets of objects to perform specialized operations on. Beyond this set-like abstraction is implementation details related to computer hardware. You probably know that computers only natively "speak" in binary zeros and ones. Data types are a primary way that a computer can understand if it should interpret `01000010` as `B` or as `66`[^foundations-of-programming-2].
 
-[^foundations-of-programming-2]: This binary representations correspond to `B` and `66` with the *ASCII character set* and 8-bit integer encodings, discussed later in this chapter.
+[^foundations-of-programming-2]: This binary representations correspond to `B` and `66` with the *ASCII character set* and 8-bit integer encodings respectely, discussed later in this chapter.
 
-Each `0` or `1` within a computer is called a **bit** and eight bits in a row form a **byte** (such as `01000010` ). This is where we get terms like "gigabytes" or "kilobits per second" as a measure of the quantity or rate of bits something can handle[^foundations-of-programming-3].
+Each `0` or `1` within a computer is called a **bit** and eight bits in a row form a **byte** (such as `01000010`). This is where we get terms like "gigabytes" or "kilobits per second" as a measure of the quantity or rate of bits something can handle[^foundations-of-programming-3].
 
 [^foundations-of-programming-3]: Some distinctions you may encounter: in short-form, "kb" means kilo*bits* while the upper-case "B" in "kB" means kilo*bytes*. Also confusingly, sometimes the "k" can be binary or decimal - because computers speak in binary, a binary "k" means 1024 (equal to 2\^10) instead of the usual decimal 1000. In most computer contexts, the binary (multiples of 1024) is more common.
 
@@ -134,7 +134,14 @@ Integers are similarly represented as 32 or 64 bits (with `Int32` and `Int64`) a
 
 -   -2,147,483,647 to 2,147,483,647 for `Int64`
 
-Additional range in the positive direction if one chooses to use "unsigned", non-negative numbers (`UInt32` and `UInt64`). Unlike floating point numbers, the integers have a type `Int` which will use the system bit architecture by default (that is, `Int(30)` will create a 64 bit integer on 64-bit systems and 32-bit on 32-bit systems)
+Additional range in the positive direction if one chooses to use "unsigned", non-negative numbers (`UInt32` and `UInt64`). Unlike floating point numbers, the integers have a type `Int` which will use the system bit architecture by default (that is, `Int(30)` will create a 64 bit integer on 64-bit systems and 32-bit on 32-bit systems).
+
+::: callout-tip
+## Financial Modeling Pro-tip
+Excel's numeric storage and routine is complex and not quite the same as most programming languages, which follow the Institute of Electrical and Electronics Engineer's standards (such as the IEEE 754 standard for double precision floating point numbers). Excel uses IEEE for the _computations_ but results (and therefore the cells that comprise many calculations interim values) are stored with 15 significant digits of information. In some ways this is the worst of both worlds: having the sometimes unusual (but well-defined) behavior of floating point arithmetic *and* having additional modifications to various steps of a calculation. In general, you can assume that the programming language result (following the IEEE 754 standard) is a better result because there are aspects to the IEEE 754 defines techniques to minimize issues that arise in floating point math. Some of the issues (round-off or truncation) can be amplified instead of minimized with Excel.
+
+In practice, this means that it can be difficult to exactly replicate a calculation in Excel in a progamming language and vice-versa. It's best to try to validate a programming model versus Excel model using very small unit calculations (e.g. a single step or iteration of a routine) instead of an all-in result. You may need to define some tolerance threshold for comparison of a value that is the result of a long chain of calculation.
+:::
 
 ### Type Hierarchy
 
@@ -584,21 +591,250 @@ Recall that arrays are able to be modified, but other types like tuples are immu
 
 Using this terminology, we could now interpret the "Ship of Theseus" as that his ship is "equal" but not "egal".
 
-### More on Assignment and Variables {#sec-assignment}
+### Assignment and Variables {#sec-assignment}
 
-### Operators
+When we say `x = 2` we are **assigning** the integer value of `2` to the variable `x`. This is an expression that lets us bind a something to a variable so that it can be referenced more concisely or in different parts of our code. When we re-assign the variable we are not mutating the value: `x = 3` does not change the `2`. 
 
-unary/binary
+When we have a mutable object (e.g. an `Array` or a `mutable struct`), we can mutate the value inside the referenced container. For example:
+
+```{julia}
+x = [1, 2, 3] # <1>
+x[1] = 5 # <2>
+x
+```
+1. `x` refers to the array which currently contains the elements `1`, `2`, and `3`. 
+2. We re-assign the first element of the array to be the value `5` instead of `1`
+
+In the above example, `x` has not been reassigned. It is possible for two variables to refer ot the same object:
+
+```{julia}
+x = [1,2,3]
+y = x # <1>
+x[1] = 6
+y
+```
+
+1. `y` refers to the _same_ underyling array as `x`
+
+### Loops
+
+**Loops** are ways for the program to move through a program and repeat expressions while we want it to. There are two primary loops: `for` and `while`. 
+
+**`for` loops** are loops that iterate over a defined range or set of values. Let's assume that we have the array `v = [6,7,8]`. Here are multiple examples of using a `for` loop in order to print each value to output (`println`):
+
+```julia
+# use fixed indices
+for i in 1:3
+    println(v[i])
+end
+```
+
+```julia
+# use indices the of the array
+for i in eachindex(v)
+    println(v[i])
+end
+```
+
+```julia
+# use the elements of the array
+for x in v
+    println(x)
+end
+```
+
+```julia
+# use the elements of the array
+for x ∈ v          # ∈ is typed \in<tab>
+    println(x)
+end
+```
+
+**`while` loops** will run repeatedly until an expression is false. Here's some examples of printing each value of `v` again:
+
+```julia
+# index the array
+i = 1
+while i <= length(v) 
+    println(v[i])
+    global i += 1 #<1>
+end
+```
+1. `global` is used to incrment `i` by 1. `i` is defined outside the scope of the `while` loop (see @sec-scope).
+
+```julia
+# index the array
+i = 1
+while true
+    println(v[i])
+    if i >= length(v)
+        break # <1>
+    end
+    global i += 1 
+end
+```
+1. `break` is used to terminate the loop manually, since the condition that follows the `while` will never be false.
+
+### Performance of loops
+
+Loops are highly performant in Julia and often the fastest way to accomplish things. Those coming from Python or R may have developed a habit to avoid writing loops. _Fear the for loop not!_
 
 ## Functions
 
+Functions are a set of expressions that take inputs and return specified outputs. 
+
+### Special Operators
+
+Operators are the glue of expressions which combine values. We've already seen quite a few, but let's develop a little bit of terminology for these functions. 
+
+**Unary operators** are operators which only take a single argument. Examples include the `!` which negates a boolean value or `-` which negates a number:
+
+```{julia}
+!true, -5
+```
+
+**Binary operators** take two arguments and are some of the most common functions we encounter, such as `+` or `-` or `>`:
+
+```{julia}
+1 + 2, 1 - 2, 1 > 2
+```
+
+The above unary and binary operators are special kinds of functions which don't require the use of parenthesis. However, they can be written with parathesis for greater clarity:
+
+```{julia}
+!(true), -(5), +(1,2), -(1,2)
+```
+
+In Julia, we distinguish between **functions** which define behavior that maps a set of inputs to outputs. But a single function can adapt its behavior to the arguments themselves. We have just seen the function `-` be used in two different ways: negation and subtraction depending on whether it had one or two arguments given to it. In this way there is a conceptual heirarchy of functions that complements the hiearchy we have discussed in relation to types:
+
+- `-` is the overall function
+- `-(x)` is a unary function which negates its values, `-(x,y)` subtracts `y` from `x`
+- Specific methods are then created for each combination of concrete types: `-(x::Float64)` is a different method than `-(x::Int)` 
+
+**Methods** are specific compiled versions of the function for specific types. This is important because at a hardware level, operations for different types (e.g. integers versus floating point) differ considerably. By optimizing for the speicifc types Julia is able to achieve nearly ideal performance without the same sacrifices of other dynamic languages. We will develop more with respect to methods when we talk about dispatch in @sec-patterns-abstractions.
+
+### General Functions
+
+Funcitons more generally are defined like so:
+
+```{julia}
+function distance(point) # <1>
+    return sqrt(point.x^2 + point.y^2) # <2>
+end 
+```
+1. A `function` block is declared with the name `distance` which takes a single argumemnt called `point`
+2. We compute the distance formla for a point with x and y coordinates. The `return` value make explicit what value the function will output. 
+
+::: callout-note
+An alternate, simpler function syntax for `distance` would be:
+:::
+
+```julia
+distance(point) = sqrt(point.x^2 + point.y^2)
+```
+
+However, we might at this point note a flaw in our function's defintion if we think about the various `Coordinate`s we defined earler: our definition would currently only work for `Point2D`. For example, if we try a `Point3D` we will get the wrong answer:
+
+```{julia}
+distance(Point3D(1, 1, 1,))
+```
+
+The above value should be $\sqrt(3)$, or approximately $1.73205$. What we need to do is define a refined distance for each type, which we'll call `dist` to distinguish from the earlier definition. We'll also use the opportunity to introduce the syntax for documenting functions in Julia, which is simply to put a string (`"..."`) or string literal (`"""..."""`) right above the defintion.
+
+```{julia}
+"""
+    dist(point)
+
+The euclidean distance of a point from the origin.
+"""
+dist(p::Point2D) = sqrt(p.x^2 + p.y^2)
+dist(p::Point3D) = sqrt(p.x^2 + p.y^2 + p.z^2)
+dist(p::Polar2D) = p.r
+```
+
+Now our result will be correct:
+
+```{julia}
+dist(Point3D(1, 1, 1,))
+```
+
+In the next chapter we'll develop some more tools, which would, for example let us define the function `dist(p::CartesianCoordinate)` and generically define the distance for all of `CartesianCoordinate`'s subtypes.
+
+### Anonymous Functions
+
+**Anonymous functions** are functions that have no name and are used in contexts where the name does not matter. The syntax is `x -> ...expression with x...`. As an example, say that we want to create a vector from another where each element is squared. `map` applies a function to each member of a given collection:
+
+```{julia}
+v = [4, 1, 5]
+map(x -> x^2, v)  # <1>
+```
+
+1. The `x -> x^2` is the anonymous function in this example.
+
+They are often used when constructing something from another value, or defining a function within optimizaiton or solving routines.
+
 ### Broadcasting
 
-## Scope
+Looking at the prior definition of `dist`, what if we wanted to compute the squared distance from the origin for a set of points? If those points are stored in an array, we can **broadcast** functions to all members of a collection at the same time. This is accomplished using the **dot-syntax** as follows:
 
-### Local Scope
+```{julia}
+points = [Point2D(1, 2), Point2D(3, 4), Point2D(6, 7)]
+dist.(points) .^ 2
+```
 
-### Global Scope
+Let's unpack that a bit more:
+
+1. The `.` in `dist.(points)` tells Julia to apply the function `dist` to each element in `points`.
+2. The `.` in `.^` tells Julia to square each values as well
+
+Why broadcasting is useful:
+
+1. Without needing any redefinition of functions we were able to transform the function `dist` and exponentiation (`^`) to work on a collection of data. This means that we can keep our code simpler and easier to reason about (operating on individual things is easier than adding logic to handle collections of things).
+2. When multiple broadcasted operations are joined together, Julia can **fuse** the operations so that each operation is performed at the same time instead of each step sequentially. That is, if the operation were not fused, the computer would first calculate `dist` for each point, and then apply the square on the collection of distances. When it's fused, the operations can happen at the same time without creating an interim set of values.
+
+
+::: callout-note
+For readers coming from numpy-flavored Python  or R, broadcasting is a way that can feel at home if familiar with the array-oriented behavior of those two languages. Once you feel comfortable with Julia in general, you may find yourself relaxing and relying less on array-oriented design and instead picking whichever iteration paradigm feels most natural for the problem at hand: loops or broadcasting over arrays.
+:::
+
+## Scope {#sec-scope}
+
+In projects of even modest complexity, it can be challenging to come up with unique identifiers for different functions or variables. **Scope** refers to the bounds for which an identifier is available. We will often talk about the **local scope** that's inside some expression that creates a narrowly defined scope (such as a `function` or `let` or `module` block) or the **global scope** which is the top level scope that contains everything else inside of it. Here are a few examples to demonstrate scope.
+
+```{julia}
+i = 1 #<1>
+let #<2> 
+    j = 3 #<3>
+    i + j
+end
+```
+1. `i` is defined in the global scope and would be available to other inner scopes.
+2. The `let ... end` block creates a local scope which inherits the defined global scope definitions.
+3. `j` is only defined in the local scope created by the `let` block.
+
+
+In fact, if we try to use `j` outside of the scope defined above we will get an error:
+```{julia}
+#| error: true
+j
+```
+
+Here is an example with functions:
+
+```{julia}
+x = 2
+base = 10
+foo() = base ^ x #<1>
+foo(x) = base ^ x #<2>
+foo(x,base) = base ^ x #<3>
+
+foo(), foo(4), foo(4,4)
+```
+1. Both `base` and `x` are inherited from the global scope.
+2. `x` is based on the local scope from the function's arguments and `base` is inherited from the global scope.
+3. Both `base` and `x` are defined in the local scope via the function's arguments.
+
+In Julia, it's always best to explicitly pass arguments to functions rather than relying on them coming from an inherited scope. This is more straight-forward and easier to reason about and it also allows Julia to optimize the function to run faster because all relevant variables coming from outside the function are defined at the function's entry point (the arguments).
 
 ### Modules
 
