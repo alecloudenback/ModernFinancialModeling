@@ -1,5 +1,221 @@
 # Stochastic Mortality Projections
 
+[Drafting note: taken from a tutorial on JuliaActuary.org. Needs to be revised with more exposition.]
+
 ## In This Chapter
 
 A term life insurance policy is used to illustrate: selecting key model features, design tradeoffs between a few different approaches, and a discussion of the performance impacts of the different approaches to parallelism.
+
+```{julia}
+#| echo: false
+#| output: false
+using Pkg
+Pkg.activate("env/stochastic_mortality")
+Pkg.instantiate()
+```
+
+## Setup
+
+```{julia}
+#| output: false
+using CSV, DataFrames
+using MortalityTables, ActuaryUtilities
+using Dates
+using ThreadsX
+using BenchmarkTools
+using Random
+using CairoMakie
+```
+
+Define a datatype. Not strictly necessary, but will make extending the program with more functions easier.
+
+Type annotations are optional, but providing them is able to coerce the values to be all plain bits (i.e. simple, non-referenced values like arrays are) when the type is constructed. This makes the whole data be stored in the stack and is an example of data-oriented design. It's much slower without the type annotations (~0.5 million policies per second, ~50x slower).
+
+```{julia}
+@enum Sex Female = 1 Male = 2
+@enum Risk Standard = 1 Preferred = 2
+```
+
+```{julia}
+struct Policy
+    id::Int
+    sex::Sex
+    benefit_base::Float64
+    COLA::Float64
+    mode::Int
+    issue_date::Date
+    issue_age::Int
+    risk::Risk
+end
+```
+
+## The Data
+
+```{julia}
+sample_csv_data =
+    IOBuffer(
+        raw"id,sex,benefit_base,COLA,mode,issue_date,issue_age,risk
+         1,M,100000.0,0.03,12,1999-12-05,30,Std
+         2,F,200000.0,0.03,12,1999-12-05,30,Pref"
+    )
+```
+
+```{julia}
+policies = let
+
+    # read CSV directly into a dataframe
+    # df = CSV.read("sample_inforce.csv",DataFrame) # use local string for notebook
+    df = CSV.read(sample_csv_data, DataFrame)
+
+    # map over each row and construct an array of Policy objects
+    map(eachrow(df)) do row
+        Policy(
+            row.id,
+            row.sex == "M" ? Male : Female,
+            row.benefit_base,
+            row.COLA,
+            row.mode,
+            row.issue_date,
+            row.issue_age,
+            row.risk == "Std" ? Standard : Preferred,
+        )
+    end
+
+
+end
+```
+
+Define what mortality gets used:
+
+```{julia}
+mort = Dict(
+    Male => MortalityTables.table(988).ultimate,
+    Female => MortalityTables.table(992).ultimate,
+)
+
+function mortality(pol::Policy, params)
+    return params.mortality[pol.sex]
+end
+```
+
+This defines the core logic of the policy projection and will write the results to the given out container (here, a named tuple of arrays).
+
+This is using a threaded approach where it could be operating on any of the computer's available threads, thus acheiving thread-based parallelism - as opposed to multi-processor (multi-machine) or GPU-based computation, which requires formulating the problem a bit differently (array/matrix based). For the scale of computation here, I think I'd apply this model of parallelism.
+
+```{julia}
+function pol_project!(out, policy, params)
+    # some starting values for the given policy
+    dur = duration(policy.issue_date, params.val_date)
+    start_age = policy.issue_age + dur - 1
+    COLA_factor = (1 + policy.COLA)
+    cur_benefit = policy.benefit_base * COLA_factor^(dur - 1)
+
+    # get the right mortality vector
+    qs = mortality(policy, params)
+
+    # grab the current thread's id to write to results container without conflicting with other threads
+    tid = Threads.threadid()
+
+    ω = lastindex(qs)
+
+    # inbounds turns off bounds-checking, which makes hot loops faster but first write loop without it to ensure you don't create an error (will crash if you have the error without bounds checking)
+    @inbounds for t in 1:min(params.proj_length, ω - start_age)
+
+        q = qs[start_age+t] # get current mortality
+
+        if (rand() < q)
+            return # if dead then just return and don't increment the results anymore
+        else
+            # pay benefit, add a life to the output count, and increment the benefit for next year
+            out.benefits[t, tid] += cur_benefit
+            out.lives[t, tid] += 1
+            cur_benefit *= COLA_factor
+        end
+    end
+end
+```
+
+Parameters for our projection:
+
+```{julia}
+params = (
+    val_date=Date(2021, 12, 31),
+    proj_length=100,
+    mortality=mort,
+)
+```
+
+Check the number of threads we're using:
+
+```{julia}
+Threads.nthreads()
+```
+
+```{julia}
+function project(policies, params)
+    threads = Threads.nthreads()
+    benefits = zeros(params.proj_length, threads)
+    lives = zeros(Int, params.proj_length, threads)
+    out = (; benefits, lives)
+    ThreadsX.foreach(policies) do pol
+        pol_project!(out, pol, params)
+    end
+    map(x -> vec(reduce(+, x, dims=2)), out)
+end
+```
+
+## Running the projection
+
+Example of a single projection:
+
+```{julia}
+project(repeat(policies, 100_000), params)
+```
+
+### Stochastic Projection
+
+Loop through and calculate the reults n times (this is only running the two policies in the sample data" n times).
+```{julia}
+function stochastic_proj(policies, params, n)
+
+    ThreadsX.map(1:n) do i
+        project(policies, params)
+    end
+end
+```
+
+```{julia}
+stoch = stochastic_proj(policies, params, 1000)
+```
+
+```{julia}
+let
+    v = [pv(0.03, s.benefits) for s in stoch]
+    hist(v,
+        bins=15,
+        xlabel="Present Value of Benefits",
+        ylabel="Number of scenarios")
+end
+```
+
+## Benchmarking
+
+Using a 2022 Macbook Air M2 laptop, about 30 million policies able to be stochastically projected per second:
+
+```{julia}
+#| column: page-inset-right
+policies_to_benchmark = 3_000_000
+# adjust the `repeat` depending on how many policies are already in the array
+# to match the target number for the benchmark
+n = policies_to_benchmark ÷ length(policies)
+
+@benchmark project(p, r) setup = (p = repeat($policies, $n); r = $params)
+```
+
+## Further Optimization
+
+In no particular order:
+
+- the RNG could be made faster: https://bkamins.github.io/julialang/2020/11/20/rand.html
+- Could make the stochastic set distributed, but at the current speed the overhead of distributed computing is probably more time than it would save. Same thing with GPU projections
+- ...
