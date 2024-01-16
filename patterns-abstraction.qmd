@@ -8,4 +8,157 @@ We extend the building blocks from the prior section and talk about how to combi
 
 ## Introduction
 
-Abstraction is a selective ignorance—focusing on the aspects of the problem that are relevant, and ignoring the others.
+Abstraction is a selective ignorance—focusing on the aspects of the problem that are relevant, and ignoring the others. At different times we are interested in different **ladder of abstraction**: sometimes we are interested in the small details, but other times we are interested in understanding the behavior of systems at a higher level.
+
+Say we are an insurance comapny with a portfolio of fixed income assets supporting long term insurance liabilities. We might delineate different levels of abstraction like so:
+
+::: {.column-margin}
+![Think about moving up and down a ladder of abstraction when analyzing a problem.](assets/simple_ladder.png)
+:::
+
+|               | Item                                                 |
+|---------------|------------------------------------------------------|
+| More Abstract | Sensitivity of an entire company's solvency position |
+|               | Sensitivity of a portfolio of assets                 |
+|               | Behavior over time of an individual contract         |
+| More granular | Mechanics of an individual bond or insurance policy  |
+: An example of the different levels of abstraction when thinking about modeling an insurance company's assets and liabilites. {#tbl-insurance-ladder}
+
+At different times, we are often interested in different aspects of a problem. In general, you start to be able to obtain more insights and a greater understanding of the system when you move up the ladder of abstraction.
+
+In fact, a lot of designing a model is essentially trying to figure out where to put the right abstractions. What is the right level of detail to model this in and what is the right level of detail to expose to other systems?
+
+Let us also distinguish between **vertical abstraction**, as described above, and **horizontal abstraction** which will refer to encapsulating different properties, or mechanics of components of model that effectively exist on the same level of vertical abstraction. For example, both asset and liability mechanics sit at the most granular level in @tbl-insurance-ladder, But it may make sense in our model to separate the data and behavior from each other. If we were to do that, that would be an example of creating horizontal abstraction in service of our overall modeling goals.
+
+## Interfaces
+
+**Interfaces** are the boundary between different encapsulated abstractions. Financial model this might mean that there is an interface for bonds, or there is an interface for interest-rate swaps. There may be a different interface for calculating risk metrics or visualizing the results.
+
+Financial model this might mean that there is an interface for bonds, or there is an interface for interest-rate swaps. There may be a different interface for calculating risk metrics or visualizing the results. A better system design will separate the concern of visualizing output from the mechanics of a fixed income contract. This is what it means to put boundaries on different parts of a models logic.
+
+One of the easiest places to see this is with the available open source packages. There are packages available for visualizations, data frames, file, storage, statistical analysis, etc. for many of these it's easy to see where the natural boundary lies, However, it's often difficult to find where to draw lines within financial models. For example, should bonds and interest-rate swaps be in separate packages? Or both part of a broader fixed income package? This is where much of the art and domain expertise of the financial professional comes to bear in modeling. There would be no way for a pure software engineer to think about the right design for the system without understanding how underlying components share, similarities or differences and how those components interact.
+
+### Conceptual Strategies 
+
+Let's consider some stategies that you could think about when deciding where to draw different boundaries inside the model.
+
+#### Behavior-Oriented 
+
+This strategies is to effectively group together components with a model that behaves similarly. So, in our example of bonds and interest-rate swaps fundamentally, they share many characteristics and are used in very similar ways within a model. Therefore, it might make sense to group them together when developing a model.
+
+#### Domain Expertise
+
+It may be that components of the model require sufficient expertise that different persons or groups are involved in the development. This may warrant separating a models design, So that different groups contributing to the model can focus on any more narrow aspect, Regardless of inherent similarity of components. For example, at a higher vertical level of obstruction, financial derivatives may fall under similar grouping, but sufficient differences exist for equity credit or foreign exchange derivatives that the model should separate those three asset classes for development purposes.
+
+
+#### Composability versus All-in-One
+
+For some model design goals, it may be warranted to attempt to bundle together more functionality instead of allowing users to compose a functionality that comes from different packages. For example, perhaps a certain visualization of a model result is particularly useful, It is not easy to create from scratch, And virtually everyone using the model, will desire to see the model output visualized that way. Instead of relying on the user to install a separate visualization package and develop the visualization themselves, it could make sense to bundle visualization functionality with a model that is otherwise unconcerned with graphical capabilities.
+
+In general, though it is preferred to try to loosely couple systems, you can pick and choose which components you use and that those components work well together.
+
+## Programming Interfaces and Patterns
+
+@sec-elements-programming Described a number of tools that we can utilize as interfaces within our model. We use these tools that are provided by our programming language *in service of* the conceptual abstraction described above. 
+
+- Functions let us implement behavior, where we need trouble ourselves with the low level details.
+- Data types provide a hierarchical structure to provide meaning to things, and to group those things together into more meaningful structures.
+- Modules allow us to combine data, and or function, into a related group of concepts which can be shared in different parts of our model
+
+We will also discuss here some **patterns** which are ways of doing things that seem to appear repeatedly and specific design choices have proven to work well in the past and should be considered when similar conditions arise in the future.
+
+Let's develop a simplified system to value simple fixed income assets in order to illustrate some patterns. Inside a module called `Asset`, we'll define a short hiearchy of types and then a function `value` with multiple methods for the relevant types.
+
+```{julia}
+#| output: false
+module Asset
+
+## Data type definitions
+abstract type AbstractAsset end #<1>
+
+struct Cash <: AbstractAsset
+    balance::Float64
+end
+
+abstract type AbstractBond <: AbstractAsset end #<2>
+
+struct CouponBond <: AbstractBond #<2>
+    par::Float64
+    coupon::Float64
+    tenor::Int
+end
+
+struct ZeroCouponBond <: AbstractBond #<2>
+    par::Float64
+    tenor::Int
+end
+
+
+## Functions
+
+""" 
+    value(asset,discount_rate)
+
+The value of an asset with the given discount rate for it's cashflows.
+"""
+value(asset::Cash, r) = asset.balance
+
+function value(asset::AbstractBond, r) #<4>
+    discount_factor = 1.0
+    value = 0.0
+    for t in 1:asset.tenor
+        discount_factor /= (1 + r) # <3>
+        value += discount_factor * cashflow(asset, t)
+    end
+    return value
+end
+
+function cashflow(bond::CouponBond, time)
+    if time == bond.tenor
+        (1 + bond.coupon) * bond.par
+    else
+        bond.coupon * bond.par
+    end
+end
+
+function value(bond::ZeroCouponBond, r) # <5>
+    return bond.par / (1 + r)^bond.tenor
+end
+
+end
+```
+1. General convention is to name abstract types beginning with `Abstract...`
+2. We define two simple bonds: a coupon paying and a zero-coupon instrument.
+3. `x /= y`, `x += y`, etc. are shorthand ways to write `x = x / y` or `x = x + y`
+4. `value` is defined for `AbstractBond`s in general...
+5. ... and then more specifically for `ZeroCouponBond`s. This will be explained when discussing "dispatch" below.
+
+Here's an example of how this would be used:
+
+```{julia}
+portfolio = [
+    Asset.Cash(50.0),
+    Asset.CouponBond(100.0, 0.05, 5),
+    Asset.ZeroCouponBond(100.0, 5),
+]
+
+Asset.value.(portfolio, 0.05)
+```
+
+::: callout-note
+In the example above, a docstring was included over `value(asset::Cash)` - but not over the others. That's okay. Julia will show docstrings for the *function* `value` not just individual *methods*.
+:::
+
+There are quite a few things demonstrated here: dispatch, programming paradigms, and [!!what else?]  . As each are addressed in turn, we will review how we could have designed the interface differently.
+
+### (Multiple) Dispatch 
+
+what if we wanted to extend from a rate to a yield curve and fixed to floating. Where does logic lie? In yield curve or in bond?)
+
+### Programming Paradigms
+
+- OO vs Data Oriented Design
+
+
+- Alternative designs:
+  - ZeroCouponBond(par,tenor) = CouponBond(par,0.0,tenor)
