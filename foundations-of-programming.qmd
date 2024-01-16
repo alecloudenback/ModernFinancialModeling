@@ -797,6 +797,41 @@ Why broadcasting is useful:
 For readers coming from numpy-flavored Python  or R, broadcasting is a way that can feel at home if familiar with the array-oriented behavior of those two languages. Once you feel comfortable with Julia in general, you may find yourself relaxing and relying less on array-oriented design and instead picking whichever iteration paradigm feels most natural for the problem at hand: loops or broadcasting over arrays.
 :::
 
+### First Class Nature
+
+Functions in many languages including Julia are **first class** which means that functions can be assigned and moved around like data variables. 
+
+In this example, we have a general approach to calculate the error of a modeled result compared to a known truth. In this context, there are different ways to measure error of the modeled result and we can simplify the implementation of `loss` by keeping the different kinds of error defined separately. Then, we can assign a function to a variable and use it as an argument to another function:
+
+```{julia}
+function square_error(guess, correct)
+    (correct - guess)^2
+end
+
+function abs_error(guess, correct)
+    abs(correct - guess)
+end
+
+# obs meaning "observations"
+function loss(modeled_obs,
+    actual_obs,
+    loss_function # <1>
+)
+    sum(
+        loss_function.(modeled_obs, actual_obs)
+    )
+end
+
+let # <2>
+    a = loss([1, 5, 11], [1, 4, 9], square_error) # <3>
+    b = loss([1, 5, 11], [1, 4, 9], abs_error)  # <3>
+    a, b
+end
+```
+1. `loss_function` is a variable that will refer to a function instead of data.
+2. Using a `let` block here is good practice to not have temporary variables `a` and `b` scattered around our workspace.
+3. Using a function as an argument to another function is an example of functions being treated as "first class".
+
 ## Scope {#sec-scope}
 
 In projects of even modest complexity, it can be challenging to come up with unique identifiers for different functions or variables. **Scope** refers to the bounds for which an identifier is available. We will often talk about the **local scope** that's inside some expression that creates a narrowly defined scope (such as a `function` or `let` or `module` block) or the **global scope** which is the top level scope that contains everything else inside of it. Here are a few examples to demonstrate scope.
@@ -824,11 +859,11 @@ Here is an example with functions:
 ```{julia}
 x = 2
 base = 10
-foo() = base ^ x #<1>
-foo(x) = base ^ x #<2>
-foo(x,base) = base ^ x #<3>
+foo() = base^x #<1>
+foo(x) = base^x #<2>
+foo(x, base) = base^x #<3>
 
-foo(), foo(4), foo(4,4)
+foo(), foo(4), foo(4, 4)
 ```
 1. Both `base` and `x` are inherited from the global scope.
 2. `x` is based on the local scope from the function's arguments and `base` is inherited from the global scope.
@@ -836,7 +871,30 @@ foo(), foo(4), foo(4,4)
 
 In Julia, it's always best to explicitly pass arguments to functions rather than relying on them coming from an inherited scope. This is more straight-forward and easier to reason about and it also allows Julia to optimize the function to run faster because all relevant variables coming from outside the function are defined at the function's entry point (the arguments).
 
-### Modules
+### Modules and Namespaces
+
+**Modules** are ways to encapsulate related functionality together. Another benefit is that the variables inside the module don't "pollute" the **namespace** of your current scope. Here's an example:
+
+```{julia}
+module Shape #<1>
+
+    struct Triangle{T}
+        base::T
+        height::T
+    end
+
+    function area(t::Triangle) # <2>
+        return 1/2 * t.base * t.height
+    end
+end
+
+t = Shape.Triangle(4,2) # <3>
+area = Shape.area(t)  # <4>
+```
+1. `module` defines an encapsulated block of code which is anchored to the namespace `Shape`
+2. Here, `area` a *function* defined within the `Shape` module.
+3. Outside of `Shape` module, we can access the definitions inside via the `Module.identifier` syntax.
+4. Here, `area` is a *variable* in our global scope that *does not* conflict with the `area` defined within the `Shape` module. If `Shape.area` were not within a module then when we said `area = ...` we would have reassigned `area` to no longer refer to the function and instead would refer to the area of our triangle.
 
 ::: callout-note
 Summarizing related terminology:
