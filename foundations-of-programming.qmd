@@ -269,6 +269,20 @@ push!(v, 5)
 vcat(v, [1, 2, 3])
 ```
 
+#### Array Alignment
+
+When you have an MxN matrix (M rows, N columns), a choice must be made as to which elements are next to each other in memory. Typical math convention and fundamental computer linear algebra libraries (dating back decades!) are column major and Julia follows that legacy. **Column major** means that elements going down the rows of a column are stored next to each other in memory. This is important to know so that (1) you remember that vectors are treated like a column vector when working with arrays (a N element 1D vector is like a Nx1 matrix), and (2) when iterating through an array, it will be faster for the computer to access elements next to each other column-wise. A 10x10 matrix is actually stored in memory as 100 elements coming in order, one after another in single file.
+
+This 3x4 matrix is stored with the elements of columns next to each other, which we can see with `vec`:
+
+```{julia}
+mat = [1 2 3; 4 5 6; 7 8 9]
+```
+
+```{julia}
+vec(mat)
+```
+
 ### Characters, Strings, and Symbols
 
 Characters are represented in most programming languages as letters within quotation marks. In Julia, individual characters are represented using single quotes:
@@ -541,11 +555,48 @@ d
 
 ```         
 1 > 0
-1 == 1
+1 == 1 # check for equality
 Float64 isa Rational
 (5 > 0) & (-1 < 2) # "and" expression
 (5 > 0) | (-1 > 2) # "or" expression
 1 != 2
+```
+
+::: callout-note
+In Julia, the booleans have an integer equality: `true` is equal to `1` (`true == 1`) and `false` is equal to `0` (`false == 0`). However:
+
+- `true != 5`. Only `1` is equal to true (in some languages, any non-zero number is "truthy").
+- `true` is not egal to `1` (egal is defined later in this chapter).
+:::
+
+Conditionals can be used to assemble differnent logical paths for the program to follow and the general pattern is an `if` block:
+
+```julia
+if condition
+    # do one thing
+elseif condition
+    # do something else
+else
+    # do something if none of the 
+    # other conditions are met
+end
+```
+
+A complete example:
+
+```{julia}
+function buy_or_sell(my_value, market_price)
+    if my_value > market_price
+        "buy more"
+    elseif my_value < market_price
+        "sell"
+    else
+        "hold"
+    end
+end
+
+buy_or_sell(10, 15), buy_or_sell(15, 10), buy_or_sell(10, 10)
+
 ```
 
 #### Equality
@@ -796,6 +847,67 @@ Why broadcasting is useful:
 ::: callout-note
 For readers coming from numpy-flavored Python  or R, broadcasting is a way that can feel at home if familiar with the array-oriented behavior of those two languages. Once you feel comfortable with Julia in general, you may find yourself relaxing and relying less on array-oriented design and instead picking whichever iteration paradigm feels most natural for the problem at hand: loops or broadcasting over arrays.
 :::
+
+ What happens if one of the collections is not the same size as the others? When broadcasting, singleton dimensions (i.e. the 1 in 1xN, "1-by-N", dimensions)  will be expanded automatically when it makes sense. For example, if you have a single element and a one dimensional array, the single element will be expanded in the function call without using any additional memory (if that dimension matches one of the dimensions of the other array). 
+ 
+ The rules with an MxN and a PxQ array: 
+
+ - either (M and P) or (N and Q) need to be the same, *and*
+ - one of the non-matching dimensions needs to be 1
+
+ Some examples might clarify. This 1x1 element is being combined with a 4x1, so there is a compatible dimension (N and Q match, M is 1):
+
+```{julia}
+2 .^ [0, 1, 2, 3]
+```
+
+Here, this 1x3 works with the 2x3 (N and Q match, M is 1)
+
+```{julia}
+[1 2 3] .+ [1 2 3; 4 5 6]
+```
+
+This 3x1 isn't compatible with this 2x3 array (neither M and P nor N and Q match)
+
+```{julia}
+#| error: true
+[1, 2, 3] .+ [1 2 3; 4 5 6]
+```
+
+This 2x4 isn't compatible with the 2x3 (M and P match, but N nor Q is 1):
+
+```{julia}
+#| error: true
+[1 2; 3 4] .+ [1 2 3; 4 5 6]
+```
+
+#### Not Broadcasting
+
+What if you do not want the array to be used element-wise when broadcasting? Then you can wrap the array in a `Ref`, which is used in broadcasting to make the array be treated like a scalar. In the example below, `in(needle,haystack)` searches a collection (`haystack`) for an item (`needle`) and returns `true` or `false` if the item is in the collection:
+
+```{julia}
+in(4, [1 2 3; 4 5 6])
+```
+
+What if we had an array of things ("needles") that we wanted to search for? By default, broadcasting would effectively split the array up into collections of individual elements to search:
+
+```{julia}
+in.([1, 9], [1 2 3; 4 5 6])
+```
+
+Effectively, the result above is the result of this broadcasted result:
+
+```julia
+in(1, [1,2,3]) # the first row of the above result
+in(9, [4,5,6])
+```
+
+If we were expecting Julia to return `[1,0]` (that the first needle is in the hasytack but the second needle is not), then we need to tell Julia not to broadcast along the second array with `Ref`:
+
+```{julia}
+in.([1, 9], Ref([1 2 3; 4 5 6]))
+```
+
 
 ### First Class Nature
 
