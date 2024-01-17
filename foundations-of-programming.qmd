@@ -27,12 +27,12 @@ There will be brief references to hardware considerations for completeness, but 
 
 It's highly recommended that you follow along and have a Julia session open (e.g. a REPL or a notebook) when first going through this chapter. See @sec-julia-basics if you haven't gotten that set up yet. Follow along with the examples as we go.
 
-::: {.callout-tip .column-page}
+::: {.callout-tip }
 You can get some help in the REPL by typing a `?` followed by the symbol you want help with, for example:
 
 ``` julia-repl
  help?> sum
-search: sum sum! summary cumsum cumsum! isnumeric MethodSummary VersionNumber issubnormal get_zero_subnormals
+search: sum sum! summary cumsum cumsum! ...
 
   sum(f, itr; [init])
 
@@ -41,6 +41,10 @@ search: sum sum! summary cumsum cumsum! isnumeric MethodSummary VersionNumber is
 
 ... More text truncated...
 ```
+:::
+
+::: callout-caution
+This introductory chapter is intended to provide a survey of the important concepts and building blocks, not to be a complete reference. For full details on available functions, more complete defintions, and a more complete tour of all language features, see the Manual at [docs.julialang.org](https://docs.julialang.org).
 :::
 
 ## Assignment and Variables
@@ -823,6 +827,39 @@ map(x -> x^2, v)  # <1>
 1. The `x -> x^2` is the anonymous function in this example.
 
 They are often used when constructing something from another value, or defining a function within optimizaiton or solving routines.
+
+### Passing by Sharing
+
+Arguments to a function in Julia are *passed-by-sharing** which means that an outside variable can be mutated from within a function. We can modify the array in the outer scope (scope discussed later in this chapter) from within the function. In this example, we modify the array that is assigned to `v` by doubling each element:
+
+```{julia}
+v = [1, 2, 3]
+
+function double!(v)
+    for i in eachindex(v)
+        v[1] = 2 * v[i]
+    end
+end
+
+double!(v)
+
+v
+```
+
+
+::: callout-tip
+Convention in Julia is that a function that modifies it's arguments has a `!` in it's name and we follow this convention in `double!` above. Another example would be the built-in function `sort!` which will sort an array in-place without allocating a new array to store the sorted values.
+:::
+
+
+
+We won't discuss all potential ways that programming languages can behave in this regard, but an alternative that one may have seen before (e.g. in Matlab) is pass-by-value where a modification to an argument only modfies the value within the scope. Here's how to replicate that in Julia by `copy`ing the value before handing it to a function. This time, v is not modified because we only passed a copy of the array and not the array itself:
+
+```{julia}
+v = [1, 2, 3]
+double!(copy(v))
+v
+```
 
 ### Broadcasting
 
