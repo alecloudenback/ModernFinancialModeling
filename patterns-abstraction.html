@@ -20,6 +20,40 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -68,7 +102,7 @@ ul.task-list li input[type="checkbox"] {
 <link rel="stylesheet" href="styles.css">
 </head>
 
-<body class="nav-sidebar floating">
+<body class="nav-sidebar floating slimcontent">
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
@@ -322,11 +356,24 @@ ul.task-list li input[type="checkbox"] {
   <ul>
   <li><a href="#in-this-section" id="toc-in-this-section" class="nav-link active" data-scroll-target="#in-this-section"><span class="header-section-number">6.1</span> In this section</a></li>
   <li><a href="#introduction" id="toc-introduction" class="nav-link" data-scroll-target="#introduction"><span class="header-section-number">6.2</span> Introduction</a></li>
+  <li><a href="#interfaces" id="toc-interfaces" class="nav-link" data-scroll-target="#interfaces"><span class="header-section-number">6.3</span> Interfaces</a>
+  <ul class="collapse">
+  <li><a href="#conceptual-strategies" id="toc-conceptual-strategies" class="nav-link" data-scroll-target="#conceptual-strategies"><span class="header-section-number">6.3.1</span> Conceptual Strategies</a></li>
+  </ul></li>
+  <li><a href="#programming-interfaces-and-patterns" id="toc-programming-interfaces-and-patterns" class="nav-link" data-scroll-target="#programming-interfaces-and-patterns"><span class="header-section-number">6.4</span> Programming Interfaces and Patterns</a>
+  <ul class="collapse">
+  <li><a href="#multiple-dispatch" id="toc-multiple-dispatch" class="nav-link" data-scroll-target="#multiple-dispatch"><span class="header-section-number">6.4.1</span> (Multiple) Dispatch</a></li>
+  <li><a href="#programming-paradigms" id="toc-programming-paradigms" class="nav-link" data-scroll-target="#programming-paradigms"><span class="header-section-number">6.4.2</span> Programming Paradigms</a></li>
+  </ul></li>
+  <li><a href="#misc-techniques" id="toc-misc-techniques" class="nav-link" data-scroll-target="#misc-techniques"><span class="header-section-number">6.5</span> Misc Techniques</a>
+  <ul class="collapse">
+  <li><a href="#recursion" id="toc-recursion" class="nav-link" data-scroll-target="#recursion"><span class="header-section-number">6.5.1</span> Recursion</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
 <!-- main -->
-<main class="content" id="quarto-document-content">
+<main class="content page-columns page-full" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
@@ -352,11 +399,234 @@ ul.task-list li input[type="checkbox"] {
 <h2 data-number="6.1" class="anchored" data-anchor-id="in-this-section"><span class="header-section-number">6.1</span> In this section</h2>
 <p>We extend the building blocks from the prior section and talk about how to combine them into more abstract patterns to simplify the design of our programs. Data driven design, object oriented design versus composition, multiple dispatch, and interfaces.</p>
 </section>
-<section id="introduction" class="level2" data-number="6.2">
+<section id="introduction" class="level2 page-columns page-full" data-number="6.2">
 <h2 data-number="6.2" class="anchored" data-anchor-id="introduction"><span class="header-section-number">6.2</span> Introduction</h2>
-<p>Abstraction is a selective ignorance—focusing on the aspects of the problem that are relevant, and ignoring the others.</p>
+<p>Abstraction is a selective ignorance—focusing on the aspects of the problem that are relevant, and ignoring the others. At different times we are interested in different <strong>ladder of abstraction</strong>: sometimes we are interested in the small details, but other times we are interested in understanding the behavior of systems at a higher level.</p>
+<p>Say we are an insurance comapny with a portfolio of fixed income assets supporting long term insurance liabilities. We might delineate different levels of abstraction like so:</p>
+
+<div class="no-row-height column-margin column-container"><div class="">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="assets/simple_ladder.png" class="img-fluid figure-img"></p>
+<figcaption class="figure-caption">Think about moving up and down a ladder of abstraction when analyzing a problem.</figcaption>
+</figure>
+</div>
+</div></div><div id="tbl-insurance-ladder" class="anchored">
+<table class="table">
+<caption>Table&nbsp;6.1: An example of the different levels of abstraction when thinking about modeling an insurance company’s assets and liabilites.</caption>
+<thead>
+<tr class="header">
+<th></th>
+<th>Item</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>More Abstract</td>
+<td>Sensitivity of an entire company’s solvency position</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Sensitivity of a portfolio of assets</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Behavior over time of an individual contract</td>
+</tr>
+<tr class="even">
+<td>More granular</td>
+<td>Mechanics of an individual bond or insurance policy</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>At different times, we are often interested in different aspects of a problem. In general, you start to be able to obtain more insights and a greater understanding of the system when you move up the ladder of abstraction.</p>
+<p>In fact, a lot of designing a model is essentially trying to figure out where to put the right abstractions. What is the right level of detail to model this in and what is the right level of detail to expose to other systems?</p>
+<p>Let us also distinguish between <strong>vertical abstraction</strong>, as described above, and <strong>horizontal abstraction</strong> which will refer to encapsulating different properties, or mechanics of components of model that effectively exist on the same level of vertical abstraction. For example, both asset and liability mechanics sit at the most granular level in <a href="#tbl-insurance-ladder">Table&nbsp;<span>6.1</span></a>, But it may make sense in our model to separate the data and behavior from each other. If we were to do that, that would be an example of creating horizontal abstraction in service of our overall modeling goals.</p>
+</section>
+<section id="interfaces" class="level2" data-number="6.3">
+<h2 data-number="6.3" class="anchored" data-anchor-id="interfaces"><span class="header-section-number">6.3</span> Interfaces</h2>
+<p><strong>Interfaces</strong> are the boundary between different encapsulated abstractions. Financial model this might mean that there is an interface for bonds, or there is an interface for interest-rate swaps. There may be a different interface for calculating risk metrics or visualizing the results.</p>
+<p>Financial model this might mean that there is an interface for bonds, or there is an interface for interest-rate swaps. There may be a different interface for calculating risk metrics or visualizing the results. A better system design will separate the concern of visualizing output from the mechanics of a fixed income contract. This is what it means to put boundaries on different parts of a models logic.</p>
+<p>One of the easiest places to see this is with the available open source packages. There are packages available for visualizations, data frames, file, storage, statistical analysis, etc. for many of these it’s easy to see where the natural boundary lies, However, it’s often difficult to find where to draw lines within financial models. For example, should bonds and interest-rate swaps be in separate packages? Or both part of a broader fixed income package? This is where much of the art and domain expertise of the financial professional comes to bear in modeling. There would be no way for a pure software engineer to think about the right design for the system without understanding how underlying components share, similarities or differences and how those components interact.</p>
+<section id="conceptual-strategies" class="level3" data-number="6.3.1">
+<h3 data-number="6.3.1" class="anchored" data-anchor-id="conceptual-strategies"><span class="header-section-number">6.3.1</span> Conceptual Strategies</h3>
+<p>Let’s consider some stategies that you could think about when deciding where to draw different boundaries inside the model.</p>
+<section id="behavior-oriented" class="level4" data-number="6.3.1.1">
+<h4 data-number="6.3.1.1" class="anchored" data-anchor-id="behavior-oriented"><span class="header-section-number">6.3.1.1</span> Behavior-Oriented</h4>
+<p>This strategies is to effectively group together components with a model that behaves similarly. So, in our example of bonds and interest-rate swaps fundamentally, they share many characteristics and are used in very similar ways within a model. Therefore, it might make sense to group them together when developing a model.</p>
+</section>
+<section id="domain-expertise" class="level4" data-number="6.3.1.2">
+<h4 data-number="6.3.1.2" class="anchored" data-anchor-id="domain-expertise"><span class="header-section-number">6.3.1.2</span> Domain Expertise</h4>
+<p>It may be that components of the model require sufficient expertise that different persons or groups are involved in the development. This may warrant separating a models design, So that different groups contributing to the model can focus on any more narrow aspect, Regardless of inherent similarity of components. For example, at a higher vertical level of obstruction, financial derivatives may fall under similar grouping, but sufficient differences exist for equity credit or foreign exchange derivatives that the model should separate those three asset classes for development purposes.</p>
+</section>
+<section id="composability-versus-all-in-one" class="level4" data-number="6.3.1.3">
+<h4 data-number="6.3.1.3" class="anchored" data-anchor-id="composability-versus-all-in-one"><span class="header-section-number">6.3.1.3</span> Composability versus All-in-One</h4>
+<p>For some model design goals, it may be warranted to attempt to bundle together more functionality instead of allowing users to compose a functionality that comes from different packages. For example, perhaps a certain visualization of a model result is particularly useful, It is not easy to create from scratch, And virtually everyone using the model, will desire to see the model output visualized that way. Instead of relying on the user to install a separate visualization package and develop the visualization themselves, it could make sense to bundle visualization functionality with a model that is otherwise unconcerned with graphical capabilities.</p>
+<p>In general, though it is preferred to try to loosely couple systems, you can pick and choose which components you use and that those components work well together.</p>
+</section>
+</section>
+</section>
+<section id="programming-interfaces-and-patterns" class="level2" data-number="6.4">
+<h2 data-number="6.4" class="anchored" data-anchor-id="programming-interfaces-and-patterns"><span class="header-section-number">6.4</span> Programming Interfaces and Patterns</h2>
+<p><a href="foundations-of-programming.html"><span>Chapter&nbsp;5</span></a> Described a number of tools that we can utilize as interfaces within our model. We use these tools that are provided by our programming language <em>in service of</em> the conceptual abstraction described above.</p>
+<ul>
+<li>Functions let us implement behavior, where we need trouble ourselves with the low level details.</li>
+<li>Data types provide a hierarchical structure to provide meaning to things, and to group those things together into more meaningful structures.</li>
+<li>Modules allow us to combine data, and or function, into a related group of concepts which can be shared in different parts of our model</li>
+</ul>
+<p>We will also discuss here some <strong>patterns</strong> which are ways of doing things that seem to appear repeatedly and specific design choices have proven to work well in the past and should be considered when similar conditions arise in the future.</p>
+<p>Let’s develop a simplified system to value simple fixed income assets in order to illustrate some patterns. Inside a module called <code>Asset</code>, we’ll define a short hiearchy of types and then a function <code>value</code> with multiple methods for the relevant types.</p>
+<div class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="annotated-cell-1"><pre class="sourceCode julia code-annotation-code code-with-copy code-annotated"><code class="sourceCode julia"><span id="annotated-cell-1-1"><a href="#annotated-cell-1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">module</span> Asset</span>
+<span id="annotated-cell-1-2"><a href="#annotated-cell-1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-1-3"><a href="#annotated-cell-1-3" aria-hidden="true" tabindex="-1"></a><span class="co">## Data type definitions</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-1" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-1-4" class="code-annotation-target"><a href="#annotated-cell-1-4" aria-hidden="true" tabindex="-1"></a><span class="kw">abstract type</span> AbstractAsset <span class="kw">end</span></span>
+<span id="annotated-cell-1-5"><a href="#annotated-cell-1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-1-6"><a href="#annotated-cell-1-6" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> Cash <span class="op">&lt;:</span><span class="dt"> AbstractAsset</span></span>
+<span id="annotated-cell-1-7"><a href="#annotated-cell-1-7" aria-hidden="true" tabindex="-1"></a>    balance<span class="op">::</span><span class="dt">Float64</span></span>
+<span id="annotated-cell-1-8"><a href="#annotated-cell-1-8" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="annotated-cell-1-9"><a href="#annotated-cell-1-9" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-1" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-1-10" class="code-annotation-target"><a href="#annotated-cell-1-10" aria-hidden="true" tabindex="-1"></a><span class="kw">abstract type</span> AbstractBond <span class="op">&lt;:</span><span class="dt"> AbstractAsset </span><span class="kw">end</span></span>
+<span id="annotated-cell-1-11"><a href="#annotated-cell-1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-1-12"><a href="#annotated-cell-1-12" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> CouponBond <span class="op">&lt;:</span><span class="dt"> AbstractBond</span></span>
+<span id="annotated-cell-1-13"><a href="#annotated-cell-1-13" aria-hidden="true" tabindex="-1"></a>    par<span class="op">::</span><span class="dt">Float64</span></span>
+<span id="annotated-cell-1-14"><a href="#annotated-cell-1-14" aria-hidden="true" tabindex="-1"></a>    coupon<span class="op">::</span><span class="dt">Float64</span></span>
+<span id="annotated-cell-1-15"><a href="#annotated-cell-1-15" aria-hidden="true" tabindex="-1"></a>    tenor<span class="op">::</span><span class="dt">Int</span></span>
+<span id="annotated-cell-1-16"><a href="#annotated-cell-1-16" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="annotated-cell-1-17"><a href="#annotated-cell-1-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-1-18"><a href="#annotated-cell-1-18" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> ZeroCouponBond <span class="op">&lt;:</span><span class="dt"> AbstractBond</span></span>
+<span id="annotated-cell-1-19"><a href="#annotated-cell-1-19" aria-hidden="true" tabindex="-1"></a>    par<span class="op">::</span><span class="dt">Float64</span></span>
+<span id="annotated-cell-1-20"><a href="#annotated-cell-1-20" aria-hidden="true" tabindex="-1"></a>    tenor<span class="op">::</span><span class="dt">Int</span></span>
+<span id="annotated-cell-1-21"><a href="#annotated-cell-1-21" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="annotated-cell-1-22"><a href="#annotated-cell-1-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-1-23"><a href="#annotated-cell-1-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-1-24"><a href="#annotated-cell-1-24" aria-hidden="true" tabindex="-1"></a><span class="co">## Functions</span></span>
+<span id="annotated-cell-1-25"><a href="#annotated-cell-1-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-1-26"><a href="#annotated-cell-1-26" aria-hidden="true" tabindex="-1"></a><span class="st">""" </span></span>
+<span id="annotated-cell-1-27"><a href="#annotated-cell-1-27" aria-hidden="true" tabindex="-1"></a><span class="st">    value(asset,discount_rate)</span></span>
+<span id="annotated-cell-1-28"><a href="#annotated-cell-1-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-1-29"><a href="#annotated-cell-1-29" aria-hidden="true" tabindex="-1"></a><span class="st">The value of an asset with the given discount rate for it's cashflows.</span></span>
+<span id="annotated-cell-1-30"><a href="#annotated-cell-1-30" aria-hidden="true" tabindex="-1"></a><span class="st">"""</span></span>
+<span id="annotated-cell-1-31"><a href="#annotated-cell-1-31" aria-hidden="true" tabindex="-1"></a><span class="fu">value</span>(asset<span class="op">::</span><span class="dt">Cash</span>, r) <span class="op">=</span> asset.balance</span>
+<span id="annotated-cell-1-32"><a href="#annotated-cell-1-32" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-1" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-1-33" class="code-annotation-target"><a href="#annotated-cell-1-33" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">value</span>(asset<span class="op">::</span><span class="dt">AbstractBond</span>, r)</span>
+<span id="annotated-cell-1-34"><a href="#annotated-cell-1-34" aria-hidden="true" tabindex="-1"></a>    discount_factor <span class="op">=</span> <span class="fl">1.0</span></span>
+<span id="annotated-cell-1-35"><a href="#annotated-cell-1-35" aria-hidden="true" tabindex="-1"></a>    value <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="annotated-cell-1-36"><a href="#annotated-cell-1-36" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> t <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>asset.tenor</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-1" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-1-37" class="code-annotation-target"><a href="#annotated-cell-1-37" aria-hidden="true" tabindex="-1"></a>        discount_factor <span class="op">/=</span> (<span class="fl">1</span> <span class="op">+</span> r)</span>
+<span id="annotated-cell-1-38"><a href="#annotated-cell-1-38" aria-hidden="true" tabindex="-1"></a>        value <span class="op">+=</span> discount_factor <span class="op">*</span> <span class="fu">cashflow</span>(asset, t)</span>
+<span id="annotated-cell-1-39"><a href="#annotated-cell-1-39" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="annotated-cell-1-40"><a href="#annotated-cell-1-40" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> value</span>
+<span id="annotated-cell-1-41"><a href="#annotated-cell-1-41" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="annotated-cell-1-42"><a href="#annotated-cell-1-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-1-43"><a href="#annotated-cell-1-43" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">cashflow</span>(bond<span class="op">::</span><span class="dt">CouponBond</span>, time)</span>
+<span id="annotated-cell-1-44"><a href="#annotated-cell-1-44" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> time <span class="op">==</span> bond.tenor</span>
+<span id="annotated-cell-1-45"><a href="#annotated-cell-1-45" aria-hidden="true" tabindex="-1"></a>        (<span class="fl">1</span> <span class="op">+</span> bond.coupon) <span class="op">*</span> bond.par</span>
+<span id="annotated-cell-1-46"><a href="#annotated-cell-1-46" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span></span>
+<span id="annotated-cell-1-47"><a href="#annotated-cell-1-47" aria-hidden="true" tabindex="-1"></a>        bond.coupon <span class="op">*</span> bond.par</span>
+<span id="annotated-cell-1-48"><a href="#annotated-cell-1-48" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="annotated-cell-1-49"><a href="#annotated-cell-1-49" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="annotated-cell-1-50"><a href="#annotated-cell-1-50" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-1" data-target-annotation="5" onclick="event.preventDefault();">5</a><span id="annotated-cell-1-51" class="code-annotation-target"><a href="#annotated-cell-1-51" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">value</span>(bond<span class="op">::</span><span class="dt">ZeroCouponBond</span>, r)</span>
+<span id="annotated-cell-1-52"><a href="#annotated-cell-1-52" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> bond.par <span class="op">/</span> (<span class="fl">1</span> <span class="op">+</span> r)<span class="op">^</span>bond.tenor</span>
+<span id="annotated-cell-1-53"><a href="#annotated-cell-1-53" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="annotated-cell-1-54"><a href="#annotated-cell-1-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-1-55"><a href="#annotated-cell-1-55" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-annotation">
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-1" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-annotation="1" data-code-lines="4" data-code-cell="annotated-cell-1">General convention is to name abstract types beginning with <code>Abstract...</code></span>
+</dd>
+<dt data-target-cell="annotated-cell-1" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-annotation="2" data-code-lines="10,12,18" data-code-cell="annotated-cell-1">We define two simple bonds: a coupon paying and a zero-coupon instrument.</span>
+</dd>
+<dt data-target-cell="annotated-cell-1" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-annotation="3" data-code-lines="37" data-code-cell="annotated-cell-1"><code>x /= y</code>, <code>x += y</code>, etc. are shorthand ways to write <code>x = x / y</code> or <code>x = x + y</code></span>
+</dd>
+<dt data-target-cell="annotated-cell-1" data-target-annotation="4">4</dt>
+<dd>
+<span data-code-annotation="4" data-code-lines="33" data-code-cell="annotated-cell-1"><code>value</code> is defined for <code>AbstractBond</code>s in general…</span>
+</dd>
+<dt data-target-cell="annotated-cell-1" data-target-annotation="5">5</dt>
+<dd>
+<span data-code-annotation="5" data-code-lines="51" data-code-cell="annotated-cell-1">… and then more specifically for <code>ZeroCouponBond</code>s. This will be explained when discussing “dispatch” below.</span>
+</dd>
+</dl>
+</div>
+</div>
+<p>Here’s an example of how this would be used:</p>
+<div class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>portfolio <span class="op">=</span> [</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    Asset.<span class="fu">Cash</span>(<span class="fl">50.0</span>),</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    Asset.<span class="fu">CouponBond</span>(<span class="fl">100.0</span>, <span class="fl">0.05</span>, <span class="fl">5</span>),</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    Asset.<span class="fu">ZeroCouponBond</span>(<span class="fl">100.0</span>, <span class="fl">5</span>),</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>Asset.<span class="fu">value</span>.(portfolio, <span class="fl">0.05</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="3">
+<pre><code>3-element Vector{Float64}:
+ 50.0
+ 99.99999999999999
+ 78.35261664684589</code></pre>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>In the example above, a docstring was included over <code>value(asset::Cash)</code> - but not over the others. That’s okay. Julia will show docstrings for the <em>function</em> <code>value</code> not just individual <em>methods</em>.</p>
+</div>
+</div>
+<p>There are quite a few things demonstrated here: dispatch, programming paradigms, and [!!what else?] . As each are addressed in turn, we will review how we could have designed the interface differently.</p>
+<section id="multiple-dispatch" class="level3" data-number="6.4.1">
+<h3 data-number="6.4.1" class="anchored" data-anchor-id="multiple-dispatch"><span class="header-section-number">6.4.1</span> (Multiple) Dispatch</h3>
+<p>When a function is called, the computer has to decide which method to use. In the example above, when we want to <code>value</code> a <code>ZeroCouponBond</code>, does the <code>value(asset::AbstractBond, r)</code> or <code>value(bond::ZeroCouponBond, r)</code> version get used? <strong>Dispatch</strong> is the process of determining the right method to use and the rule is that the most specific defined method gets used. In this case, that means that even though our <code>ZeroCouponBond</code> is an <code>AbstractBond</code>, the routine that will used is the more specific <code>value(bond::ZeroCouponBond, r)</code>.</p>
+<p>Already, this is a powerful tool to simplify our code. Imagine the alternative of a long chain of conditional statements trying to find the right logic to use:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># don't do this!</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">value</span>(asset,r)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> asset.<span class="kw">type</span> <span class="op">==</span> <span class="st">"ZeroCouponBond"</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>        <span class="co"># special code for Zero coupon bonds</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ...</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elseif</span> asset.<span class="kw">type</span> <span class="op">==</span> <span class="st">"ParBond"</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>        <span class="co"># special code for Par bonds</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ...</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elseif</span> asset.<span class="kw">type</span> <span class="op">==</span> <span class="st">"AmortizingBond"</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>        <span class="co"># special code for Amortizing Bonds</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>        <span class="co"># ...</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>        <span class="co"># here define the generic AbstractBond logic</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>what if we wanted to extend from a rate to a yield curve and fixed to floating. Where does logic lie? In yield curve or in bond?)</p>
+</section>
+<section id="programming-paradigms" class="level3" data-number="6.4.2">
+<h3 data-number="6.4.2" class="anchored" data-anchor-id="programming-paradigms"><span class="header-section-number">6.4.2</span> Programming Paradigms</h3>
+<ul>
+<li><p>OO vs Data Oriented Design</p></li>
+<li><p>Alternative designs:</p>
+<ul>
+<li>ZeroCouponBond(par,tenor) = CouponBond(par,0.0,tenor)</li>
+</ul></li>
+</ul>
+</section>
+</section>
+<section id="misc-techniques" class="level2" data-number="6.5">
+<h2 data-number="6.5" class="anchored" data-anchor-id="misc-techniques"><span class="header-section-number">6.5</span> Misc Techniques</h2>
+<section id="recursion" class="level3" data-number="6.5.1">
+<h3 data-number="6.5.1" class="anchored" data-anchor-id="recursion"><span class="header-section-number">6.5.1</span> Recursion</h3>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->

@@ -20,6 +20,40 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -63,6 +97,9 @@ ul.task-list li input[type="checkbox"] {
     "search-label": "Search"
   }
 }</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
 
 
 <link rel="stylesheet" href="styles.css">
@@ -321,11 +358,19 @@ ul.task-list li input[type="checkbox"] {
    
   <ul>
   <li><a href="#in-this-chapter" id="toc-in-this-chapter" class="nav-link active" data-scroll-target="#in-this-chapter"><span class="header-section-number">17.1</span> In This Chapter</a></li>
+  <li><a href="#setup" id="toc-setup" class="nav-link" data-scroll-target="#setup"><span class="header-section-number">17.2</span> Setup</a></li>
+  <li><a href="#the-data" id="toc-the-data" class="nav-link" data-scroll-target="#the-data"><span class="header-section-number">17.3</span> The Data</a></li>
+  <li><a href="#running-the-projection" id="toc-running-the-projection" class="nav-link" data-scroll-target="#running-the-projection"><span class="header-section-number">17.4</span> Running the projection</a>
+  <ul class="collapse">
+  <li><a href="#stochastic-projection" id="toc-stochastic-projection" class="nav-link" data-scroll-target="#stochastic-projection"><span class="header-section-number">17.4.1</span> Stochastic Projection</a></li>
+  </ul></li>
+  <li><a href="#benchmarking" id="toc-benchmarking" class="nav-link" data-scroll-target="#benchmarking"><span class="header-section-number">17.5</span> Benchmarking</a></li>
+  <li><a href="#further-optimization" id="toc-further-optimization" class="nav-link" data-scroll-target="#further-optimization"><span class="header-section-number">17.6</span> Further Optimization</a></li>
   </ul>
 </nav>
     </div>
 <!-- main -->
-<main class="content" id="quarto-document-content">
+<main class="content page-columns page-full" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
@@ -344,9 +389,269 @@ ul.task-list li input[type="checkbox"] {
 
 </header>
 
+<p>[Drafting note: taken from a tutorial on JuliaActuary.org. Needs to be revised with more exposition.]</p>
 <section id="in-this-chapter" class="level2" data-number="17.1">
 <h2 data-number="17.1" class="anchored" data-anchor-id="in-this-chapter"><span class="header-section-number">17.1</span> In This Chapter</h2>
 <p>A term life insurance policy is used to illustrate: selecting key model features, design tradeoffs between a few different approaches, and a discussion of the performance impacts of the different approaches to parallelism.</p>
+</section>
+<section id="setup" class="level2" data-number="17.2">
+<h2 data-number="17.2" class="anchored" data-anchor-id="setup"><span class="header-section-number">17.2</span> Setup</h2>
+<div class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">CSV</span>, <span class="bu">DataFrames</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">MortalityTables</span>, <span class="bu">ActuaryUtilities</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Dates</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">ThreadsX</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">BenchmarkTools</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Random</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">CairoMakie</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Define a datatype. Not strictly necessary, but will make extending the program with more functions easier.</p>
+<p>Type annotations are optional, but providing them is able to coerce the values to be all plain bits (i.e.&nbsp;simple, non-referenced values like arrays are) when the type is constructed. This makes the whole data be stored in the stack and is an example of data-oriented design. It’s much slower without the type annotations (~0.5 million policies per second, ~50x slower).</p>
+<div class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@enum</span> Sex Female <span class="op">=</span> <span class="fl">1</span> Male <span class="op">=</span> <span class="fl">2</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@enum</span> Risk Standard <span class="op">=</span> <span class="fl">1</span> Preferred <span class="op">=</span> <span class="fl">2</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> Policy</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    id<span class="op">::</span><span class="dt">Int</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    sex<span class="op">::</span><span class="dt">Sex</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    benefit_base<span class="op">::</span><span class="dt">Float64</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    COLA<span class="op">::</span><span class="dt">Float64</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    mode<span class="op">::</span><span class="dt">Int</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    issue_date<span class="op">::</span><span class="dt">Date</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    issue_age<span class="op">::</span><span class="dt">Int</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    risk<span class="op">::</span><span class="dt">Risk</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="the-data" class="level2" data-number="17.3">
+<h2 data-number="17.3" class="anchored" data-anchor-id="the-data"><span class="header-section-number">17.3</span> The Data</h2>
+<div class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>sample_csv_data <span class="op">=</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">IOBuffer</span>(</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>        <span class="st">raw"id,sex,benefit_base,COLA,mode,issue_date,issue_age,risk</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>         <span class="fl">1</span>,M,<span class="fl">100000.0</span>,<span class="fl">0.03</span>,<span class="fl">12</span>,<span class="fl">1999</span><span class="op">-</span><span class="fl">12</span><span class="op">-</span><span class="fl">05</span>,<span class="fl">30</span>,Std</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>         <span class="fl">2</span>,F,<span class="fl">200000.0</span>,<span class="fl">0.03</span>,<span class="fl">12</span>,<span class="fl">1999</span><span class="op">-</span><span class="fl">12</span><span class="op">-</span><span class="fl">05</span>,<span class="fl">30</span>,Pref<span class="st">"</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="6">
+<pre><code>IOBuffer(data=UInt8[...], readable=true, writable=false, seekable=true, append=false, size=152, maxsize=Inf, ptr=1, mark=-1)</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>policies <span class="op">=</span> <span class="kw">let</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># read CSV directly into a dataframe</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="co"># df = CSV.read("sample_inforce.csv",DataFrame) # use local string for notebook</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> CSV.<span class="fu">read</span>(sample_csv_data, DataFrame)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># map over each row and construct an array of Policy objects</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">map</span>(<span class="fu">eachrow</span>(df)) <span class="cf">do</span> row</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>        <span class="fu">Policy</span>(</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>            row.id,</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>            row.sex <span class="op">==</span> <span class="st">"M"</span> ? Male <span class="op">:</span> Female,</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>            row.benefit_base,</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>            row.COLA,</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>            row.mode,</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>            row.issue_date,</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>            row.issue_age,</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>            row.risk <span class="op">==</span> <span class="st">"Std"</span> ? Standard <span class="op">:</span> Preferred,</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="7">
+<pre><code>2-element Vector{Policy}:
+ Policy(1, Male, 100000.0, 0.03, 12, Date("1999-12-05"), 30, Standard)
+ Policy(2, Female, 200000.0, 0.03, 12, Date("1999-12-05"), 30, Preferred)</code></pre>
+</div>
+</div>
+<p>Define what mortality gets used:</p>
+<div class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>mort <span class="op">=</span> <span class="fu">Dict</span>(</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    Male <span class="op">=&gt;</span> MortalityTables.<span class="fu">table</span>(<span class="fl">988</span>).ultimate,</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    Female <span class="op">=&gt;</span> MortalityTables.<span class="fu">table</span>(<span class="fl">992</span>).ultimate,</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">mortality</span>(pol<span class="op">::</span><span class="dt">Policy</span>, params)</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> params.mortality[pol.sex]</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="8">
+<pre><code>mortality (generic function with 1 method)</code></pre>
+</div>
+</div>
+<p>This defines the core logic of the policy projection and will write the results to the given out container (here, a named tuple of arrays).</p>
+<p>This is using a threaded approach where it could be operating on any of the computer’s available threads, thus acheiving thread-based parallelism - as opposed to multi-processor (multi-machine) or GPU-based computation, which requires formulating the problem a bit differently (array/matrix based). For the scale of computation here, I think I’d apply this model of parallelism.</p>
+<div class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">pol_project!</span>(out, policy, params)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># some starting values for the given policy</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    dur <span class="op">=</span> <span class="fu">duration</span>(policy.issue_date, params.val_date)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    start_age <span class="op">=</span> policy.issue_age <span class="op">+</span> dur <span class="op">-</span> <span class="fl">1</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    COLA_factor <span class="op">=</span> (<span class="fl">1</span> <span class="op">+</span> policy.COLA)</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    cur_benefit <span class="op">=</span> policy.benefit_base <span class="op">*</span> COLA_factor<span class="op">^</span>(dur <span class="op">-</span> <span class="fl">1</span>)</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># get the right mortality vector</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    qs <span class="op">=</span> <span class="fu">mortality</span>(policy, params)</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># grab the current thread's id to write to results container without conflicting with other threads</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    tid <span class="op">=</span> <span class="bu">Threads</span>.<span class="fu">threadid</span>()</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    ω <span class="op">=</span> <span class="fu">lastindex</span>(qs)</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>    <span class="co"># inbounds turns off bounds-checking, which makes hot loops faster but first write loop without it to ensure you don't create an error (will crash if you have the error without bounds checking)</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@inbounds</span> <span class="cf">for</span> t <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fu">min</span>(params.proj_length, ω <span class="op">-</span> start_age)</span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>        q <span class="op">=</span> qs[start_age<span class="op">+</span>t] <span class="co"># get current mortality</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> (<span class="fu">rand</span>() <span class="op">&lt;</span> q)</span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="co"># if dead then just return and don't increment the results anymore</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>            <span class="co"># pay benefit, add a life to the output count, and increment the benefit for next year</span></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>            out.benefits[t, tid] <span class="op">+=</span> cur_benefit</span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>            out.lives[t, tid] <span class="op">+=</span> <span class="fl">1</span></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>            cur_benefit <span class="op">*=</span> COLA_factor</span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="9">
+<pre><code>pol_project! (generic function with 1 method)</code></pre>
+</div>
+</div>
+<p>Parameters for our projection:</p>
+<div class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>params <span class="op">=</span> (</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    val_date<span class="op">=</span><span class="fu">Date</span>(<span class="fl">2021</span>, <span class="fl">12</span>, <span class="fl">31</span>),</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    proj_length<span class="op">=</span><span class="fl">100</span>,</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    mortality<span class="op">=</span>mort,</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="10">
+<pre><code>(val_date = Date("2021-12-31"), proj_length = 100, mortality = Dict{Sex, OffsetArrays.OffsetVector{Float64, Vector{Float64}}}(Female =&gt; [0.00745, 0.00745, 0.00745, 0.00745, 0.00745, 0.00745, 0.00745, 0.00745, 0.00745, 0.00745  …  0.376246, 0.386015, 0.393507, 0.398308, 0.4, 0.4, 0.4, 0.4, 0.4, 1.0], Male =&gt; [0.022571, 0.022571, 0.022571, 0.022571, 0.022571, 0.022571, 0.022571, 0.022571, 0.022571, 0.022571  …  0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4]))</code></pre>
+</div>
+</div>
+<p>Check the number of threads we’re using:</p>
+<div class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="bu">Threads</span>.<span class="fu">nthreads</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="11">
+<pre><code>1</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">project</span>(policies, params)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    threads <span class="op">=</span> <span class="bu">Threads</span>.<span class="fu">nthreads</span>()</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    benefits <span class="op">=</span> <span class="fu">zeros</span>(params.proj_length, threads)</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    lives <span class="op">=</span> <span class="fu">zeros</span>(<span class="dt">Int</span>, params.proj_length, threads)</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    out <span class="op">=</span> (; benefits, lives)</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    ThreadsX.<span class="fu">foreach</span>(policies) <span class="cf">do</span> pol</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>        <span class="fu">pol_project!</span>(out, pol, params)</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">map</span>(x <span class="op">-&gt;</span> <span class="fu">vec</span>(<span class="fu">reduce</span>(<span class="op">+</span>, x, dims<span class="op">=</span><span class="fl">2</span>)), out)</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="12">
+<pre><code>project (generic function with 1 method)</code></pre>
+</div>
+</div>
+</section>
+<section id="running-the-projection" class="level2" data-number="17.4">
+<h2 data-number="17.4" class="anchored" data-anchor-id="running-the-projection"><span class="header-section-number">17.4</span> Running the projection</h2>
+<p>Example of a single projection:</p>
+<div class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">project</span>(<span class="fu">repeat</span>(policies, <span class="fl">100_000</span>), params)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="13">
+<pre><code>(benefits = [5.628975306273068e10, 5.673607294596023e10, 5.714224889125354e10, 5.7467294701889656e10, 5.773281086874136e10, 5.790478392624898e10, 5.80804168051776e10, 5.8187372848139984e10, 5.8225900337695656e10, 5.817436955515859e10  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], lives = [195215, 190455, 185674, 180667, 175638, 170483, 165469, 160404, 155340, 150197  …  0, 0, 0, 0, 0, 0, 0, 0, 0, 0])</code></pre>
+</div>
+</div>
+<section id="stochastic-projection" class="level3" data-number="17.4.1">
+<h3 data-number="17.4.1" class="anchored" data-anchor-id="stochastic-projection"><span class="header-section-number">17.4.1</span> Stochastic Projection</h3>
+<p>Loop through and calculate the reults n times (this is only running the two policies in the sample data” n times).</p>
+<div class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">stochastic_proj</span>(policies, params, n)</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    ThreadsX.<span class="fu">map</span>(<span class="fl">1</span><span class="op">:</span>n) <span class="cf">do</span> i</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>        <span class="fu">project</span>(policies, params)</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="14">
+<pre><code>stochastic_proj (generic function with 1 method)</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>stoch <span class="op">=</span> <span class="fu">stochastic_proj</span>(policies, params, <span class="fl">1000</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="15">
+<pre><code>1000-element Vector{@NamedTuple{benefits::Vector{Float64}, lives::Vector{Int64}}}:
+ (benefits = [574831.0226582347, 592075.9533379817, 609838.2319381211, 418755.5859308432, 431318.2535087685, 444257.8011140316, 457585.53514745255, 471313.1012018761, 485452.49423793243, 500016.0690650704  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], lives = [2, 2, 2, 1, 1, 1, 1, 1, 1, 1  …  0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+ (benefits = [574831.0226582347, 592075.9533379817, 609838.2319381211, 628133.3788962648, 646977.3802631528, 666386.7016710474, 686378.3027211789, 706969.6518028142, 728178.7413568987, 750024.1035976056  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], lives = [2, 2, 2, 2, 2, 2, 2, 2, 2, 2  …  0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+ (benefits = [574831.0226582347, 592075.9533379817, 609838.2319381211, 628133.3788962648, 646977.3802631528, 666386.7016710474, 457585.53514745255, 471313.1012018761, 485452.49423793243, 500016.0690650704  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], lives = [2, 2, 2, 2, 2, 2, 1, 1, 1, 1  …  0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+ (benefits = [574831.0226582347, 592075.9533379817, 609838.2319381211, 628133.3788962648, 646977.3802631528, 666386.7016710474, 686378.3027211789, 706969.6518028142, 485452.49423793243, 500016.0690650704  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], lives = [2, 2, 2, 2, 2, 2, 2, 2, 1, 1  …  0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+ (benefits = [574831.0226582347, 592075.9533379817, 609838.2319381211, 628133.3788962648, 646977.3802631528, 666386.7016710474, 686378.3027211789, 706969.6518028142, 242726.24711896622, 250008.0345325352  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], lives = [2, 2, 2, 2, 2, 2, 2, 2, 1, 1  …  0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+ (benefits = [574831.0226582347, 592075.9533379817, 609838.2319381211, 628133.3788962648, 646977.3802631528, 666386.7016710474, 686378.3027211789, 706969.6518028142, 728178.7413568987, 750024.1035976056  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], lives = [2, 2, 2, 2, 2, 2, 2, 2, 2, 2  …  0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+ (benefits = [574831.0226582347, 592075.9533379817, 609838.2319381211, 209377.7929654216, 215659.12675438426, 222128.9005570158, 228792.76757372628, 235656.55060093806, 242726.24711896622, 250008.0345325352  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], lives = [2, 2, 2, 1, 1, 1, 1, 1, 1, 1  …  0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+ (benefits = [574831.0226582347, 592075.9533379817, 609838.2319381211, 628133.3788962648, 646977.3802631528, 666386.7016710474, 457585.53514745255, 471313.1012018761, 485452.49423793243, 500016.0690650704  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], lives = [2, 2, 2, 2, 2, 2, 1, 1, 1, 1  …  0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+ (benefits = [574831.0226582347, 592075.9533379817, 609838.2319381211, 628133.3788962648, 431318.2535087685, 444257.8011140316, 457585.53514745255, 471313.1012018761, 0.0, 0.0  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], lives = [2, 2, 2, 2, 1, 1, 1, 1, 0, 0  …  0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+ (benefits = [574831.0226582347, 592075.9533379817, 609838.2319381211, 628133.3788962648, 646977.3802631528, 666386.7016710474, 686378.3027211789, 706969.6518028142, 728178.7413568987, 750024.1035976056  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], lives = [2, 2, 2, 2, 2, 2, 2, 2, 2, 2  …  0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+ (benefits = [574831.0226582347, 592075.9533379817, 609838.2319381211, 628133.3788962648, 431318.2535087685, 444257.8011140316, 457585.53514745255, 0.0, 0.0, 0.0  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], lives = [2, 2, 2, 2, 1, 1, 1, 0, 0, 0  …  0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+ (benefits = [574831.0226582347, 592075.9533379817, 609838.2319381211, 628133.3788962648, 646977.3802631528, 666386.7016710474, 686378.3027211789, 706969.6518028142, 728178.7413568987, 750024.1035976056  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], lives = [2, 2, 2, 2, 2, 2, 2, 2, 2, 2  …  0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+ (benefits = [574831.0226582347, 592075.9533379817, 609838.2319381211, 628133.3788962648, 646977.3802631528, 666386.7016710474, 686378.3027211789, 706969.6518028142, 728178.7413568987, 750024.1035976056  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], lives = [2, 2, 2, 2, 2, 2, 2, 2, 2, 2  …  0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+ ⋮
+ (benefits = [574831.0226582347, 592075.9533379817, 609838.2319381211, 628133.3788962648, 646977.3802631528, 666386.7016710474, 686378.3027211789, 706969.6518028142, 728178.7413568987, 750024.1035976056  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], lives = [2, 2, 2, 2, 2, 2, 2, 2, 2, 2  …  0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+ (benefits = [574831.0226582347, 592075.9533379817, 609838.2319381211, 628133.3788962648, 646977.3802631528, 666386.7016710474, 686378.3027211789, 235656.55060093806, 242726.24711896622, 250008.0345325352  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], lives = [2, 2, 2, 2, 2, 2, 2, 1, 1, 1  …  0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+ (benefits = [574831.0226582347, 592075.9533379817, 609838.2319381211, 628133.3788962648, 646977.3802631528, 666386.7016710474, 686378.3027211789, 706969.6518028142, 485452.49423793243, 500016.0690650704  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], lives = [2, 2, 2, 2, 2, 2, 2, 2, 1, 1  …  0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+ (benefits = [574831.0226582347, 592075.9533379817, 203279.41064604037, 209377.7929654216, 215659.12675438426, 222128.9005570158, 228792.76757372628, 235656.55060093806, 0.0, 0.0  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], lives = [2, 2, 1, 1, 1, 1, 1, 1, 0, 0  …  0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+ (benefits = [574831.0226582347, 592075.9533379817, 609838.2319381211, 628133.3788962648, 646977.3802631528, 666386.7016710474, 686378.3027211789, 706969.6518028142, 728178.7413568987, 750024.1035976056  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], lives = [2, 2, 2, 2, 2, 2, 2, 2, 2, 2  …  0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+ (benefits = [574831.0226582347, 592075.9533379817, 609838.2319381211, 628133.3788962648, 646977.3802631528, 666386.7016710474, 686378.3027211789, 706969.6518028142, 728178.7413568987, 750024.1035976056  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], lives = [2, 2, 2, 2, 2, 2, 2, 2, 2, 2  …  0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+ (benefits = [574831.0226582347, 592075.9533379817, 609838.2319381211, 418755.5859308432, 431318.2535087685, 444257.8011140316, 457585.53514745255, 471313.1012018761, 485452.49423793243, 500016.0690650704  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], lives = [2, 2, 2, 1, 1, 1, 1, 1, 1, 1  …  0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+ (benefits = [574831.0226582347, 592075.9533379817, 609838.2319381211, 628133.3788962648, 646977.3802631528, 666386.7016710474, 686378.3027211789, 471313.1012018761, 485452.49423793243, 500016.0690650704  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], lives = [2, 2, 2, 2, 2, 2, 2, 1, 1, 1  …  0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+ (benefits = [574831.0226582347, 592075.9533379817, 609838.2319381211, 628133.3788962648, 646977.3802631528, 666386.7016710474, 686378.3027211789, 706969.6518028142, 728178.7413568987, 750024.1035976056  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], lives = [2, 2, 2, 2, 2, 2, 2, 2, 2, 2  …  0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+ (benefits = [574831.0226582347, 592075.9533379817, 609838.2319381211, 628133.3788962648, 646977.3802631528, 666386.7016710474, 686378.3027211789, 706969.6518028142, 728178.7413568987, 750024.1035976056  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], lives = [2, 2, 2, 2, 2, 2, 2, 2, 2, 2  …  0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+ (benefits = [574831.0226582347, 592075.9533379817, 609838.2319381211, 418755.5859308432, 431318.2535087685, 444257.8011140316, 457585.53514745255, 471313.1012018761, 485452.49423793243, 500016.0690650704  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], lives = [2, 2, 2, 1, 1, 1, 1, 1, 1, 1  …  0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+ (benefits = [574831.0226582347, 394717.3022253211, 406558.82129208074, 418755.5859308432, 431318.2535087685, 444257.8011140316, 457585.53514745255, 471313.1012018761, 485452.49423793243, 500016.0690650704  …  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], lives = [2, 1, 1, 1, 1, 1, 1, 1, 1, 1  …  0, 0, 0, 0, 0, 0, 0, 0, 0, 0])</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    v <span class="op">=</span> [<span class="fu">pv</span>(<span class="fl">0.03</span>, s.benefits) for s <span class="kw">in</span> stoch]</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">hist</span>(v,</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>        bins<span class="op">=</span><span class="fl">15</span>,</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>        xlabel<span class="op">=</span><span class="st">"Present Value of Benefits"</span>,</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>        ylabel<span class="op">=</span><span class="st">"Number of scenarios"</span>)</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="16">
+<img width="600" height="450" style="object-fit: contain;" src="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAABLAAAAOECAIAAAA+D1+tAAAABmJLR0QA/wD/AP+gvaeTAAAgAElEQVR4nOzdf3Cc9X3g8a9+WT+MZRywiSQoMQ7BQG1i3Au4k1AYm7gVpjQlpNTcQYFe02kyc0MSw83c2NNkmIPpTUIvheE3Mw6hTa/4TOaCY+YgATMUY6cJcRIcBAkCyz+whIXlWL+8Wt0fe9H5bFlYkrXPrj+v11+afb7a/axXerzvfR7tVgwPDycAAADiqcx6AAAAALIhCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIKjqrAcoaRUVFVmPAAAAhDY8PDx1V+4IIQAAQFCOEH6wKS3y/v7+vXv31tXVzZkzZ+puBeAE6uvr6+zsrK+vnz17dtazAByX3t7erq4uOy7KThHOWHSEEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgqOqsBwAAJm5f76H3Dg5mPcWkzD5l2qn1NVlPARCUIASAMvadn+x8bMs7WU8xKf/pU+f8h987M+spAIJyyigAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQ1VkPABDUm10Hf7Jzf9ZTTMTg4GBPT8+0ab3/7lDtwubGrMcBACZOEAJk49869v+3H76Z9RQTkc/nc7lcZWXlzWmaIASAsuaUUQAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKCqsx4AADLz/K/e+9+v7816iknpPZTPegQAypggBCCuX3UdfOb1zqynmJT5c07JegQAyphTRgEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIqrqYN9bd3f3JT37ysssuu//++8dY1tPTs3bt2o0bN+7atauxsXHRokW33nrrggULJr8YAACAEUUNwnXr1r322mtz584dY822bduuueaa9vb2kUs2bdp077333nXXXatWrZrMYgAAAA5XvCDs7Oz82te+Nvaarq6uFStW7Nixo6am5uqrr77iiiva2trWr1/f0dFx++23Nzc333DDDRNb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CEoQAgAABCUIAQAAghKEAAAAQQlCAACAoAQhAABAUIIQAAAgKEEIAAAQlCAEAAAIShACAAAEJQgBAACCEoQAAABBCUIAAICgBCEAAEBQghAAACAoQQgAABCUIAQAAAhKEAIAAAQlCAEAAIIShAAAAEEJQgAAgKAEIQAAQFCCEAAAIChBCAAAEJQgBAAACKo66wGO9NBDDw0ODh5r61VXXTV37tzDL+np6Vm7du3GjRt37drV2Ni4aNGiW2+9dcGCBVM/KQAAQHkrrSDs6en5/Oc/P8aCM8888/Ag3LZt2zXXXNPe3j5yyaZNm+6999677rpr1apVUzcnAADASaC0gvCNN944/sVdXV0rVqzYsWNHTU3N1VdffcUVV7S1ta1fv76jo+P2229vbm6+4YYbpm5UAACAcldaQfjmm2+mlKZNm9bT01NVVXX0gsMvvPvuu3fs2JFSevDBB2+++ebChXfccccll1yyc+fOVatWXXvttXV1dUUZHAAAoPyU1pvKFI4QfvSjH62tra0eTUVFRWHl4ODgQw89lFJauXLlSA2mlFpaWh555JGU0u7du9etW5fFnQAAACgPpRWEhSOE55133geufOGFFw4cOJBSuuWWW47YtHTp0pkzZ6aUNmzYMAUzAgAAnCRKKwgLRwhHgjCXyw0PD4+6cuvWrSmlqqqqJUuWHLGppqZm+fLlKaUtW7ZM4awAAABlrrSCsHCEsKmp6W//9m/PO++8hoaGGTNmXHrppV/60pf27dt3+Mq2traUUktLS0NDw9HXc+GFF6aU2tvbc7lcUQYHAAAoPyX0pjI9PT179+5NKX35y18eCblDhw698sorr7zyyj/+4z8+8sgjK1asKFy+Z8+elFJTU9OoV9Xc3JxSyuVynZ2dx1oDAAAQXAkFYeHwYEopn89//vOf//SnP33BBRe89dZb3/ve9x544IF33333+uuv/8UvfnH22WenlA4ePJhSGvXwYEqpvr6+8EVh2Rg+9rGPfeBgu3btOv57MV4DAwNdXV21tbUOZpaR997rOXToUNZTTEpvX1+534X+8r8Lfb3lehfy+Xwul6usrOw7CR4Fd6EE9Jbt78KIk+BR2Ldv365do/+dzsmhr69v3759dXV15f5IwQlXQkH41ltv1dbWVlVVfetb37r22msLF86fP/+P/uiPrrrqqquuuurgwYN/8zd/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">
+</div>
+</div>
+</section>
+</section>
+<section id="benchmarking" class="level2 page-columns page-full" data-number="17.5">
+<h2 data-number="17.5" class="anchored" data-anchor-id="benchmarking"><span class="header-section-number">17.5</span> Benchmarking</h2>
+<p>Using a 2022 Macbook Air M2 laptop, about 30 million policies able to be stochastically projected per second:</p>
+<div class="cell page-columns page-full" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>policies_to_benchmark <span class="op">=</span> <span class="fl">3_000_000</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="co"># adjust the `repeat` depending on how many policies are already in the array</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="co"># to match the target number for the benchmark</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> policies_to_benchmark <span class="op">÷</span> <span class="fu">length</span>(policies)</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a><span class="pp">@benchmark</span> <span class="fu">project</span>(p, r) setup <span class="op">=</span> (p <span class="op">=</span> <span class="fu">repeat</span>(<span class="op">$</span>policies, <span class="op">$</span>n); r <span class="op">=</span> <span class="op">$</span>params)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display column-page-inset-right" data-execution_count="17">
+<div class="ansi-escaped-output">
+<pre>BenchmarkTools.Trial: 7 samples with 1 evaluation.
+ Range <span class="ansi-bright-black-fg">(</span><span class="ansi-cyan-fg ansi-bold">min</span> … <span class="ansi-magenta-fg">max</span><span class="ansi-bright-black-fg">):  </span><span class="ansi-cyan-fg ansi-bold">571.609 ms</span> … <span class="ansi-magenta-fg">572.388 ms</span>  <span class="ansi-bright-black-fg">┊</span> GC <span class="ansi-bright-black-fg">(</span>min … max<span class="ansi-bright-black-fg">): </span>0.00% … 0.00%
+ Time  <span class="ansi-bright-black-fg">(</span><span class="ansi-blue-fg ansi-bold">median</span><span class="ansi-bright-black-fg">):     </span><span class="ansi-blue-fg ansi-bold">571.928 ms               </span><span class="ansi-bright-black-fg">┊</span> GC <span class="ansi-bright-black-fg">(</span>median<span class="ansi-bright-black-fg">):    </span>0.00%
+ Time  <span class="ansi-bright-black-fg">(</span><span class="ansi-green-fg ansi-bold">mean</span> ± <span class="ansi-green-fg">σ</span><span class="ansi-bright-black-fg">):   </span><span class="ansi-green-fg ansi-bold">571.951 ms</span> ± <span class="ansi-green-fg">286.868 μs</span>  <span class="ansi-bright-black-fg">┊</span> GC <span class="ansi-bright-black-fg">(</span>mean ± σ<span class="ansi-bright-black-fg">):  </span>0.00% ± 0.00%
+  █    █         <span class="ansi-blue-fg">█</span>        █  <span class="ansi-green-fg"> </span>   █                 █          █  
+  █▁▁▁▁█▁▁▁▁▁▁▁▁▁<span class="ansi-blue-fg">█</span>▁▁▁▁▁▁▁▁█▁▁<span class="ansi-green-fg">▁</span>▁▁▁█▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█▁▁▁▁▁▁▁▁▁▁█ ▁
+  572 ms<span class="ansi-bright-black-fg">           Histogram: frequency by time</span>          572 ms <span class="ansi-bold">&lt;</span>
+ Memory estimate<span class="ansi-bright-black-fg">: </span><span class="ansi-yellow-fg">9.28 KiB</span>, allocs estimate<span class="ansi-bright-black-fg">: </span><span class="ansi-yellow-fg">79</span>.</pre>
+</div>
+</div>
+</div>
+</section>
+<section id="further-optimization" class="level2" data-number="17.6">
+<h2 data-number="17.6" class="anchored" data-anchor-id="further-optimization"><span class="header-section-number">17.6</span> Further Optimization</h2>
+<p>In no particular order:</p>
+<ul>
+<li>the RNG could be made faster: https://bkamins.github.io/julialang/2020/11/20/rand.html</li>
+<li>Could make the stochastic set distributed, but at the current speed the overhead of distributed computing is probably more time than it would save. Same thing with GPU projections</li>
+<li>…</li>
+</ul>
 
 
 </section>
