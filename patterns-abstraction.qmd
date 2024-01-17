@@ -153,6 +153,29 @@ There are quite a few things demonstrated here: dispatch, programming paradigms,
 
 ### (Multiple) Dispatch 
 
+When a function is called, the computer has to decide which method to use. In the example above, when we want to `value` a `ZeroCouponBond`, does the `value(asset::AbstractBond, r)` or `value(bond::ZeroCouponBond, r)` version get used?  **Dispatch** is the process of determining the right method to use and the rule is that the most specific defined method gets used. In this case, that means that even though our `ZeroCouponBond` is an `AbstractBond`, the routine that will used is the more specific `value(bond::ZeroCouponBond, r)`.
+
+Already, this is a powerful tool to simplify our code. Imagine the alternative of a long chain of conditional statements trying to find the right logic to use:
+
+```julia
+# don't do this!
+function value(asset,r)
+    if asset.type == "ZeroCouponBond"
+        # special code for Zero coupon bonds
+        # ...
+    elseif asset.type == "ParBond"
+        # special code for Par bonds
+        # ...
+    elseif asset.type == "AmortizingBond"
+        # special code for Amortizing Bonds
+        # ...
+    else
+        # here define the generic AbstractBond logic
+    end
+end
+
+```
+
 what if we wanted to extend from a rate to a yield curve and fixed to floating. Where does logic lie? In yield curve or in bond?)
 
 ### Programming Paradigms
@@ -162,3 +185,7 @@ what if we wanted to extend from a rate to a yield curve and fixed to floating. 
 
 - Alternative designs:
   - ZeroCouponBond(par,tenor) = CouponBond(par,0.0,tenor)
+
+## Misc Techniques
+
+### Recursion
