@@ -376,6 +376,50 @@ typeof(("hello", 1.0))
 
 These tuples are both of the form `Tuple{T,U}` where `T` and `U` are both types. Why does this matter? We and the compiler can distinguish between a `Tuple{Int64,Int64}` and a `Tuple{String,Float64}` which allows us to reason about things ("I can add the first element of tuple together only if both are numbers") and the compiler to optimize (sometimes it can know exactly how many bits in memory a tuple of a certain kind will need and be more efficient about memory use). Further, we will see how this can become a powerful force in writing appropriately abstracted code and more logically organize our entire program when we encounter "multiple dispatch" later on.
 
+### Types for things not there
+
+`nothing` represents that there's nothing to be returned - for example if there's no solution to an optimization problem or if a function just doesn't have any value to `return` (such as in the case with input/output like `println`).
+
+`missing` is to represent something *should* be there but it's not, as is all too common in real-world data. Julia natively supports `missing` and three-value logic, which an an extension of the two-value boolean (true/false) logic, to handle missing logical values:
+
+
+
+::: {#tbl-panel .column-page layout-ncol=3}
+| NOT (`!`) | Value  |
+|------------|--------|
+| **`true`**    | `false`  |
+| **`missing`**    | `missing`|
+| **`false`**    | `true`   |
+: Not logic {#tbl-first}
+
+| AND (`&`)  | `true`  | `missing` | `false` |
+|-------------|-------|---------|-------|
+| **`true`**    | `true`  | `missing` | `false` |
+| **`missing`** | `missing` | `missing` | `false` |
+| **`false`**   | `false` | `false`   | `false` |
+: And logic {#tbl-second}
+
+| OR (`|`)   | `true`  | `missing` | `false` |
+|-------------|-------|---------|-------|
+| **`true`**    | `true`  | `true`    | `true`  |
+| **`missing`** | `true`  | `missing` | `missing` |
+| **`false`**   | `true`  | `missing` | `false` |
+: Or Logic {#tbl-third}
+
+
+Three value logic with `true`, `missing`, and `false`.
+:::
+
+::: callout-tip
+`Missing` and `Nothing` are the *types* while `missing` and `nothing` are the values here. This is analagous to `Float64` being a type and `2.0` being a value.
+:::
+
+### Union Types
+
+When two types may arise in a context, **union types** are a way to represent that. For example, if we have a data feed and we know that it will produce *either* a `Float64` *or* a `Missing` type then we can say that the value for this is `Union{Float64,Missing}`. This is much better for the compiler (and our performance!) than saying that the type of this is `Any`. 
+
+
+
 ### Creating User Defined Types
 
 We've talked about some built-in types but so much additional capabilities come from being able to define our own types. For example, taking the x-y-coordinate example from above, we could do the following instead of defining a tuple:
@@ -815,6 +859,14 @@ dist(Point3D(1, 1, 1,))
 
 In the next chapter we'll develop some more tools, which would, for example let us define the function `dist(p::CartesianCoordinate)` and generically define the distance for all of `CartesianCoordinate`'s subtypes.
 
+::: callout-caution
+## Defining Methods for Parametric Types
+
+We learned that `Float64 <: Real` in the type hiearchy. However, note that `Tuple{Float64}` is not a subtype of `Tuple{Real}`. This is called being **invariant** in type theory... but for our purposes this just practically means that when we define a method we need to specifiy that we want it to apply to all subtypes. 
+
+For example, `myfunction(x::Tuple{Real})` would *not* be called if x was a `Tuple{Float64}` becuase it's not a subtype of `Tuple{Real}`. To act the way we want, would define the method with the signature of `myfunction(Tuple{<:Real})` or `myfunction{Tuple{T}} where {T<:Real}`.
+:::
+
 ### Anonymous Functions
 
 **Anonymous functions** are functions that have no name and are used in contexts where the name does not matter. The syntax is `x -> ...expression with x...`. As an example, say that we want to create a vector from another where each element is squared. `map` applies a function to each member of a given collection:
@@ -861,6 +913,8 @@ double!(copy(v))
 v
 ```
 
+
+
 ### Broadcasting
 
 Looking at the prior definition of `dist`, what if we wanted to compute the squared distance from the origin for a set of points? If those points are stored in an array, we can **broadcast** functions to all members of a collection at the same time. This is accomplished using the **dot-syntax** as follows:
@@ -882,8 +936,10 @@ Why broadcasting is useful:
 
 
 ::: callout-note
-For readers coming from numpy-flavored Python  or R, broadcasting is a way that can feel at home if familiar with the array-oriented behavior of those two languages. Once you feel comfortable with Julia in general, you may find yourself relaxing and relying less on array-oriented design and instead picking whichever iteration paradigm feels most natural for the problem at hand: loops or broadcasting over arrays.
+For readers coming from numpy-flavored Python  or R, broadcasting is a way that can feel familiar to the array-oriented behavior of those two languages. Once you feel comfortable with Julia in general, you may find yourself relaxing and relying less on array-oriented design and instead picking whichever iteration paradigm feels most natural for the problem at hand: loops or broadcasting over arrays.
 :::
+
+#### Broadcasting Rules
 
  What happens if one of the collections is not the same size as the others? When broadcasting, singleton dimensions (i.e. the 1 in 1xN, "1-by-N", dimensions)  will be expanded automatically when it makes sense. For example, if you have a single element and a one dimensional array, the single element will be expanded in the function call without using any additional memory (if that dimension matches one of the dimensions of the other array). 
  
