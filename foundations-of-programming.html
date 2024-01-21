@@ -100,6 +100,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="site_libs/quarto-diagram/mermaid.min.js"></script>
 <script src="site_libs/quarto-diagram/mermaid-init.js"></script>
 <link href="site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+<script data-goatcounter="https://julia-fin-book.goatcounter.com/count" async="" src="//gc.zgo.at/count.js"></script>
 
   <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
@@ -370,8 +371,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#characters-strings-and-symbols" id="toc-characters-strings-and-symbols" class="nav-link" data-scroll-target="#characters-strings-and-symbols"><span class="header-section-number">5.4.4</span> Characters, Strings, and Symbols</a></li>
   <li><a href="#tuples" id="toc-tuples" class="nav-link" data-scroll-target="#tuples"><span class="header-section-number">5.4.5</span> Tuples</a></li>
   <li><a href="#parametric-types" id="toc-parametric-types" class="nav-link" data-scroll-target="#parametric-types"><span class="header-section-number">5.4.6</span> Parametric Types</a></li>
-  <li><a href="#creating-user-defined-types" id="toc-creating-user-defined-types" class="nav-link" data-scroll-target="#creating-user-defined-types"><span class="header-section-number">5.4.7</span> Creating User Defined Types</a></li>
-  <li><a href="#mutable-structs" id="toc-mutable-structs" class="nav-link" data-scroll-target="#mutable-structs"><span class="header-section-number">5.4.8</span> Mutable structs</a></li>
+  <li><a href="#types-for-things-not-there" id="toc-types-for-things-not-there" class="nav-link" data-scroll-target="#types-for-things-not-there"><span class="header-section-number">5.4.7</span> Types for things not there</a></li>
+  <li><a href="#union-types" id="toc-union-types" class="nav-link" data-scroll-target="#union-types"><span class="header-section-number">5.4.8</span> Union Types</a></li>
+  <li><a href="#creating-user-defined-types" id="toc-creating-user-defined-types" class="nav-link" data-scroll-target="#creating-user-defined-types"><span class="header-section-number">5.4.9</span> Creating User Defined Types</a></li>
+  <li><a href="#mutable-structs" id="toc-mutable-structs" class="nav-link" data-scroll-target="#mutable-structs"><span class="header-section-number">5.4.10</span> Mutable structs</a></li>
   </ul></li>
   <li><a href="#expressions-and-control-flow" id="toc-expressions-and-control-flow" class="nav-link" data-scroll-target="#expressions-and-control-flow"><span class="header-section-number">5.5</span> Expressions and Control Flow</a>
   <ul class="collapse">
@@ -558,11 +561,11 @@ Caution
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-8" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-lines="1" data-code-cell="annotated-cell-8" data-code-annotation="1">Here, we <strong>assign</strong> the value <code>0.2</code> to a <strong>variable</strong> <code>x</code>. More on variables/assignments in <a href="#sec-assignment"><span>Section&nbsp;5.5.3</span></a>.</span>
+<span data-code-annotation="1" data-code-lines="1" data-code-cell="annotated-cell-8">Here, we <strong>assign</strong> the value <code>0.2</code> to a <strong>variable</strong> <code>x</code>. More on variables/assignments in <a href="#sec-assignment"><span>Section&nbsp;5.5.3</span></a>.</span>
 </dd>
 <dt data-target-cell="annotated-cell-8" data-target-annotation="2">2</dt>
 <dd>
-<span data-code-lines="3" data-code-cell="annotated-cell-8" data-code-annotation="2"><code>big(x)</code> is a arbitrary precision floating point number and by default prints the full precision that was embedded in our variable <code>x</code>, which was originally <code>Float64</code>.</span>
+<span data-code-annotation="2" data-code-lines="3" data-code-cell="annotated-cell-8"><code>big(x)</code> is a arbitrary precision floating point number and by default prints the full precision that was embedded in our variable <code>x</code>, which was originally <code>Float64</code>.</span>
 </dd>
 </dl>
 </div>
@@ -695,19 +698,19 @@ Financial Modeling Pro-tip
 <div class="cell-output cell-output-display" data-execution_count="13">
 <pre><code>3×3×3 Array{Float64, 3}:
 [:, :, 1] =
- 0.355304  0.256886  0.717911
- 0.989957  0.51426   0.476913
- 0.046762  0.303347  0.416438
+ 0.770716  0.567089  0.593377
+ 0.544044  0.291375  0.330466
+ 0.587109  0.905061  0.718918
 
 [:, :, 2] =
- 0.488194  0.0879912  0.668692
- 0.517038  0.485765   0.115486
- 0.35435   0.396651   0.554006
+ 0.323929  0.109222  0.384421
+ 0.45479   0.97689   0.028814
+ 0.646084  0.403342  0.115525
 
 [:, :, 3] =
- 0.61897   0.561721   0.513213
- 0.140438  0.0281397  0.205959
- 0.773365  0.968631   0.461406</code></pre>
+ 0.0446646  0.233412  0.0184714
+ 0.828688   0.350323  0.0680812
+ 0.0782771  0.353126  0.121357</code></pre>
 </div>
 </div>
 <div class="cell" data-execution_count="13">
@@ -923,8 +926,128 @@ Note
 </div>
 <p>These tuples are both of the form <code>Tuple{T,U}</code> where <code>T</code> and <code>U</code> are both types. Why does this matter? We and the compiler can distinguish between a <code>Tuple{Int64,Int64}</code> and a <code>Tuple{String,Float64}</code> which allows us to reason about things (“I can add the first element of tuple together only if both are numbers”) and the compiler to optimize (sometimes it can know exactly how many bits in memory a tuple of a certain kind will need and be more efficient about memory use). Further, we will see how this can become a powerful force in writing appropriately abstracted code and more logically organize our entire program when we encounter “multiple dispatch” later on.</p>
 </section>
-<section id="creating-user-defined-types" class="level3" data-number="5.4.7">
-<h3 data-number="5.4.7" class="anchored" data-anchor-id="creating-user-defined-types"><span class="header-section-number">5.4.7</span> Creating User Defined Types</h3>
+<section id="types-for-things-not-there" class="level3 page-columns page-full" data-number="5.4.7">
+<h3 data-number="5.4.7" class="anchored" data-anchor-id="types-for-things-not-there"><span class="header-section-number">5.4.7</span> Types for things not there</h3>
+<p><code>nothing</code> represents that there’s nothing to be returned - for example if there’s no solution to an optimization problem or if a function just doesn’t have any value to <code>return</code> (such as in the case with input/output like <code>println</code>).</p>
+<p><code>missing</code> is to represent something <em>should</em> be there but it’s not, as is all too common in real-world data. Julia natively supports <code>missing</code> and three-value logic, which an an extension of the two-value boolean (true/false) logic, to handle missing logical values:</p>
+<div id="tbl-panel" class="tbl-parent column-page quarto-layout-panel anchored">
+<div class="panel-caption table-caption">
+<p>Table&nbsp;5.1: Three value logic with <code>true</code>, <code>missing</code>, and <code>false</code>.</p>
+</div>
+<div class="quarto-layout-row quarto-layout-valign-top">
+<div id="tbl-first" class="quarto-layout-cell quarto-layout-cell-subref anchored" data-ref-parent="tbl-panel" style="flex-basis: 33.3%;justify-content: center;">
+<table class="table">
+<caption>(a) Not logic</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">NOT (<code>!</code>)</th>
+<th style="text-align: left;">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><strong><code>true</code></strong></td>
+<td style="text-align: left;"><code>false</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong><code>missing</code></strong></td>
+<td style="text-align: left;"><code>missing</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong><code>false</code></strong></td>
+<td style="text-align: left;"><code>true</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="tbl-second" class="quarto-layout-cell quarto-layout-cell-subref anchored" data-ref-parent="tbl-panel" style="flex-basis: 33.3%;justify-content: center;">
+<table class="table">
+<caption>(b) And logic</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">AND (<code>&amp;</code>)</th>
+<th style="text-align: left;"><code>true</code></th>
+<th style="text-align: left;"><code>missing</code></th>
+<th style="text-align: left;"><code>false</code></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><strong><code>true</code></strong></td>
+<td style="text-align: left;"><code>true</code></td>
+<td style="text-align: left;"><code>missing</code></td>
+<td style="text-align: left;"><code>false</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong><code>missing</code></strong></td>
+<td style="text-align: left;"><code>missing</code></td>
+<td style="text-align: left;"><code>missing</code></td>
+<td style="text-align: left;"><code>false</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong><code>false</code></strong></td>
+<td style="text-align: left;"><code>false</code></td>
+<td style="text-align: left;"><code>false</code></td>
+<td style="text-align: left;"><code>false</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="tbl-third" class="quarto-layout-cell quarto-layout-cell-subref anchored" data-ref-parent="tbl-panel" style="flex-basis: 33.3%;justify-content: center;">
+<table class="table">
+<caption>(c) Or Logic</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">OR (<code>|</code>)</th>
+<th style="text-align: left;"><code>true</code></th>
+<th style="text-align: left;"><code>missing</code></th>
+<th style="text-align: left;"><code>false</code></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><strong><code>true</code></strong></td>
+<td style="text-align: left;"><code>true</code></td>
+<td style="text-align: left;"><code>true</code></td>
+<td style="text-align: left;"><code>true</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong><code>missing</code></strong></td>
+<td style="text-align: left;"><code>true</code></td>
+<td style="text-align: left;"><code>missing</code></td>
+<td style="text-align: left;"><code>missing</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong><code>false</code></strong></td>
+<td style="text-align: left;"><code>true</code></td>
+<td style="text-align: left;"><code>missing</code></td>
+<td style="text-align: left;"><code>false</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><code>Missing</code> and <code>Nothing</code> are the <em>types</em> while <code>missing</code> and <code>nothing</code> are the values here. This is analagous to <code>Float64</code> being a type and <code>2.0</code> being a value.</p>
+</div>
+</div>
+</section>
+<section id="union-types" class="level3" data-number="5.4.8">
+<h3 data-number="5.4.8" class="anchored" data-anchor-id="union-types"><span class="header-section-number">5.4.8</span> Union Types</h3>
+<p>When two types may arise in a context, <strong>union types</strong> are a way to represent that. For example, if we have a data feed and we know that it will produce <em>either</em> a <code>Float64</code> <em>or</em> a <code>Missing</code> type then we can say that the value for this is <code>Union{Float64,Missing}</code>. This is much better for the compiler (and our performance!) than saying that the type of this is <code>Any</code>.</p>
+</section>
+<section id="creating-user-defined-types" class="level3" data-number="5.4.9">
+<h3 data-number="5.4.9" class="anchored" data-anchor-id="creating-user-defined-types"><span class="header-section-number">5.4.9</span> Creating User Defined Types</h3>
 <p>We’ve talked about some built-in types but so much additional capabilities come from being able to define our own types. For example, taking the x-y-coordinate example from above, we could do the following instead of defining a tuple:</p>
 <div class="cell" data-execution_count="30">
 <div class="sourceCode cell-code" id="cb59"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> BasicPoint</span>
@@ -944,7 +1067,7 @@ Note
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-31" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-lines="1" data-code-cell="annotated-cell-31" data-code-annotation="1">Note that here, Julia will return a tuple instead of a single value due to the comma separated expressions.</span>
+<span data-code-annotation="1" data-code-lines="1" data-code-cell="annotated-cell-31">Note that here, Julia will return a tuple instead of a single value due to the comma separated expressions.</span>
 </dd>
 </dl>
 </div>
@@ -1049,8 +1172,8 @@ Unicode Characters
 </div>
 </div>
 </section>
-<section id="mutable-structs" class="level3" data-number="5.4.8">
-<h3 data-number="5.4.8" class="anchored" data-anchor-id="mutable-structs"><span class="header-section-number">5.4.8</span> Mutable structs</h3>
+<section id="mutable-structs" class="level3" data-number="5.4.10">
+<h3 data-number="5.4.10" class="anchored" data-anchor-id="mutable-structs"><span class="header-section-number">5.4.10</span> Mutable structs</h3>
 <p>It is possible to define <code>struct</code>s where the data can be modified - such a data field is said to be <strong>mutable</strong> because it can be changed or mutated. Here’s an example of what it would look like if we made <code>Point2D</code> mutable:</p>
 <div class="sourceCode" id="cb73"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a><span class="kw">mutable struct</span> Point2D{T}</span>
 <span id="cb73-2"><a href="#cb73-2" aria-hidden="true" tabindex="-1"></a>    x<span class="op">::</span><span class="dt">T</span></span>
@@ -1225,11 +1348,11 @@ Note
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-50" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-lines="1" data-code-cell="annotated-cell-50" data-code-annotation="1"><code>x</code> refers to the array which currently contains the elements <code>1</code>, <code>2</code>, and <code>3</code>.</span>
+<span data-code-annotation="1" data-code-lines="1" data-code-cell="annotated-cell-50"><code>x</code> refers to the array which currently contains the elements <code>1</code>, <code>2</code>, and <code>3</code>.</span>
 </dd>
 <dt data-target-cell="annotated-cell-50" data-target-annotation="2">2</dt>
 <dd>
-<span data-code-lines="2" data-code-cell="annotated-cell-50" data-code-annotation="2">We re-assign the first element of the array to be the value <code>5</code> instead of <code>1</code></span>
+<span data-code-annotation="2" data-code-lines="2" data-code-cell="annotated-cell-50">We re-assign the first element of the array to be the value <code>5</code> instead of <code>1</code></span>
 </dd>
 </dl>
 </div>
@@ -1250,7 +1373,7 @@ Note
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-51" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-lines="2" data-code-cell="annotated-cell-51" data-code-annotation="1"><code>y</code> refers to the <em>same</em> underyling array as <code>x</code></span>
+<span data-code-annotation="1" data-code-lines="2" data-code-cell="annotated-cell-51"><code>y</code> refers to the <em>same</em> underyling array as <code>x</code></span>
 </dd>
 </dl>
 </div>
@@ -1292,7 +1415,7 @@ Note
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-56" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-lines="5" data-code-cell="annotated-cell-56" data-code-annotation="1"><code>global</code> is used to incrment <code>i</code> by 1. <code>i</code> is defined outside the scope of the <code>while</code> loop (see <a href="#sec-scope"><span>Section&nbsp;5.7</span></a>).</span>
+<span data-code-annotation="1" data-code-lines="5" data-code-cell="annotated-cell-56"><code>global</code> is used to incrment <code>i</code> by 1. <code>i</code> is defined outside the scope of the <code>while</code> loop (see <a href="#sec-scope"><span>Section&nbsp;5.7</span></a>).</span>
 </dd>
 </dl>
 <div class="sourceCode" id="annotated-cell-57"><pre class="sourceCode julia code-annotation-code code-with-copy code-annotated"><code class="sourceCode julia"><span id="annotated-cell-57-1"><a href="#annotated-cell-57-1" aria-hidden="true" tabindex="-1"></a><span class="co"># index the array</span></span>
@@ -1307,7 +1430,7 @@ Note
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-57" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-lines="6" data-code-cell="annotated-cell-57" data-code-annotation="1"><code>break</code> is used to terminate the loop manually, since the condition that follows the <code>while</code> will never be false.</span>
+<span data-code-annotation="1" data-code-lines="6" data-code-cell="annotated-cell-57"><code>break</code> is used to terminate the loop manually, since the condition that follows the <code>while</code> will never be false.</span>
 </dd>
 </dl>
 </section>
@@ -1362,11 +1485,11 @@ Note
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-61" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-lines="1" data-code-cell="annotated-cell-61" data-code-annotation="1">A <code>function</code> block is declared with the name <code>distance</code> which takes a single argumemnt called <code>point</code></span>
+<span data-code-annotation="1" data-code-lines="1" data-code-cell="annotated-cell-61">A <code>function</code> block is declared with the name <code>distance</code> which takes a single argumemnt called <code>point</code></span>
 </dd>
 <dt data-target-cell="annotated-cell-61" data-target-annotation="2">2</dt>
 <dd>
-<span data-code-lines="2" data-code-cell="annotated-cell-61" data-code-annotation="2">We compute the distance formla for a point with x and y coordinates. The <code>return</code> value make explicit what value the function will output.</span>
+<span data-code-annotation="2" data-code-lines="2" data-code-cell="annotated-cell-61">We compute the distance formla for a point with x and y coordinates. The <code>return</code> value make explicit what value the function will output.</span>
 </dd>
 </dl>
 </div>
@@ -1417,6 +1540,20 @@ Note
 </div>
 </div>
 <p>In the next chapter we’ll develop some more tools, which would, for example let us define the function <code>dist(p::CartesianCoordinate)</code> and generically define the distance for all of <code>CartesianCoordinate</code>’s subtypes.</p>
+<div class="callout callout-style-default callout-caution callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Defining Methods for Parametric Types
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>We learned that <code>Float64 &lt;: Real</code> in the type hiearchy. However, note that <code>Tuple{Float64}</code> is not a subtype of <code>Tuple{Real}</code>. This is called being <strong>invariant</strong> in type theory… but for our purposes this just practically means that when we define a method we need to specifiy that we want it to apply to all subtypes.</p>
+<p>For example, <code>myfunction(x::Tuple{Real})</code> would <em>not</em> be called if x was a <code>Tuple{Float64}</code> becuase it’s not a subtype of <code>Tuple{Real}</code>. To act the way we want, would define the method with the signature of <code>myfunction(Tuple{&lt;:Real})</code> or <code>myfunction{Tuple{T}} where {T&lt;:Real}</code>.</p>
+</div>
+</div>
 </section>
 <section id="anonymous-functions" class="level3" data-number="5.6.3">
 <h3 data-number="5.6.3" class="anchored" data-anchor-id="anonymous-functions"><span class="header-section-number">5.6.3</span> Anonymous Functions</h3>
@@ -1428,7 +1565,7 @@ Note
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-66" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-lines="2" data-code-cell="annotated-cell-66" data-code-annotation="1">The <code>x -&gt; x^2</code> is the anonymous function in this example.</span>
+<span data-code-annotation="1" data-code-lines="2" data-code-cell="annotated-cell-66">The <code>x -&gt; x^2</code> is the anonymous function in this example.</span>
 </dd>
 </dl>
 </div>
@@ -1522,9 +1659,11 @@ Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>For readers coming from numpy-flavored Python or R, broadcasting is a way that can feel at home if familiar with the array-oriented behavior of those two languages. Once you feel comfortable with Julia in general, you may find yourself relaxing and relying less on array-oriented design and instead picking whichever iteration paradigm feels most natural for the problem at hand: loops or broadcasting over arrays.</p>
+<p>For readers coming from numpy-flavored Python or R, broadcasting is a way that can feel familiar to the array-oriented behavior of those two languages. Once you feel comfortable with Julia in general, you may find yourself relaxing and relying less on array-oriented design and instead picking whichever iteration paradigm feels most natural for the problem at hand: loops or broadcasting over arrays.</p>
 </div>
 </div>
+<section id="broadcasting-rules" class="level4" data-number="5.6.5.1">
+<h4 data-number="5.6.5.1" class="anchored" data-anchor-id="broadcasting-rules"><span class="header-section-number">5.6.5.1</span> Broadcasting Rules</h4>
 <p>What happens if one of the collections is not the same size as the others? When broadcasting, singleton dimensions (i.e.&nbsp;the 1 in 1xN, “1-by-N”, dimensions) will be expanded automatically when it makes sense. For example, if you have a single element and a one dimensional array, the single element will be expanded in the function call without using any additional memory (if that dimension matches one of the dimensions of the other array).</p>
 <p>The rules with an MxN and a PxQ array:</p>
 <ul>
@@ -1565,8 +1704,9 @@ Note
 <pre><code>LoadError: DimensionMismatch: arrays could not be broadcast to a common size; got a dimension with lengths 2 and 3</code></pre>
 </div>
 </div>
-<section id="not-broadcasting" class="level4" data-number="5.6.5.1">
-<h4 data-number="5.6.5.1" class="anchored" data-anchor-id="not-broadcasting"><span class="header-section-number">5.6.5.1</span> Not Broadcasting</h4>
+</section>
+<section id="not-broadcasting" class="level4" data-number="5.6.5.2">
+<h4 data-number="5.6.5.2" class="anchored" data-anchor-id="not-broadcasting"><span class="header-section-number">5.6.5.2</span> Not Broadcasting</h4>
 <p>What if you do not want the array to be used element-wise when broadcasting? Then you can wrap the array in a <code>Ref</code>, which is used in broadcasting to make the array be treated like a scalar. In the example below, <code>in(needle,haystack)</code> searches a collection (<code>haystack</code>) for an item (<code>needle</code>) and returns <code>true</code> or <code>false</code> if the item is in the collection:</p>
 <div class="cell" data-execution_count="63">
 <div class="sourceCode cell-code" id="cb129"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb129-1"><a href="#cb129-1" aria-hidden="true" tabindex="-1"></a><span class="fu">in</span>(<span class="fl">4</span>, [<span class="fl">1</span> <span class="fl">2</span> <span class="fl">3</span>; <span class="fl">4</span> <span class="fl">5</span> <span class="fl">6</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -1629,15 +1769,15 @@ Note
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-78" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-lines="12" data-code-cell="annotated-cell-78" data-code-annotation="1"><code>loss_function</code> is a variable that will refer to a function instead of data.</span>
+<span data-code-annotation="1" data-code-lines="12" data-code-cell="annotated-cell-78"><code>loss_function</code> is a variable that will refer to a function instead of data.</span>
 </dd>
 <dt data-target-cell="annotated-cell-78" data-target-annotation="2">2</dt>
 <dd>
-<span data-code-lines="19" data-code-cell="annotated-cell-78" data-code-annotation="2">Using a <code>let</code> block here is good practice to not have temporary variables <code>a</code> and <code>b</code> scattered around our workspace.</span>
+<span data-code-annotation="2" data-code-lines="19" data-code-cell="annotated-cell-78">Using a <code>let</code> block here is good practice to not have temporary variables <code>a</code> and <code>b</code> scattered around our workspace.</span>
 </dd>
 <dt data-target-cell="annotated-cell-78" data-target-annotation="3">3</dt>
 <dd>
-<span data-code-lines="20,21" data-code-cell="annotated-cell-78" data-code-annotation="3">Using a function as an argument to another function is an example of functions being treated as “first class”.</span>
+<span data-code-annotation="3" data-code-lines="20,21" data-code-cell="annotated-cell-78">Using a function as an argument to another function is an example of functions being treated as “first class”.</span>
 </dd>
 </dl>
 </div>
@@ -1660,15 +1800,15 @@ Note
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-79" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-lines="1" data-code-cell="annotated-cell-79" data-code-annotation="1"><code>i</code> is defined in the global scope and would be available to other inner scopes.</span>
+<span data-code-annotation="1" data-code-lines="1" data-code-cell="annotated-cell-79"><code>i</code> is defined in the global scope and would be available to other inner scopes.</span>
 </dd>
 <dt data-target-cell="annotated-cell-79" data-target-annotation="2">2</dt>
 <dd>
-<span data-code-lines="2" data-code-cell="annotated-cell-79" data-code-annotation="2">The <code>let ... end</code> block creates a local scope which inherits the defined global scope definitions.</span>
+<span data-code-annotation="2" data-code-lines="2" data-code-cell="annotated-cell-79">The <code>let ... end</code> block creates a local scope which inherits the defined global scope definitions.</span>
 </dd>
 <dt data-target-cell="annotated-cell-79" data-target-annotation="3">3</dt>
 <dd>
-<span data-code-lines="3" data-code-cell="annotated-cell-79" data-code-annotation="3"><code>j</code> is only defined in the local scope created by the <code>let</code> block.</span>
+<span data-code-annotation="3" data-code-lines="3" data-code-cell="annotated-cell-79"><code>j</code> is only defined in the local scope created by the <code>let</code> block.</span>
 </dd>
 </dl>
 </div>
@@ -1696,15 +1836,15 @@ Note
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-81" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-lines="3" data-code-cell="annotated-cell-81" data-code-annotation="1">Both <code>base</code> and <code>x</code> are inherited from the global scope.</span>
+<span data-code-annotation="1" data-code-lines="3" data-code-cell="annotated-cell-81">Both <code>base</code> and <code>x</code> are inherited from the global scope.</span>
 </dd>
 <dt data-target-cell="annotated-cell-81" data-target-annotation="2">2</dt>
 <dd>
-<span data-code-lines="4" data-code-cell="annotated-cell-81" data-code-annotation="2"><code>x</code> is based on the local scope from the function’s arguments and <code>base</code> is inherited from the global scope.</span>
+<span data-code-annotation="2" data-code-lines="4" data-code-cell="annotated-cell-81"><code>x</code> is based on the local scope from the function’s arguments and <code>base</code> is inherited from the global scope.</span>
 </dd>
 <dt data-target-cell="annotated-cell-81" data-target-annotation="3">3</dt>
 <dd>
-<span data-code-lines="5" data-code-cell="annotated-cell-81" data-code-annotation="3">Both <code>base</code> and <code>x</code> are defined in the local scope via the function’s arguments.</span>
+<span data-code-annotation="3" data-code-lines="5" data-code-cell="annotated-cell-81">Both <code>base</code> and <code>x</code> are defined in the local scope via the function’s arguments.</span>
 </dd>
 </dl>
 </div>
@@ -1735,19 +1875,19 @@ Note
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-82" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-lines="1" data-code-cell="annotated-cell-82" data-code-annotation="1"><code>module</code> defines an encapsulated block of code which is anchored to the namespace <code>Shape</code></span>
+<span data-code-annotation="1" data-code-lines="1" data-code-cell="annotated-cell-82"><code>module</code> defines an encapsulated block of code which is anchored to the namespace <code>Shape</code></span>
 </dd>
 <dt data-target-cell="annotated-cell-82" data-target-annotation="2">2</dt>
 <dd>
-<span data-code-lines="8" data-code-cell="annotated-cell-82" data-code-annotation="2">Here, <code>area</code> a <em>function</em> defined within the <code>Shape</code> module.</span>
+<span data-code-annotation="2" data-code-lines="8" data-code-cell="annotated-cell-82">Here, <code>area</code> a <em>function</em> defined within the <code>Shape</code> module.</span>
 </dd>
 <dt data-target-cell="annotated-cell-82" data-target-annotation="3">3</dt>
 <dd>
-<span data-code-lines="13" data-code-cell="annotated-cell-82" data-code-annotation="3">Outside of <code>Shape</code> module, we can access the definitions inside via the <code>Module.identifier</code> syntax.</span>
+<span data-code-annotation="3" data-code-lines="13" data-code-cell="annotated-cell-82">Outside of <code>Shape</code> module, we can access the definitions inside via the <code>Module.identifier</code> syntax.</span>
 </dd>
 <dt data-target-cell="annotated-cell-82" data-target-annotation="4">4</dt>
 <dd>
-<span data-code-lines="14" data-code-cell="annotated-cell-82" data-code-annotation="4">Here, <code>area</code> is a <em>variable</em> in our global scope that <em>does not</em> conflict with the <code>area</code> defined within the <code>Shape</code> module. If <code>Shape.area</code> were not within a module then when we said <code>area = ...</code> we would have reassigned <code>area</code> to no longer refer to the function and instead would refer to the area of our triangle.</span>
+<span data-code-annotation="4" data-code-lines="14" data-code-cell="annotated-cell-82">Here, <code>area</code> is a <em>variable</em> in our global scope that <em>does not</em> conflict with the <code>area</code> defined within the <code>Shape</code> module. If <code>Shape.area</code> were not within a module then when we said <code>area = ...</code> we would have reassigned <code>area</code> to no longer refer to the function and instead would refer to the area of our triangle.</span>
 </dd>
 </dl>
 </div>
