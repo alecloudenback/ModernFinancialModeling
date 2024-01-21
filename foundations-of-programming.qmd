@@ -826,11 +826,12 @@ end
 
 ::: callout-note
 An alternate, simpler function syntax for `distance` would be:
-:::
 
 ```julia
 distance(point) = sqrt(point.x^2 + point.y^2)
 ```
+
+:::
 
 However, we might at this point note a flaw in our function's defintion if we think about the various `Coordinate`s we defined earler: our definition would currently only work for `Point2D`. For example, if we try a `Point3D` we will get the wrong answer:
 
@@ -866,6 +867,35 @@ We learned that `Float64 <: Real` in the type hiearchy. However, note that `Tupl
 
 For example, `myfunction(x::Tuple{Real})` would *not* be called if x was a `Tuple{Float64}` becuase it's not a subtype of `Tuple{Real}`. To act the way we want, would define the method with the signature of `myfunction(Tuple{<:Real})` or `myfunction{Tuple{T}} where {T<:Real}`.
 :::
+
+### Keyword Arguments
+
+**Keyword arguments** are arguments that are passed to a function but do not use *position* to pass data to functions but instead used named arguments. In the following example, `filepath` is a **positional argument** while the two arguments after the semicolon (`;`) are keyword arguments. 
+
+```julia
+function read_data(filepath; normalize_names, has_header_row)
+    # ... function would be defined here
+end
+```
+
+The function would need to be called and have the two keyword aguments specified:
+
+```julia
+read_data("results.csv"; normalizenames=true, hasheaderrow=false)
+```
+
+### Default Arguments
+
+We are able to define default arguments for both positional and keyword arguments via an assignment expression in the function signature. For example, we can make it so that the user need not specifiy all the options for each call. Modifying the prior example so that typical CSVs work with less customizaiton from the user:
+
+```julia
+function read_data(filepath;
+    normalizenames = true,
+    hasheader = false
+)
+```
+
+This is a simplfiied example, but if you look at the documentation for most data import packages you'll see a lot of functionality defined via keyword arguments which have sensible defaults so that most of the the time you need not worry about modifying them.
 
 ### Anonymous Functions
 
