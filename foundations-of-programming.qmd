@@ -27,7 +27,7 @@ There will be brief references to hardware considerations for completeness, but 
 
 It's highly recommended that you follow along and have a Julia session open (e.g. a REPL or a notebook) when first going through this chapter. See @sec-julia-basics if you haven't gotten that set up yet. Follow along with the examples as we go.
 
-::: {.callout-tip }
+::: callout-tip
 You can get some help in the REPL by typing a `?` followed by the symbol you want help with, for example:
 
 ``` julia-repl
@@ -142,7 +142,8 @@ Additional range in the positive direction if one chooses to use "unsigned", non
 
 ::: callout-tip
 ## Financial Modeling Pro-tip
-Excel's numeric storage and routine is complex and not quite the same as most programming languages, which follow the Institute of Electrical and Electronics Engineer's standards (such as the IEEE 754 standard for double precision floating point numbers). Excel uses IEEE for the _computations_ but results (and therefore the cells that comprise many calculations interim values) are stored with 15 significant digits of information. In some ways this is the worst of both worlds: having the sometimes unusual (but well-defined) behavior of floating point arithmetic *and* having additional modifications to various steps of a calculation. In general, you can assume that the programming language result (following the IEEE 754 standard) is a better result because there are aspects to the IEEE 754 defines techniques to minimize issues that arise in floating point math. Some of the issues (round-off or truncation) can be amplified instead of minimized with Excel.
+
+Excel's numeric storage and routine is complex and not quite the same as most programming languages, which follow the Institute of Electrical and Electronics Engineer's standards (such as the IEEE 754 standard for double precision floating point numbers). Excel uses IEEE for the *computations* but results (and therefore the cells that comprise many calculations interim values) are stored with 15 significant digits of information. In some ways this is the worst of both worlds: having the sometimes unusual (but well-defined) behavior of floating point arithmetic *and* having additional modifications to various steps of a calculation. In general, you can assume that the programming language result (following the IEEE 754 standard) is a better result because there are aspects to the IEEE 754 defines techniques to minimize issues that arise in floating point math. Some of the issues (round-off or truncation) can be amplified instead of minimized with Excel.
 
 In practice, this means that it can be difficult to exactly replicate a calculation in Excel in a progamming language and vice-versa. It's best to try to validate a programming model versus Excel model using very small unit calculations (e.g. a single step or iteration of a routine) instead of an all-in result. You may need to define some tolerance threshold for comparison of a value that is the result of a long chain of calculation.
 :::
@@ -382,30 +383,30 @@ These tuples are both of the form `Tuple{T,U}` where `T` and `U` are both types.
 
 `missing` is to represent something *should* be there but it's not, as is all too common in real-world data. Julia natively supports `missing` and three-value logic, which an an extension of the two-value boolean (true/false) logic, to handle missing logical values:
 
+::: {#tbl-panel .column-page layout-ncol="3"}
+| NOT (`!`)     | Value     |
+|---------------|-----------|
+| **`true`**    | `false`   |
+| **`missing`** | `missing` |
+| **`false`**   | `true`    |
 
-
-::: {#tbl-panel .column-page layout-ncol=3}
-| NOT (`!`) | Value  |
-|------------|--------|
-| **`true`**    | `false`  |
-| **`missing`**    | `missing`|
-| **`false`**    | `true`   |
 : Not logic {#tbl-first}
 
-| AND (`&`)  | `true`  | `missing` | `false` |
-|-------------|-------|---------|-------|
-| **`true`**    | `true`  | `missing` | `false` |
+| AND (`&`)     | `true`    | `missing` | `false` |
+|---------------|-----------|-----------|---------|
+| **`true`**    | `true`    | `missing` | `false` |
 | **`missing`** | `missing` | `missing` | `false` |
-| **`false`**   | `false` | `false`   | `false` |
+| **`false`**   | `false`   | `false`   | `false` |
+
 : And logic {#tbl-second}
 
-| OR (`|`)   | `true`  | `missing` | `false` |
-|-------------|-------|---------|-------|
-| **`true`**    | `true`  | `true`    | `true`  |
-| **`missing`** | `true`  | `missing` | `missing` |
-| **`false`**   | `true`  | `missing` | `false` |
-: Or Logic {#tbl-third}
+| OR (`|`)      | `true` | `missing` | `false`   |
+|---------------|--------|-----------|-----------|
+| **`true`**    | `true` | `true`    | `true`    |
+| **`missing`** | `true` | `missing` | `missing` |
+| **`false`**   | `true` | `missing` | `false`   |
 
+: Or Logic {#tbl-third}
 
 Three value logic with `true`, `missing`, and `false`.
 :::
@@ -416,9 +417,7 @@ Three value logic with `true`, `missing`, and `false`.
 
 ### Union Types
 
-When two types may arise in a context, **union types** are a way to represent that. For example, if we have a data feed and we know that it will produce *either* a `Float64` *or* a `Missing` type then we can say that the value for this is `Union{Float64,Missing}`. This is much better for the compiler (and our performance!) than saying that the type of this is `Any`. 
-
-
+When two types may arise in a context, **union types** are a way to represent that. For example, if we have a data feed and we know that it will produce *either* a `Float64` *or* a `Missing` type then we can say that the value for this is `Union{Float64,Missing}`. This is much better for the compiler (and our performance!) than saying that the type of this is `Any`.
 
 ### Creating User Defined Types
 
@@ -558,6 +557,52 @@ You may find that this more naturally represents what you are trying to do. Howe
 Generally you should default to using immutable types and consider only moving to `mutable` types in specific circumstances. You'll see some examples in the applications later in the book.
 :::
 
+### Constructors
+
+**Constructors** are functions that return a data type (functions will be covered more generally later in the chapter). When we declare a `struct`, an implicit function is defined that takes a tuple of arguments and returns the data type that was declared. In the following example, after we define `MyType` the `struct`, Julia creates a function (also called `MyType`) which takes two arguments and will return the datatype `MyType`:
+
+```{julia}
+struct MyDate
+    year::Int
+    month::Int
+    day::Int
+end
+
+methods(MyDate)
+```
+
+Implicit constructors are nice in that you don't have to define a default method and the language does it for you. Sometimes there's reasons to want to control how an object is created, either for convenience or to enforce certain restrictions.
+
+We can use an inner constructor (i.e. inside the `struct` block) to enforce restrictions:\
+
+``` julia
+struct MyDate
+    year::Int
+    month::Int
+    day::Int
+
+    function MyDate(y,m,d)
+        if ~(m in 1:12)
+            error("month is not between 1 and 12")
+        else if ~(d in 1:31)
+            error("day is not between 1 and 31")
+        else
+            return new(y,m,d)
+        end
+
+    end
+                
+end
+```
+
+And outer constructors are simply functions defined that have the same name as the data type , but are not defined inside the `struct` block. Extending the `MyDate` example, say we want to provide a default constructor for if no day is given such that the date returns the 1st of the month:
+
+``` julia
+function MyDate(y,m)
+    return MyDate(y,m,1)
+end
+```
+
 ## Expressions and Control Flow
 
 Having already seen some more illustrative examples above, we can zoom in onto smaller pieces called **expressions** which are effectively the basic block of code that gets evaluated. Here is an expression that adds two integers together that evaluate to a new integer (`3` in this case):
@@ -613,13 +658,13 @@ Float64 isa Rational
 ::: callout-note
 In Julia, the booleans have an integer equality: `true` is equal to `1` (`true == 1`) and `false` is equal to `0` (`false == 0`). However:
 
-- `true != 5`. Only `1` is equal to true (in some languages, any non-zero number is "truthy").
-- `true` is not egal to `1` (egal is defined later in this chapter).
+-   `true != 5`. Only `1` is equal to true (in some languages, any non-zero number is "truthy").
+-   `true` is not egal to `1` (egal is defined later in this chapter).
 :::
 
-Conditionals can be used to assemble differnent logical paths for the program to follow and the general pattern is an `if` block:
+Conditionals can be used to assemble different logical paths for the program to follow and the general pattern is an `if` block:
 
-```julia
+``` julia
 if condition
     # do one thing
 elseif condition
@@ -692,7 +737,7 @@ Using this terminology, we could now interpret the "Ship of Theseus" as that his
 
 ### Assignment and Variables {#sec-assignment}
 
-When we say `x = 2` we are **assigning** the integer value of `2` to the variable `x`. This is an expression that lets us bind a something to a variable so that it can be referenced more concisely or in different parts of our code. When we re-assign the variable we are not mutating the value: `x = 3` does not change the `2`. 
+When we say `x = 2` we are **assigning** the integer value of `2` to the variable `x`. This is an expression that lets us bind a something to a variable so that it can be referenced more concisely or in different parts of our code. When we re-assign the variable we are not mutating the value: `x = 3` does not change the `2`.
 
 When we have a mutable object (e.g. an `Array` or a `mutable struct`), we can mutate the value inside the referenced container. For example:
 
@@ -701,10 +746,11 @@ x = [1, 2, 3] # <1>
 x[1] = 5 # <2>
 x
 ```
-1. `x` refers to the array which currently contains the elements `1`, `2`, and `3`. 
-2. We re-assign the first element of the array to be the value `5` instead of `1`
 
-In the above example, `x` has not been reassigned. It is possible for two variables to refer ot the same object:
+1.  `x` refers to the array which currently contains the elements `1`, `2`, and `3`.
+2.  We re-assign the first element of the array to be the value `5` instead of `1`
+
+In the above example, `x` has not been reassigned. It is possible for two variables to refer to the same object:
 
 ```{julia}
 x = [1,2,3]
@@ -713,36 +759,36 @@ x[1] = 6
 y
 ```
 
-1. `y` refers to the _same_ underyling array as `x`
+1.  `y` refers to the *same* underlying array as `x`
 
 ### Loops
 
-**Loops** are ways for the program to move through a program and repeat expressions while we want it to. There are two primary loops: `for` and `while`. 
+**Loops** are ways for the program to move through a program and repeat expressions while we want it to. There are two primary loops: `for` and `while`.
 
 **`for` loops** are loops that iterate over a defined range or set of values. Let's assume that we have the array `v = [6,7,8]`. Here are multiple examples of using a `for` loop in order to print each value to output (`println`):
 
-```julia
+``` julia
 # use fixed indices
 for i in 1:3
     println(v[i])
 end
 ```
 
-```julia
+``` julia
 # use indices the of the array
 for i in eachindex(v)
     println(v[i])
 end
 ```
 
-```julia
+``` julia
 # use the elements of the array
 for x in v
     println(x)
 end
 ```
 
-```julia
+``` julia
 # use the elements of the array
 for x ∈ v          # ∈ is typed \in<tab>
     println(x)
@@ -751,7 +797,7 @@ end
 
 **`while` loops** will run repeatedly until an expression is false. Here's some examples of printing each value of `v` again:
 
-```julia
+``` julia
 # index the array
 i = 1
 while i <= length(v) 
@@ -759,9 +805,10 @@ while i <= length(v)
     global i += 1 #<1>
 end
 ```
-1. `global` is used to incrment `i` by 1. `i` is defined outside the scope of the `while` loop (see @sec-scope).
 
-```julia
+1.  `global` is used to incrment `i` by 1. `i` is defined outside the scope of the `while` loop (see @sec-scope).
+
+``` julia
 # index the array
 i = 1
 while true
@@ -772,19 +819,20 @@ while true
     global i += 1 
 end
 ```
-1. `break` is used to terminate the loop manually, since the condition that follows the `while` will never be false.
+
+1.  `break` is used to terminate the loop manually, since the condition that follows the `while` will never be false.
 
 ### Performance of loops
 
-Loops are highly performant in Julia and often the fastest way to accomplish things. Those coming from Python or R may have developed a habit to avoid writing loops. _Fear the for loop not!_
+Loops are highly performant in Julia and often the fastest way to accomplish things. Those coming from Python or R may have developed a habit to avoid writing loops. *Fear the for loop not!*
 
 ## Functions
 
-Functions are a set of expressions that take inputs and return specified outputs. 
+Functions are a set of expressions that take inputs and return specified outputs.
 
 ### Special Operators
 
-Operators are the glue of expressions which combine values. We've already seen quite a few, but let's develop a little bit of terminology for these functions. 
+Operators are the glue of expressions which combine values. We've already seen quite a few, but let's develop a little bit of terminology for these functions.
 
 **Unary operators** are operators which only take a single argument. Examples include the `!` which negates a boolean value or `-` which negates a number:
 
@@ -804,11 +852,11 @@ The above unary and binary operators are special kinds of functions which don't 
 !(true), -(5), +(1,2), -(1,2)
 ```
 
-In Julia, we distinguish between **functions** which define behavior that maps a set of inputs to outputs. But a single function can adapt its behavior to the arguments themselves. We have just seen the function `-` be used in two different ways: negation and subtraction depending on whether it had one or two arguments given to it. In this way there is a conceptual heirarchy of functions that complements the hiearchy we have discussed in relation to types:
+In Julia, we distinguish between **functions** which define behavior that maps a set of inputs to outputs. But a single function can adapt its behavior to the arguments themselves. We have just seen the function `-` be used in two different ways: negation and subtraction depending on whether it had one or two arguments given to it. In this way there is a conceptual hierarchy of functions that complements the hierarchy we have discussed in relation to types:
 
-- `-` is the overall function
-- `-(x)` is a unary function which negates its values, `-(x,y)` subtracts `y` from `x`
-- Specific methods are then created for each combination of concrete types: `-(x::Float64)` is a different method than `-(x::Int)` 
+-   `-` is the overall function
+-   `-(x)` is a unary function which negates its values, `-(x,y)` subtracts `y` from `x`
+-   Specific methods are then created for each combination of concrete types: `-(x::Float64)` is a different method than `-(x::Int)`
 
 **Methods** are specific compiled versions of the function for specific types. This is important because at a hardware level, operations for different types (e.g. integers versus floating point) differ considerably. By optimizing for the speicifc types Julia is able to achieve nearly ideal performance without the same sacrifices of other dynamic languages. We will develop more with respect to methods when we talk about dispatch in @sec-patterns-abstractions.
 
@@ -821,16 +869,16 @@ function distance(point) # <1>
     return sqrt(point.x^2 + point.y^2) # <2>
 end 
 ```
-1. A `function` block is declared with the name `distance` which takes a single argumemnt called `point`
-2. We compute the distance formla for a point with x and y coordinates. The `return` value make explicit what value the function will output. 
+
+1.  A `function` block is declared with the name `distance` which takes a single argumemnt called `point`
+2.  We compute the distance formla for a point with x and y coordinates. The `return` value make explicit what value the function will output.
 
 ::: callout-note
 An alternate, simpler function syntax for `distance` would be:
 
-```julia
+``` julia
 distance(point) = sqrt(point.x^2 + point.y^2)
 ```
-
 :::
 
 However, we might at this point note a flaw in our function's defintion if we think about the various `Coordinate`s we defined earler: our definition would currently only work for `Point2D`. For example, if we try a `Point3D` we will get the wrong answer:
@@ -863,39 +911,39 @@ In the next chapter we'll develop some more tools, which would, for example let 
 ::: callout-caution
 ## Defining Methods for Parametric Types
 
-We learned that `Float64 <: Real` in the type hiearchy. However, note that `Tuple{Float64}` is not a subtype of `Tuple{Real}`. This is called being **invariant** in type theory... but for our purposes this just practically means that when we define a method we need to specifiy that we want it to apply to all subtypes. 
+We learned that `Float64 <: Real` in the type hierarchy. However, note that `Tuple{Float64}` is not a subtype of `Tuple{Real}`. This is called being **invariant** in type theory... but for our purposes this just practically means that when we define a method we need to specify that we want it to apply to all subtypes.
 
-For example, `myfunction(x::Tuple{Real})` would *not* be called if x was a `Tuple{Float64}` becuase it's not a subtype of `Tuple{Real}`. To act the way we want, would define the method with the signature of `myfunction(Tuple{<:Real})` or `myfunction{Tuple{T}} where {T<:Real}`.
+For example, `myfunction(x::Tuple{Real})` would *not* be called if x was a `Tuple{Float64}` because it's not a subtype of `Tuple{Real}`. To act the way we want, would define the method with the signature of `myfunction(Tuple{<:Real})` or `myfunction{Tuple{T}} where {T<:Real}`.
 :::
 
 ### Keyword Arguments
 
-**Keyword arguments** are arguments that are passed to a function but do not use *position* to pass data to functions but instead used named arguments. In the following example, `filepath` is a **positional argument** while the two arguments after the semicolon (`;`) are keyword arguments. 
+**Keyword arguments** are arguments that are passed to a function but do not use *position* to pass data to functions but instead used named arguments. In the following example, `filepath` is a **positional argument** while the two arguments after the semicolon (`;`) are keyword arguments.
 
-```julia
+``` julia
 function read_data(filepath; normalize_names, has_header_row)
     # ... function would be defined here
 end
 ```
 
-The function would need to be called and have the two keyword aguments specified:
+The function would need to be called and have the two keyword arguments specified:
 
-```julia
+``` julia
 read_data("results.csv"; normalizenames=true, hasheaderrow=false)
 ```
 
 ### Default Arguments
 
-We are able to define default arguments for both positional and keyword arguments via an assignment expression in the function signature. For example, we can make it so that the user need not specifiy all the options for each call. Modifying the prior example so that typical CSVs work with less customizaiton from the user:
+We are able to define default arguments for both positional and keyword arguments via an assignment expression in the function signature. For example, we can make it so that the user need not specify all the options for each call. Modifying the prior example so that typical CSVs work with less customization from the user:
 
-```julia
+``` julia
 function read_data(filepath;
     normalizenames = true,
     hasheader = false
 )
 ```
 
-This is a simplfiied example, but if you look at the documentation for most data import packages you'll see a lot of functionality defined via keyword arguments which have sensible defaults so that most of the the time you need not worry about modifying them.
+This is a simplified example, but if you look at the documentation for most data import packages you'll see a lot of functionality defined via keyword arguments which have sensible defaults so that most of the the time you need not worry about modifying them.
 
 ### Anonymous Functions
 
@@ -906,13 +954,13 @@ v = [4, 1, 5]
 map(x -> x^2, v)  # <1>
 ```
 
-1. The `x -> x^2` is the anonymous function in this example.
+1.  The `x -> x^2` is the anonymous function in this example.
 
-They are often used when constructing something from another value, or defining a function within optimizaiton or solving routines.
+They are often used when constructing something from another value, or defining a function within optimization or solving routines.
 
 ### Passing by Sharing
 
-Arguments to a function in Julia are *passed-by-sharing** which means that an outside variable can be mutated from within a function. We can modify the array in the outer scope (scope discussed later in this chapter) from within the function. In this example, we modify the array that is assigned to `v` by doubling each element:
+Arguments to a function in Julia are \*passed-by-sharing\*\* which means that an outside variable can be mutated from within a function. We can modify the array in the outer scope (scope discussed later in this chapter) from within the function. In this example, we modify the array that is assigned to `v` by doubling each element:
 
 ```{julia}
 v = [1, 2, 3]
@@ -928,22 +976,17 @@ double!(v)
 v
 ```
 
-
 ::: callout-tip
 Convention in Julia is that a function that modifies it's arguments has a `!` in it's name and we follow this convention in `double!` above. Another example would be the built-in function `sort!` which will sort an array in-place without allocating a new array to store the sorted values.
 :::
 
-
-
-We won't discuss all potential ways that programming languages can behave in this regard, but an alternative that one may have seen before (e.g. in Matlab) is pass-by-value where a modification to an argument only modfies the value within the scope. Here's how to replicate that in Julia by `copy`ing the value before handing it to a function. This time, v is not modified because we only passed a copy of the array and not the array itself:
+We won't discuss all potential ways that programming languages can behave in this regard, but an alternative that one may have seen before (e.g. in Matlab) is pass-by-value where a modification to an argument only modifies the value within the scope. Here's how to replicate that in Julia by `copy`ing the value before handing it to a function. This time, v is not modified because we only passed a copy of the array and not the array itself:
 
 ```{julia}
 v = [1, 2, 3]
 double!(copy(v))
 v
 ```
-
-
 
 ### Broadcasting
 
@@ -956,29 +999,28 @@ dist.(points) .^ 2
 
 Let's unpack that a bit more:
 
-1. The `.` in `dist.(points)` tells Julia to apply the function `dist` to each element in `points`.
-2. The `.` in `.^` tells Julia to square each values as well
+1.  The `.` in `dist.(points)` tells Julia to apply the function `dist` to each element in `points`.
+2.  The `.` in `.^` tells Julia to square each values as well
 
 Why broadcasting is useful:
 
-1. Without needing any redefinition of functions we were able to transform the function `dist` and exponentiation (`^`) to work on a collection of data. This means that we can keep our code simpler and easier to reason about (operating on individual things is easier than adding logic to handle collections of things).
-2. When multiple broadcasted operations are joined together, Julia can **fuse** the operations so that each operation is performed at the same time instead of each step sequentially. That is, if the operation were not fused, the computer would first calculate `dist` for each point, and then apply the square on the collection of distances. When it's fused, the operations can happen at the same time without creating an interim set of values.
-
+1.  Without needing any redefinition of functions we were able to transform the function `dist` and exponentiation (`^`) to work on a collection of data. This means that we can keep our code simpler and easier to reason about (operating on individual things is easier than adding logic to handle collections of things).
+2.  When multiple broadcasted operations are joined together, Julia can **fuse** the operations so that each operation is performed at the same time instead of each step sequentially. That is, if the operation were not fused, the computer would first calculate `dist` for each point, and then apply the square on the collection of distances. When it's fused, the operations can happen at the same time without creating an interim set of values.
 
 ::: callout-note
-For readers coming from numpy-flavored Python  or R, broadcasting is a way that can feel familiar to the array-oriented behavior of those two languages. Once you feel comfortable with Julia in general, you may find yourself relaxing and relying less on array-oriented design and instead picking whichever iteration paradigm feels most natural for the problem at hand: loops or broadcasting over arrays.
+For readers coming from numpy-flavored Python or R, broadcasting is a way that can feel familiar to the array-oriented behavior of those two languages. Once you feel comfortable with Julia in general, you may find yourself relaxing and relying less on array-oriented design and instead picking whichever iteration paradigm feels most natural for the problem at hand: loops or broadcasting over arrays.
 :::
 
 #### Broadcasting Rules
 
- What happens if one of the collections is not the same size as the others? When broadcasting, singleton dimensions (i.e. the 1 in 1xN, "1-by-N", dimensions)  will be expanded automatically when it makes sense. For example, if you have a single element and a one dimensional array, the single element will be expanded in the function call without using any additional memory (if that dimension matches one of the dimensions of the other array). 
- 
- The rules with an MxN and a PxQ array: 
+What happens if one of the collections is not the same size as the others? When broadcasting, singleton dimensions (i.e. the 1 in 1xN, "1-by-N", dimensions) will be expanded automatically when it makes sense. For example, if you have a single element and a one dimensional array, the single element will be expanded in the function call without using any additional memory (if that dimension matches one of the dimensions of the other array).
 
- - either (M and P) or (N and Q) need to be the same, *and*
- - one of the non-matching dimensions needs to be 1
+The rules with an MxN and a PxQ array:
 
- Some examples might clarify. This 1x1 element is being combined with a 4x1, so there is a compatible dimension (N and Q match, M is 1):
+-   either (M and P) or (N and Q) need to be the same, *and*
+-   one of the non-matching dimensions needs to be 1
+
+Some examples might clarify. This 1x1 element is being combined with a 4x1, so there is a compatible dimension (N and Q match, M is 1):
 
 ```{julia}
 2 .^ [0, 1, 2, 3]
@@ -1020,21 +1062,20 @@ in.([1, 9], [1 2 3; 4 5 6])
 
 Effectively, the result above is the result of this broadcasted result:
 
-```julia
+``` julia
 in(1, [1,2,3]) # the first row of the above result
 in(9, [4,5,6])
 ```
 
-If we were expecting Julia to return `[1,0]` (that the first needle is in the hasytack but the second needle is not), then we need to tell Julia not to broadcast along the second array with `Ref`:
+If we were expecting Julia to return `[1,0]` (that the first needle is in the haystack but the second needle is not), then we need to tell Julia not to broadcast along the second array with `Ref`:
 
 ```{julia}
 in.([1, 9], Ref([1 2 3; 4 5 6]))
 ```
 
-
 ### First Class Nature
 
-Functions in many languages including Julia are **first class** which means that functions can be assigned and moved around like data variables. 
+Functions in many languages including Julia are **first class** which means that functions can be assigned and moved around like data variables.
 
 In this example, we have a general approach to calculate the error of a modeled result compared to a known truth. In this context, there are different ways to measure error of the modeled result and we can simplify the implementation of `loss` by keeping the different kinds of error defined separately. Then, we can assign a function to a variable and use it as an argument to another function:
 
@@ -1063,9 +1104,10 @@ let # <2>
     a, b
 end
 ```
-1. `loss_function` is a variable that will refer to a function instead of data.
-2. Using a `let` block here is good practice to not have temporary variables `a` and `b` scattered around our workspace.
-3. Using a function as an argument to another function is an example of functions being treated as "first class".
+
+1.  `loss_function` is a variable that will refer to a function instead of data.
+2.  Using a `let` block here is good practice to not have temporary variables `a` and `b` scattered around our workspace.
+3.  Using a function as an argument to another function is an example of functions being treated as "first class".
 
 ## Scope {#sec-scope}
 
@@ -1078,12 +1120,13 @@ let #<2>
     i + j
 end
 ```
-1. `i` is defined in the global scope and would be available to other inner scopes.
-2. The `let ... end` block creates a local scope which inherits the defined global scope definitions.
-3. `j` is only defined in the local scope created by the `let` block.
 
+1.  `i` is defined in the global scope and would be available to other inner scopes.
+2.  The `let ... end` block creates a local scope which inherits the defined global scope definitions.
+3.  `j` is only defined in the local scope created by the `let` block.
 
 In fact, if we try to use `j` outside of the scope defined above we will get an error:
+
 ```{julia}
 #| error: true
 j
@@ -1100,9 +1143,10 @@ foo(x, base) = base^x #<3>
 
 foo(), foo(4), foo(4, 4)
 ```
-1. Both `base` and `x` are inherited from the global scope.
-2. `x` is based on the local scope from the function's arguments and `base` is inherited from the global scope.
-3. Both `base` and `x` are defined in the local scope via the function's arguments.
+
+1.  Both `base` and `x` are inherited from the global scope.
+2.  `x` is based on the local scope from the function's arguments and `base` is inherited from the global scope.
+3.  Both `base` and `x` are defined in the local scope via the function's arguments.
 
 In Julia, it's always best to explicitly pass arguments to functions rather than relying on them coming from an inherited scope. This is more straight-forward and easier to reason about and it also allows Julia to optimize the function to run faster because all relevant variables coming from outside the function are defined at the function's entry point (the arguments).
 
@@ -1126,10 +1170,11 @@ end
 t = Shape.Triangle(4,2) # <3>
 area = Shape.area(t)  # <4>
 ```
-1. `module` defines an encapsulated block of code which is anchored to the namespace `Shape`
-2. Here, `area` a *function* defined within the `Shape` module.
-3. Outside of `Shape` module, we can access the definitions inside via the `Module.identifier` syntax.
-4. Here, `area` is a *variable* in our global scope that *does not* conflict with the `area` defined within the `Shape` module. If `Shape.area` were not within a module then when we said `area = ...` we would have reassigned `area` to no longer refer to the function and instead would refer to the area of our triangle.
+
+1.  `module` defines an encapsulated block of code which is anchored to the namespace `Shape`
+2.  Here, `area` a *function* defined within the `Shape` module.
+3.  Outside of `Shape` module, we can access the definitions inside via the `Module.identifier` syntax.
+4.  Here, `area` is a *variable* in our global scope that *does not* conflict with the `area` defined within the `Shape` module. If `Shape.area` were not within a module then when we said `area = ...` we would have reassigned `area` to no longer refer to the function and instead would refer to the area of our triangle.
 
 ::: callout-note
 Summarizing related terminology:
