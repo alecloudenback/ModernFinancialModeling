@@ -1,0 +1,86 @@
+# Automatic Differentiation
+```{julia}
+#| echo: false
+#| output: false
+using Pkg
+Pkg.activate("env/autodiff")
+Pkg.instantiate()
+```
+
+## In This Chapter
+
+Harnessing the chain rule to compute derivatives not just of simple functions, but of complex programs.
+
+## Motivation for (Automatic) Derivatives
+
+Derivatives are one of the most useful analytical tools we have. Determining the rate of change with respect to an input is effectively sensitivity testing. Knowing the derivative let's you optimize things faster (see @sec-optimizaiton). You can test properties and implications (monotonicy, maxima/minima).
+
+## Finite Differentiation
+
+Finite differentiation is evaluating a function $f(x)$ at a value $x$ and then at a nearby value $x+\epsilon$. The line drawn through these two point effectively estimates the line that is tangent to the function $f$ at $x$: effecitvely the derivative has been found by approximation. That is, we are looking to approxmate the derivative using the property:
+
+$$
+f'(x) = \lim_{{\epsilon \to 0}} \frac{{f(x_0 + \epsilon) - f(x_0)}}{{\epsilon}}
+$$
+
+We can approximate the result by simply choosing a small $\epsilon$.
+
+There's also flavors of finite differentiation to approximate derivatives to be aware of:
+
+- forward difference is as defined in the above equation, where $\epsilon$ is added to $x_0$
+- forward difference is as defined in the above equation, where $\epsilon$ is substracted from $x_0$
+- central difference is where we evaluate at $x_0 \pm \epsilon$ and then divide by $2\epsilon$
+
+The benefit of the central difference is that it limitsissues around minima and maxima where the trough or peak respectively would seem much steeper if using forward or reverse. Here's a picture of this:
+
+```{julia}
+#| echo: false
+using CairoMakie
+let
+    x = -0.5:0.001:0.5
+    f(x) = x .^ 2
+
+    ϵ = 0.1
+    x0 = 0.0
+
+    fwd_tangent = (f(x0 + ϵ) - f(x0)) / ϵ
+    rev_tangent = (f(x0) - f(x0 + ϵ)) / ϵ
+    central_tangent = (f(x0 + ϵ) - f(x0 - ϵ)) / 2ϵ
+    lines(x, fwd_tangent .* x, color=:red, linewidth=1, linestyle=:dash, label="Forward Difference")
+
+    let
+        fig = Figure()
+        ax = Axis(fig[1, 1], limits=((-0.25, 0.25), (-0.05, 0.1)))
+        lines!(ax, x, f.(x), color=:blue, linewidth=2, label="x^2")
+        lines!(ax, x, fwd_tangent .* x, color=:red, linewidth=1, linestyle=:dash, label="Forward Difference")
+        lines!(ax, x, rev_tangent .* x, color=:green, linewidth=1, linestyle=:dash, label="Reverse Difference")
+        lines!(ax, x, central_tangent .* x, color=:orange, linewidth=1, linestyle=:dash, label="Central Difference")
+        vlines!(ax, [x0 + ϵ, x0 - ϵ], color=:gray, linewidth=1, linestyle=:dash, label="Epsilon")
+        axislegend(ax)
+
+        fig
+
+    end
+end
+```
+
+A more complex example using the PDF of a lognormal random variable with $\sigma=0.01$:
+
+
+```{julia}
+using DataFrames
+
+f(x) = 1 / (x * 0.01 * √(2π)) * exp(-log(x)^2 / (2 * 0.01^2))
+ϵ = 10.0 .^ -(5:12)
+x0 = 1.0 - 0.01^2
+let
+    fwd = @. (f(x0 + ϵ) - f(x0)) / ϵ
+    rev = @. (f(x0) - f(x0 - ϵ)) / ϵ
+    central = @. (f(x0 + ϵ) - f(x0 - ϵ)) / 2ϵ
+    DataFrame(; ϵ, fwd, rev, central)
+end
+```
+
+::: callout-note
+The `@.` in the code example above is a macro
+:::
