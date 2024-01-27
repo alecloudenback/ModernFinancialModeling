@@ -17,7 +17,7 @@ Derivatives are one of the most useful analytical tools we have. Determining the
 
 ## Finite Differentiation
 
-Finite differentiation is evaluating a function $f(x)$ at a value $x$ and then at a nearby value $x+\epsilon$. The line drawn through these two point effectively estimates the line that is tangent to the function $f$ at $x$: effecitvely the derivative has been found by approximation. That is, we are looking to approxmate the derivative using the property:
+Finite differentiation is evaluating a function $f(x)$ at a value $x$ and then at a nearby value $x+\epsilon$. The line drawn through these two point effectively estimates the line that is tangent to the function $f$ at $x$: effectively the derivative has been found by approximation. That is, we are looking to approximate the derivative using the property:
 
 $$
 f'(x) = \lim_{{\epsilon \to 0}} \frac{{f(x_0 + \epsilon) - f(x_0)}}{{\epsilon}}
@@ -28,10 +28,10 @@ We can approximate the result by simply choosing a small $\epsilon$.
 There's also flavors of finite differentiation to approximate derivatives to be aware of:
 
 - forward difference is as defined in the above equation, where $\epsilon$ is added to $x_0$
-- forward difference is as defined in the above equation, where $\epsilon$ is substracted from $x_0$
+- forward difference is as defined in the above equation, where $\epsilon$ is subtracted from $x_0$
 - central difference is where we evaluate at $x_0 \pm \epsilon$ and then divide by $2\epsilon$
 
-The benefit of the central difference is that it limitsissues around minima and maxima where the trough or peak respectively would seem much steeper if using forward or reverse. Here's a picture of this:
+The benefit of the central difference is that it limits issues around minima and maxima where the trough or peak respectively would seem much steeper if using forward or reverse. Here's a picture of this:
 
 ```{julia}
 #| echo: false
@@ -64,9 +64,13 @@ let
 end
 ```
 
-In practice, we are often interested in much more complex functions than $x^2$. For example, we may actually be interested in the sum of a series that is many elements long or contains more complex operations than basic algebra. In the prior example, the $\epsilon$ is set unusually wide for demonstration purposes. As $\epsilon$ grow smaller generally, the accuracy of all three finite different methods increases however, that's not always the case due to both the complexity of the function that you may be trying to differentiate or due to numerical inaccuracies of floating point math.
+One benefit of the central difference method is that is often more accurate than forward or reverse. However it comes at the cost of needing to evaluate the function an additional time in many circumstances. Take, for example, the process of optimizing a function to find a maxima or minima. The process usually involves evaluating a function at a gas determining what the derivative of the function is at that point and using both items to update to help better guess. At each step you need to evaluate the function three times for $x4, $x+\epsilon$, and $x-\epsilon$. With forward or reverse finite differences, you can reuse the prior function evaluation of the prior guess $x$ As one of the components in the estimation of the derivative, thereby saving an evaluation of the function for each iteration.
 
-To demonstrate, here is amore complex example using the PDF of a lognormal random variable with $\sigma=0.01$. This is A common distribution to encounter in practice, though it's a bit contrived to be trying to differentiate the probability different stop voice contro backspace 10 times 10 character
+ there are further challenges with the finite differences method. In practice, we are often interested in much more complex functions than $x^2$. For example, we may actually be interested in the sum of a series that is many elements long or contains more complex operations than basic algebra. In the prior example, the $\epsilon$ is set unusually wide for demonstration purposes. As $\epsilon$ grow smaller generally, the accuracy of all three finite different methods increases. However, that's not always the case due to both the complexity of the function that you may be trying to differentiate or due to numerical inaccuracies of floating point math.
+
+To demonstrate, here is amore complex example using the PDF of a lognormal random variable with $\sigma=0.01$. This is A common distribution to encounter in practice, though it's a bit contrived to be trying to differentiate the probability density function. However it will illustrate some aspects of finite differences that can lead to problems.
+
+ for this example we'll show the results of the three methods calculated at different values of $\epsilon$:
 
 
 ```{julia}
@@ -84,5 +88,48 @@ end
 ```
 
 ::: callout-note
-The `@.` in the code example above is a macro
+The `@.` in the code example above is a macro that applies broadcasting each function to its right. `@. (f(x0 + ϵ) - f(x0)) / ϵ` is the same as `(f.(x0 .+ ϵ) .- f.(x0)) ./ ϵ` 
 :::
+
+A few observations:
+
+1. Like the earlier simple example, we can see that using the forward or reverse difference biases the results so that we don't arrive at the correct derivative of zero.
+2. As epsilon shrinks, the result exhibit a behavior where the value starts to diverge from the right answer. This is due to the limitations of floating point math and the necessity of dividing by a very small number.
+3. Due to the inaccuracies in the finite difference method, we are at worse less efficient in achieving our objective and at worst could find our algorithm completely waylaid by the inaccurate interim estimates.
+
+All this is to say that finite differences can be very useful in many circumstances, but in recent years the better solution has emerged which we will cover next.
+
+## Automatic Differentiation
+
+Automatic differentiation is essentially the practice of defining algorithmically what the derivatives of function should be. We are able to do this through a creative application of the chain rule. Recall that the **chain rule** allows us to compute the derivative of a composite function using the derivatives of the component functions:
+
+$$
+h(x)=f(g(x))
+$$
+$$
+h'(x) = f'(g(x)) g'(x)
+$$
+
+Using this rule, we can define how elementary operations act when differentiated. Combined with the fact that most computer code is building up from a bunch of elementary operations, we can get a very long way in differentiating complex functions.
+
+### Dual Numbers
+
+To understand where we are going, let's remind ourselves about complex numbers. Complex numbers are of the form which has an real part ($r$) and an imaginary part ($iq$):
+
+$$
+r+iq
+$$
+
+By definition we say that $i^2 = -1$. This is useful because it allows us to perform certain types of operations (e.g. finding a square root of a negative number) that is otherwise unsolvable with just the real numbers^[Richard Feynman has a wonderful, short lecture on algebra here: https://www.feynmanlectures.caltech.edu/I_22.html]. After defining how the normal algebraic operations (addition, multiplication, etc.) work for the imaginary number, we are able to utilize the imaginary numbers for a variety of practical mathematical tasks. What is meant by extending the algebraic operations for imaginary numbers? For example, stating how addition should work for imaginary numbers:
+
+$$
+(r+iq) + (s+iu) = (r+s) + i(q+u)
+$$
+
+In a similar fashion as extending the Real ($\mathbb{R}$) numbers with an *imaginary* part, for automatic differentiation we will extend them with a *dual* part. A **dual number** is one of the form:
+
+$$
+a + \epsilon b
+$$
+
+Where $\epsilon^2 = 0$ by defintion. For our purposes here, one can think of $b$ as the derivative of the function evaluated at the same point as $a$
