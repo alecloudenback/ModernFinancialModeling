@@ -1,5 +1,157 @@
 # Similarity Analysis
 
+[Drafting note: based on some examples. Needs to be revised with more exposition.]
+
 ## In This Chapter
 
-Given a set of interest, understanding the relative similarity (or not) of features of interest is useful in classification and data compression techniues.
+Given a set of interest, understanding the relative similarity (or not) of features of interest is useful in classification and data compression techniques.
+
+```{julia}
+#| echo: false
+#| output: false
+using Pkg
+Pkg.activate("env/similarity")
+Pkg.instantiate()
+```
+
+## Setup
+
+```{julia}
+#| output: false
+import Pkg; Pkg.add("NearestNeighbors")
+using CSV, DataFrames
+using LinearAlgebra
+using StatsBase, TableTransforms
+using CairoMakie
+using NearestNeighbors
+```
+
+## The Data
+
+Stored data can generally be categorized into two formats: tabular (structured) and non-tabular (unstructured). Structured data format is a structured way of organizing and presenting data in rows and columns, resembling a table. This format is widely used for storing and representing structured datasets, making it easy to read, analyze, and manipulate data. The most common example of structured data is a spreadsheet, where data is organized into rows and columns. Structured data can also be stored in relational databases for easier lookups and matching. On the other hand, unstructured data refers to data that lacks a predefined data model or structure. Unlike structured data, which fits neatly into tables or databases, unstructured data does not have a predefined schema. It can include text documents, images, audio files, video files, social media posts, and more.
+
+Structured data can be further categorized into numerical and categorical data based on the types of values they represent. The following data tables will be referenced throughout the chapter. Real numerical data can easily be converted or normalized to a series of floating points, and real categorical data to a series of binary literals through one-hot encoding procedures.
+```{julia}
+sample_csv_data =
+    IOBuffer(
+        raw"id,sex,benefit_base,education,occupation,issue_age
+         1,M,100000.0,college,1,30.0
+         2,F,200000.0,master,3,20.0
+         3,M,150000.0,high_school,4,40.0
+         4,F,50000.0,college,2,60.0
+         5,M,250000.0,college,1,40.0
+         6,F,200000.0,high_school,2,30.0"
+    )
+```
+
+```{julia}
+df = CSV.read(sample_csv_data, DataFrame)
+df_num = apply(MinMax(), df[:, [:benefit_base, :issue_age]])[1]
+```
+
+```{julia}
+arr_cat = hcat(indicatormat(df.sex)', indicatormat(df.education)', indicatormat(df.occupation)')
+```
+
+For unstructured data, due to the nature of their variety, the choice of representation depends on the type of data and the specific task at hand. For text data, a Word2Vec embedding is commonly used, while Convolutional Neural Networks (CNNs) are for image data and wave transforms are for audio data. No matter which transformation is applied, unstructured data can generally be converted to a series of floating points, just like numerical structured data.
+
+## Common Similarity Measures
+
+The following measures are commonly used to calculate similarities.
+
+### Euclidean Distance (L2 norm)
+
+Euclidean distance, also known as the L2 norm, is defined as
+$$
+d = \sqrt{\sum_{i=1}^{n} (w_i - v_i)^2}
+$$
+The distance is usually meaningful when applied to numerical data. The following Julia code shows the Euclidean distance for the first two rows in df_num.
+
+```{julia}
+#d₁₂ = √(∑((Array(df_num[1, :]) .- Array(df_num[2, :])) .* (Array(df_num[1, :]) .- Array(df_num[2, :]))))
+d₁₂ = LinearAlgebra.norm(Array(df_num[1, :]) .- Array(df_num[2, :]))
+```
+
+### Manhattan Distance (L1 Norm)
+
+Manhattan distance, also known as the L1 norm, is defined as
+$$
+d = \sum_{i=1}^{n} |w_i - v_i|
+$$
+The distance is also usually meaningful when applied to numerical data. The following Julia code shows the Euclidean distance for the first two rows in df_num.
+
+```{julia}
+#d₁₂ = ∑(abs.(Array(df_num[1, :]) .- Array(df_num[2, :])))
+d₁₂ = LinearAlgebra.norm1(Array(df_num[1, :]) .- Array(df_num[2, :]))
+```
+
+### Cosine Similarity
+
+Cosine similarity is defined as
+$$
+d = \frac{\sum_{i=1}^{n} w_i \cdot v_i}{\sqrt{\sum_{i=1}^{n} w_i^2} \cdot \sqrt{\sum_{i=1}^{n} v_i^2}}
+$$
+The distance would be meaningful when applied to both numerical and categorical data.
+
+The following Julia code shows the cosine similarity for the first two rows in df_num.
+
+```{julia}
+d₁₂ = (Array(df_num[1, :]) ⋅ Array(df_num[2, :])) / norm(df_num[1, :]) / norm(df_num[2, :])
+```
+
+The following Julia code shows the cosine similarity for the first and the third rows in arr_cat.
+
+```{julia}
+d₁₃ = (arr_cat[1, :] ⋅ arr_cat[3, :]) / norm(arr_cat[1, :]) / norm(arr_cat[3, :])
+```
+
+Note how similar the syntax of processing for numerical or categorical data is. Multiple dispatch allows Julia to identify most efficient underlying procedure for different types of data. For categorical data, the $dot$ operation on binary vectors is essentially count of 1's, while for numerical data it is the $dot$ operation for most numerical processing libraries.
+
+### Jaccard Similarity
+
+Jaccard similarity is defined as
+$$
+d = \frac{|W \cap V|}{|W \cup V|}
+$$
+The distance is usually meaningful when applied to categorical data. The following Julia code shows the Jaccard similarity for the first and the third rows in arr_cat.
+
+```{julia}
+d₁₃ = (arr_cat[1, :] ⋅ arr_cat[3, :]) / sum(arr_cat[1, :] .| arr_cat[3, :])
+```
+
+### Hamming Distance
+
+Hamming distance is defined as d = Number of positions at which w and v differ. The distance is usually meaningful when applied to categorical data. The following Julia code shows the Hamming distance for the first and the third rows in arr_cat.
+
+```{julia}
+d₁₃ = sum(arr_cat[1, :] .⊻ arr_cat[3, :])
+```
+
+## k-Nearest Neighbor (kNN) Clustering
+
+kNN is primarily known as a classification algorithm, but it can also be used for clustering, particularly in the context of density-based clustering. Density-based clustering identifies regions in the data space where the density of data points is higher, and it groups points in these high-density regions. The core idea of kNN clustering is to assign each data point to a cluster based on the density of its neighbors. A data point becomes a core point if it has at least a specified number of neighbors within a certain distance.
+
+```{julia}
+# Create a kNN model
+k = 1
+knn_model = KDTree(Array(df_num))
+
+# Query point for prediction
+query_point = rand(2)
+
+# Find k nearest neighbors
+indices, distances = knn(knn_model, query_point, k)
+
+# Display results
+println("Query Point: $query_point")
+println("Nearest Neighbors Indices: $indices")
+println("Distances to Neighbors: $distances")
+
+f = Figure()
+Axis(f[1, 1])
+scatter!(df_num[:, 1], df_num[:, 2])
+scatter!(query_point[1], query_point[2])
+f
+```
+
+## Benchmarking
