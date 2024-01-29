@@ -109,7 +109,7 @@ Admittedly, despite the accuracy and computational overhead, finite differences 
 
 ## Automatic Differentiation
 
-**Automatic differentiation** ("autodiff" for short) is essentially the practice of defining algorithmically what the derivatives of function should be. We are able to do this through a creative application of the chain rule. Recall that the **chain rule** allows us to compute the derivative of a composite function using the derivatives of the component functions:
+**Automatic differentiation** ("autodiff" or "AD" for short) is essentially the practice of defining algorithmically what the derivatives of function should be. We are able to do this through a creative application of the chain rule. Recall that the **chain rule** allows us to compute the derivative of a composite function using the derivatives of the component functions:
 
 $$
 h(x)=f(g(x))
@@ -211,8 +211,8 @@ We can also define this for things like transcendental functions:
 
 ```{julia}
 Base.exp(d::DualNumber) = DualNumber(exp(d.a), exp(d.a) * d.b)
-Base.sin(d::DualNumber) = DualNumber(sin(d.a), cos(d.a)*d.b)
-Base.cos(d::DualNumber) = DualNumber(cos(d.a), -sin(d.a)*d.b)
+Base.sin(d::DualNumber) = DualNumber(sin(d.a), cos(d.a) * d.b)
+Base.cos(d::DualNumber) = DualNumber(cos(d.a), -sin(d.a) * d.b)
 exp(DualNumber(1, 1))
 ```
 ```{julia}
@@ -223,6 +223,27 @@ sin(DualNumber(0, 1))
 ```{julia}
 cos(DualNumber(0, 1))
 ```
+
+And finally, to put it all together in a more usable wrapper, we can define a function which will calcualte the derivative of another function at a certain point:
+
+```{julia}
+derivative(f,x) = f(DualNumber(x,one(x))).b
+```
+
+And then evaluating it on a more complex function like $f(x) = 5e^{sin(x)}+3x$ at $x = 0$, we would analytically derive $8$, which matches what we calculate next:
+
+```{julia}
+let
+    f(x) = 5 * exp(sin(x))+3x
+    derivative(f,0)
+end
+```
+
+We have demonstrated that through the clever use of dual numbers and the chain rule that complex expressions can be automatically differentiated by the computer to an exact level, limited only by the same machine precision that applies to our primary function of interst as well. 
+
+
+
+
 
 ## Performance of Automatic Differentiation
 
@@ -237,7 +258,7 @@ using BenchmarkTools
 @btime f2(DualNumber(rand(), 1))
 ```
 
-In performing this computation, the compiler has been able to optimize it such that we effectively are able to compute the function and its derivative at effetcitly the same speed as just the evaluating the function itself! As the function gets more complex, the overhead does increase but is still a *much* preferred option versus finite differentiation.
+In performing this computation, the compiler has been able to optimize it such that we effectively are able to compute the function and its derivative at effetcitly the same speed as just the evaluating the function itself! As the function gets more complex, the overhead does increase but is still a *much* preferred option versus finite differentiation. This advantage becomes more pronouced as we contemplate derivatives with respect to many variables at once or for higher-order derivatives.
 
 ::: callout-note
 In fact, it's largely due to the advances in applications of automatic differentiation that has led to the explosion of machine learning and artificial intelligence techniques in the 2010s/2020s. The "learning" process relies on solving parameter weights and would be too computationally expensive if using finite differences. 
@@ -245,12 +266,126 @@ In fact, it's largely due to the advances in applications of automatic different
 These applications of autodiffertiation in specialized C++ libraries underpin the libraries like PyTorch, Tensorfow, and Keras. These libraries specialize in allowing for autodiff on a limited subset of operations. Julia's available automatic differentiation is more general and can be applied to many more scenarios. 
 :::
 
-## Forward Mode and Reverse Mode
 
 ## Automatic Differentiation in Practice
 
+We have, of course, not defined an exhaustive list of operations, covering only `+`, `*`, `exp`, `sin`, and `cos`. There are only a few more arithmetic (`-`, `/`) and trancendental (`log`, more trigonometric functions, etc.) before we would have a very robust set of algebraic operations defined for our `DualNumber`. In fact, it's possible to go even further and to define the behavior through conditional expressions and iterations to differentiate fairly complex functions or to extend the mechanism to partial derivatives and higher-order derivatives as well.
+
+```{julia}
+import Distributions
+import ForwardDiff
+
+N(x) = Distributions.cdf(Distributions.Normal(),x)
+
+function d1(S, K, τ, r, σ, q)
+    return (log(S / K) + (r - q + σ^2 / 2) * τ) / (σ * √(τ))
+end
+
+function d2(S, K, τ, r, σ, q)
+    return d1(S, K, τ, r, σ, q) - σ * √(τ)
+end
+
+"""
+    eurocall(parameters)
+
+Calculate the Black-Scholes implied option price for a european call where `parameters` is a vector with the following six elements:
+
+- `S` is the current asset price
+- `K` is the strike or exercise price
+- `τ` is the time remaining to maturity (can be typed with \\tau[tab])
+- `r` is the continuously compounded risk free rate
+- `σ` is the (implied) volatility (can be typed with \\sigma[tab])
+- `q` is the continuously paid dividend rate
+"""
+function eurocall(parameters)
+    S, K, τ, r, σ, q = parameters # <1>
+    iszero(τ) && return max(zero(S), S - K)
+    d₁ = d1(S, K, τ, r, σ, q)
+    d₂ = d2(S, K, τ, r, σ, q)
+    return (N(d₁) * S * exp(τ * (r - q)) - N(d₂) * K) * exp(-r * τ)
+end
+```
+1. We put the various variables inside a single `parameters` vector to allow calling a single `gradient` call instead of multiple `derivative` calls for each parameter.
+
+```{julia}
+S = 1.0
+K = 1.0
+τ = 30 / 365
+r = 0.05
+σ = 0.2
+q = 0.0
+params = [S, K, τ, r, σ, q]
+eurocall(params)
+```
 
 
+:::callout-tip
+Some terminology in differentiation:
+
+- **Derivative** is generally the scalar rate of change in output relative to a scalar input and can be used in the context of partial derivatives for a multi-variate function (e.g. $\frac{d}{dx}f(x,y,z)$).
+- **Gradient** is the first derivative with respect to all dimensions of a function that outputs a scalar. For a function $f(x,y,z)$ the gradient would be a vector of partial derivatives such that you would get $[\frac{d}{dx},\frac{d}{dy},\frac{d}{dz}]$
+- **Jacobian** is the first derivative with respect to all dimensions of a function that outputs a vector. 
+- **Hessian** is the second derivative with respect to all dimensions of a function that outputs a scalar.
+:::
+
+With the above code, now we can get the partial derivaties with respect to each parameter. The first, third, fourth, fifth, and sixth correspond to the common "greeks" *delta*, *theta*, *rho*, *vega*, and *epsilon* respectively. The second term is the parital derivative with respect to the strike price:
+
+```{julia}
+ForwardDiff.gradient(eurocall, params)
+```
+
+We can also get the second order greeks with a simple call. In addtion to many uncommon second order parital derivatives. *Gamma* is in the `[1,1]` position for example:
+
+```{julia}
+ForwardDiff.hessian(eurocall, params)
+```
+
+### Performance 
+
+Earlier we examined the impact on performance for the derivatives using the `DualNumber` developed in this chapter on a very basic function. What about if we take a more realistic example like `eurocall`? We can observe approximately a 9x slowdown when computing all of the first order derivatives which isn't bad considering we are computing 6x of the outputs!
+
+```{julia}
+@btime eurocall($params)
+```
+
+```{julia}
+let 
+    g = similar(params) #<1>
+    @btime ForwardDiff.gradient!($g,eurocall, $params)
+end
+```
+1. To avoid benchmarking allocating a new array we are able to pre-allocate the memory to store the result and then call `gradient!` to fill in `g` for each result.
+
+
+## Forward Mode and Reverse Mode
+
+The approach of autodiff outlined about is called *forward mode** auto-differetiation where the derivative is brought forward through the computation and accumulated through each step. The alternative to this is to first evaluate the function and then work backwards by accumulating the partial derivatives in what's called **reverse mode** automatic differentiation.
+
+Reverse mode requires more book-keeping because unlike the forward mode the derivative needs to be carried backwards, unlike the `DualNumber` approach of forward mode. 
+
+## Practical tips for Automatic Differentiation
+
+Here are a few practical tips to keep in mind.
+
+### Choosing between Reverse Mode and Forward Mode
+
+Forward mode is more efficient when the number of outputs is much larger than the number inputs. When the number of inputs is much larger than the number of outputs, then reverse mode will generally be more efficient. Examples of the number of inputs being larger than the outputs might be in a statistical analysis where many features are used to predict a limited number of outcome variables or a complex model with a lot of parameters.
+
+### Mutation
+
+Auto-differentiation works through most code, but a particularly tricky part to get right is when values within arrays are mutated (changed). It's possible to do so but may require a little bit more boilerplate to setup. As of 2024, [Enzyme.jl](https://github.com/EnzymeAD/Enzyme.jl) has the best support for functions with mutation inside of them.
+
+### Custom Rules
+
+Custom rules for new or unusal functions can be defined, but this is an area that should be explored equipped with a bit of calculus and a deeper understanding of both forward-mode and reverse-mode. [ChainRules.jl](https://github.com/JuliaDiff/ChainRules.jl) provides an interface for defining additional rules that hook into the AD infrastrucutre in Julia as well as provide a good set of documentation on how to extend the rules for your custom function.
+
+### Available Libraries
+
+- [**ForwardDiff.jl**](https://github.com/JuliaDiff/ForwardDiff.jl) provides robust forward-mode AD.
+- [**Zygote.jl**](https://github.com/FluxML/Zygote.jl) is a reverse-mode package with the innovations of being able to differentiate `structs` in addition to arrays and scalars.
+- [**Enzyme.jl**](https://github.com/EnzymeAD/Enzyme.jl) is a newer package which allows for both forward and reverse mode, but has the advantage of supporting array mutation. Additionally, Enzyme works at the level of LLVM code (an intermediate level between high level Julia code and machine code) which allows for different, sometimes better, optimizations. 
+
+In the authors experience, they would probably recommend ForwardDiff.jl first and then Enzyme.jl if reaching for more advanced functionality or looking for reverse mode.
 
 ## References
  - https://book.sciml.ai/notes/08-Forward-Mode_Automatic_Differentiation_(AD)_via_High_Dimensional_Algebras/
