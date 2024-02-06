@@ -1,6 +1,144 @@
-# Environment and Package Management {#sec-julia-basics}
+# Environment and Package Management {#sec-environements}
 
+## In This Section {#sec-environments}
 
-## In This Section
+How to effectively utilize environments to ensure consistent and reproducible results. How to use and manage packages. How to create a package and share with others. How to use local registries.
 
-How to effecitvely utilize environments to ensure consistent and reproducibility. How to use and manage packages. How to create a package and share with others. How to use local registries.
+## Projects, Manifests, and Dependencies
+
+Julia comes bundled with [Pkg.jl](https://pkgdocs.julialang.org/v1/), an environment and package manager. It enables installation of packages
+from registries, pinning versions for compatibility, and analyzing your dependencies. It uses a couple of files to record this to your project: `Project.toml` and `Manifest.toml`.
+
+### Project.toml
+
+A `Project.toml` file defines attributes about the current project and its dependencies. Julia uses this to understand how to reference your current project and what dependencies it should look for from registries when instantiating the project.
+
+::: callout-note
+TOML (Tom's Obvious Markup Language) is a modern configuration file format used to store settings and data in a human-readable, plaintext format.
+:::
+
+This is a bit abstract, so here is a quick, annotated tour of an example Project.toml file:
+
+``` toml
+name = "FinanceCore" # <1>
+uuid = "b9b1ffdd-6612-4b69-8227-7663be06e089" # <2>
+authors = ["alecloudenback <alecloudenback@users.noreply.github.com> and contributors"] 
+version = "2.1.0" # <3>
+
+[deps] # <4>
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+LoopVectorization = "bdcacae8-1622-11e9-2a5c-532679323890"
+Roots = "f2b01f46-fcfa-551c-844a-d8ac1e96c665"
+
+[compat] # <5>
+Dates = "1"
+LoopVectorization = "^0.12"
+Roots = "^1.0, 2"
+julia = "1.6"
+```
+
+1.  The `name` is the name of your current project which only matters if you turn your project into a package.
+2.  A **UUID** is a unique identifier and can be created with Julia's `UUIDs` standard library.
+3.  The version follows Semantic Versioning ("SemVer") to convey to Pkg (and users!) information that ties a specific version to a specific code commit[^environment-1].
+4.  The `deps` section records the name of direct dependencies and their UUIDs so that Julia can know which packages to grab in order to make your project run.
+5.  The `compat` section defines compatibility with packages can be enforced (via SemVer) to clarify which versions are allowed to be installed in case incompatibilities arise.
+
+[^environment-1]: When registering a package to a repository, the repository will record the version indicated in the `Project.toml` file to the git commit id of the package when it is registered.
+
+When you `instantiate` a project (see @sec-environment-details for more), Julia will essentially `add` the packages listed under `deps`, and will **resolve** the compatible versions, generally picking the highest version number for the packages so long as the `compat` section rule are note broken.
+
+When adding the dependencies, those packages themselves likely specify their own set of dependencies and Julia must resolve the entire **dependency graph** or **dependency tree** to allow your current project to work.
+
+::: callout-note
+## Semantic Versioning
+
+Semantic Versioning ("SemVer") is a scheme which uses the three-component version code to convey meaning about different versions of a package to both users and computer systems. With the version scheme `vMAJOR.MINOR.PATCH`, the meaning is roughly as follows:
+
+1.  MAJOR increments denote changes to the code which make it incompatible with prior versions.
+2.  MINOR increments denote changes which add features that are compatible with the prior versions.
+3.  PATCH increments denote changes which fix issues in prior versions and code written against the prior version is still compatible.
+
+As an example, say we are currently using `v2.10.4` of a package, and the following theoretical options are available for us to upgrade to:
+
+-   `v2.10.5` - The `4` to `5` indicates that something may have been broken in the prior release and so we should upgrade without fear that we need to make changes to our code (unless we relied on the previously broken code!).
+-   `v2.11.0` - The `10` to `11` bump suggests that the new release contains some features which should not require us to change any of our previously written code.
+-   `v3.0.0` - The `2` to `3` indicates that we will potentially have to modify code that we have written that interfaces with this dependency.
+
+SemVer cannot distill all possible compatibility and upgrade information about a set of packages (e.g. an author may release an update with a MINOR version which also includes fixes).
+:::
+
+### Manifest.toml
+
+The `Manifest.toml` file includes a record of all external dependencies used by the project at hand. Unlike `Project.toml`, this file gets machine generated when Julia instantiates or updates the environment. The contents are basically a long list of your direct dependencies and the dependencies of those direct dependencies and looks something like this:
+
+``` toml
+julia_version = "1.10.0"
+manifest_format = "2.0"
+project_hash = "5fea00df4808d89f9c977d15b8ee992bd408081b"
+
+[[deps.AbstractFFTs]]
+deps = ["LinearAlgebra"]
+git-tree-sha1 = "d92ad398961a3ed262d8bf04a1a2b8340f915fef"
+uuid = "621f4979-c628-5d54-868e-fcf4e3e8185c"
+version = "1.5.0"
+weakdeps = ["ChainRulesCore", "Test"]
+
+    [deps.AbstractFFTs.extensions]
+    AbstractFFTsChainRulesCoreExt = "ChainRulesCore"
+    AbstractFFTsTestExt = "Test"
+
+... many more lines
+```
+
+::: callout-note
+Starting in Julia 1.11, Manifest files will include a version indication, making it nicer to work with multiple Julia versions at one time on a single system.
+:::
+
+### Reproducibility
+
+Reproducibility fulfills both practical and principled goals. *Practical* in that we can record the complex chain of dependencies that is used in modern computing in order to potentially re-create a result or demonstrate an audit trail of the tools used. *Principled* in that there are circumstances (like science research) in which we want to be able to replicate results. The combination of `Project.toml` and `Manifest.toml` go a long way towards accomplishing this, as you can share both and with the same hardware and Julia version should be able to get the exact same set of dependencies and therefore run the same code. In practice, this level of reproducibility isn't *usually* needed, as most time a set of code can be run accurately without requiring the exact same set of dependencies.
+
+Since dependencies can have variation between systems (Windows/Mac) and architectures (x86 vs x64), you may not be able to recreate the Manifest exactly. Nevertheless, it's a fairly low bar if you are trying to maintain the utmost level of rigor around the toolchain and Julia is one of the most robust languages regarding tools to support open replication of results.
+
+::: callout-tip
+## Artifacts
+
+Julia has a system called **artifacts** which allows specification of a location and hash (a cryptographic key) for data and binaries. The artifact system used to download and verify the contents of a file match the hash. This is designed for more permanent data and less end-user workflows, but we call it out here as another example where Julia takes steps to promote consistency and reproducibility.
+
+For more on data workflows for the end-user, see @sec-software-principles.
+:::
+
+## Environemnts {#sec-environment-details}
+
+Environment is meant to mean, in general, the computer you use and software installed in it. When we speak about **environments** in the Julia context, this means the Julia version and packages available to the current Julia code. For example, from the current code is a given package installed and usable?
+
+If you open a Julia REPL, by default you will be in the *global* environment. If you hit `]` to enter Pkg mode, you should see:
+
+``` julia-repl
+(@v1.10) pkg>
+```
+
+The `(@1.10)` indicates that you are using the global environment for the current Julia version (there is no global environment which applies across all Julia versions installed). You can activate a new environment with `activate [environment name]`.
+
+``` julia-repl
+(@v1.10) pkg> activate MyNewEnv
+  Activating new project at `~/MyNewEnv`
+```
+
+This will... not do anything. Yet! When we add a package to this environment, *then* it will create a `Project.toml` and `Manifest.toml` file in that directory. Now that directory is a full fledged Julia project!
+
+::: callout-tip
+Activate a temporary environment with `activate --temp`. This will give you a temporary environment with a random name, which is very useful for testing out things in a clean, simplified environment (the global environment, like `@1.10` still applies.)
+:::
+
+## Packages
+
+### Packages versus Projects
+
+### Basic Package Structure
+
+### Extension Packages
+
+## Regisries
+
+### Local Registries
