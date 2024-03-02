@@ -1,0 +1,317 @@
+```{julia}
+#| echo: false
+#| output: false
+using Pkg
+Pkg.activate("env/statistics")
+Pkg.instantiate()
+```
+
+# Statistical Inference and Information Theory
+
+> "My greatest concern was what to call \[the amount of unpredictabilty in a random outcome\]. I thought of calling it 'information,' but the word was overly used, so I decided to call it 'uncertainty.' When I discussed it with John von Neumann, he had a better idea. Von Neumann told me, 'You should call it entropy, for two reasons. In the first place your uncertainty function has been used in statistical mechanics under that name, so it already has a name. In the second place, and more important, no one really knows what entropy really is, so in a debate you will always have the advantage.'"- Claude Shannon (1971)
+
+## Information Theory
+
+Probability, statistics, machine learning, signal processing, and even physics have a foundational link in **information theory** which is the description and analysis of how much useful data is contained within something.
+
+Let's consider the following number that we encounter while reading a report which contains estimates of total amount of assets held. Unfortunately, for one reason or another the last digit in the value is not visible to you. Here's what you can read, with the `_` indicating that the digit is not visible:
+
+```         
+32,000,_00
+```
+
+Now you probably already formed an opinion on what the missing number is, but let's look at how we can quantify the analysis.
+
+Given that we know the number was an estimate and the tendency of humans to like nice round numbers, our **prior assumption** for what the probability of the missing digit is may be something like the $p(x_i)$ row of @tbl-digit-information-human. We shall call the individual outcomes $x_i$ and the overall set of probabilities $\{x_0,x_1,...x_9\}$ is called $X$.
+
+The information content of an outcome, $h(x)$ is measured in bits and defined as[^statistics-1]:
+
+[^statistics-1]: Log base two turns out to be the most natural representation of information content as it mimics the fundamental 0 or 1 value bit. A more complete introduction is available in "Information Theory, Inference, and Learning Algorithms" by David MacKay.
+
+$$
+h(x_i) = \text{log}_2\frac{1}{p(x_i)}
+$$ {#eq-information}
+
+So if we were to find out that the missing digit were indeed `0`, we have gained less information relative to our expectation than if the missing digit were anything other than `0` .
+
+We can characterize the entire distribution $X$ via the **entropy,** $H(X)$, of a probability set is the ensemble's average information content:
+
+$$
+H(X) = \sum{p(x_i)\text{log}_2}\frac{1}{p(x_i)} 
+$$ {#eq-entropy}
+
+The entropy $H(X)$ of the presumed outcomes in @tbl-digit-information-human distirubtion of outcomes is $0.722 \text{bits}$.
+
+|          |       |       |       |       |       |       |       |       |       |       |
+|----------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
+| $x_i$    | 0     | 1     | 2     | 3     | 4     | 5     | 6     | 7     | 8     | 9     |
+| $p(x_i)$ | .91   | .01   | .01   | .01   | .01   | .01   | .01   | .01   | .01   | .01   |
+| $h(x_i)$ | 0.136 | 6.644 | 6.644 | 6.644 | 6.644 | 6.644 | 6.644 | 6.644 | 6.644 | 6.644 |
+
+: Probability distribution of missing digit knowing human inclinations to prefer round numbers when estimating. \$\$ {#tbl-digit-information-human}
+
+Note that we have take a view on the probability distribution for the missing digit, and we'll refer to this as the **prior assumption** (or just **prior**). This is an opinionated assumption, so what if we had another colleague who beleived humans are completely rational and without bias for certaim numbers. They would then be arguing for a prior assumed distribution consistent with @tbl-digit-information-unifrom.
+
+With the uniform prior assumption, $H(X) = 3.322 \text{bits}$ and $h(x_i)$ is also unifrom. We will not prove it here, but a uniform probability over a set of outcomes is the highest entropy distribution that can be assumed.
+
+|          |       |       |       |       |       |       |       |       |       |       |
+|----------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
+| $x_i$    | 0     | 1     | 2     | 3     | 4     | 5     | 6     | 7     | 8     | 9     |
+| $p(x_i)$ | .10   | .10   | .10   | .10   | .10   | .10   | .10   | .10   | .10   | .10   |
+| $h(x_i)$ | 3.322 | 3.322 | 3.322 | 3.322 | 3.322 | 3.322 | 3.322 | 3.322 | 3.322 | 3.322 |
+
+: Probability distribution of missing digit with uniform, maximal entropy for the assumed probability distribution. {#tbl-digit-information-unifrom}
+
+### Example: Classificaiton
+
+In this example, we will determine the optimal splits for a decision tree[^statistics-2] based on the information gained at each node in the tree.
+
+[^statistics-2]: A decision tree is a classification algorithm which attempts to optimally classify an output based on if/else type branches on the input variables.
+
+```{julia}
+#| label: tbl-default-data
+#| tbl-cap: "Fictional data regarding loan attributes and whether or not a loan defaulted before it's maturity."
+using DataFrames
+
+employed = [true, false, true, true, true, false, false, true]
+good_credit = [true, true, false, true, false, false, false, true]
+default = [true, false, true, true, true, true, false, true]
+default_data = DataFrame(; employed, good_credit, default)
+```
+
+The entropy of the default rate data is, per @eq-entropy:
+
+```{julia}
+H0 = let
+    p1 = sum(default_data.default) / nrow(default_data)
+    p2 = 1 - p1
+    p1 * log2(1 / p1) + p2 * log(1 / p2) 
+end
+```
+
+
+Our goal is to determine which attribute (`employed` or `good_credit`) to use as the first split in the decision tree. We will decide this by calculating the information gain, which is the difference in entropy between the prior node and the candidate node. In our case we start with `H0` as calculated above for the output variable `default` and calculate the difference in entropy between it and the average entropy of the data if we split on that node. **Information gain**, $IG(inputs, attributes)$, is:
+
+$$
+...
+$$
+
+Let's first consider splitting the tree based on the `employed` status. We will calculate the entropy of each subset: with employment and without employment.
+
+If we split the data based on being employed, we'd get two sub-datasets:
+
+```{julia}
+df_employed = filter(:employed => ==(true),default_data)
+```
+
+and
+
+```{julia}
+df_unemployed = filter(:employed => ==(false),default_data)
+```
+
+
+  let's call it's entropy `H_employed`, which should be zero because there is no variability in the `default` outcome for this subset.
+
+```{julia}
+H_employed = let
+    p1 = sum(df_employed.default) / nrow(df_employed)
+    p2 = 1 - p1
+    # p1 * log2(1 / p1) + p2 * log(1 / p2) 
+    p1 * log2(1 / p1) + 0 # <1>
+end
+```
+1. In the case of $p_i = 0$ the value of $h$ (the second term in the sum above) is taken to be $0$, which is consistent with the $\lim_{p\to0^+}p\log (p) = 0$.
+
+And the correspoding candidate leaf is `H_unemployed`: 
+
+```{julia}
+H_unemployed = let
+    p1 = sum(df_unemployed.default) / nrow(df_unemployed)
+    p2 = 1 - p1
+    p1 * log2(1 / p1) + p2 * log(1 / p2)
+end
+```
+
+The average of the two is weighted by the size of the data that would fall into each leaf:
+
+```{julia}
+H1_employment = let
+    p_emp = nrow(df_employed) / nrow(default_data)
+    p_unemp = 1 - p_emp
+
+    p_emp * H_employed + p_unemp * H_unemployed
+end
+```
+
+The information gain for splitting the tree using employment status is the difference between the root entropy and the entropy of the employment split:
+
+```{julia}
+IG_employment = H0 - H1_employment
+```
+
+We could repeat the analyis to determine the information gain if we were to split the tree based on having good credit. However, given that there are only two attributes we can already conclude that `employed` is a better attribute to split the data on. This is because the information gain of `IG_employment` (`{julia} round(IG_employment;digits=3)`) is the majority of the overall entropy `H0` (`{julia} round(H0;digits=3)`). Entropy is always additive and you cannot have negative entropy, therefore no other other attribute could have greater information gain. This also matches our intuition when looking at @tbl-default-data as the eye can spot a higher correlation between `employed` and `default` than `good_credit` and `default`.
+
+The above example demonstrates how we can use information theory to create more optimal inferences on data.
+
+### Maxium Entropy Distributions
+
+Why is information theory a useful concept? Many financial models are statistical in nature and concepts of randomness and entropy are foundational. For example, when trying to estimate parameter distributions or assume a distribution for a random process you can lean on information theory to use the most conservative choice: the distribution with the highest entropy given known constraints. These distributions are referred to as **maximum entropy distributions**. Some discussion of maximum entropy distributions in the context of risk assessment is available in an article by Duracz[^statistics-3]. probability distributions and risk asses
+
+[^statistics-3]: <https://www.researchgate.net/publication/239752412_Derivation_of_Probability_Distributions_for_Risk_Assessment>
+
+| Constraint                          | Discrete Distribution | Continuous Distribution |     |
+|------------------------|----------------|----------------|----------------|
+| Bounded range                       | Uniform (discrete)    | Uniform (continuous)    |     |
+| Mean is finite, two possible values | Binomial              |                         |     |
+| Mean is finite                      | Geometric             | Exponential             |     |
+| Mean is finite and range is \> zero |                       | Gamma                   |     |
+| Mean and Variance is finite         |                       | Guassian (Normal)       |     |
+|                                     |                       |                         |     |
+|                                     |                       |                         |     |
+|                                     |                       |                         |     |
+
+: Maximum Entropy Distributions and the conditions under which they are applicable. {#tbl-MEDs}
+
+The distributions in @tbl-MEDs arise again and again in nature because of the second law of thermodynamics - nature likes to have constantly increasing entropy and therefore it should be no surprise (random) processes that maximize entropy pop up all over the place. As an example, let's look at processes that behave like the Gaussian (Normal) distribution.
+
+A random walk can be viewed as the cumulative impact of nudges pushing in opposite directions. This behavior culminates in the random, terminal position being able to be described by a Gaussian distribution. The center of a Gaussian distribution is "thick" because there are many more ways for the cumulative total nudges to mostly cancel out, while its increasingly rare to end up further and further from the starting point (mean). The distribution then spreads out as flat (randomly) as it can while still maintaining the constraint of having a given, finite variance. Any other continuous distribution that has the same mean and variance has lower entropy than the Guassian.
+
+## Bayes' Rule
+
+The minister and statistician Thomas Bayes derived a relationship of conditional probabilities that we today know as **Bayes' Rule**, commonly written as:
+
+$$
+P(H|D) = \frac{P(D|H) \times P(H)}{P(D)}
+$$
+
+The components of this are:
+
+-   $P(H∣D)$ is the conditional probability of event $H$ occurring given that $D$ is true.
+-   $P(D∣H)$ is the conditional probability of event $D$ occurring given that $H$ is true.
+-   $P(H)$ is the prior probability of event $H$.
+-   $P(D)$ is the prior probability of event $D$.
+
+If we take the following:
+
+-   $D$ is the available data
+-   $H$ is our hypothesis
+
+Then we can draw conclusions about the probability of a hypothesis being true given the observed data. When thought about this way, Bayes' rule is often described as:
+
+$$
+\text{posterior} = \frac{\text{likelihood} \times \text{prior}}{\text{evidence}}
+$$
+
+This is a very useful framework, which we'll return to more completely in @sec-modern-bayes. First, let's look at combining information theory and Bayes' rule in an applied example.
+
+### Example: Model Selection via Likelihoods
+
+## Bridging to Modern Bayesian Statistics? {#sec-modern-bayes}
+
+A Bayesian statistical model has four main components to focus on:
+
+1.  **Prior** encoding assumptions about the random variables related to the problem at hand, before conditioning on the data.
+2.  A **Model** that defines how the random variables give rise to the observed outcome.
+3.  **Data** that we use to update our prior assumptions.
+4.  **Posterior** distributions of our random variables, conditioned on the observed data and our model
+
+Having defined the first two components and collected our data, the workflow involves computationally sampling the posterior distribution, often using a technique called Markov Chain Monte-Carlo (MCMC). The result is a series of values that are sampled statistically from the posterior distribution.
+
+## Advantages of the Bayesian Approach
+
+The main advantages of this approach over traditional actuarial techniques are:
+
+1.  **Focus on distributions rather than point estimates of the posterior's mean or mode.** We are often interested in the distribution of the parameters and a focus on a single parameter estimate will understate the risk distribution.
+2.  **Model flexibility.** A Bayesian model can be as simple as an ordinary linear regression, but as complex as modeling a full insurance mechanics.
+3.  **Simpler mental model.** Fundamentally, Bayes' theorem could be distilled down to an approach where you count the ways that things could occur and update the probabilities accordingly.
+4.  **Explicit Assumptions.**: Enumerating the random variables in your model and explicitly parameterizing prior assumptions avoids ambiguity of the assumptions inside the statistical model.
+
+## Challenges with the Bayesian Approach
+
+With the Bayesian approach, there are a handful of things that are challenging. Many of the listed items are not unique to the Bayesian approach, but there are different facets of the issues that arise.
+
+1.  **Model Construction**. One must be thoughtful about the model and how variables interact. However, with the flexibility of modeling, you can apply (actuarial) science to makes better models!
+2.  **Model Diagnostics**. Instead of R\^2 values, there are unique diagnostics that one must monitor to ensure that the posterior sampling worked as intended.
+3.  **Model Complexity and Size of Data**. The sampling algorithms are computationally intensive - as the amount of data grows and model complexity grows, the runtime demands cluster computing.
+4.  **Model Representation**. The statistical derivation of the posterior can only reflect the complexity of the world as defined by your model. A Bayesian model won't automatically infer all possible real-world relationships and constraints.
+
+## Why Now?
+
+There are both philosophical and practical reasons why Bayesian analysis is rapidly changing the statistical landscape.
+
+*Philosophically*, one of the main reasons why Bayesian thinking is appealing is its ability to provide a straightforward interpretation of statistical conclusions.
+
+For example, when estimating an unknown quantity, a Bayesian probability interval can be directly understood as having a high probability of containing that quantity. In contrast, a frequentist confidence interval is typically interpreted only in the context of a series of similar inferences that could be made in repeated practice. In recent years, there has been a growing emphasis on interval estimation rather than hypothesis testing in applied statistics. This shift has strengthened the Bayesian perspective since it is likely that many users of standard confidence intervals intuitively interpret them in a manner consistent with Bayesian thinking.
+
+Another meaningful way to understand the contrast between Bayesian and frequentist approaches is through the lens of decision theory, specifically how each view treats the concept of randomness. This perspective pertains to whether you regard the data being random or the parameters being random.
+
+Frequentist statistics treats parameters as fixed and unknown, and the data as random — this is reflective of the view that data you collect is but one realization of an infinitely repeatable random process. Consequently, frequentist procedures, like hypothesis testing or confidence intervals, are generally based on the idea of long-run frequency or repeatable sampling.
+
+Conversely, Bayesian statistics turns this on its head by treating the data as fixed — after all, once you've collected your data, it's no longer random but a fixed observed quantity. Parameters, which are unknown, are treated as random variables. The Bayesian approach then allows us to use probability to quantify our uncertainty about these parameters.
+
+The Bayesian approach tends to align more closely with our intuitive way of reasoning about problems. Often, you are given specific data and you want to understand what that particular set of data tells you about the world. You're likely less interested in what might happen if you had infinite data, but rather in drawing the best conclusions you can from the data you do have.
+
+*Practically*, recent advances in computational power, algorithm development, and open-source libraries have enabled practitioners to adapt the Bayesian workflow.
+
+Deriving the posterior distribution is analytically intractable so computational methods must be used. Advances in raw computing power only in the 1990's made non-trivial Bayesian analysis possible, and recent advances in algorithms have made the computations more efficient. For example, one of the most popular algorithms, NUTS, was only published in the 2010's.
+
+Many problems require the use of compute clusters to manage runtime, but if there is any place to invest in understanding posterior probability distributions, it's insurance companies trying to manage risk!
+
+Moreover, the availability of open-source libraries, such as Turing.jl, PyMC3, and Stan provide access to the core routines in an accessible interface.
+
+## Subjectivity of the Priors?
+
+There are two ways one might react to subjectivity in a Bayesian context: It's a feature that should be embraced or it’s a flaw that should be avoided.
+
+### Subjectivity as a Feature
+
+**A Bayesian approach to defining a statistical model is an approach that allows for explicitly incorporating actuarial judgment.** Encoding assumptions into a Bayesian model forces the actuary to be explicit about otherwise fuzzy predilections. The explicit assumption is also more amenable to productive debate about its merits and biases than an implicit judgmental override.
+
+### Subjectivity as a Flaw
+
+Subjectivity is inherent in all useful statistical methods. Subjectivity in traditional approaches include how the data was collected, which hypothesis to test, what significant levels to use, and assumptions about the data-generating processes.
+
+In fact, the "objective" approach to null hypothesis testing is so prone to abuse and misinterpretation that in 2016, the American Statistical Association issued a statement intended to steer statistical analysis into a "post p\<0.05 era." That "p\<0.05" approach is embedded in most traditional approaches to actuarial credibility[^statistics-4] and therefore should be similarly reconsidered.
+
+[^statistics-4]: Note that the approach discussed here is much more encompassing than the Bühlmann-Straub Bayesian approach described in the actuarial literature.
+
+### Maximum Entropy Distributions
+
+Further, when assigning a prior assumption to a random variable, there are mathematically most conservative choices to pull from. These are called Maximum Entropy Distributions (MED) and it can be shown that for certain minimal constraints these are the information-theoretic least informative choices. Least informative means that the prior will have the least influence on the resulting posterior distribution.
+
+For example, if all you know is that the mean of a random process is positive, then the Exponential Distribution is your MED. If you know that a mean and variance must exist for the process, then the Normal distribution is your MED. If you know nothing at all, you can use a Uniform distribution for the possible values.
+
+## Bayesian Versus Machine Learning
+
+Machine learning (ML) is *fully compatible* with Bayesian analysis - one can derive posterior distributions for the ML parameters like any other statistical model and the combination of approaches may be fruitful in practice.
+
+However, to the extent that actuaries have leaned on ML approaches due to the shortcomings of traditional actuarial approaches, Bayesian modeling may provide an attractive alternative without resorting to notoriously finicky and difficult-to-explain ML models. The Bayesian framework provides an explainable model and offers several analytic extensions beyond the scope of this introductory article:
+
+-   Causal Modeling: Identifying not just correlated relationships, but causal ones, in contexts where a traditional experiment is unavailable.
+-   Bayes Action: Optimizing a parameter for, e.g., a CTE95 level instead of a parameter mean.
+-   Information Criterion: Principled techniques to compare model fit and complexity.
+-   Missing data: Mechanisms to handle the different kinds of missing data.
+-   Model averaging: Posteriors can be combined from different models to synthesize different approaches.
+
+## Implications for Risk Management
+
+Like Bayes' Formula itself, another aspect of actuarial literature that is taught but often glossed over in practice is the difference between process risk (volatility), parameter risk, and model formulation risk. Often when performing analysis that relies on stochastic result, in practice only process/volatility risk is assessed.
+
+Bayesian statistics provides the tools to help actuaries address parameter risk and model formulation. The posterior distribution of parameters derived is consistent with the observed data and modeled relationships. This posterior distribution of parameters can then be run as an additional dimension to the risk analysis.
+
+Additionally, best practices include skepticism of the model construction itself, and testing different formulation of the modeled relationships and variable combinations to identify models which are best fit for purpose. Tools such as Information Criterion, posterior predictive checks, Bayes factors, and other statistical diagnostics can inform the actuary about tradeoffs between different choices of model.
+
+## Paving the Way Forward for Actuaries
+
+Bayesian approaches to statistical problems are rapidly changing the professional statistical field. To the extent that the actuarial profession incorporates statistical procedures we should consider adopting the same practices. The benefits of this are a better understanding of the distribution of risks, results that are more interpretable and explainable, and techniques that can be applied to a wider range of problems. The combination of these things would serve to enhance actuarial best practices related to understanding and communicating about risk.
+
+For actuaries interested in learning more, there are number of available resources to be found. Textbooks recommended by the author are:
+
+-   Statistical Rethinking (McElreath)
+-   Bayes Rules! (Johnson, Ott, Dogucu)
+-   Bayesian Data Analysis (Gelman, et. al.)
+
+Additionally, the author has published a few examples of Bayesian analysis in an actuarial context on JuliaActuary.org.
+
+### Further Reading
