@@ -85,10 +85,9 @@ The entropy of the default rate data is, per @eq-entropy:
 H0 = let
     p1 = sum(default_data.default) / nrow(default_data)
     p2 = 1 - p1
-    p1 * log2(1 / p1) + p2 * log(1 / p2) 
+    p1 * log2(1 / p1) + p2 * log(1 / p2)
 end
 ```
-
 
 Our goal is to determine which attribute (`employed` or `good_credit`) to use as the first split in the decision tree. We will decide this by calculating the information gain, which is the difference in entropy between the prior node and the candidate node. In our case we start with `H0` as calculated above for the output variable `default` and calculate the difference in entropy between it and the average entropy of the data if we split on that node. **Information gain**, $IG(inputs, attributes)$, is:
 
@@ -101,17 +100,16 @@ Let's first consider splitting the tree based on the `employed` status. We will 
 If we split the data based on being employed, we'd get two sub-datasets:
 
 ```{julia}
-df_employed = filter(:employed => ==(true),default_data)
+df_employed = filter(:employed => ==(true), default_data)
 ```
 
 and
 
 ```{julia}
-df_unemployed = filter(:employed => ==(false),default_data)
+df_unemployed = filter(:employed => ==(false), default_data)
 ```
 
-
-  let's call it's entropy `H_employed`, which should be zero because there is no variability in the `default` outcome for this subset.
+let's call it's entropy `H_employed`, which should be zero because there is no variability in the `default` outcome for this subset.
 
 ```{julia}
 H_employed = let
@@ -121,9 +119,10 @@ H_employed = let
     p1 * log2(1 / p1) + 0 # <1>
 end
 ```
-1. In the case of $p_i = 0$ the value of $h$ (the second term in the sum above) is taken to be $0$, which is consistent with the $\lim_{p\to0^+}p\log (p) = 0$.
 
-And the correspoding candidate leaf is `H_unemployed`: 
+1.  In the case of $p_i = 0$ the value of $h$ (the second term in the sum above) is taken to be $0$, which is consistent with the $\lim_{p\to0^+}p\log (p) = 0$.
+
+And the correspoding candidate leaf is `H_unemployed`:
 
 ```{julia}
 H_unemployed = let
@@ -154,20 +153,21 @@ We could repeat the analyis to determine the information gain if we were to spli
 
 The above example demonstrates how we can use information theory to create more optimal inferences on data.
 
-### Maxium Entropy Distributions
+### Maxium Entropy Distributions {#sec-maxent}
 
 Why is information theory a useful concept? Many financial models are statistical in nature and concepts of randomness and entropy are foundational. For example, when trying to estimate parameter distributions or assume a distribution for a random process you can lean on information theory to use the most conservative choice: the distribution with the highest entropy given known constraints. These distributions are referred to as **maximum entropy distributions**. Some discussion of maximum entropy distributions in the context of risk assessment is available in an article by Duracz[^statistics-3]. probability distributions and risk asses
 
 [^statistics-3]: <https://www.researchgate.net/publication/239752412_Derivation_of_Probability_Distributions_for_Risk_Assessment>
 
 | Constraint                          | Discrete Distribution | Continuous Distribution |     |
-|------------------------|----------------|----------------|----------------|
+|----------------------|-----------------|-----------------|-----------------|
 | Bounded range                       | Uniform (discrete)    | Uniform (continuous)    |     |
+| Bounded range  (0 to 1) with information about the mean or variance                     |    | Beta    |     |
 | Mean is finite, two possible values | Binomial              |                         |     |
-| Mean is finite                      | Geometric             | Exponential             |     |
+| Mean is finite and postive          | Geometric             | Exponential             |     |
 | Mean is finite and range is \> zero |                       | Gamma                   |     |
 | Mean and Variance is finite         |                       | Guassian (Normal)       |     |
-|                                     |                       |                         |     |
+| Positive and equal mean and vairance| Poisson               |                         |     |
 |                                     |                       |                         |     |
 |                                     |                       |                         |     |
 
@@ -175,7 +175,36 @@ Why is information theory a useful concept? Many financial models are statistica
 
 The distributions in @tbl-MEDs arise again and again in nature because of the second law of thermodynamics - nature likes to have constantly increasing entropy and therefore it should be no surprise (random) processes that maximize entropy pop up all over the place. As an example, let's look at processes that behave like the Gaussian (Normal) distribution.
 
+#### Processes that give rise to certain distributions
+
 A random walk can be viewed as the cumulative impact of nudges pushing in opposite directions. This behavior culminates in the random, terminal position being able to be described by a Gaussian distribution. The center of a Gaussian distribution is "thick" because there are many more ways for the cumulative total nudges to mostly cancel out, while its increasingly rare to end up further and further from the starting point (mean). The distribution then spreads out as flat (randomly) as it can while still maintaining the constraint of having a given, finite variance. Any other continuous distribution that has the same mean and variance has lower entropy than the Guassian.
+
+| Process | Distribution of Data | Example |
+|------------------------|------------------------|------------------------|
+| Many _additive_ pluses and minus that move an outcome in one dimension | Normal | Heights of adult humans, errors in measurements |
+| Many _multiplicative_ pluses and minus that move an outcome in one dimension | Log-normal | Incomes, sizes of cities, stock prices |
+| Waiting times between independent events occurring at a constant average rate | Exponential | Time between radioactive decay events, customer arrivals |
+| Discrete trials each with the same probability of success, counting the number of successes | Binomial | Coin flips, defective items in a batch |
+| Discrete trials each with the same probability of success, counting the number of trials until the first success | Geometric | Number of job applications until getting hired |
+| Continuous trials each with the same probability of success, measuring the time until the first success | Exponential | Time until a component fails, time until a sales call results in a sale |
+| Waiting time until the r-th event occurs in a Poisson process | Gamma | Time until the 3rd customer arrives, time until the 5th defect occurs |
+
+: Underlying procesess create typical probability distributions. That there is significant overlap with the distributions in @sec-maxent is not a coincidence.
+
+::: callout-tip
+## Probability Distributions
+
+There are a *lot* of specialized distributions. There are lists of distributions you can find online or in references such as @Leemis_2008 which has a full-page network diagram of the relationships. The information-theoretic and Bayesian perspective on it is to focus on the fundamentals and the processes that give rise to the random processes in the first place. If you pull up the aforementioned diagram in @Leemis_2008, you can see just a handful of distributions that have the most central roles in the universe of distributions. Many distributions are simply transformations, limiting instances, or otherwise special cases of a more fundamental distribution.  Instead of trying to memorize a bunch of probability distributions, it's better to think critically about:
+
+1.  The fundamental processes that give rise to the randomness.
+2.  Tranformations of the data to make it nicer to work with, such as translations, scaling, or other non-destructive changes.
+
+Then when you encounter a wacky dataset you don't need to comb the depths of Wikipedia to find the perfect probability distributions.
+
+
+
+::: 
+
 
 ## Bayes' Rule
 
@@ -206,6 +235,76 @@ $$
 This is a very useful framework, which we'll return to more completely in @sec-modern-bayes. First, let's look at combining information theory and Bayes' rule in an applied example.
 
 ### Example: Model Selection via Likelihoods
+
+Let's say that we have competing hypothesis about a data generating process, such as: "given a set of data representing risk outcomes, what distribution best fits the data"?
+
+The example we'll look at relates to the annual rainfall totals for a specific location in California[^statistics-4], which could be useful for insuring flood risk or determining the value of a catastrophe bond. Acknowloging that we are attempting to create a geocentric model[^statistics-5] instead of a scientifically accurate weather model, we narrow the problem to finding a probability distribution that matches the historical rainfall totals. Our goal is to recommend a model that best fits the data and justify that recommendation quantitatively. Before even looking at the data, let's hypothecate three competing models based on thinking about the real-world outcome we are trying to model:
+
+[^statistics-4]: <https://data.ca.gov/dataset/annual-precipitation-data-for-northern-california-1944-current>
+
+[^statistics-5]: See \@sec-predictive-vs-explanatory.
+
+1.  $H_1$ : A Normal (Gaussian) distribution (since many things in nature are normally distributed)
+2.  $H_2$ : A LogNormal distribution (since it's normal-ish, but skewed and can't be negative)
+3.  $H_3$ : A Gamma Distribution (since rainfall totals would be the sum of exponentially-distributed independent rainfall events)
+
+These three are chosen for the increasingly sophisiticated thought process that might lead the modeler to recommend them - but is it supportable by the statistics?
+
+
+
+``` julia
+# Point: we can use the likelihood component of bayes rule to compare models
+# three models are compared: normal, lognormal, and gamma (Pearson III)
+# https://stats.stackexchange.com/questions/55563/estimating-parameters-of-log-pearson-iii-distribution-in-r
+
+# 
+
+using CairoMakie
+using StatsBase
+using Distributions
+x = [
+    39.51,42.65,44.09,41.92,28.42,58.65,30.18,64.4,29.02,
+    37.00,32.17,36.37,47.55,27.71,58.26,36.55,49.57,39.84,
+    82.22,47.58,51.18,32.28,52.48,65.24,51.12,25.03,23.27,
+    26.11,47.3,31.8,61.45,94.95,34.8,49.53,28.65,35.3,34.8,
+    27.45,20.7,36.99,60.54,22.5,64.85,43.1,37.55,82.05,27.9,
+    36.55,28.7,29.25,42.32,31.93,41.8,55.9,20.65,29.28,18.4,
+    39.31,20.36,22.73,12.75,23.35,29.59,44.47,20.06,46.48,
+    13.46,9.34,16.51,48.24
+    ]
+
+
+n = fit_mle(Normal, x)
+ln = fit_mle(LogNormal, x)
+c = 0.12
+g = fit_mle(Gamma, log.(x.-c))
+fig,ax,_ = density(x)
+plot!(ax,n)
+plot!(ax,ln)
+density!(ax,exp.(rand(g,10000) .+ c))
+fig
+
+search_params = [
+    (μ,σ)
+    for μ in 0:0.5:100,
+        σ in 1:0.1:20       
+        ]
+
+search = map(search_params) do (μ,σ)
+    sum(log.(pdf.(Normal(μ,σ),x)))
+end
+m = argmax(search)
+search_params[m]
+
+show(fig)
+
+pdf(Normal(0,1),0.5)
+
+sum((pdf.(ln,x)))/sum((pdf.(n,x)))
+sum((pdf.(g,log.(x.-c))))/sum((pdf.(n,x)))
+```
+
+In the literature, $H_3$ (the Gamma distribution) is known as the "Log-Pearson Type III distribution". It's actually recommended by the US Corps of Army Engineers as the recommended way to model rainfall totals. 
 
 ## Bridging to Modern Bayesian Statistics? {#sec-modern-bayes}
 
@@ -272,9 +371,9 @@ There are two ways one might react to subjectivity in a Bayesian context: It's a
 
 Subjectivity is inherent in all useful statistical methods. Subjectivity in traditional approaches include how the data was collected, which hypothesis to test, what significant levels to use, and assumptions about the data-generating processes.
 
-In fact, the "objective" approach to null hypothesis testing is so prone to abuse and misinterpretation that in 2016, the American Statistical Association issued a statement intended to steer statistical analysis into a "post p\<0.05 era." That "p\<0.05" approach is embedded in most traditional approaches to actuarial credibility[^statistics-4] and therefore should be similarly reconsidered.
+In fact, the "objective" approach to null hypothesis testing is so prone to abuse and misinterpretation that in 2016, the American Statistical Association issued a statement intended to steer statistical analysis into a "post p\<0.05 era." That "p\<0.05" approach is embedded in most traditional approaches to actuarial credibility[^statistics-6] and therefore should be similarly reconsidered.
 
-[^statistics-4]: Note that the approach discussed here is much more encompassing than the Bühlmann-Straub Bayesian approach described in the actuarial literature.
+[^statistics-6]: Note that the approach discussed here is much more encompassing than the Bühlmann-Straub Bayesian approach described in the actuarial literature.
 
 ### Maximum Entropy Distributions
 
@@ -315,49 +414,3 @@ For actuaries interested in learning more, there are number of available resourc
 Additionally, the author has published a few examples of Bayesian analysis in an actuarial context on JuliaActuary.org.
 
 ### Further Reading
-
-
-#####
-
-# https://data.ca.gov/dataset/annual-precipitation-data-for-northern-california-1944-current
-
-# Point: we can use the likelihood component of bayes rule to compare models
-# three models are compared: normal, lognormal, and gamma (Pearson III)
-# https://stats.stackexchange.com/questions/55563/estimating-parameters-of-log-pearson-iii-distribution-in-r
-
-# 
-
-using CairoMakie
-using StatsBase
-using Distributions
-x = [39.51,42.65,44.09,41.92,28.42,58.65,30.18,64.4,29.02,37.00,32.17,36.37,47.55,27.71,58.26,36.55,49.57,39.84,82.22,47.58,51.18,32.28,52.48,65.24,51.12,25.03,23.27,26.11,47.3,31.8,61.45,94.95,34.8,49.53,28.65,35.3,34.8,27.45,20.7,36.99,60.54,22.5,64.85,43.1,37.55,82.05,27.9,36.55,28.7,29.25,42.32,31.93,41.8,55.9,20.65,29.28,18.4,39.31,20.36,22.73,12.75,23.35,29.59,44.47,20.06,46.48,13.46,9.34,16.51,48.24]
-
-
-n = fit_mle(Normal, x)
-ln = fit_mle(LogNormal, x)
-c = 0.12
-g = fit_mle(Gamma, log.(x.-c))
-fig,ax,_ = density(x)
-plot!(ax,n)
-plot!(ax,ln)
-density!(ax,exp.(rand(g,10000) .+ c))
-fig
-
-search_params = [
-    (μ,σ)
-    for μ in 0:0.5:100,
-        σ in 1:0.1:20       
-        ]
-
-search = map(search_params) do (μ,σ)
-    sum(log.(pdf.(Normal(μ,σ),x)))
-end
-m = argmax(search)
-search_params[m]
-
-show(fig)
-
-pdf(Normal(0,1),0.5)
-
-sum((pdf.(ln,x)))/sum((pdf.(n,x)))
-sum((pdf.(g,log.(x.-c))))/sum((pdf.(n,x)))
