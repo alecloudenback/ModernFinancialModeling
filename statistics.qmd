@@ -14,7 +14,7 @@ Pkg.instantiate()
 
 Probability, statistics, machine learning, signal processing, and even physics have a foundational link in **information theory** which is the description and analysis of how much useful data is contained within something.
 
-Let's consider the following number that we encounter while reading a report which contains estimates of total amount of assets held. Unfortunately, for one reason or another the last digit in the value is not visible to you. Here's what you can read, with the `_` indicating that the digit is not visible:
+Let's consider the following number that we encounter while reading a report which contains estimates of total amount of assets held. Unfortunately, for one reason or another one of the digits is not visible to you. Here's what you can read, with the `_` indicating that the digit is not visible:
 
 ```         
 32,000,_00
@@ -315,3 +315,49 @@ For actuaries interested in learning more, there are number of available resourc
 Additionally, the author has published a few examples of Bayesian analysis in an actuarial context on JuliaActuary.org.
 
 ### Further Reading
+
+
+#####
+
+# https://data.ca.gov/dataset/annual-precipitation-data-for-northern-california-1944-current
+
+# Point: we can use the likelihood component of bayes rule to compare models
+# three models are compared: normal, lognormal, and gamma (Pearson III)
+# https://stats.stackexchange.com/questions/55563/estimating-parameters-of-log-pearson-iii-distribution-in-r
+
+# 
+
+using CairoMakie
+using StatsBase
+using Distributions
+x = [39.51,42.65,44.09,41.92,28.42,58.65,30.18,64.4,29.02,37.00,32.17,36.37,47.55,27.71,58.26,36.55,49.57,39.84,82.22,47.58,51.18,32.28,52.48,65.24,51.12,25.03,23.27,26.11,47.3,31.8,61.45,94.95,34.8,49.53,28.65,35.3,34.8,27.45,20.7,36.99,60.54,22.5,64.85,43.1,37.55,82.05,27.9,36.55,28.7,29.25,42.32,31.93,41.8,55.9,20.65,29.28,18.4,39.31,20.36,22.73,12.75,23.35,29.59,44.47,20.06,46.48,13.46,9.34,16.51,48.24]
+
+
+n = fit_mle(Normal, x)
+ln = fit_mle(LogNormal, x)
+c = 0.12
+g = fit_mle(Gamma, log.(x.-c))
+fig,ax,_ = density(x)
+plot!(ax,n)
+plot!(ax,ln)
+density!(ax,exp.(rand(g,10000) .+ c))
+fig
+
+search_params = [
+    (μ,σ)
+    for μ in 0:0.5:100,
+        σ in 1:0.1:20       
+        ]
+
+search = map(search_params) do (μ,σ)
+    sum(log.(pdf.(Normal(μ,σ),x)))
+end
+m = argmax(search)
+search_params[m]
+
+show(fig)
+
+pdf(Normal(0,1),0.5)
+
+sum((pdf.(ln,x)))/sum((pdf.(n,x)))
+sum((pdf.(g,log.(x.-c))))/sum((pdf.(n,x)))
