@@ -10,6 +10,10 @@ Pkg.instantiate()
 
 > "My greatest concern was what to call \[the amount of unpredictabilty in a random outcome\]. I thought of calling it 'information,' but the word was overly used, so I decided to call it 'uncertainty.' When I discussed it with John von Neumann, he had a better idea. Von Neumann told me, 'You should call it entropy, for two reasons. In the first place your uncertainty function has been used in statistical mechanics under that name, so it already has a name. In the second place, and more important, no one really knows what entropy really is, so in a debate you will always have the advantage.'"- Claude Shannon (1971)
 
+## In This Chapter
+
+A brief introduction to infromation theory and its foundational role in statistics. Entropy and probability distributions. Bayes' rule and model selection comparison via likelihoods. A brief tour of modern bayesian statistics.
+
 ## Information Theory
 
 Probability, statistics, machine learning, signal processing, and even physics have a foundational link in **information theory** which is the description and analysis of how much useful data is contained within something.
@@ -122,7 +126,7 @@ end
 
 1.  In the case of $p_i = 0$ the value of $h$ (the second term in the sum above) is taken to be $0$, which is consistent with the $\lim_{p\to0^+}p\log (p) = 0$.
 
-And the correspoding candidate leaf is `H_unemployed`:
+And the corresponding candidate leaf is `H_unemployed`:
 
 ```{julia}
 H_unemployed = let
@@ -149,7 +153,7 @@ The information gain for splitting the tree using employment status is the diffe
 IG_employment = H0 - H1_employment
 ```
 
-We could repeat the analyis to determine the information gain if we were to split the tree based on having good credit. However, given that there are only two attributes we can already conclude that `employed` is a better attribute to split the data on. This is because the information gain of `IG_employment` (`{julia} round(IG_employment;digits=3)`) is the majority of the overall entropy `H0` (`{julia} round(H0;digits=3)`). Entropy is always additive and you cannot have negative entropy, therefore no other other attribute could have greater information gain. This also matches our intuition when looking at @tbl-default-data as the eye can spot a higher correlation between `employed` and `default` than `good_credit` and `default`.
+We could repeat the analysis to determine the information gain if we were to split the tree based on having good credit. However, given that there are only two attributes we can already conclude that `employed` is a better attribute to split the data on. This is because the information gain of `IG_employment` (`{julia} round(IG_employment;digits=3)`) is the majority of the overall entropy `H0` (`{julia} round(H0;digits=3)`). Entropy is always additive and you cannot have negative entropy, therefore no other other attribute could have greater information gain. This also matches our intuition when looking at @tbl-default-data as the eye can spot a higher correlation between `employed` and `default` than `good_credit` and `default`.
 
 The above example demonstrates how we can use information theory to create more optimal inferences on data.
 
@@ -159,17 +163,17 @@ Why is information theory a useful concept? Many financial models are statistica
 
 [^statistics-3]: <https://www.researchgate.net/publication/239752412_Derivation_of_Probability_Distributions_for_Risk_Assessment>
 
-| Constraint                          | Discrete Distribution | Continuous Distribution |     |
-|----------------------|-----------------|-----------------|-----------------|
-| Bounded range                       | Uniform (discrete)    | Uniform (continuous)    |     |
-| Bounded range  (0 to 1) with information about the mean or variance                     |    | Beta    |     |
-| Mean is finite, two possible values | Binomial              |                         |     |
-| Mean is finite and postive          | Geometric             | Exponential             |     |
-| Mean is finite and range is \> zero |                       | Gamma                   |     |
-| Mean and Variance is finite         |                       | Guassian (Normal)       |     |
-| Positive and equal mean and vairance| Poisson               |                         |     |
-|                                     |                       |                         |     |
-|                                     |                       |                         |     |
+| Constraint                                                         | Discrete Distribution | Continuous Distribution |     |
+|-------------------|------------------|------------------|------------------|
+| Bounded range                                                      | Uniform (discrete)    | Uniform (continuous)    |     |
+| Bounded range (0 to 1) with information about the mean or variance |                       | Beta                    |     |
+| Mean is finite, two possible values                                | Binomial              |                         |     |
+| Mean is finite and positive                                        | Geometric             | Exponential             |     |
+| Mean is finite and range is \> zero                                |                       | Gamma                   |     |
+| Mean and Variance is finite                                        |                       | Guassian (Normal)       |     |
+| Positive and equal mean and variance                               | Poisson               |                         |     |
+|                                                                    |                       |                         |     |
+|                                                                    |                       |                         |     |
 
 : Maximum Entropy Distributions and the conditions under which they are applicable. {#tbl-MEDs}
 
@@ -179,32 +183,66 @@ The distributions in @tbl-MEDs arise again and again in nature because of the se
 
 A random walk can be viewed as the cumulative impact of nudges pushing in opposite directions. This behavior culminates in the random, terminal position being able to be described by a Gaussian distribution. The center of a Gaussian distribution is "thick" because there are many more ways for the cumulative total nudges to mostly cancel out, while its increasingly rare to end up further and further from the starting point (mean). The distribution then spreads out as flat (randomly) as it can while still maintaining the constraint of having a given, finite variance. Any other continuous distribution that has the same mean and variance has lower entropy than the Guassian.
 
-| Process | Distribution of Data | Example |
+| Process                                                                                                          | Distribution of Data | Examples                                                                             |
 |------------------------|------------------------|------------------------|
-| Many _additive_ pluses and minus that move an outcome in one dimension | Normal | Heights of adult humans, errors in measurements |
-| Many _multiplicative_ pluses and minus that move an outcome in one dimension | Log-normal | Incomes, sizes of cities, stock prices |
-| Waiting times between independent events occurring at a constant average rate | Exponential | Time between radioactive decay events, customer arrivals |
-| Discrete trials each with the same probability of success, counting the number of successes | Binomial | Coin flips, defective items in a batch |
-| Discrete trials each with the same probability of success, counting the number of trials until the first success | Geometric | Number of job applications until getting hired |
-| Continuous trials each with the same probability of success, measuring the time until the first success | Exponential | Time until a component fails, time until a sales call results in a sale |
-| Waiting time until the r-th event occurs in a Poisson process | Gamma | Time until the 3rd customer arrives, time until the 5th defect occurs |
+| Many *additive* pluses and minus that move an outcome in one dimension                                           | Normal               | Sum of many dice rolls, errors in measurements, sample means (Central Limit Theorem) |
+| Many *multiplicative* pluses and minus that move an outcome in one dimension                                     | Log-normal           | Incomes, sizes of cities, stock prices                                               |
+| Waiting times between independent events occurring at a constant average rate                                    | Exponential          | Time between radioactive decay events, customer arrivals                             |
+| Discrete trials each with the same probability of success, counting the number of successes                      | Binomial             | Coin flips, defective items in a batch                                               |
+| Discrete trials each with the same probability of success, counting the number of trials until the first success | Geometric            | Number of job applications until getting hired                                       |
+| Continuous trials each with the same probability of success, measuring the time until the first success          | Exponential          | Time until a component fails, time until a sales call results in a sale              |
+| Waiting time until the r-th event occurs in a Poisson process                                                    | Gamma                | Time until the 3rd customer arrives, time until the 5th defect occurs                |
 
-: Underlying procesess create typical probability distributions. That there is significant overlap with the distributions in @sec-maxent is not a coincidence.
+: Underlying processes create typical probability distributions. That there is significant overlap with the distributions in @sec-maxent is not a coincidence. {#tbl-prob-processes}
 
 ::: callout-tip
 ## Probability Distributions
 
-There are a *lot* of specialized distributions. There are lists of distributions you can find online or in references such as @Leemis_2008 which has a full-page network diagram of the relationships. The information-theoretic and Bayesian perspective on it is to focus on the fundamentals and the processes that give rise to the random processes in the first place. If you pull up the aforementioned diagram in @Leemis_2008, you can see just a handful of distributions that have the most central roles in the universe of distributions. Many distributions are simply transformations, limiting instances, or otherwise special cases of a more fundamental distribution.  Instead of trying to memorize a bunch of probability distributions, it's better to think critically about:
+There are a *lot* of specialized distributions. There are lists of distributions you can find online or in references such as @Leemis_2008 which has a full-page network diagram of the relationships.
+
+The information-theoretic and Bayesian perspective on it is to eschew memorization of a bunch of special cases and statistical tests. If you pull up the aforementioned diagram in @Leemis_2008, you can see just a handful of distributions that have the most central roles in the universe of distributions. Many distributions are simply transformations, limiting instances, or otherwise special cases of a more fundamental distribution. Instead of trying to memorize a bunch of probability distributions, it's better to think critically about:
 
 1.  The fundamental processes that give rise to the randomness.
 2.  Tranformations of the data to make it nicer to work with, such as translations, scaling, or other non-destructive changes.
 
 Then when you encounter a wacky dataset you don't need to comb the depths of Wikipedia to find the perfect probability distributions.
+:::
 
+#### Additive and Multiplicative Processes
 
+@tbl-prob-processes describes some examples, let us discuss further what it means to have a process that arises via an additive vs multiplicative effect[^statistics-4].
 
-::: 
+[^statistics-4]: Mulitiplicative process are often referred to as "geometric", as in "geometric Brownian motion" or "geometric mean". Additive processes are sometimes referred to as "arithmetic". This root of this confusing terminology appears to be due to the fact that series involving repeated multiplication were solved via geometric (triangles, angles, etc.) methods while those using sums and differences were solved via arithmetic.
 
+An outcome is additive if it's the sum or difference of multiple independent processes. One of the simplest examples of this is rolling multiple dice and taking their sum. Or a random walk along the natural numbers wherein with equal probability you take a step left or right. The distribution of the position after $n$ steps converges rapidly to a normal distribution. Another common one is when you are looking at the mean of a sample - since you are summing up the individual measurements you end up with a normal distribution (the Central Limit Theorem).
+
+However, many processes are multiplicative in nature. For example the population density of cities is distributed in a log-normal fashion. If we think about the factors that contribute to choice of place to live, we can see how these factors multiply: an attractive city might make someone 10% more likely to move, a city with water features 15% more likely, high crime 30% less likely, etc. These forces combine in a multiplicative way in the generative process of deciding where to move.
+
+::: callout-tip
+## Logarithms
+
+The logarithm of a geometric process transforms the outcomes into "log-space". The information is the same, but is often a more convenient form for the analysis. That is, if:
+
+$$
+Y = x_1 \times x_2 \times \ldots \times x_i
+$$
+
+Then,
+
+$$
+log(Y) = log(x_1) + log(x_2) + \ldots + \log(x_i)
+$$
+
+This is effectively the transformation that gives rise to the Normal versus Log-Normal distribution. \
+\
+Bringing this back to the context of computational thinking:
+
+*First,* we should think about how to transform data or modeling outcomes into a more convenient format. The log transform doesn't eliminate any information but may map the information into a shape that is easier for an optimizer or Monte Carlo simulation to explore.
+
+*Second*, per @sec-elements-programming, floating point math is a *lossy* transformation of real numbers into a digital computer representation. Some information (in the literal Shannon information sense) is lost when computing and this tends to be worst with very small real numbers, such as those we encounter frequently in probabilities and likelihoods. Logarithms map very small numbers into negative numbers that don't encounter the same degree of truncation error that tiny numbers do
+
+*Third,* modern CPUs are generally much faster at adding or subtracting numbers than multiplying or dividing. Therefore working with the logarithm of processes may be computationally faster than the direct process itself.
+:::
 
 ## Bayes' Rule
 
@@ -238,75 +276,148 @@ This is a very useful framework, which we'll return to more completely in @sec-m
 
 Let's say that we have competing hypothesis about a data generating process, such as: "given a set of data representing risk outcomes, what distribution best fits the data"?
 
-The example we'll look at relates to the annual rainfall totals for a specific location in California[^statistics-4], which could be useful for insuring flood risk or determining the value of a catastrophe bond. Acknowloging that we are attempting to create a geocentric model[^statistics-5] instead of a scientifically accurate weather model, we narrow the problem to finding a probability distribution that matches the historical rainfall totals. Our goal is to recommend a model that best fits the data and justify that recommendation quantitatively. Before even looking at the data, let's hypothecate three competing models based on thinking about the real-world outcome we are trying to model:
+We can compare these models using Bayes' rules by observing the following: Suppose we have two models, $H_1$ and $H_2$, and we want to compare their likelihoods given the observed data, D. We can use Bayes' rule to calculate the posterior probability of each model:
+$$
+P(H_1|D) = (P(D|H_1) * P(H_1)) / P(D)
 
-[^statistics-4]: <https://data.ca.gov/dataset/annual-precipitation-data-for-northern-california-1944-current>
+P(H_2|D) = (P(D|H_2) * P(H_2)) / P(D)
+$$
 
-[^statistics-5]: See \@sec-predictive-vs-explanatory.
+Where:
 
-1.  $H_1$ : A Normal (Gaussian) distribution (since many things in nature are normally distributed)
-2.  $H_2$ : A LogNormal distribution (since it's normal-ish, but skewed and can't be negative)
-3.  $H_3$ : A Gamma Distribution (since rainfall totals would be the sum of exponentially-distributed independent rainfall events)
+- $P(H_1|D)$ and $P(H_2|D)$ are the posterior probabilities of models $H_1$ and $H_2$, respectively, given the data $D$.
+- $P(D|H_1)$ and $P(D|H_2)$ are the likelihoods of the data $D$ under models $H_1$ and $H_2$, respectively.
+- $P(H_1)$ and $P(H_2)$ are the prior probabilities of models $H_1$ and $H_2$, respectively.
+- $P(D)$ is the marginal likelihood of the data, which serves as a normalizing constant.
 
-These three are chosen for the increasingly sophisiticated thought process that might lead the modeler to recommend them - but is it supportable by the statistics?
+To compare the likelihoods of the two models, we can calculate the ratio of their posterior probabilities, known as the Bayes factor, $BF$:
+
+$$
+BF = P(H_1|D) / P(H_2|D)
+$$
+
+Substituting the expressions for the posterior probabilities from Bayes' rule, we get:
+
+$$
+BF = \frac{P(D|H_1) * P(H_1)} {P(D|H_2) * P(H_2)}
+$$
+
+The marginal likelihood $P(D)$ cancels out since it appears in both the numerator and denominator.
+If we assume equal prior probabilities for the models, i.e., $P(H_1)$ = $P(H_2)$, then the Bayes factor simplifies to the likelihood ratio:
+$$
+BF = \frac{P(D|H_1)}{P(D|H_2)}
+$$
+
+The interpretation of the Bayes factor is as follows:
+
+- If $BF > 1$, the data favor $H_1$ over $H_2$.
+- If $BF < 1$, the data favor $H_2$ over $H_1$.
+- If $BF = 1$, the data do not provide evidence in favor of either model.
+
+In practice, the likelihoods $P(D|H_1)$ and $P(D|H_2)$ are often calculated using the probability density or mass functions of the models, evaluated at the observed data points. The prior probabilities $P(H_1)$ and $P(H_2)$ can be assigned based on prior knowledge or assumptions about the models.
+By comparing the likelihoods of the models using the Bayes factor, we can quantify the relative support for each model given the observed data, while taking into account the prior probabilities of the models.
 
 
 
-``` julia
-# Point: we can use the likelihood component of bayes rule to compare models
-# three models are compared: normal, lognormal, and gamma (Pearson III)
-# https://stats.stackexchange.com/questions/55563/estimating-parameters-of-log-pearson-iii-distribution-in-r
+:::callout-warning
+## Null Hypthothesis Statistical Test
 
-# 
+Null Hypothesis Statistical Tests (NHST) is the idea of trying to statistically support an alternative hypothesis over a null hypothesis. The support in favor of alternative versus the null is reported via some statistical power, such as the **p-value** (the probability that the test result is as, or more extreme, than the value computed). The idea is that there's some objective way to push science towards greater truths and NHST was seen as a methodology that avoided the subjectivity of the Bayesian approach. However, while pure in concept, the NHST choices of both null hypothesis and model contain significant amounts of subjectivity! We might as well call the null hypothesis a prior and stop trying to disprove it absolutely. Instead: focus on model comparison, model structure, and posterior probabilities of the competiting theories.
 
-using CairoMakie
-using StatsBase
-using Distributions
-x = [
-    39.51,42.65,44.09,41.92,28.42,58.65,30.18,64.4,29.02,
-    37.00,32.17,36.37,47.55,27.71,58.26,36.55,49.57,39.84,
-    82.22,47.58,51.18,32.28,52.48,65.24,51.12,25.03,23.27,
-    26.11,47.3,31.8,61.45,94.95,34.8,49.53,28.65,35.3,34.8,
-    27.45,20.7,36.99,60.54,22.5,64.85,43.1,37.55,82.05,27.9,
-    36.55,28.7,29.25,42.32,31.93,41.8,55.9,20.65,29.28,18.4,
-    39.31,20.36,22.73,12.75,23.35,29.59,44.47,20.06,46.48,
-    13.46,9.34,16.51,48.24
-    ]
+Over 100 statistical tests have been developed in service of NHST @Lewis2013, but it's widely viewed now that a focus on NHST has led to *worse* science due to a multitude of factors, such as:
 
+- "P-hacking" or trying to find subsets of data which can (often only by chance) support rejecting some null
+- Cognitive anchoring to the importance of a p-value of 0.05 or less - why choose that number versus 0.01 or 0.001 or 0.49?
+- Bias in research processes where one may stop data collection or experimentation after achieving a favorable test result
+- Inappropriate application of the myriad of statistical tests
+- Focus on p-values rather than effects that simply matter more or have greater effect
+  - For example, which is of more interest to doctors? A study indicating a 1 in a billion chance of serious side effect (p-value `0.0001`) or a study indicating a 1 in 3 chance (p-value `0.06`)? Many journals would only publish the former study.
+- Difficulty to determine *causal* relationships.
 
-n = fit_mle(Normal, x)
-ln = fit_mle(LogNormal, x)
-c = 0.12
-g = fit_mle(Gamma, log.(x.-c))
-fig,ax,_ = density(x)
-plot!(ax,n)
-plot!(ax,ln)
-density!(ax,exp.(rand(g,10000) .+ c))
-fig
+There is subjectivity in the null hypothesis, data colleciton methodologies, study design, handling of missing data, choice of data *not* to include, which statistical tests to perform, and interpretation of relationships. 
 
-search_params = [
-    (μ,σ)
-    for μ in 0:0.5:100,
-        σ in 1:0.1:20       
-        ]
+The authors of this book recommend against basic NHST and memorization of statistical tests in favor of principled Bayesian approaches.
+:::
 
-search = map(search_params) do (μ,σ)
-    sum(log.(pdf.(Normal(μ,σ),x)))
-end
-m = argmax(search)
-search_params[m]
+The example we'll look at relates to the annual rainfall totals for a specific location in California[^statistics-5], which could be useful for insuring flood risk or determining the value of a catastrophe bond. Acknowloging that we are attempting to create a geocentric model[^statistics-6] instead of a scientifically accurate weather model, we narrow the problem to finding a probability distribution that matches the historical rainfall totals. Our goal is to recommend a model that best fits the data and justify that recommendation quantitatively. Before even looking at the data, @tbl-rain-hypothesis shows three competing models based on thinking about the real-world outcome we are trying to model. These three are chosen for the increasingly sophisticated thought process that might lead the modeler to recommend them - but which is supportable by the statistics?
 
-show(fig)
+[^statistics-5]: <https://data.ca.gov/dataset/annual-precipitation-data-for-northern-california-1944-current>
 
-pdf(Normal(0,1),0.5)
+[^statistics-6]: See \@sec-predictive-vs-explanatory.
 
-sum((pdf.(ln,x)))/sum((pdf.(n,x)))
-sum((pdf.(g,log.(x.-c))))/sum((pdf.(n,x)))
+| Hypothesis | Process                          | Possible Rationale                                                                              |
+|----------------|----------------|---------------------------------------|
+| $H_1$      | A Normal (Gaussian) distribution | The sum of independent rainstorms creates annual rainfall totals that are normally distributed  |
+| $H_2$      | A LogNormal distribution         | Since it's normal-ish, but skewed and can't be negative                                         |
+| $H_3$      | A Gamma Distribution             | Since rainfall totals would be the sum of exponentially-distributed independent rainfall events |
+
+: Three alternative hypothesis about the distribution of annual rainfall totals. {#tbl-rain-hypothesis}
+
+```{julia}
+rain = [
+    39.51, 42.65, 44.09, 41.92, 28.42, 58.65, 30.18, 64.4, 29.02,
+    37.00, 32.17, 36.37, 47.55, 27.71, 58.26, 36.55, 49.57, 39.84,
+    82.22, 47.58, 51.18, 32.28, 52.48, 65.24, 51.12, 25.03, 23.27,
+    26.11, 47.3, 31.8, 61.45, 94.95, 34.8, 49.53, 28.65, 35.3, 34.8,
+    27.45, 20.7, 36.99, 60.54, 22.5, 64.85, 43.1, 37.55, 82.05, 27.9,
+    36.55, 28.7, 29.25, 42.32, 31.93, 41.8, 55.9, 20.65, 29.28, 18.4,
+    39.31, 20.36, 22.73, 12.75, 23.35, 29.59, 44.47, 20.06, 46.48,
+    13.46, 9.34, 16.51, 48.24
+];
 ```
 
-In the literature, $H_3$ (the Gamma distribution) is known as the "Log-Pearson Type III distribution". It's actually recommended by the US Corps of Army Engineers as the recommended way to model rainfall totals. 
+When we do plot it, we can see some of the characteristics that align with our prior assumptions and knowledge about the system itself, such as: the data being constrained to positive values and a skew towards having some extreme weather years with lots of rainfall.
 
-## Bridging to Modern Bayesian Statistics? {#sec-modern-bayes}
+```{julia}
+#| label: fig-rain-hist
+#| fig-cap: "Annual rainfall totals for a specific location in California."
+using CairoMakie
+hist(rain)
+```
+
+We will show the likelihood of the three models after deriving the **maximum likelihood (MLE)**, which is simply finding the parameters that maximize the calculated likelihood. In general, this can be accomplished by an optimization routine, but here we will just use the functions built into Distributions.jl:
+
+
+```{julia}
+using StatsBase
+using Distributions
+
+n = fit_mle(Normal, rain)
+c = 0.12 #<1>
+ln = fit_mle(Normal, log.(rain .- c))
+g = fit_mle(Gamma, log.(rain .- c))
+@show n
+@show ln
+@show g;
+```
+1. The `0.12` is a constant translation factor. We can losslessly translate the data to back out some typical level of rainfall and allow the distributions to fit the variation in the residual rainfall amounts. It's not needed in the Normal distribution case because the μ parameter allows the Normal distribution to translate itself to the center of the probability region.
+
+```{julia}
+let x = rain
+
+    range = 1:0.1:100
+    fig, ax, _ = lines(range, cdf.(n, range), label="Normal", axis=(xgridvisible=false, ygridvisible=false,))
+    lines!(ax, range, cdf.(ln, log.(range .- c)), label="LogNormal")
+    lines!(range, cdf.(g, log.(range .- c)), label="Gamma")
+    lines!(quantile.(Ref(x), 0.01:0.01:0.99), 0.01:0.01:0.99, label="Data", color=(:black, 0.6), linewidth=3)
+    fig[1, 2] = Legend(fig, ax, "Model", framevisible=false)
+    fig
+end
+# pdf(Normal(0,1),0.5)
+
+# sum((pdf.(ln,x)))/sum((pdf.(n,x)))
+# sum((pdf.(g,log.(x.-c))))/sum((pdf.(n,x)))
+```
+
+[TBD: commentary and comparison of the likelihoods.]
+
+::: callout-note
+In the literature, $H_3$ (the Gamma distribution) is known as the "Log-Pearson Type III distribution". It's actually recommended by the US Corps of Army Engineers as the recommended way to model rainfall totals.
+:::
+
+## Modern Bayesian Statistics {#sec-modern-bayes}
+
+[DRAFTING NOTE: The content below was pulled from a blog post on bayesian statistics. The goal for the book is to adapt the concepts and follow the rainfall example by showing an MCMC example of fitting the distribution including the `c` parameter]
 
 A Bayesian statistical model has four main components to focus on:
 
@@ -317,7 +428,7 @@ A Bayesian statistical model has four main components to focus on:
 
 Having defined the first two components and collected our data, the workflow involves computationally sampling the posterior distribution, often using a technique called Markov Chain Monte-Carlo (MCMC). The result is a series of values that are sampled statistically from the posterior distribution.
 
-## Advantages of the Bayesian Approach
+### Advantages of the Bayesian Approach
 
 The main advantages of this approach over traditional actuarial techniques are:
 
@@ -326,7 +437,7 @@ The main advantages of this approach over traditional actuarial techniques are:
 3.  **Simpler mental model.** Fundamentally, Bayes' theorem could be distilled down to an approach where you count the ways that things could occur and update the probabilities accordingly.
 4.  **Explicit Assumptions.**: Enumerating the random variables in your model and explicitly parameterizing prior assumptions avoids ambiguity of the assumptions inside the statistical model.
 
-## Challenges with the Bayesian Approach
+### Challenges with the Bayesian Approach
 
 With the Bayesian approach, there are a handful of things that are challenging. Many of the listed items are not unique to the Bayesian approach, but there are different facets of the issues that arise.
 
@@ -335,7 +446,7 @@ With the Bayesian approach, there are a handful of things that are challenging. 
 3.  **Model Complexity and Size of Data**. The sampling algorithms are computationally intensive - as the amount of data grows and model complexity grows, the runtime demands cluster computing.
 4.  **Model Representation**. The statistical derivation of the posterior can only reflect the complexity of the world as defined by your model. A Bayesian model won't automatically infer all possible real-world relationships and constraints.
 
-## Why Now?
+### Why Now?
 
 There are both philosophical and practical reasons why Bayesian analysis is rapidly changing the statistical landscape.
 
@@ -359,29 +470,29 @@ Many problems require the use of compute clusters to manage runtime, but if ther
 
 Moreover, the availability of open-source libraries, such as Turing.jl, PyMC3, and Stan provide access to the core routines in an accessible interface.
 
-## Subjectivity of the Priors?
+### Subjectivity of the Priors?
 
 There are two ways one might react to subjectivity in a Bayesian context: It's a feature that should be embraced or it’s a flaw that should be avoided.
 
-### Subjectivity as a Feature
+#### Subjectivity as a Feature
 
 **A Bayesian approach to defining a statistical model is an approach that allows for explicitly incorporating actuarial judgment.** Encoding assumptions into a Bayesian model forces the actuary to be explicit about otherwise fuzzy predilections. The explicit assumption is also more amenable to productive debate about its merits and biases than an implicit judgmental override.
 
-### Subjectivity as a Flaw
+#### Subjectivity as a Flaw
 
 Subjectivity is inherent in all useful statistical methods. Subjectivity in traditional approaches include how the data was collected, which hypothesis to test, what significant levels to use, and assumptions about the data-generating processes.
 
-In fact, the "objective" approach to null hypothesis testing is so prone to abuse and misinterpretation that in 2016, the American Statistical Association issued a statement intended to steer statistical analysis into a "post p\<0.05 era." That "p\<0.05" approach is embedded in most traditional approaches to actuarial credibility[^statistics-6] and therefore should be similarly reconsidered.
+In fact, the "objective" approach to null hypothesis testing is so prone to abuse and misinterpretation that in 2016, the American Statistical Association issued a statement intended to steer statistical analysis into a "post p\<0.05 era." That "p\<0.05" approach is embedded in most traditional approaches to actuarial credibility[^statistics-7] and therefore should be similarly reconsidered.
 
-[^statistics-6]: Note that the approach discussed here is much more encompassing than the Bühlmann-Straub Bayesian approach described in the actuarial literature.
+[^statistics-7]: Note that the approach discussed here is much more encompassing than the Bühlmann-Straub Bayesian approach described in the actuarial literature.
 
-### Maximum Entropy Distributions
+#### Maximum Entropy Distributions
 
 Further, when assigning a prior assumption to a random variable, there are mathematically most conservative choices to pull from. These are called Maximum Entropy Distributions (MED) and it can be shown that for certain minimal constraints these are the information-theoretic least informative choices. Least informative means that the prior will have the least influence on the resulting posterior distribution.
 
 For example, if all you know is that the mean of a random process is positive, then the Exponential Distribution is your MED. If you know that a mean and variance must exist for the process, then the Normal distribution is your MED. If you know nothing at all, you can use a Uniform distribution for the possible values.
 
-## Bayesian Versus Machine Learning
+#### Bayesian Versus Machine Learning
 
 Machine learning (ML) is *fully compatible* with Bayesian analysis - one can derive posterior distributions for the ML parameters like any other statistical model and the combination of approaches may be fruitful in practice.
 
@@ -393,7 +504,7 @@ However, to the extent that actuaries have leaned on ML approaches due to the sh
 -   Missing data: Mechanisms to handle the different kinds of missing data.
 -   Model averaging: Posteriors can be combined from different models to synthesize different approaches.
 
-## Implications for Risk Management
+### Implications for Risk Management
 
 Like Bayes' Formula itself, another aspect of actuarial literature that is taught but often glossed over in practice is the difference between process risk (volatility), parameter risk, and model formulation risk. Often when performing analysis that relies on stochastic result, in practice only process/volatility risk is assessed.
 
@@ -401,7 +512,7 @@ Bayesian statistics provides the tools to help actuaries address parameter risk 
 
 Additionally, best practices include skepticism of the model construction itself, and testing different formulation of the modeled relationships and variable combinations to identify models which are best fit for purpose. Tools such as Information Criterion, posterior predictive checks, Bayes factors, and other statistical diagnostics can inform the actuary about tradeoffs between different choices of model.
 
-## Paving the Way Forward for Actuaries
+### Paving the Way Forward for Actuaries
 
 Bayesian approaches to statistical problems are rapidly changing the professional statistical field. To the extent that the actuarial profession incorporates statistical procedures we should consider adopting the same practices. The benefits of this are a better understanding of the distribution of risks, results that are more interpretable and explainable, and techniques that can be applied to a wider range of problems. The combination of these things would serve to enhance actuarial best practices related to understanding and communicating about risk.
 
@@ -412,5 +523,3 @@ For actuaries interested in learning more, there are number of available resourc
 -   Bayesian Data Analysis (Gelman, et. al.)
 
 Additionally, the author has published a few examples of Bayesian analysis in an actuarial context on JuliaActuary.org.
-
-### Further Reading
