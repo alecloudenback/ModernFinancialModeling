@@ -3,3 +3,110 @@
 ## In This Chapter
 
 Optimization as root finding or minimization/maximazation of defined objectives. Differentiable programming and the benefits to optimization problems. Model fitting as an optimization problem.
+
+```{julia}
+#| echo: false
+#| output: false
+using Pkg
+Pkg.activate("env/opt")
+Pkg.instantiate()
+```
+
+## Setup
+
+```{julia}
+using Flux
+using LsqFit
+using CairoMakie
+```
+
+## Differentiable programming
+
+Differentiable programming is an approach to programming where functions are defined using differentiable operations, allowing automatic differentiation to be applied to them. Automatic differentiation is a technique used to efficiently compute derivatives of functions, and it is crucial in many machine learning algorithms, optimization techniques, and scientific computing applications.
+
+Elements in differentiable programming
+
+- Differentiable Functions: Functions are defined using operations that are differentiable. These operations include basic arithmetic operations (addition, subtraction, multiplication, division), as well as more complex operations like exponentials, logarithms, trigonometric functions, etc.
+
+- Automatic Differentiation (AD): Automatic differentiation is used to compute derivatives of functions with respect to their inputs or parameters. AD exploits the fact that every computer program, no matter how complex, executes a sequence of elementary arithmetic operations (addition, subtraction, multiplication, division), and elementary functions (exponentials, logarithms, trigonometric functions). By applying the chain rule repeatedly to these operations, derivatives of arbitrary order can be computed automatically, accurately to working precision, and using at most a small constant factor more arithmetic operations than the original program.
+
+- Optimization and Machine Learning: Differentiable programming is particularly useful in optimization problems, where gradients or higher-order derivatives are required to find the minimum or maximum of a function. It's also widely used in machine learning, where optimization algorithms like gradient descent are used to train models by adjusting their parameters to minimize a loss function.
+
+```{julia}
+using Flux
+
+# Define a differentiable function
+f(x) = 3x^2 + 2x + 1
+# Define an input value
+x = 2.0
+
+@show "Value of f(x) at x=$x: ", f(x)
+@show "Gradient of f(x) at x=$x: ", gradient(x -> f(x), x)
+```
+
+## Model fitting
+
+### Root finding
+
+Root finding, also known as root approximation or root isolation, is the process of finding the values of the independent variable (usually denoted as $x$) for which a given function equals zero. In mathematical terms, if we have a function $f(x)$, root finding involves finding values of $x$ such that $f(x)=0$.
+
+There are various algorithms for root finding, each with its own advantages and disadvantages depending on the characteristics of the function and the requirements of the problem. One notable approach is Newton's method, an iterative method that uses the derivative of the function to approximate the root with increasing accuracy in each iteration.
+
+```{julia}
+using Flux
+
+# Define a differentiable function
+f(x) = 3x^2 + 2x + 1
+# Define an initial value
+x = 1.0
+# tolerance of difference in value
+tol = 1e-6
+# maximum number of iteration of the algorithm
+max_iter = 100
+iter = 0
+while abs(f(x)) > tol && iter < max_iter
+    x -= f(x) / gradient(x -> f(x), x)[1]
+    iter += 1
+end
+if iter == max_iter
+    @show "Warning: Maximum number of iterations reached."
+else
+    @show "Root found after", iter, " iterations."
+end
+@show "Approximate root: ", x
+```
+
+### Best fitting curve
+
+In model fitting, the "best fitting curve" refers to the curve or function that best describes the relationship between the independent and dependent variables in the data. The goal of model fitting is to find the parameters of the chosen curve or function that minimize the difference between the observed data points and the values predicted by the model.
+
+The process of finding the best fitting curve typically involves:
+
+- Choosing a model: Based on the nature of the data and the underlying relationship between the variables, a suitable model or family of models are selected.
+
+- Estimating parameters: Using the chosen model, one estimates the parameters that best describe the relationship between the variables. This is often done using optimization techniques such as least squares regression, maximum likelihood estimation, or Bayesian inference.
+
+- Evaluating the fit: Once the parameters are estimated, one evaluates the goodness of fit of the model by comparing the predicted values to the observed data. Common metrics for evaluating fit, or error functions, include the residual sum of squares, the coefficient of determination (R-squared), and visual inspection of the residuals.
+
+- Iterating if necessary: If the fit is not satisfactory, one may need to iterate on the model or consider alternative models until you find a satisfactory fit to the data.
+
+```{julia}
+x_data = 0:0.1:10
+y_data = 2 .* sin.(x_data) .+ 0.5 .* randn(length(x_data))
+# Define the model function
+model(x, p) = p[1] * x.^2 + p[2] * x .+ p[3]
+# Initial parameter guess
+p₀ = [1.0, 1.0, 1.0]
+# Fit the model to the data
+fit_result = curve_fit(model, x_data, y_data, p₀)
+# Extract the fitted parameters
+params = coef(fit_result)
+# Evaluate the model with the fitted parameters
+y_fit = model(x_data, params)
+# Plot the data and the fitted curve
+fig = Figure()
+Axis(fig[1, 1], title = "Curve Fitting")
+scatter!(x_data, y_data, label="Data")
+lines!(x_data, y_fit, label="Fitted Curve", linestyle=:dash, color=:red)
+fig
+```
