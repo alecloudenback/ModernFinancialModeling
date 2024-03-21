@@ -3,3 +3,255 @@
 ## In This Chapter
 
 Optimization in a portfolio context with examples of asset selection under different constraints and objectives.
+
+```{julia}
+#| echo: false
+#| output: false
+using Pkg
+Pkg.activate("env/pf_opt")
+Pkg.instantiate()
+```
+
+## Setup
+
+```{julia}
+#| output: false
+using CSV, DataFrames
+using JuMP, Ipopt, LinearAlgebra
+using CairoMakie
+```
+
+## The Data
+
+```{julia}
+μ = [0.1, 0.15, 0.12] # returns
+ρ = [0.1 0.05 0.03;
+     0.05 0.12 0.04;
+     0.03 0.04 0.08] # covariances
+nₐ = length(μ) # number of assets
+```
+
+## Theory
+
+Harry Markowitz introduced the modern portfolio theory in 1952. The main idea is that investors are pursuing to maximize their expected return of a portfolio given a certain amount of risk. By definition any portfolio yielding a higher return must have higher amount of risk, so there is a trade-off between desired expected returns and allowable risks. The risk versus maximized expected return relationship can be plotted out as a curve, a.k.a. the efficient frontier.
+
+## Mathematical tools
+
+### Mean-variance optimization model
+
+Mean-variance optimization is a mathematical framework that seeks to maximize expected returns while minimizing portfolio variance (or standard deviation). It involves calculating the expected return and risk of individual assets and finding the optimal combination of assets to achieve the desired risk-return tradeoff.
+
+$$
+\begin{align*}
+minimize \quad &{w}^{T}\Sigma{w}\\
+subject\;to \quad &{R}^{T}\geq{\mu}_{target}\\
+&{1}^{T}{w}={1}\\
+&{w}\geq{0}
+\end{align*}
+$$
+
+```{julia}
+# Create an optimization model
+model = Model(optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 0))
+# Set up weights as variables to optimize
+@variable(model, w[1:nₐ] >= zero(0.0))
+# Objective: minimize portfolio variance
+@objective(model, Min, sum(w[i] * ρ[i, j] * w[j] for i in 1:nₐ, j in 1:nₐ))
+# Constraints: Sum of portfolio weights should equal to 1, and all weights should be zero or positive
+@constraint(model, sum(w) == 1)
+# May also add additional constraints
+# target_return = 0.1
+# @constraint(model, dot(μ, w) >= target_return)
+# Solve the optimization problem
+optimize!(model)
+# Print results
+@show "Optimal Portfolio Weights:"
+for i = 1:nₐ
+    @show ("Asset ", i, ": ", value.(w)[i])
+end
+```
+
+### Efficient frontier analysis
+
+The efficient frontier represents the set of portfolios that offer the highest expected return for a given level of risk or the lowest risk for a given level of return. Efficient frontier analysis involves plotting risk-return combinations for different portfolios and identifying the optimal portfolio on the frontier.
+
+```{julia}
+# Create an optimization model
+model = Model(optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 0))
+# Set up weights as variables to optimize
+@variable(model, w[1:nₐ] >= zero(0.0))
+# Define objective function: minimize portfolio variance
+portfolio_variance = w'ρ*w
+@objective(model, Min, portfolio_variance)
+# Constraints: Sum of portfolio weights should equal to 1, and all weights should be zero or positive
+@constraint(model, sum(w) == 1)
+# Generate a range of target returns
+points = 100
+target_returns = range(minimum(μ), maximum(μ), length=points)
+
+efficient_frontier = [] 
+for target_return in target_returns
+    # Add additional constraint for target return
+    @constraint(model, c, dot(μ, w) == target_return)        
+    # Solve the problem
+    optimize!(model)
+    # Show solution
+    if termination_status(model) == MOI.LOCALLY_SOLVED
+        push!(efficient_frontier, (sqrt(objective_value(model)), target_return))
+    end
+    unregister(model, :c)
+    delete(model, c)
+end
+# Plot Efficient Frontier
+f = Figure()
+Axis(f[1, 1])
+lines!(map(x -> x[1], efficient_frontier), map(x -> x[2], efficient_frontier))
+```
+
+### Black-Litterman
+
+The Black-Litterman model combines the views of investors with market equilibrium assumptions to generate optimal portfolios. It starts with a market equilibrium portfolio and adjusts it based on investor views and confidence levels. The model incorporates subjective opinions while maintaining diversification and risk management principles.
+
+$$
+\begin{align*}
+\text{maximize} \quad & \mu^T w - \lambda \cdot \frac{1}{2} w^T \Sigma w \\
+\text{subject to} \quad & \sum_{i=1}^{N} w_i = 1 \\
+& w_i \geq 0, \quad \forall i
+\end{align*}
+$$
+
+```{julia}
+λ = 2.5 # risk aversion
+rfr = 0.02 # risk free rate
+# Market equilibrium parameters (prior)
+μ_market = [0.08, 0.08, 0.08] # Market equilibrium return
+Σ_market = ρ # Market equilibrium covariance matrix
+# Investor views
+Q = μ # Expected returns on assets according to investor views
+P = [1 0 0; 0 1 0; 0 0 1]     # Pick matrix specifying which assets views are on
+Ω = [0.001^2 0.0 0.0; 0.0 0.002^2 0.0; 0.0 0.0 0.003^2]  # Views uncertainty (covariance matrix)
+
+# Create an optimization model
+model = Model(optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 0))
+# Set up weights as variables to optimize
+@variable(model, w[1:nₐ] >= zero(0.0))
+# Black-Litterman expected return adjustment
+Σ_prior_inv = inv(Σ_market)
+τ = 0.05 # Scaling factor
+# Calculate the posterior expected returns
+μ_posterior = Σ_prior_inv * (τ * Σ_market * (Σ_prior_inv + P' * inv(Ω) * P)) \
+(τ * Σ_market * (Σ_prior_inv * μ_market + P' * inv(Ω) * Q) + Σ_prior_inv * μ_market)
+# Objective: maximize sharpe ratio
+sr = (w' * μ_posterior - rfr) / (λ / 2 * w' * Σ_market * w)
+@objective(model, Max, sr)
+# Constraints: Sum of portfolio weights should equal to 1, and all weights should be zero or positive
+@constraint(model, sum(w) == 1)
+# Solve the optimization problem
+optimize!(model)
+# Print results
+v = sqrt(value.(w)' * Σ_market * value.(w))
+@show "Optimal Portfolio Weights, Expected Portfolio Return, Portfolio Volatility:", v
+for i = 1:nₐ
+    @show ("Asset ", i, ": ", value.(w)[i], value.(w)[i] * μ_posterior[i])
+end
+```
+
+### Risk Parity
+
+Risk parity is an asset allocation strategy that allocates capital based on risk rather than traditional measures such as market capitalization or asset prices. It aims to balance risk contributions across different assets or asset classes to achieve a more stable portfolio. Risk parity portfolios often include assets with different risk profiles, such as stocks, bonds, and commodities.
+
+$$
+\begin{align*}
+\text{minimize} \quad & \sum_{i=1}^{N} (w_i \cdot \sqrt{\sigma_i})^2 \\
+\text{subject to} \quad & \sum_{i=1}^{N} w_i = 1 \\
+& w_i \geq 0, \quad \forall i
+\end{align*}
+$$
+
+```{julia}
+# Create an optimization model
+model = Model(optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 0))
+# Set up weights as variables to optimize
+@variable(model, w[1:nₐ] >= zero(0.0))
+# Objective: minimize portfolio variance
+portfolio_variance = w'ρ*w
+margin = (ρ * w ./ sqrt(portfolio_variance)) .* w
+risk_contributions = margin ./ sum(margin)
+target = repeat([1.0 / nₐ], nₐ)
+@objective(model, Max, sum((risk_contributions .- target).^2))
+# Constraints: Sum of portfolio weights should equal to 1, and all weights should be zero or positive
+@constraint(model, sum(w) == 1)
+# Solve the optimization problem
+optimize!(model)
+# Print results
+@show "Optimal Portfolio Weights:"
+for i = 1:nₐ
+    @show ("Asset ", i, ": ", value.(w)[i])
+end
+```
+
+### Sharpe Ratio Maximization
+
+The Sharpe ratio measures the risk-adjusted return of a portfolio and is calculated as the ratio of excess return to volatility. Maximizing the Sharpe ratio involves finding the portfolio allocation that offers the highest risk-adjusted return. This approach focuses on achieving the best tradeoff between risk and return.
+
+$$
+\begin{align*}
+\text{maximize} \quad & \frac{E[R_p] - R_f}{\sigma_p} \\
+\text{subject to} \quad & \sum_{i=1}^{N} w_i = 1 \\
+& w_i \geq 0, \quad \forall i
+\end{align*}
+$$
+
+```{julia}
+# Create an optimization model
+model = Model(optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 0))
+# Set up weights as variables to optimize
+@variable(model, w[1:nₐ] >= zero(0.0))
+# Objective: minimize portfolio variance
+rfr = 0.05 # risk free rate
+@objective(model, Max, (dot(μ, w) - rfr) / sqrt(sum(w[i] * ρ[i, j] * w[j] for i in 1:nₐ, j in 1:nₐ)))
+# Constraints: Sum of portfolio weights should equal to 1, and all weights should be zero or positive
+@constraint(model, sum(w) == 1)
+# Solve the optimization problem
+optimize!(model)
+# Print results
+@show "Optimal Portfolio Weights:"
+for i = 1:nₐ
+    @show ("Asset ", i, ": ", value.(w)[i])
+end
+```
+
+### Robust Optimization
+
+Robust optimization techniques aim to create portfolios that are resilient to uncertainties and fluctuations in market conditions. These techniques consider a range of possible scenarios and optimize portfolios to perform well across different market environments. Robust optimization may involve incorporating stress tests, scenario analysis, or robust risk measures into the portfolio construction process.
+
+$$
+\begin{align*}
+\text{minimize} \quad & w^T \Sigma w + \gamma \|w - w_0\|_2^2 \\
+\text{subject to} \quad & \sum_{i=1}^{N} w_i = 1 \\
+& w_i \geq 0, \quad \forall i \\
+& \|(\Sigma^{1/2} (w - w_0))\|_2 \leq \epsilon
+\end{align*}
+$$
+
+```{julia}
+# Create an optimization model
+model = Model(optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 0))
+# Set up weights as variables to optimize
+@variable(model, w[1:nₐ] >= zero(0.0))
+# Objective: minimize portfolio variance
+ε = 0.05  # Uncertainty level
+γ = 0.1  # Robustness parameter
+w₀ = [0.3, 0.4, 0.3]
+@objective(model, Min, dot(w, ρ * w) + γ * sum((w[i] - w₀[i])^2 for i in 1:nₐ))
+# Constraints: Sum of portfolio weights should equal to 1, and all weights should be zero or positive
+@constraint(model, sum(w) == 1)
+@constraint(model, sum((ρ[i, j] * (w[i] - w₀[i]) * (w[j] - w₀[j])) for i in 1:nₐ, j in 1:nₐ) <= ε)
+# Solve the optimization problem
+optimize!(model)
+# Print results
+@show "Optimal Portfolio Weights:"
+for i = 1:nₐ
+    @show ("Asset ", i, ": ", value.(w)[i])
+end
+```
