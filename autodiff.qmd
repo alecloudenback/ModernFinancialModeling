@@ -1,4 +1,5 @@
 # Automatic Differentiation
+
 ```{julia}
 #| echo: false
 #| output: false
@@ -27,9 +28,9 @@ We can approximate the result by simply choosing a small $\epsilon$.
 
 There's also flavors of finite differentiation to approximate derivatives to be aware of:
 
-- forward difference is as defined in the above equation, where $\epsilon$ is added to $x_0$
-- reverse difference is as defined in the above equation, where $\epsilon$ is subtracted from $x_0$
-- central difference is where we evaluate at $x_0 \pm \epsilon$ and then divide by $2\epsilon$
+-   forward difference is as defined in the above equation, where $\epsilon$ is added to $x_0$
+-   reverse difference is as defined in the above equation, where $\epsilon$ is subtracted from $x_0$
+-   central difference is where we evaluate at $x_0 \pm \epsilon$ and then divide by $2\epsilon$
 
 The benefit of the central difference is that it limits issues around minima and maxima where the trough or peak respectively would seem much steeper if using forward or reverse. Here's a picture of this:
 
@@ -64,14 +65,15 @@ let
 end
 ```
 
-One benefit of the central difference method is that is often more accurate than forward or reverse. However it comes at the cost of needing to evaluate the function an additional time in many circumstances. Take, for example, the process of optimizing a function to find a maxima or minima. The process usually involves evaluating a function at a gas determining what the derivative of the function is at that point and using both items to update to help better guess. At each step you need to evaluate the function three times: for $x$, $x+\epsilon$, and $x-\epsilon$. With forward or reverse finite differences, you can reuse the prior function evaluation of the prior guess $x$ As one of the components in the estimation of the derivative, thereby saving an evaluation of the function for each iteration.
+One benefit of the central difference method is that is often more accurate than forward or reverse. However it comes at the cost of needing to evaluate the function an additional time in many circumstances. Take, for example, the process of optimizing a function to find a maxima or minima. The process usually involves guessing an initial point, evaluating the function at that point, and determining what the derivative of the function is at that point. Both items are used to update the guess to one that's closer to the solution. This approach is used in many optimization algorithms such as Newton's Method.
 
- there are further challenges with the finite differences method. In practice, we are often interested in much more complex functions than $x^2$. For example, we may actually be interested in the sum of a series that is many elements long or contains more complex operations than basic algebra. In the prior example, the $\epsilon$ is set unusually wide for demonstration purposes. As $\epsilon$ grow smaller generally, the accuracy of all three finite different methods increases. However, that's not always the case due to both the complexity of the function that you may be trying to differentiate or due to numerical inaccuracies of floating point math.
+At each step you need to evaluate the function three times: for $x$, $x+\epsilon$, and $x-\epsilon$. With forward or reverse finite differences, you can reuse the prior function evaluation of the prior guess $x$ As one of the components in the estimation of the derivative, thereby saving an evaluation of the function for each iteration.
 
-To demonstrate, here is a more complex example using an arbitrary function 
+There are additional challenges with the finite differences method. In practice, we are often interested in much more complex functions than $x^2$. For example, we may actually be interested in the sum of a series that is many elements long or contains more complex operations than basic algebra. In the prior example, the $\epsilon$ is set unusually wide for demonstration purposes. As $\epsilon$ grow smaller generally, the accuracy of all three finite different methods increases. However, that's not always the case due to both the complexity of the function that you may be trying to differentiate or due to numerical inaccuracies of floating point math.
 
- for this example we'll show the results of the three methods calculated at different values of $\epsilon$:
+To demonstrate, here is a more complex example using an arbitrary function
 
+for this example we'll show the results of the three methods calculated at different values of $\epsilon$:
 
 ```{julia}
 #| label: fig-finite-diff-error
@@ -90,20 +92,21 @@ ax = Axis(fig[1, 1], xscale=log10, yscale=log10, xlabel="ϵ", ylabel="absolute e
 scatter!(ax, ϵ, abs.(estimate .- actual))
 fig
 ```
-1. The derivative of $f(x) = exp(x)$ is itself. That is $f'(x) = f(x)$ in this special case.
+
+1.  The derivative of $f(x) = exp(x)$ is itself. That is $f'(x) = f(x)$ in this special case.
 
 ::: callout-note
-The `@.` in the code example above is a macro that applies broadcasting each function to its right. `@. (f(x0 + ϵ) - f(x0 - ϵ)) / 2ϵ` is the same as `(f.(x0 .+ ϵ) .- f.(x0 .- ϵ)) ./ (2 .* ϵ)` 
+The `@.` in the code example above is a macro that applies broadcasting each function to its right. `@. (f(x0 + ϵ) - f(x0 - ϵ)) / 2ϵ` is the same as `(f.(x0 .+ ϵ) .- f.(x0 .- ϵ)) ./ (2 .* ϵ)`
 :::
 
 A few observations:
 
-1. At virtually every value of `ϵ` we observe some error from the true derivative.
-2. That error is the sum of two parts: **truncation error** is inherent in that we are using a given value for `ϵ` and not determining the limiting analytic value as $\epsilon \to 0$. The other component is **roundoff error** which arises due to the limited precision of floating point math.
+1.  At virtually every value of `ϵ` we observe some error from the true derivative.
+2.  That error is the sum of two parts: **truncation error** is inherent in that we are using a given value for `ϵ` and not determining the limiting analytic value as $\epsilon \to 0$. The other component is **roundoff error** which arises due to the limited precision of floating point math.
 
 The implications of this are that we need to often be careful about the choice of `ϵ`, as the optimal choice will vary depending on the function and the point we are attempting to evaluate. This presents a number of practical diffuclties in various algorithms.
 
-Additionally,when computing the finite difference we must evaluate the function multiple times to determine a single estimate of the derivative. When performing something like optimization the process typically involves iteratively making many guesses — plus the number of guesses required to find the right answer can depends on the ability to accurate determine the derivative at a point! 
+Additionally,when computing the finite difference we must evaluate the function multiple times to determine a single estimate of the derivative. When performing something like optimization the process typically involves iteratively making many guesses — plus the number of guesses required to find the right answer can depends on the ability to accurate determine the derivative at a point!
 
 Admittedly, despite the accuracy and computational overhead, finite differences can be very useful in many circumstances. However, a more appealing alternative approach will be covered next.
 
@@ -113,8 +116,7 @@ Admittedly, despite the accuracy and computational overhead, finite differences 
 
 $$
 h(x)=f(g(x))
-$$
-$$
+$$ $$
 h'(x) = f'(g(x)) g'(x)
 $$
 
@@ -128,7 +130,9 @@ $$
 r+iq
 $$
 
-By definition we say that $i^2 = -1$. This is useful because it allows us to perform certain types of operations (e.g. finding a square root of a negative number) that is otherwise unsolvable with just the real numbers^[Richard Feynman has a wonderful, short lecture on algebra here: https://www.feynmanlectures.caltech.edu/I_22.html]. After defining how the normal algebraic operations (addition, multiplication, etc.) work for the imaginary number, we are able to utilize the imaginary numbers for a variety of practical mathematical tasks. 
+By definition we say that $i^2 = -1$. This is useful because it allows us to perform certain types of operations (e.g. finding a square root of a negative number) that is otherwise unsolvable with just the real numbers[^autodiff-1]. After defining how the normal algebraic operations (addition, multiplication, etc.) work for the imaginary number, we are able to utilize the imaginary numbers for a variety of practical mathematical tasks.
+
+[^autodiff-1]: Richard Feynman has a wonderful, short lecture on algebra here: https://www.feynmanlectures.caltech.edu/I_22.html
 
 What is meant by extending the algebraic operations for imaginary numbers? For example, stating how addition should work for imaginary numbers:
 
@@ -153,8 +157,9 @@ struct DualNumber{T,U} #<1>
     end
 end
 ```
-1. We define this type parametrically to handle all sorts of `<:Real` types and allow `a` and `b` to vary types in case a mathematical operation causes a type change (e.g. as in the case of integers becoming a floating point number like `10/4 == 2.5`)
-2. `zero(a)` is a generic way to create a value equal to zero with the same type of the argument `a`. `zero(12.0) == 0.0` and `zero(12) == 0`.
+
+1.  We define this type parametrically to handle all sorts of `<:Real` types and allow `a` and `b` to vary types in case a mathematical operation causes a type change (e.g. as in the case of integers becoming a floating point number like `10/4 == 2.5`)
+2.  `zero(a)` is a generic way to create a value equal to zero with the same type of the argument `a`. `zero(12.0) == 0.0` and `zero(12) == 0`.
 
 Now let's define how dual numbers work under addition. The mathematical rule is:
 
@@ -178,7 +183,7 @@ f1(x) = 5 + x
 f1(DualNumber(10, 1))
 ```
 
-That's not super interesting though - the derivative of `f1` is just `1` and we supplied that in the construction of `DualNumber`. We did at least prove that we can add the `10` and `5`! 
+That's not super interesting though - the derivative of `f1` is just `1` and we supplied that in the construction of `DualNumber`. We did at least prove that we can add the `10` and `5`!
 
 Let's make this more interesting by also defining the multiplication operation on dual numbers. We'll follow the product rule:
 
@@ -200,12 +205,11 @@ f2(x) = 5 + 3x
 f2(DualNumber(10, 1))
 ```
 
-We have found that the second component is `3`, which is indeed the derivative of $5+3x$ with respect to $x$. And in the first part we have the value of `f2` evaluated at `10`. 
+We have found that the second component is `3`, which is indeed the derivative of $5+3x$ with respect to $x$. And in the first part we have the value of `f2` evaluated at `10`.
 
-:::callout-note
+::: callout-note
 When calcualting the derivative, why do we start with `1` in the dual part of the number? Because the derivative of a variable with respect to itself is 1. From this unitary starting point, the various operations applied accumulate the derivative of the various operations in the $b$ part of $a + \epsilon b$.
 :::
-
 
 We can also define this for things like transcendental functions:
 
@@ -215,6 +219,7 @@ Base.sin(d::DualNumber) = DualNumber(sin(d.a), cos(d.a) * d.b)
 Base.cos(d::DualNumber) = DualNumber(cos(d.a), -sin(d.a) * d.b)
 exp(DualNumber(1, 1))
 ```
+
 ```{julia}
 
 sin(DualNumber(0, 1))
@@ -239,11 +244,7 @@ let
 end
 ```
 
-We have demonstrated that through the clever use of dual numbers and the chain rule that complex expressions can be automatically differentiated by the computer to an exact level, limited only by the same machine precision that applies to our primary function of interst as well. 
-
-
-
-
+We have demonstrated that through the clever use of dual numbers and the chain rule that complex expressions can be automatically differentiated by the computer to an exact level, limited only by the same machine precision that applies to our primary function of interst as well.
 
 ## Performance of Automatic Differentiation
 
@@ -261,11 +262,10 @@ using BenchmarkTools
 In performing this computation, the compiler has been able to optimize it such that we effectively are able to compute the function and its derivative at effetcitly the same speed as just the evaluating the function itself! As the function gets more complex, the overhead does increase but is still a *much* preferred option versus finite differentiation. This advantage becomes more pronouced as we contemplate derivatives with respect to many variables at once or for higher-order derivatives.
 
 ::: callout-note
-In fact, it's largely due to the advances in applications of automatic differentiation that has led to the explosion of machine learning and artificial intelligence techniques in the 2010s/2020s. The "learning" process relies on solving parameter weights and would be too computationally expensive if using finite differences. 
+In fact, it's largely due to the advances in applications of automatic differentiation that has led to the explosion of machine learning and artificial intelligence techniques in the 2010s/2020s. The "learning" process relies on solving parameter weights and would be too computationally expensive if using finite differences.
 
-These applications of autodiffertiation in specialized C++ libraries underpin the libraries like PyTorch, Tensorfow, and Keras. These libraries specialize in allowing for autodiff on a limited subset of operations. Julia's available automatic differentiation is more general and can be applied to many more scenarios. 
+These applications of autodiffertiation in specialized C++ libraries underpin the libraries like PyTorch, Tensorfow, and Keras. These libraries specialize in allowing for autodiff on a limited subset of operations. Julia's available automatic differentiation is more general and can be applied to many more scenarios.
 :::
-
 
 ## Automatic Differentiation in Practice
 
@@ -305,7 +305,8 @@ function eurocall(parameters)
     return (N(d₁) * S * exp(τ * (r - q)) - N(d₂) * K) * exp(-r * τ)
 end
 ```
-1. We put the various variables inside a single `parameters` vector to allow calling a single `gradient` call instead of multiple `derivative` calls for each parameter.
+
+1.  We put the various variables inside a single `parameters` vector to allow calling a single `gradient` call instead of multiple `derivative` calls for each parameter.
 
 ```{julia}
 S = 1.0
@@ -318,14 +319,13 @@ params = [S, K, τ, r, σ, q]
 eurocall(params)
 ```
 
-
-:::callout-tip
+::: callout-tip
 Some terminology in differentiation:
 
-- **Derivative** is generally the scalar rate of change in output relative to a scalar input and can be used in the context of partial derivatives for a multi-variate function (e.g. $\frac{d}{dx}f(x,y,z)$).
-- **Gradient** is the first derivative with respect to all dimensions of a function that outputs a scalar. For a function $f(x,y,z)$ the gradient would be a vector of partial derivatives such that you would get $[\frac{d}{dx},\frac{d}{dy},\frac{d}{dz}]$
-- **Jacobian** is the first derivative with respect to all dimensions of a function that outputs a vector. 
-- **Hessian** is the second derivative with respect to all dimensions of a function that outputs a scalar.
+-   **Derivative** is generally the scalar rate of change in output relative to a scalar input and can be used in the context of partial derivatives for a multi-variate function (e.g. $\frac{d}{dx}f(x,y,z)$).
+-   **Gradient** is the first derivative with respect to all dimensions of a function that outputs a scalar. For a function $f(x,y,z)$ the gradient would be a vector of partial derivatives such that you would get $[\frac{d}{dx},\frac{d}{dy},\frac{d}{dz}]$
+-   **Jacobian** is the first derivative with respect to all dimensions of a function that outputs a vector.
+-   **Hessian** is the second derivative with respect to all dimensions of a function that outputs a scalar.
 :::
 
 With the above code, now we can get the partial derivaties with respect to each parameter. The first, third, fourth, fifth, and sixth correspond to the common "greeks" *delta*, *theta*, *rho*, *vega*, and *epsilon* respectively. The second term is the parital derivative with respect to the strike price:
@@ -340,7 +340,7 @@ We can also get the second order greeks with a simple call. In addtion to many u
 ForwardDiff.hessian(eurocall, params)
 ```
 
-### Performance 
+### Performance
 
 Earlier we examined the impact on performance for the derivatives using the `DualNumber` developed in this chapter on a very basic function. What about if we take a more realistic example like `eurocall`? We can observe approximately a 9x slowdown when computing all of the first order derivatives which isn't bad considering we are computing 6x of the outputs!
 
@@ -354,14 +354,14 @@ let
     @btime ForwardDiff.gradient!($g,eurocall, $params)
 end
 ```
-1. To avoid benchmarking allocating a new array we are able to pre-allocate the memory to store the result and then call `gradient!` to fill in `g` for each result.
 
+1.  To avoid benchmarking allocating a new array we are able to pre-allocate the memory to store the result and then call `gradient!` to fill in `g` for each result.
 
 ## Forward Mode and Reverse Mode
 
 The approach of autodiff outlined about is called **forward mode** auto-differetiation where the derivative is brought forward through the computation and accumulated through each step. The alternative to this is to first evaluate the function and then work backwards by accumulating the partial derivatives in what's called **reverse mode** automatic differentiation.
 
-Reverse mode requires more book-keeping because unlike the forward mode the derivative needs to be carried backwards, unlike the `DualNumber` approach of forward mode. 
+Reverse mode requires more book-keeping because unlike the forward mode the derivative needs to be carried backwards, unlike the `DualNumber` approach of forward mode.
 
 ## Practical tips for Automatic Differentiation
 
@@ -381,12 +381,13 @@ Custom rules for new or unusal functions can be defined, but this is an area tha
 
 ### Available Libraries
 
-- [**ForwardDiff.jl**](https://github.com/JuliaDiff/ForwardDiff.jl) provides robust forward-mode AD.
-- [**Zygote.jl**](https://github.com/FluxML/Zygote.jl) is a reverse-mode package with the innovations of being able to differentiate `structs` in addition to arrays and scalars.
-- [**Enzyme.jl**](https://github.com/EnzymeAD/Enzyme.jl) is a newer package which allows for both forward and reverse mode, but has the advantage of supporting array mutation. Additionally, Enzyme works at the level of LLVM code (an intermediate level between high level Julia code and machine code) which allows for different, sometimes better, optimizations. 
+-   [**ForwardDiff.jl**](https://github.com/JuliaDiff/ForwardDiff.jl) provides robust forward-mode AD.
+-   [**Zygote.jl**](https://github.com/FluxML/Zygote.jl) is a reverse-mode package with the innovations of being able to differentiate `structs` in addition to arrays and scalars.
+-   [**Enzyme.jl**](https://github.com/EnzymeAD/Enzyme.jl) is a newer package which allows for both forward and reverse mode, but has the advantage of supporting array mutation. Additionally, Enzyme works at the level of LLVM code (an intermediate level between high level Julia code and machine code) which allows for different, sometimes better, optimizations.
 
 In the authors experience, they would probably recommend ForwardDiff.jl first and then Enzyme.jl if reaching for more advanced functionality or looking for reverse mode.
 
 ## References
- - https://book.sciml.ai/notes/08-Forward-Mode_Automatic_Differentiation_(AD)_via_High_Dimensional_Algebras/
- - https://blog.esciencecenter.nl/automatic-differentiation-from-scratch-23d50c699555
+
+-   https://book.sciml.ai/notes/08-Forward-Mode_Automatic_Differentiation\_(AD)\_via_High_Dimensional_Algebras/
+-   https://blog.esciencecenter.nl/automatic-differentiation-from-scratch-23d50c699555
