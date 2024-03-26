@@ -152,7 +152,7 @@ In practice, this means that it can be difficult to exactly replicate a calculat
 
 We can describe a *hierarchy* of types. Both `Float64` and `Int64` are examples of `Real` numbers (here, `Real` is an **abstract** Julia type which corresponds to the mathematical set of real numbers commonly denoted with $\mathbb{R}$ ). Both `Float64` and `Int32` are `Real` numbers, so why not just define all numbers as a `Real` type? Because for performant calculations, the computer must know in advance how many bits each number is represented with.
 
-@fig-julia-numeric-types shows the type hiearchy for most built-in Julia number types.
+@fig-julia-numeric-types shows the type hierarchy for most built-in Julia number types.
 
 ```{mermaid}
 %%| label: fig-julia-numeric-types
@@ -229,7 +229,7 @@ rand(3, 3, 3)
 [x + y + z for x in 1:3, y in 11:13, z in 21:23]
 ```
 
-The above example demonstrates **array comprehension** syntax which is a convienient way to create arrays in Julia.
+The above example demonstrates **array comprehension** syntax which is a convenient way to create arrays in Julia.
 
 A two-dimensional array has the rows by semi-colons (`;`):
 
@@ -238,7 +238,7 @@ x = [1 2 3; 4 5 6]
 ```
 
 ::: callout-note
-In Julia, a `Vector{Float64}` is simply a one-dimensional array of floating pointsand a `Matrix{Float64}` is a two-dimentional array. More precisely, they are **type aliases** of the more generic `Array{Float64,1}` and `Array{Float64,2}` names.
+In Julia, a `Vector{Float64}` is simply a one-dimensional array of floating points and a `Matrix{Float64}` is a two-dimensional array. More precisely, they are **type aliases** of the more generic `Array{Float64,1}` and `Array{Float64,2}` names. Arrays with three or more dimensions don't have a type alias pre-defined.
 :::
 
 #### Array indexing
@@ -276,7 +276,7 @@ vcat(v, [1, 2, 3])
 
 #### Array Alignment
 
-When you have an MxN matrix (M rows, N columns), a choice must be made as to which elements are next to each other in memory. Typical math convention and fundamental computer linear algebra libraries (dating back decades!) are column major and Julia follows that legacy. **Column major** means that elements going down the rows of a column are stored next to each other in memory. This is important to know so that (1) you remember that vectors are treated like a column vector when working with arrays (a N element 1D vector is like a Nx1 matrix), and (2) when iterating through an array, it will be faster for the computer to access elements next to each other column-wise. A 10x10 matrix is actually stored in memory as 100 elements coming in order, one after another in single file.
+When you have an MxN matrix (M rows, N columns), a choice must be made as to which elements are next to each other in memory. Typical math convention and fundamental computer linear algebra libraries (dating back decades!) are column major and Julia follows that legacy. **Column major** means that elements going down the rows of a column are stored next to each other in memory. This is important to know so that (1) you remember that vectors are treated like a column vector when working with arrays (that is: a N element 1D vector is like a Nx1 matrix), and (2) when iterating through an array, it will be faster for the computer to access elements next to each other column-wise. A 10x10 matrix is actually stored in memory as 100 elements coming in order, one after another in single file.
 
 This 3x4 matrix is stored with the elements of columns next to each other, which we can see with `vec`:
 
@@ -412,8 +412,10 @@ Three value logic with `true`, `missing`, and `false`.
 :::
 
 ::: callout-tip
-`Missing` and `Nothing` are the *types* while `missing` and `nothing` are the values here. This is analagous to `Float64` being a type and `2.0` being a value.
+`Missing` and `Nothing` are the *types* while `missing` and `nothing` are the values here[^foundations-of-programming-12]. This is analogous to `Float64` being a type and `2.0` being a value.
 :::
+
+[^foundations-of-programming-12]: `Missing` and `Nothing` are instances of **singleton type,** which means that there is only a single value that either type can take on.
 
 ### Union Types
 
@@ -493,10 +495,10 @@ struct Point
 end
 ```
 
-But! `x` and `y` will both be allowed to be `Any`, which is the fallback type where Julia says that it doesn't know any more about the type until runtime (the time at which our program encounters the data when running). This means that the compiler (and us!) can't reason about or optimize the code as effectively as when the types are explicit or parametric. This is an example of how Julia can provide a nice learning curve - don't worry about the types until you start to get more sophicistited about the program design or need to extract more performance from the code.
+But! `x` and `y` will both be allowed to be `Any`, which is the fallback type where Julia says that it doesn't know any more about the type until runtime (the time at which our program encounters the data when running). This means that the compiler (and us!) can't reason about or optimize the code as effectively as when the types are explicit or parametric. This is an example of how Julia can provide a nice learning curve - don't worry about the types until you start to get more sophisicated about the program design or need to extract more performance from the code.
 :::
 
-The above `struct`s that we have defined are examples of **concrete types** types which hold data. **Abstract types** don't directly hold data themselves but are used to define a hiearchy of types which we will later exploit (@sec-patterns-abstractions) to implement custom behavior depending on what type our data is.
+The above `struct`s that we have defined are examples of **concrete types** types which hold data. **Abstract types** don't directly hold data themselves but are used to define a hierarchy of types which we will later exploit (@sec-patterns-abstractions) to implement custom behavior depending on what type our data is.
 
 Here's an example of (1) defining a set of related types that sits above our `Point2D`:
 
@@ -613,7 +615,7 @@ Having already seen some more illustrative examples above, we can zoom in onto s
 
 ### Compound Expression
 
-There's two kinds of blocks where we can ensure that subexpressions get evaluated in order and return the last expression as the overall return value: `begin` and `let` blocks.
+There's two kinds of blocks where we can ensure that sub-expressions get evaluated in order and return the last expression as the overall return value: `begin` and `let` blocks.
 
 ```{julia}
 c = begin
@@ -694,9 +696,9 @@ buy_or_sell(10, 15), buy_or_sell(15, 10), buy_or_sell(10, 10)
 
 #### Equality
 
-The "Ship of Theseus[^foundations-of-programming-12]" problem is an example of how equality can be philosophically complex concept. In computer science we have the advantage that while we may not be able to resolve what's the "right" type of equality, we can be more precise about it.
+The "Ship of Theseus[^foundations-of-programming-13]" problem is an example of how equality can be philosophically complex concept. In computer science we have the advantage that while we may not be able to resolve what's the "right" type of equality, we can be more precise about it.
 
-[^foundations-of-programming-12]: The Ship of Theseus problem specifically refers to a legendary ancient Greek ship, owned by the hero Theseus. The paradox arises from the scenario where, over time, each wooden part of the ship is replaced with identical materials, leading to the question of whether the fully restored ship is still the same ship as the original. The Ship of Theseus problem is a thought experiment in philosophy that explores the nature of identity and change. It questions whether an object that has had all of its components replaced remains fundamentally the same object.
+[^foundations-of-programming-13]: The Ship of Theseus problem specifically refers to a legendary ancient Greek ship, owned by the hero Theseus. The paradox arises from the scenario where, over time, each wooden part of the ship is replaced with identical materials, leading to the question of whether the fully restored ship is still the same ship as the original. The Ship of Theseus problem is a thought experiment in philosophy that explores the nature of identity and change. It questions whether an object that has had all of its components replaced remains fundamentally the same object.
 
 Here is an example for which we can see the difference between two types of equality:
 
@@ -806,7 +808,7 @@ while i <= length(v)
 end
 ```
 
-1.  `global` is used to incrment `i` by 1. `i` is defined outside the scope of the `while` loop (see @sec-scope).
+1.  `global` is used to increment `i` by 1. `i` is defined outside the scope of the `while` loop (see @sec-scope).
 
 ``` julia
 # index the array
@@ -858,7 +860,7 @@ In Julia, we distinguish between **functions** which define behavior that maps a
 -   `-(x)` is a unary function which negates its values, `-(x,y)` subtracts `y` from `x`
 -   Specific methods are then created for each combination of concrete types: `-(x::Float64)` is a different method than `-(x::Int)`
 
-**Methods** are specific compiled versions of the function for specific types. This is important because at a hardware level, operations for different types (e.g. integers versus floating point) differ considerably. By optimizing for the speicifc types Julia is able to achieve nearly ideal performance without the same sacrifices of other dynamic languages. We will develop more with respect to methods when we talk about dispatch in @sec-patterns-abstractions.
+**Methods** are specific compiled versions of the function for specific types. This is important because at a hardware level, operations for different types (e.g. integers versus floating point) differ considerably. By optimizing for the specific types Julia is able to achieve nearly ideal performance without the same sacrifices of other dynamic languages. We will develop more with respect to methods when we talk about dispatch in @sec-patterns-abstractions.
 
 ### General Functions
 
@@ -870,8 +872,8 @@ function distance(point) # <1>
 end
 ```
 
-1.  A `function` block is declared with the name `distance` which takes a single argumemnt called `point`
-2.  We compute the distance formla for a point with x and y coordinates. The `return` value make explicit what value the function will output.
+1.  A `function` block is declared with the name `distance` which takes a single argument called `point`
+2.  We compute the distance formula for a point with x and y coordinates. The `return` value make explicit what value the function will output.
 
 ::: callout-note
 An alternate, simpler function syntax for `distance` would be:
@@ -881,13 +883,13 @@ distance(point) = sqrt(point.x^2 + point.y^2)
 ```
 :::
 
-However, we might at this point note a flaw in our function's defintion if we think about the various `Coordinate`s we defined earler: our definition would currently only work for `Point2D`. For example, if we try a `Point3D` we will get the wrong answer:
+However, we might at this point note a flaw in our function's definition if we think about the various `Coordinate`s we defined earlier: our definition would currently only work for `Point2D`. For example, if we try a `Point3D` we will get the wrong answer:
 
 ```{julia}
 distance(Point3D(1, 1, 1,))
 ```
 
-The above value should be $\sqrt(3)$, or approximately $1.73205$. What we need to do is define a refined distance for each type, which we'll call `dist` to distinguish from the earlier definition. We'll also use the opportunity to introduce the syntax for documenting functions in Julia, which is simply to put a string (`"..."`) or string literal (`"""..."""`) right above the defintion.
+The above value should be $\sqrt(3)$, or approximately $1.73205$. What we need to do is define a refined distance for each type, which we'll call `dist` to distinguish from the earlier definition. We'll also use the opportunity to introduce the syntax for documenting functions in Julia, which is simply to put a string (`"..."`) or string literal (`"""..."""`) right above the definition.
 
 ```{julia}
 """
@@ -911,9 +913,9 @@ In the next chapter we'll develop some more tools, which would, for example let 
 ::: callout-caution
 ## Defining Methods for Parametric Types
 
-We learned that `Float64 <: Real` in the type hierarchy. However, note that `Tuple{Float64}` is not a subtype of `Tuple{Real}`. This is called being **invariant** in type theory... but for our purposes this just practically means that when we define a method we need to specify that we want it to apply to all subtypes.
+We learned that `Float64 <: Real` in the type hierarchy. However, note that `Tuple{Float64}` is not a sub-type of `Tuple{Real}`. This is called being **invariant** in type theory... but for our purposes this just practically means that when we define a method we need to specify that we want it to apply to all subtypes.
 
-For example, `myfunction(x::Tuple{Real})` would *not* be called if x was a `Tuple{Float64}` because it's not a subtype of `Tuple{Real}`. To act the way we want, would define the method with the signature of `myfunction(Tuple{<:Real})` or `myfunction{Tuple{T}} where {T<:Real}`.
+For example, `myfunction(x::Tuple{Real})` would *not* be called if x was a `Tuple{Float64}` because it's not a sub-type of `Tuple{Real}`. To act the way we want, would define the method with the signature of `myfunction(Tuple{<:Real})` or `myfunction{Tuple{T}} where {T<:Real}`.
 :::
 
 ### Keyword Arguments
