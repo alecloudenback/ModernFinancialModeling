@@ -8,7 +8,15 @@ We extend the building blocks from the prior section and talk about how to combi
 
 ## Introduction
 
-Abstraction is a selective ignorance—focusing on the aspects of the problem that are relevant, and ignoring the others. At different times we are interested in different **ladder of abstraction**: sometimes we are interested in the small details, but other times we are interested in understanding the behavior of systems at a higher level.
+Abstraction is a selective ignorance—focusing on the aspects of the problem that are relevant, and ignoring the others. At different times we are interested in different rungs on the  **ladder of abstraction**: sometimes we are interested in the small details, but other times we are interested in understanding the behavior of systems at a higher level.
+
+There's multiple dimensions to this. We could be talking about either *abstractions within the model* (such as: what datatype and methods should be used to represent this financial contract) and *abtractions of analysis* (such as: what are the partial derivatives, or "greeks", of this financial contract). In fact, a lot of designing a model is essentially trying to figure out where to put the right abstractions for both of these. What is the right level of detail to model this in and what is the right level of detail to expose to other systems? Are we most interested in a single point result or understanding the relationship between two variables?
+
+We will briefly cover the latter, as the concepts are repeated throughout this book and in more detail in the relevant sections. Instead, most of this chapter will focus on the former: abstractions within the model. This chapter introduces technical abstractions that can be utilized as part of model design. 
+
+~~Let us also distinguish between **vertical abstraction**, as described above, and **horizontal abstraction** which will refer to encapsulating different properties, or mechanics of components of model that effectively exist on the same level of vertical abstraction. For example, both asset and liability mechanics sit at the most granular level in @tbl-insurance-ladder, But it may make sense in our model to separate the data and behavior from each other. If we were to do that, that would be an example of creating horizontal abstraction in service of our overall modeling goals.~~
+
+## Abstractions of Analysis
 
 Say we are an insurance company with a portfolio of fixed income assets supporting long term insurance liabilities. We might delineate different levels of abstraction like so:
 
@@ -25,39 +33,50 @@ Say we are an insurance company with a portfolio of fixed income assets supporti
 
 : An example of the different levels of abstraction when thinking about modeling an insurance company's assets and liabilites. {#tbl-insurance-ladder}
 
-At different times, we are often interested in different aspects of a problem. In general, you start to be able to obtain more insights and a greater understanding of the system when you move up the ladder of abstraction.
+At different times, we are often interested in different aspects of a problem. In general, you start to be able to obtain more insights and a greater understanding of the system when you move up the ladder of abstraction. That insight is often predicated of having a solid understanding of the system at lower levels. 
 
-In fact, a lot of designing a model is essentially trying to figure out where to put the right abstractions. What is the right level of detail to model this in and what is the right level of detail to expose to other systems?
+One recurring theme for abstracting the analysis is to consider the effect across different dimensions: time, parameter, variable. 
 
-Let us also distinguish between **vertical abstraction**, as described above, and **horizontal abstraction** which will refer to encapsulating different properties, or mechanics of components of model that effectively exist on the same level of vertical abstraction. For example, both asset and liability mechanics sit at the most granular level in @tbl-insurance-ladder, But it may make sense in our model to separate the data and behavior from each other. If we were to do that, that would be an example of creating horizontal abstraction in service of our overall modeling goals.
+- **Time** dimension is understanding how the model evolves through time. What is implied by the state of the model at inception or terminal point?
+- **Parameter** dimension refers to how input variables cause changes in outcomes - is there a pattern or shape that indicates a non-obvious relationship?
+- **Variable** dimesion is like parameter, but instead focusing on an interim variable - such as if there's a internal state to the model that leads to a point-of-no-return (e.g. a debt obligation default or a mortality decrement in life insurance). How does the model react to those events?
 
-## Interfaces
+Much of the rest of the book covers tactical ways to step up this ladder, including:
 
-**Interfaces** are the boundary between different encapsulated abstractions. Financial model this might mean that there is an interface for bonds, or there is an interface for interest-rate swaps. There may be a different interface for calculating risk metrics or visualizing the results.
+- Modeling (@sec-modeling)
+- Automatic Differentiation (@sec-autodiff)
+- Sensitivity Analysis (@sec-sensitivity)
+- Visualization (@sec-visualization)
+
+## Model Abstractions
+
+### Interfaces
+
+**Interfaces** are the boundary between different encapsulated abstractions. For financial model this might mean that there is an interface for bonds, or there is an interface for interest-rate swaps. There may be a different interface for calculating risk metrics or visualizing the results.
 
 Financial model this might mean that there is an interface for bonds, or there is an interface for interest-rate swaps. There may be a different interface for calculating risk metrics or visualizing the results. A better system design will separate the concern of visualizing output from the mechanics of a fixed income contract. This is what it means to put boundaries on different parts of a models logic.
 
 One of the easiest places to see this is with the available open source packages. There are packages available for visualizations, data frames, file, storage, statistical analysis, etc. for many of these it's easy to see where the natural boundary lies, However, it's often difficult to find where to draw lines within financial models. For example, should bonds and interest-rate swaps be in separate packages? Or both part of a broader fixed income package? This is where much of the art and domain expertise of the financial professional comes to bear in modeling. There would be no way for a pure software engineer to think about the right design for the system without understanding how underlying components share, similarities or differences and how those components interact.
 
-### Conceptual Strategies
+#### Conceptual Strategies
 
 Let's consider some stategies that you could think about when deciding where to draw different boundaries inside the model.
 
-#### Behavior-Oriented
+##### Behavior-Oriented
 
 This strategies is to effectively group together components with a model that behaves similarly. So, in our example of bonds and interest-rate swaps fundamentally, they share many characteristics and are used in very similar ways within a model. Therefore, it might make sense to group them together when developing a model.
 
-#### Domain Expertise
+##### Domain Expertise
 
 It may be that components of the model require sufficient expertise that different persons or groups are involved in the development. This may warrant separating a models design, So that different groups contributing to the model can focus on any more narrow aspect, Regardless of inherent similarity of components. For example, at a higher vertical level of obstruction, financial derivatives may fall under similar grouping, but sufficient differences exist for equity credit or foreign exchange derivatives that the model should separate those three asset classes for development purposes.
 
-#### Composability versus All-in-One
+##### Composability versus All-in-One
 
 For some model design goals, it may be warranted to attempt to bundle together more functionality instead of allowing users to compose a functionality that comes from different packages. For example, perhaps a certain visualization of a model result is particularly useful, It is not easy to create from scratch, And virtually everyone using the model, will desire to see the model output visualized that way. Instead of relying on the user to install a separate visualization package and develop the visualization themselves, it could make sense to bundle visualization functionality with a model that is otherwise unconcerned with graphical capabilities.
 
 In general, though it is preferred to try to loosely couple systems, you can pick and choose which components you use and that those components work well together.
 
-## Programming Interfaces and Patterns
+### Programming Interfaces and Patterns
 
 @sec-elements-programming Described a number of tools that we can utilize as interfaces within our model. We use these tools that are provided by our programming language *in service of* the conceptual abstraction described above.
 
@@ -152,7 +171,7 @@ In the example above, a docstring was included over `value(asset::Cash)` - but n
 
 There are quite a few things demonstrated here: dispatch, programming paradigms, and \[!!what else?\] . As each are addressed in turn, we will review how we could have designed the interface differently.
 
-### (Multiple) Dispatch
+#### (Multiple) Dispatch
 
 When a function is called, the computer has to decide which method to use. In the example above, when we want to `value` a `ZeroCouponBond`, does the `value(asset::AbstractBond, r)` or `value(bond::ZeroCouponBond, r)` version get used? **Dispatch** is the process of determining the right method to use and the rule is that *the most specific defined method gets used*. In this case, that means that even though our `ZeroCouponBond` is an `AbstractBond`, the routine that will used is the more specific `value(bond::ZeroCouponBond, r)`.
 
@@ -194,9 +213,9 @@ In this way, multiple dispatch allows us to naturally define methods based on th
 
 what if we wanted to extend from a rate to a yield curve and fixed to floating. Where does logic lie? In yield curve or in bond?)
 
-### Programming Paradigms
+#### Programming Paradigms
 
-#### Objected Oriented Design
+##### Objected Oriented Design
 
 There's enough general familiarity with object oriented ("OO") design that it's worth describing for understanding how it compares and contrasts to other design patterns. Object oriented systems attempt to form the analogy that various parts of the system are their own objects which encapsulate both data and behavior. Object oriented design is often one the first computer programming abstractions introduced because it very relatable[^1], however this comparative discussion will point out a number of its flaws as well. That said, much of OO design can be emulated in Julia except for data inheritance.
 
@@ -204,7 +223,7 @@ There's enough general familiarity with object oriented ("OO") design that it's 
 
 We bring up object oriented design not because of the authors (admittedly subjective) opinion that the object-oriented paradigm can be less suitable for financial modeling, but because by having a (potentially more relatable) contrasting approach we can better illuminate certain ideas and concepts.
 
-#### Inheritance
+##### Inheritance
 
 We discussed the type hierarchy in @sec-elements-programming and in most OO implementations this hierarchy comes with inheriting both data *and* behavior. This is different from Julia where subtypes inherit behavior but not data from the parent type.
 
@@ -214,7 +233,7 @@ Another issue with inheritance in OO design is the temptation to use it for code
 
 Moreover, inheritance can sometimes lead to the duplication of code across the hierarchy, especially if the inherited behavior needs to be slightly modified in different child classes. This goes against the DRY (Don't Repeat Yourself) principle, which is a fundamental concept in software engineering advocating for the reduction of repetition in code.
 
-### Composition over Inheritance
+#### Composition over Inheritance
 
 To mitigate some of the problems associated with inheritance, there's a growing preference for *composition*. Composition involves creating objects that contain instances of other objects to achieve complex behaviors. This approach is more flexible than inheritance as it allows for the creation of more modular and reusable code. There is a general preference for "composition over inheritance" among professional developers these days.
 
@@ -261,17 +280,18 @@ In the above example, there are number of asset classes that have CUSIP related 
 A CUSIP (Committee on Uniform Security Identification Procedures) number, is a unique nine-character alphanumeric code assigned to securities, such as stocks and bonds, in the United States and Canada. This code is used to facilitate the clearing and settlement process of securities and to uniquely identify them in transactions and records.
 :::
 
-### Method Dispatch
+#### Method Dispatch
 
 An alternative and more limiting approach would be to be forced to assign the ownership of the method to one of the associated types, as is done in single-dispatch.
 
 -   Alternative designs:
     -   ZeroCouponBond(par,tenor) = CouponBond(par,0.0,tenor)
 
-## Macros & Homoiconicity
+### Macros & Homoiconicity
 
-## Misc Techniques
+### Misc Techniques
 
-### Recursion
+#### Recursion
 
-### Iterators
+#### Iterators
+
