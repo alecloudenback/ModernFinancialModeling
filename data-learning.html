@@ -277,7 +277,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./visualization.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Visiualizations</span></span></a>
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Visualizations</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -426,10 +426,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="setup" class="level2" data-number="18.2">
 <h2 data-number="18.2" class="anchored" data-anchor-id="setup"><span class="header-section-number">18.2</span> Setup</h2>
-<div id="5d3242d9" class="cell" data-execution_count="2">
+<div id="d7145451" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">MLJ</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">StatsBase</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Flux</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[ Info: Precompiling MLJ [add582a8-e3ab-11e8-2d5e-e98b27df1bc7]
+[ Info: Precompiling Flux [587475ba-b771-5e3f-ad9e-33799f191a9c]
+[ Info: Precompiling ZygoteColorsExt [e68c091a-8ea5-5ca7-be4f-380657d4ad79]</code></pre>
+</div>
 </div>
 </section>
 <section id="applications" class="level2" data-number="18.3">
@@ -445,100 +450,100 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h3 data-number="18.3.3" class="anchored" data-anchor-id="static-and-dynamic-validation"><span class="header-section-number">18.3.3</span> Static and dynamic validation</h3>
 <p>Static validation typically involves splitting the dataset into training and testing sets, where the testing set is held out and not used during model training. The model is trained on the training set and then evaluated on the held-out testing set to assess its performance. This approach helps to measure how well the model generalizes to unseen data.</p>
 <p>Dynamic validation, on the other hand, involves using a rolling or expanding window to train and test the model iteratively over time. In each iteration, the model is trained on past data and tested on future data, simulating how the model would perform in a real-world scenario where new data becomes available over time. This approach helps to assess the model’s ability to adapt to changing patterns and trends in the data.</p>
-<div id="a6a79fc0" class="cell" data-execution_count="3">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>num_samples <span class="op">=</span> <span class="fl">100</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate synthetic time series data</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>data <span class="op">=</span> <span class="fu">rand</span>(<span class="fl">100</span>)</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> [<span class="fu">ones</span>(<span class="fl">100</span>) data]</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> <span class="fl">2</span>data <span class="op">.+</span> <span class="fl">1</span> <span class="op">.+</span> <span class="fl">0.1</span> <span class="op">*</span> <span class="fu">randn</span>(num_samples, <span class="fl">1</span>)  <span class="co"># dependent variable with noise</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Train the model on the training set</span></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>θ <span class="op">=</span> X <span class="op">\</span> y</span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Predictions</span></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>y_pred <span class="op">=</span> θ[<span class="fl">2</span>] <span class="op">.*</span> data <span class="op">.+</span> θ[<span class="fl">1</span>]</span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute evaluation metrics</span></span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>mse <span class="op">=</span> <span class="fu">mean</span>((y_pred <span class="op">.-</span> y) <span class="op">.^</span> <span class="fl">2</span>)</span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>mae <span class="op">=</span> <span class="fu">mean</span>(<span class="fu">abs</span>.(y_pred <span class="op">.-</span> y))</span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Static validation results:"</span>)</span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Mean Squared Error (MSE): "</span>, mse)</span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Mean Absolute Error (MAE): "</span>, mae)</span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Dynamic validation to update model over time and evaluate</span></span>
-<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>num_updates <span class="op">=</span> <span class="fl">5</span></span>
-<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>mse_dyn <span class="op">=</span> <span class="dt">Float64</span>[]</span>
-<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>mae_dyn <span class="op">=</span> <span class="dt">Float64</span>[]</span>
-<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>num_updates</span>
-<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>    data <span class="op">=</span> <span class="fu">rand</span>(<span class="fl">100</span>)</span>
-<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>    X <span class="op">=</span> [<span class="fu">ones</span>(<span class="fl">100</span>) data]</span>
-<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>    y <span class="op">=</span> <span class="fl">2</span>data <span class="op">.+</span> <span class="fl">1</span> <span class="op">.+</span> <span class="fl">0.1</span> <span class="op">*</span> <span class="fu">randn</span>(num_samples, <span class="fl">1</span>)  <span class="co"># dependent variable with noise</span></span>
-<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Train the model on the training set</span></span>
-<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>    θ <span class="op">=</span> X <span class="op">\</span> y</span>
-<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Predictions</span></span>
-<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>    y_pred <span class="op">=</span> θ[<span class="fl">2</span>] <span class="op">.*</span> data <span class="op">.+</span> θ[<span class="fl">1</span>]</span>
-<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Compute evaluation metrics</span></span>
-<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>    mse <span class="op">=</span> <span class="fu">mean</span>((y_pred <span class="op">.-</span> y) <span class="op">.^</span> <span class="fl">2</span>)</span>
-<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>    mae <span class="op">=</span> <span class="fu">mean</span>(<span class="fu">abs</span>.(y_pred <span class="op">.-</span> y))</span>
-<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>    <span class="fu">push!</span>(mse_dyn, mse)</span>
-<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>    <span class="fu">push!</span>(mae_dyn, mae)</span>
-<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
-<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Dynamic validation results:"</span>)</span>
-<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Mean Squared Error (MSE): "</span>, <span class="fu">mean</span>(mse_dyn))</span>
-<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Mean Absolute Error (MAE): "</span>, <span class="fu">mean</span>(mae_dyn))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="ab44af8c" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate synthetic time series data</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>num_samples <span class="op">=</span> <span class="fl">100</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>data <span class="op">=</span> <span class="fu">rand</span>(num_samples)</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> [<span class="fu">ones</span>(num_samples) data]</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> <span class="fl">2</span>data <span class="op">.+</span> <span class="fl">1</span> <span class="op">.+</span> <span class="fl">0.1</span> <span class="op">*</span> <span class="fu">randn</span>(num_samples, <span class="fl">1</span>)  <span class="co"># dependent variable with noise</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Train the model on the training set</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>θ <span class="op">=</span> X <span class="op">\</span> y</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Predictions</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>y_pred <span class="op">=</span> θ[<span class="fl">2</span>] <span class="op">.*</span> data <span class="op">.+</span> θ[<span class="fl">1</span>]</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute evaluation metrics</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>mse <span class="op">=</span> <span class="fu">mean</span>((y_pred <span class="op">.-</span> y)<span class="op">.^</span><span class="fl">2</span>)</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>mae <span class="op">=</span> <span class="fu">mean</span>(<span class="fu">abs</span>.(y_pred <span class="op">.-</span> y))</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Static validation results:"</span>)</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Mean Squared Error (MSE): "</span>, mse)</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Mean Absolute Error (MAE): "</span>, mae)</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Dynamic validation to update model over time and evaluate</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>num_updates <span class="op">=</span> <span class="fl">5</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>mse_dyn <span class="op">=</span> <span class="dt">Float64</span>[]</span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>mae_dyn <span class="op">=</span> <span class="dt">Float64</span>[]</span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>num_updates</span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>    data <span class="op">=</span> <span class="fu">rand</span>(num_samples)</span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>    X <span class="op">=</span> [<span class="fu">ones</span>(num_samples) data]</span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>    y <span class="op">=</span> <span class="fl">2</span>data <span class="op">.+</span> <span class="fl">1</span> <span class="op">.+</span> <span class="fl">0.1</span> <span class="op">*</span> <span class="fu">randn</span>(num_samples, <span class="fl">1</span>)  <span class="co"># dependent variable with noise</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Train the model on the training set</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>    θ <span class="op">=</span> X <span class="op">\</span> y</span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Predictions</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>    y_pred <span class="op">=</span> θ[<span class="fl">2</span>] <span class="op">.*</span> data <span class="op">.+</span> θ[<span class="fl">1</span>]</span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Compute evaluation metrics</span></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>    mse <span class="op">=</span> <span class="fu">mean</span>((y_pred <span class="op">.-</span> y)<span class="op">.^</span><span class="fl">2</span>)</span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>    mae <span class="op">=</span> <span class="fu">mean</span>(<span class="fu">abs</span>.(y_pred <span class="op">.-</span> y))</span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>    <span class="fu">push!</span>(mse_dyn, mse)</span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>    <span class="fu">push!</span>(mae_dyn, mae)</span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Dynamic validation results:"</span>)</span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Mean Squared Error (MSE): "</span>, <span class="fu">mean</span>(mse_dyn))</span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Mean Absolute Error (MAE): "</span>, <span class="fu">mean</span>(mae_dyn))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Static validation results:
-Mean Squared Error (MSE): 0.012535482270824645
-Mean Absolute Error (MAE): 0.08816774562403445
+Mean Squared Error (MSE): 0.01001669277434319
+Mean Absolute Error (MAE): 0.08030921471737816
 Dynamic validation results:
-Mean Squared Error (MSE): 0.009800829016633768
-Mean Absolute Error (MAE): 0.0799364440897552</code></pre>
+Mean Squared Error (MSE): 0.01035936957713427
+Mean Absolute Error (MAE): 0.08107559679837266</code></pre>
 </div>
 </div>
 </section>
 <section id="implied-rate-analysis" class="level3" data-number="18.3.4">
 <h3 data-number="18.3.4" class="anchored" data-anchor-id="implied-rate-analysis"><span class="header-section-number">18.3.4</span> Implied rate analysis</h3>
 <p>Implied rates are rates that are derived from the prices of financial instruments, such as bonds or options. For example, in the context of bonds, the implied rate is the interest rate that equates the present value of future cash flows from the bond (coupons and principal) to its current market price.</p>
-<div id="9492cfa9" class="cell" data-execution_count="4">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define the bond cash flows and prices</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>cash_flows <span class="op">=</span> [<span class="fl">100</span>, <span class="fl">100</span>, <span class="fl">100</span>, <span class="fl">100</span>, <span class="fl">1000</span>]  <span class="co"># Coupons and principal</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>prices <span class="op">=</span> [<span class="fl">95</span>, <span class="fl">96</span>, <span class="fl">97</span>, <span class="fl">98</span>, <span class="fl">1050</span>]           <span class="co"># Market prices</span></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Define a function to calculate the present value of cash flows given a rate</span></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">present_value</span>(rate, cash_flows)</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    pv <span class="op">=</span> <span class="fl">0</span></span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (i, cf) <span class="kw">in</span> <span class="fu">enumerate</span>(cash_flows)</span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>        pv <span class="op">+=</span> cf <span class="op">/</span> (<span class="fl">1</span> <span class="op">+</span> rate)<span class="op">^</span>i</span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> pv</span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Define a function to calculate the implied rate using bisection method</span></span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">implied_rate</span>(cash_flows, price)</span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">f</span>(rate) <span class="op">=</span> <span class="fu">present_value</span>(rate, cash_flows) <span class="op">-</span> price</span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fu">rootassign</span>(f, <span class="fl">0.0</span>, <span class="fl">1.0</span>)</span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">rootassign</span>(f, l, u)</span>
-<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Define an initial value</span></span>
-<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>    x <span class="op">=</span> <span class="fl">1.0</span></span>
-<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>    <span class="co"># tolerance of difference in value</span></span>
-<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>    tol <span class="op">=</span> <span class="fl">1e-6</span></span>
-<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>    <span class="co"># maximum number of iteration of the algorithm</span></span>
-<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>    max_iter <span class="op">=</span> <span class="fl">100</span></span>
-<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>    iter <span class="op">=</span> <span class="fl">0</span></span>
-<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> <span class="fu">abs</span>(<span class="fu">f</span>(x)) <span class="op">&gt;</span> tol <span class="op">&amp;&amp;</span> iter <span class="op">&lt;</span> max_iter</span>
-<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>        x <span class="op">-=</span> <span class="fu">f</span>(x) <span class="op">/</span> <span class="fu">gradient</span>(x <span class="op">-&gt;</span> <span class="fu">f</span>(x), x)[<span class="fl">1</span>]</span>
-<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>        iter <span class="op">+=</span> <span class="fl">1</span></span>
-<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
-<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> iter <span class="op">&lt;</span> max_iter <span class="op">&amp;&amp;</span> l <span class="op">&lt;</span> x <span class="op">&lt;</span> u</span>
-<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> x</span>
-<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span></span>
-<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="op">-</span><span class="fl">1.0</span></span>
-<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
-<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
-<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate implied rates for each bond</span></span>
-<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>implied_rates <span class="op">=</span> [<span class="fu">implied_rate</span>(cash_flows, price) for price <span class="kw">in</span> prices]</span>
-<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a><span class="co"># Print the results</span></span>
-<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i, rate) <span class="kw">in</span> <span class="fu">enumerate</span>(implied_rates)</span>
-<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">"Implied rate for bond </span><span class="sc">$</span>i<span class="st">: </span><span class="sc">$</span>rate<span class="st">"</span>)</span>
-<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="098a0606" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define the bond cash flows and prices</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>cash_flows <span class="op">=</span> [<span class="fl">100</span>, <span class="fl">100</span>, <span class="fl">100</span>, <span class="fl">100</span>, <span class="fl">1000</span>]  <span class="co"># Coupons and principal</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>prices <span class="op">=</span> [<span class="fl">95</span>, <span class="fl">96</span>, <span class="fl">97</span>, <span class="fl">98</span>, <span class="fl">1050</span>]           <span class="co"># Market prices</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Define a function to calculate the present value of cash flows given a rate</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">present_value</span>(rate, cash_flows)</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    pv <span class="op">=</span> <span class="fl">0</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (i, cf) <span class="kw">in</span> <span class="fu">enumerate</span>(cash_flows)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>        pv <span class="op">+=</span> cf <span class="op">/</span> (<span class="fl">1</span> <span class="op">+</span> rate)<span class="op">^</span>i</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> pv</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Define a function to calculate the implied rate using bisection method</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">implied_rate</span>(cash_flows, price)</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">f</span>(rate) <span class="op">=</span> <span class="fu">present_value</span>(rate, cash_flows) <span class="op">-</span> price</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fu">rootassign</span>(f, <span class="fl">0.0</span>, <span class="fl">1.0</span>)</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">rootassign</span>(f, l, u)</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Define an initial value</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    x <span class="op">=</span> <span class="fl">1.0</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    <span class="co"># tolerance of difference in value</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    tol <span class="op">=</span> <span class="fl">1e-6</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>    <span class="co"># maximum number of iteration of the algorithm</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>    max_iter <span class="op">=</span> <span class="fl">100</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    iter <span class="op">=</span> <span class="fl">0</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> <span class="fu">abs</span>(<span class="fu">f</span>(x)) <span class="op">&gt;</span> tol <span class="op">&amp;&amp;</span> iter <span class="op">&lt;</span> max_iter</span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>        x <span class="op">-=</span> <span class="fu">f</span>(x) <span class="op">/</span> <span class="fu">gradient</span>(x <span class="op">-&gt;</span> <span class="fu">f</span>(x), x)[<span class="fl">1</span>]</span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>        iter <span class="op">+=</span> <span class="fl">1</span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> iter <span class="op">&lt;</span> max_iter <span class="op">&amp;&amp;</span> l <span class="op">&lt;</span> x <span class="op">&lt;</span> u</span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> x</span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span></span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="op">-</span><span class="fl">1.0</span></span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate implied rates for each bond</span></span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a>implied_rates <span class="op">=</span> [<span class="fu">implied_rate</span>(cash_flows, price) for price <span class="kw">in</span> prices]</span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a><span class="co"># Print the results</span></span>
+<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i, rate) <span class="kw">in</span> <span class="fu">enumerate</span>(implied_rates)</span>
+<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">"Implied rate for bond </span><span class="sc">$</span>i<span class="st">: </span><span class="sc">$</span>rate<span class="st">"</span>)</span>
+<span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Implied rate for bond 1: -1.0
 Implied rate for bond 2: -1.0
