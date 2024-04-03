@@ -8,13 +8,11 @@ We extend the building blocks from the prior section and talk about how to combi
 
 ## Introduction
 
-Abstraction is a selective ignorance—focusing on the aspects of the problem that are relevant, and ignoring the others. At different times we are interested in different rungs on the  **ladder of abstraction**: sometimes we are interested in the small details, but other times we are interested in understanding the behavior of systems at a higher level.
+Abstraction is a selective ignorance—focusing on the aspects of the problem that are relevant, and ignoring the others. At different times we are interested in different rungs on the **ladder of abstraction**: sometimes we are interested in the small details, but other times we are interested in understanding the behavior of systems at a higher level.
 
 There's multiple dimensions to this. We could be talking about either *abstractions within the model* (such as: what datatype and methods should be used to represent this financial contract) and *abtractions of analysis* (such as: what are the partial derivatives, or "greeks", of this financial contract). In fact, a lot of designing a model is essentially trying to figure out where to put the right abstractions for both of these. What is the right level of detail to model this in and what is the right level of detail to expose to other systems? Are we most interested in a single point result or understanding the relationship between two variables?
 
-We will briefly cover the latter, as the concepts are repeated throughout this book and in more detail in the relevant sections. Instead, most of this chapter will focus on the former: abstractions within the model. This chapter introduces technical abstractions that can be utilized as part of model design. 
-
-~~Let us also distinguish between **vertical abstraction**, as described above, and **horizontal abstraction** which will refer to encapsulating different properties, or mechanics of components of model that effectively exist on the same level of vertical abstraction. For example, both asset and liability mechanics sit at the most granular level in @tbl-insurance-ladder, But it may make sense in our model to separate the data and behavior from each other. If we were to do that, that would be an example of creating horizontal abstraction in service of our overall modeling goals.~~
+We will briefly cover the latter, as the concepts are repeated throughout this book and in more detail in the relevant sections. Instead, most of this chapter will focus on the former: abstractions within the model. This chapter introduces technical abstractions that can be utilized as part of model design.
 
 ## Abstractions of Analysis
 
@@ -33,20 +31,20 @@ Say we are an insurance company with a portfolio of fixed income assets supporti
 
 : An example of the different levels of abstraction when thinking about modeling an insurance company's assets and liabilites. {#tbl-insurance-ladder}
 
-At different times, we are often interested in different aspects of a problem. In general, you start to be able to obtain more insights and a greater understanding of the system when you move up the ladder of abstraction. That insight is often predicated of having a solid understanding of the system at lower levels. 
+At different times, we are often interested in different aspects of a problem. In general, you start to be able to obtain more insights and a greater understanding of the system when you move up the ladder of abstraction. That insight is often predicated of having a solid understanding of the system at lower levels.
 
-One recurring theme for abstracting the analysis is to consider the effect across different dimensions: time, parameter, variable. 
+One recurring theme for abstracting the analysis is to consider the effect across different dimensions: time, parameter, variable.
 
-- **Time** dimension is understanding how the model evolves through time. What is implied by the state of the model at inception or terminal point?
-- **Parameter** dimension refers to how input variables cause changes in outcomes - is there a pattern or shape that indicates a non-obvious relationship?
-- **Variable** dimesion is like parameter, but instead focusing on an interim variable - such as if there's a internal state to the model that leads to a point-of-no-return (e.g. a debt obligation default or a mortality decrement in life insurance). How does the model react to those events?
+-   **Time** dimension is understanding how the model evolves through time. What is implied by the state of the model at inception or terminal point?
+-   **Parameter** dimension refers to how input variables cause changes in outcomes - is there a pattern or shape that indicates a non-obvious relationship?
+-   **Variable** dimesion is like parameter, but instead focusing on an interim variable - such as if there's a internal state to the model that leads to a point-of-no-return (e.g. a debt obligation default or a mortality decrement in life insurance). How does the model react to those events?
 
 Much of the rest of the book covers tactical ways to step up this ladder, including:
 
-- Modeling (@sec-modeling)
-- Automatic Differentiation (@sec-autodiff)
-- Sensitivity Analysis (@sec-sensitivity)
-- Visualization (@sec-visualization)
+-   Modeling (@sec-modeling)
+-   Automatic Differentiation (@sec-autodiff)
+-   Sensitivity Analysis (@sec-sensitivity)
+-   Visualization (@sec-visualization)
 
 ## Model Abstractions
 
@@ -215,15 +213,28 @@ what if we wanted to extend from a rate to a yield curve and fixed to floating. 
 
 #### Programming Paradigms
 
+**Programming paradigm** refers to the set of structure and concepts used to organize a program. There are many nuances and blurry lines that are encountered in practice, but in broad, conceptual strokes here are the categories that we will discuss:
+
+-   Imperative: explicit definition of the sequence of steps and instructions that control the program's execution flow and modify its state.
+    -   Procedural Paradigm: Organization of code into reusable procedures or functions. These procedures can be called and executed from different parts of the program, promoting code modularity and reusability.
+    -   Object-Oriented: Object-oriented programming (OOP) revolves around the concept of objects, which encapsulate both data (attributes) and behavior (methods). Objects interact with each other to achieve the desired functionality.
+-   Declarative: In contrast to the imperative paradigm, declarative programming focuses on describing the desired results or properties of the program without specifying the detailed steps to achieve them. The language or runtime system determines how to accomplish it[^patterns-abstraction-1].
+    -   Functional: Programs are constructed by composing and applying functions to data, avoiding mutable state and side effects. Functions are treated as first-class citizens, meaning they can be passed as arguments, returned as values, and assigned to variables.
+    -   Reactive Paradigm: Reactive programming deals with data streams and the propagation of change. It focuses on modeling and reacting to asynchronous data flows and events. In this paradigm, the program reacts to changes in input data and propagates those changes throughout the system, allowing for responsive and event-driven behavior[^patterns-abstraction-2].
+
+[^patterns-abstraction-1]: SQL is an excellent example of this, where one defines what you want as a result rather than defining steps on how to compute the result.
+
+[^patterns-abstraction-2]: Pluto Notebooks (<https://plutojl.org>) are an example of a library that provides a reactive layer on top of Julia, where updating code in one part of the notebook automatically re-runs other code that depends on the modified portion incrementally (instead of needing to re-run the entire notebook).
+
+We will discuss each of these in more detail next.
+
 ##### Objected Oriented Design
 
-There's enough general familiarity with object oriented ("OO") design that it's worth describing for understanding how it compares and contrasts to other design patterns. Object oriented systems attempt to form the analogy that various parts of the system are their own objects which encapsulate both data and behavior. Object oriented design is often one the first computer programming abstractions introduced because it very relatable[^1], however this comparative discussion will point out a number of its flaws as well. That said, much of OO design can be emulated in Julia except for data inheritance.
+There's enough general familiarity with object oriented ("OO") design that it's worth describing for understanding how it compares and contrasts to other design patterns. Object oriented systems attempt to form the analogy that various parts of the system are their own objects which encapsulate both data and behavior. Object oriented design is often one the first computer programming abstractions introduced because it very relatable[^patterns-abstraction-3], however this comparative discussion will point out a number of its flaws as well. That said, much of OO design can be emulated in Julia except for data inheritance.
 
-[^1]: "Many people who have no idea how a computer works find the idea of object-oriented programming quite natural. In contrast, many people who have experience with computers initially think there is something strange about object oriented systems.” - David Robson, "Object Oriented Software Systems" in Byte Magazine (1981).
+[^patterns-abstraction-3]: "Many people who have no idea how a computer works find the idea of object-oriented programming quite natural. In contrast, many people who have experience with computers initially think there is something strange about object oriented systems.” - David Robson, "Object Oriented Software Systems" in Byte Magazine (1981).
 
-We bring up object oriented design not because of the authors (admittedly subjective) opinion that the object-oriented paradigm can be less suitable for financial modeling, but because by having a (potentially more relatable) contrasting approach we can better illuminate certain ideas and concepts.
-
-##### Inheritance
+###### Inheritance
 
 We discussed the type hierarchy in @sec-elements-programming and in most OO implementations this hierarchy comes with inheriting both data *and* behavior. This is different from Julia where subtypes inherit behavior but not data from the parent type.
 
@@ -235,7 +246,7 @@ Moreover, inheritance can sometimes lead to the duplication of code across the h
 
 #### Composition over Inheritance
 
-To mitigate some of the problems associated with inheritance, there's a growing preference for *composition*. Composition involves creating objects that contain instances of other objects to achieve complex behaviors. This approach is more flexible than inheritance as it allows for the creation of more modular and reusable code. There is a general preference for "composition over inheritance" among professional developers these days.
+To mitigate some of the problems associated with inheritance, there's a growing preference for *composition*. Composition involves creating objects that contain instances of other objects to achieve complex behaviors. This approach is more flexible than inheritance as it allows for the creation of more modular and reusable code. There is a general preference for "composition over inheritance" among professional developers in recent years.
 
 In composition, objects are constructed from other objects, and behaviors are delegated to these contained objects. This approach allows for greater flexibility, as it's easier to change the behavior of a system by replacing parts of it without affecting the entire hierarchy, as is often the case with inheritance.
 
@@ -287,6 +298,16 @@ An alternative and more limiting approach would be to be forced to assign the ow
 -   Alternative designs:
     -   ZeroCouponBond(par,tenor) = CouponBond(par,0.0,tenor)
 
+#### Functional
+
+#### Other "Paradigms" 
+
+##### Array Oriented
+
+##### DataFrame Oriented
+
+##### Data Driven Design
+
 ### Macros & Homoiconicity
 
 ### Misc Techniques
@@ -294,4 +315,3 @@ An alternative and more limiting approach would be to be forced to assign the ow
 #### Recursion
 
 #### Iterators
-
