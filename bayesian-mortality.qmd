@@ -6,6 +6,9 @@ Pkg.activate("env/bayesian-mortality")
 Pkg.instantiate()
 ```
 
+
+# Bayesian Mortality Modeling {#sec-bayesian-mortality}
+
 :::callout-important
 ## Drafting Notes
 
@@ -17,9 +20,6 @@ Ideas:
 
 - Generate sample data using parameters sampled from chain and show the bands on the associated outcomes.
 :::
-
-
-# Bayesian Mortality Modeling {#sec-bayesian-mortality}
 
 ## Generating fake data
 
@@ -45,45 +45,78 @@ using DataFramesMeta
 using MCMCChains
 using LinearAlgebra
 using CairoMakie
+using StatsBase
+using OffsetArrays
 ```
 
 ```{julia}
-src = MortalityTables.table("2001 VBT Residual Standard Select and Ultimate - Male Nonsmoker, ANB")
-
 n = 10_000
-```
-
-
-```{julia}
-function generate_data_individual(tbl, issue_age=rand(50:55), inforce_years=rand(1:30), risklevel=rand(1:3))
-    # risk_factors will scale the "true" parameter up or down
-    # we observe the assigned risklevel, but not risk_factor
-    risk_factors = [0.7, 1.0, 1.5]
-    rf = risk_factors[risklevel]
-    deaths = rand(inforce_years) .< (tbl.select[issue_age][issue_age.+inforce_years.-1] .* rf)
-
-    endpoint = if sum(deaths) == 0
-        last(inforce_years)
-    else
-        findfirst(deaths)
-    end
-    id = uuid1()
-    map(1:endpoint) do i
-        (
-            issue_age=issue_age,
-            risklevel=risklevel,
-            att_age=issue_age + i - 1,
-            death=deaths[i],
-            id=id,
-        )
-    end
+inforce = map(1:n) do i
+    (
+        id=uuid1(),
+        issue_age=rand(30:70),
+        risk_class=rand(1:3),
+    )
 
 end
 ```
 
 ```{julia}
-exposures = vcat([generate_data_individual(src) for _ in 1:n]...) |> DataFrame
+base_table = MortalityTables.table("2001 VBT Residual Standard Select and Ultimate - Male Nonsmoker, ANB")
 
+function tabular_mortality(params, issue_age, att_age, risk_class)
+    q = params.ultimate[att_age]
+    if risk_class == 1
+        q *= 0.7
+    elseif risk_class == 2
+        q = q
+    else
+        q *= 1.5
+    end
+end
+```
+
+
+```{julia}
+function model_outcomes(inforce, assumption, assumption_params; n_years=5)
+
+    outcomes = map(inforce) do pol
+        alive = 1
+        sim = map(1:n_years) do t
+            att_age = pol.issue_age + t - 1
+            q = assumption(
+                assumption_params,
+                pol.issue_age,
+                att_age,
+                pol.risk_class
+            )
+            if rand() < q
+                out = (att_age=att_age, exposures=alive, death=1)
+                alive = 0
+                out
+            else
+                (att_age=att_age, exposures=alive, death=0)
+            end
+        end
+        filter!(x -> x.exposures == 1, sim)
+
+    end
+
+
+    df = DataFrame(inforce)
+
+    df.outcomes = outcomes
+    df = flatten(df, :outcomes)
+
+    df.att_age = [x.att_age for x in df.outcomes]
+    df.death = [x.death for x in df.outcomes]
+    df.exposures = [x.exposures for x in df.outcomes]
+    select!(df, Not(:outcomes))
+
+
+end
+
+exposures = model_outcomes(inforce, tabular_mortality, base_table)
 data = combine(groupby(exposures, [:issue_age, :att_age])) do subdf
     (exposures=nrow(subdf),
         deaths=sum(subdf.death),
@@ -161,11 +194,41 @@ let
     n = 300
     ages = sort!(unique(data.att_age))
 
+    q_posterior = sample(chain, n)[:q]
+
+
     for i in 1:n
-        p_posterior = sample(chain, 1)[:q][1]
-        hlines!(ax, [p_posterior], color=(:grey, 0.1))
+
+        hlines!(ax, [q_posterior[i]], color=(:grey, 0.1))
     end
+
+    # Need to simulate at indivudal level and then aggregate?
+
+
+    sim05 = Float64[]
+    sim95 = Float64[]
+    for r in eachrow(data)
+        outcomes = map(1:n) do i
+            rand(Binomial(r.exposures, q_posterior[i]), 500)
+        end
+        push!(sim05, quantile(Iterators.flatten(outcomes), 0.05) / r.exposures)
+        push!(sim95, quantile(Iterators.flatten(outcomes), 0.95) / r.exposures)
+
+
+    end
+
+
+
     f
+end
+```
+
+```{julia}
+let
+    n = 300
+    q_posterior = sample(chain, n)[:q]
+
+
 end
 ```
 
@@ -206,7 +269,7 @@ We combine the model with the data and sample from the posterior using a similar
 ```{julia}
 m2 = mortality2(data, data.deaths)
 
-chain2 = sample(m2, NUTS(), MCMCThreads(), 1000, num_chains)
+chain2 = sample(m2, NUTS(), MCMCThreads(), 400, num_chains)
 ```
 
 summarize(chain2)
