@@ -4,7 +4,19 @@
 
 ## In this section
 
-Start building up computer science concepts by introducing tangible programming essentials. Data types, variables, control flow, functions, and scope are introduced.
+Start building up computer science concepts by introducing tangible programming essentials. Data types, variables, control flow, functions, and scope are introduced. 
+
+::: callout-tip
+## On Your First Readthrough
+This chapter is inteded to be an introductory reference for most of the basic building blocks which we will build abstractions in the following chapters. We want this chapter to essentially be an easy and mildly opinionated stepping-stone on your journey. 
+
+At some point, you will likely find yourself seeking more precise or thorough documentation and will begin directly searching or reading the documentation of a language or library itself. However, it may be intimidating or frustrating reading reference documenation due to the density and terminology - let this chapter and book be a bridge for you.
+
+If reading this book in a linear fashion and new to programming, we suggest stopping this chapter when you get to a certain point. Specifically, skipping the following sections and returning when encountering the concept or term later in the book:
+
+- @sec-parametric-types through @sec-constructors which covers advanced and custom data types
+- @sec-scope which describes different ways to compartmentalize and re-use aspects of a program
+:::
 
 ## Computer Science, Programming, and Coding
 
@@ -61,549 +73,7 @@ miles = feet / feet_per_yard / yards_per_mile
 
 Beyond readability, variables are a form of **abstraction** which allows us to think beyond specific instances of data and numbers to a more general representation. For example, the last line in the prior code example is a very generic computation of a unit conversion relationship and `feet` could be any number and the expression remains a valid calculation.
 
-We will return to this subject in more detail in @ref-assignment.
-
-## Data Types
-
-Data types are a way of categorizing information by intrinsic characteristics. We instinctively know that `13.24` is different than `"this set of words"` and types are how we will formalize this distinction. This is a key conceptual point, and mathematically it's like we have different sets of objects to perform specialized operations on. Beyond this set-like abstraction is implementation details related to computer hardware. You probably know that computers only natively "speak" in binary zeros and ones. Data types are a primary way that a computer can understand if it should interpret `01000010` as `B` or as `66`[^foundations-of-programming-2].
-
-[^foundations-of-programming-2]: This binary representations correspond to `B` and `66` with the *ASCII character set* and 8-bit integer encodings respectely, discussed later in this chapter.
-
-Each `0` or `1` within a computer is called a **bit** and eight bits in a row form a **byte** (such as `01000010`). This is where we get terms like "gigabytes" or "kilobits per second" as a measure of the quantity or rate of bits something can handle[^foundations-of-programming-3].
-
-[^foundations-of-programming-3]: Some distinctions you may encounter: in short-form, "kb" means kilo*bits* while the upper-case "B" in "kB" means kilo*bytes*. Also confusingly, sometimes the "k" can be binary or decimal - because computers speak in binary, a binary "k" means 1024 (equal to 2\^10) instead of the usual decimal 1000. In most computer contexts, the binary (multiples of 1024) is more common.
-
-### Numbers {#sec-number-types}
-
-Numbers are usually grouped into two categories: **integers** and **floating-point**[^foundations-of-programming-4] numbers. Integers are like the mathematical set of integers while floating-point is a way of representing decimal numbers. Both have some limitations since computers can only natively represent a finite set of numbers due to the hardware (more on this in @sec-hardware). Here are three integers that are input into the **REPL** (Read-Eval-Print-Loop)[^foundations-of-programming-5] and the result is **printed** below the input:
-
-[^foundations-of-programming-4]: The term floating point refers to the fact that the number's radix (decimal) point can "float" between the significant digits of the number.
-
-[^foundations-of-programming-5]: That is, it *reads* the code input from the user, *evaluates* what code was given to it, *prints* the result of the input to the screen, and *loops* through the process again.
-
-```{julia}
-2
-```
-
-```{julia}
-423
-```
-
-```{julia}
-1929234
-```
-
-And three floating-point numbers:
-
-```{julia}
-0.2
-```
-
-```{julia}
--23.3421
-```
-
-```{julia}
-14e3      # the same as 14,000.0
-```
-
-On most systems, `0.2` will be interpreted as a 64-bit floating point type called `Float64` in Julia since most architectures these days are 64-bit[^foundations-of-programming-6], while on a 32-bit system `0.2` would be interpreted as a `Float32`. Given that there are a finite amount of bits attempting to represent a continuous, infinite set of numbers means that some numbers are not able to be represented with perfect precision. For example, if we ask for `0.2`, the closest representations in 64 and 32 bit are:
-
-[^foundations-of-programming-6]: This means that their central processing units (CPUs) use instructions that are 64 bits long.
-
--   `0.20000000298023223876953125` in 32-bit
-
--   `0.200000000000000011102230246251565404236316680908203125` in 64-bit
-
-This leads to special considerations that computers take when performing calculations on floating point maths, some of which will be covered in more detail in @sec-hardware. For now, just note that floating point numbers have limited precision and even if we input `0.2`, your computations will use the above decimal representations even if it will print out a number with fewer digits shown:
-
-```{julia}
-x = 0.2 # <1>
-
-big(x) # <2>
-```
-
-1.  Here, we **assign** the value `0.2` to a **variable** `x`. More on variables/assignments in @sec-assignment.
-2.  `big(x)` is a arbitrary precision floating point number and by default prints the full precision that was embedded in our variable `x`, which was originally `Float64`.
-
-::: callout-note
-Note the difference in what printed between the last example and when we input `0.2` earlier in the chapter. The former had the same (not-exactly equal to $0.2$) *value*, but it printed an abbreviated set of digits as a nicety for the user, who usally doesn't want to look at floating point numbers with their full machine precision. The system has the full precision (`0.20...3125`) but is truncating the ouput.
-
-In the last example, we've converted the normal `Float64` to a `BigFloat` which will not truncate the output when printing.
-:::
-
-Integers are similarly represented as 32 or 64 bits (with `Int32` and `Int64`) and are limited to exact precision:
-
--   -32,767 to 32,767 for `Int32`
-
--   -2,147,483,647 to 2,147,483,647 for `Int64`
-
-Additional range in the positive direction if one chooses to use "unsigned", non-negative numbers (`UInt32` and `UInt64`). Unlike floating point numbers, the integers have a type `Int` which will use the system bit architecture by default (that is, `Int(30)` will create a 64 bit integer on 64-bit systems and 32-bit on 32-bit systems).
-
-::: callout-tip
-## Financial Modeling Pro-tip
-
-Excel's numeric storage and routine is complex and not quite the same as most programming languages, which follow the Institute of Electrical and Electronics Engineer's standards (such as the IEEE 754 standard for double precision floating point numbers). Excel uses IEEE for the *computations* but results (and therefore the cells that comprise many calculations interim values) are stored with 15 significant digits of information. In some ways this is the worst of both worlds: having the sometimes unusual (but well-defined) behavior of floating point arithmetic *and* having additional modifications to various steps of a calculation. In general, you can assume that the programming language result (following the IEEE 754 standard) is a better result because there are aspects to the IEEE 754 defines techniques to minimize issues that arise in floating point math. Some of the issues (round-off or truncation) can be amplified instead of minimized with Excel.
-
-In practice, this means that it can be difficult to exactly replicate a calculation in Excel in a progamming language and vice-versa. It's best to try to validate a programming model versus Excel model using very small unit calculations (e.g. a single step or iteration of a routine) instead of an all-in result. You may need to define some tolerance threshold for comparison of a value that is the result of a long chain of calculation.
-:::
-
-### Type Hierarchy
-
-We can describe a *hierarchy* of types. Both `Float64` and `Int64` are examples of `Real` numbers (here, `Real` is an **abstract** Julia type which corresponds to the mathematical set of real numbers commonly denoted with $\mathbb{R}$ ). Both `Float64` and `Int32` are `Real` numbers, so why not just define all numbers as a `Real` type? Because for performant calculations, the computer must know in advance how many bits each number is represented with.
-
-@fig-julia-numeric-types shows the type hierarchy for most built-in Julia number types.
-
-```{mermaid}
-%%| label: fig-julia-numeric-types
-%%| fig-cap: "Numeric Type Hierarchy in Julia. Leafs of the tree are concrete types."
-%%| fig-width: 6.5
-graph TD
-    Number --> Real
-    Number --> Complex
-
-    Real --> Integer
-    Real --> AbstractFloat
-    Real --> Rational
-    Real --> Irrational
-
-    Integer --> Signed
-    Integer --> Unsigned
-
-    Signed --> Int8
-    Signed --> Int16
-    Signed --> Int32
-    Signed --> Int64
-    Signed --> Int128
-    Signed --> BigInt
-
-    Unsigned --> UInt8
-    Unsigned --> UInt16
-    Unsigned --> UInt32
-    Unsigned --> UInt64
-    Unsigned --> UInt128
-
-    AbstractFloat --> Float16
-    AbstractFloat --> Float32
-    AbstractFloat --> Float64
-    AbstractFloat --> BigFloat
-```
-
-The integer and floating point types described in the prior section are known as **concrete** types because there are no possible sub types (child types). Further, a concrete type can be a **bit type** if the data type will always have the same number of bits in memory: a `Float32` will always be 32 bits in memory, for example. Contrast this with strings (described below) which can contain an arbitrary number of characters.
-
-### Arrays
-
-::: column-margin
-[]{.juliadots} Julia has very powerful and friendly array types.
-:::
-
-Arrays are the most common way to represent a collection of similar data. For example, we can represent a set of integers as follows:
-
-```{julia}
-[1, 10, 300]
-```
-
-And a floating point array:
-
-```{julia}
-[0.2, 1.3, 300.0]
-```
-
-Note the above two arrays are different types of arrays. The first is `Vector{Int64}` and the second is `Vector{Float64}`. These are arrays of concrete types and so Julia will know that each element of an array is the same amount of bits which will enable more efficient computations. With the following set of mixed numbers, Julia will **promote** the integers to floating point since the integers can be accurately represented[^foundations-of-programming-7] in floating point.
-
-[^foundations-of-programming-7]: Accurate only to a limited precision, as described in @sec-number-types.
-
-```{julia}
-[1, 1.3, 300.0, 21]
-```
-
-However, if we explicitly ask Julia to use a `Real`-typed array, the type is now `Vector{Real}`. Recall that `Real` is an abstract type. Having heterogeneous types within the array is conceptually fine, but in practice limits performance. Again, this will be covered in more detail in @sec-hardware.
-
-In Julia, arrays can be multi-dimensional. Here are are two three-dimensional arrays with length three in each dimension:
-
-```{julia}
-rand(3, 3, 3)
-```
-
-```{julia}
-[x + y + z for x in 1:3, y in 11:13, z in 21:23]
-```
-
-The above example demonstrates **array comprehension** syntax which is a convenient way to create arrays in Julia.
-
-A two-dimensional array has the rows by semi-colons (`;`):
-
-```{julia}
-x = [1 2 3; 4 5 6]
-```
-
-::: callout-note
-In Julia, a `Vector{Float64}` is simply a one-dimensional array of floating points and a `Matrix{Float64}` is a two-dimensional array. More precisely, they are **type aliases** of the more generic `Array{Float64,1}` and `Array{Float64,2}` names. Arrays with three or more dimensions don't have a type alias pre-defined.
-:::
-
-#### Array indexing
-
-Array elements are accessed with the integer position, starting at `1` for the first element[^foundations-of-programming-8] [^foundations-of-programming-9]:
-
-[^foundations-of-programming-8]: Whether an index starts at `1` or `0` is sometimes debated. Zero-based indexing is natural in the context of low-level programming which deal with bits and positional *offsets* in computer memory. For higher level programming one-based indexing is more natural: in a set of data stored in an array, it is much more natural to reference the *first* (through $n^{th}$) datum instead of the *zeroth* (through $(n-1)^{th}$ datum.
-
-[^foundations-of-programming-9]: Arrays in Julia can actually be indexed with an arbitrary starting point: see the package [OffsetArrays.jl](https://github.com/JuliaArrays/OffsetArrays.jl)
-
-```{julia}
-v = [10, 20, 30, 40, 50]
-v[2]
-```
-
-We can also access a subset of the vector's contents by passing a range:
-
-```{julia}
-v[2:4]
-```
-
-And we can generically reference the array's contents, such as:
-
-```{julia}
-v[begin+1:end-1]
-```
-
-We can assign values into the array as well, as well as combine arrays and push new elements to the end:
-
-```{julia}
-v[2] = -1
-push!(v, 5)
-vcat(v, [1, 2, 3])
-```
-
-#### Array Alignment
-
-When you have an MxN matrix (M rows, N columns), a choice must be made as to which elements are next to each other in memory. Typical math convention and fundamental computer linear algebra libraries (dating back decades!) are column major and Julia follows that legacy. **Column major** means that elements going down the rows of a column are stored next to each other in memory. This is important to know so that (1) you remember that vectors are treated like a column vector when working with arrays (that is: a N element 1D vector is like a Nx1 matrix), and (2) when iterating through an array, it will be faster for the computer to access elements next to each other column-wise. A 10x10 matrix is actually stored in memory as 100 elements coming in order, one after another in single file.
-
-This 3x4 matrix is stored with the elements of columns next to each other, which we can see with `vec`:
-
-```{julia}
-mat = [1 2 3; 4 5 6; 7 8 9]
-```
-
-```{julia}
-vec(mat)
-```
-
-### Characters, Strings, and Symbols
-
-Characters are represented in most programming languages as letters within quotation marks. In Julia, individual characters are represented using single quotes:
-
-```{julia}
-'a'
-```
-
-Letters and other characters present more difficulties than numbers to represent within a computer (think of how many languages and alphabets exist!), and it essentially only works because the world at large has agreed to a given representation. Originally **ASCII** (American Standard Code for Information Interchange) was used to represent just 95 of the most common English characters ("a" through "z", zero through nine, etc.). Now, UTF (Unicode Transformation Format) can encode more than a million characters and symbols from many human languages.
-
-**Strings** are a collection[^foundations-of-programming-10] of characters, and can be created in Julia with double quotes:
-
-[^foundations-of-programming-10]: Under the hood, strings are essentially a vector of characters but there are complexities with character encoding that don't allow a lossless conversion to individual characters of uniform bit length. This is for historical compatibility reasons and to avoid making most documents' file sizes larger than it needs to be.
-
-```{julia}
-"hello world"
-```
-
-It's easy to ascertain how 'normal' characters can be inserted into a string, but what about things like new lines or tabs? They are represented by their own characters but are normally not printed in computer output. However, those otherwise invisible characters do exist. For example, here we will use a **string literal** (indicated by the `"""` ) to tell Julia to interpret the string as given, including the invisible new line created by hitting return on the keyboard between the two words:
-
-```{julia}
-"""
-hello
-world
-"""
-```
-
-The output above shows the `\n` character contained within the string.
-
-**Symbols** are a way of representing an identifier which cannot be seen as a collection of individual characters. `:helloworld` is distinct from `"helloworld"` - you can kind of think of the former as an un-executed bit of code - if we were to execute it (with `eval(:helloworld)`), we would get an error `` UndefVarError: `a` not defined `` . Symbols can *look* like strings but do not behave like them. For now, it is best to not worry about symbols but it is an important aspect of Julia which allows the language to represent aspects of itself as data. This allows for powerful self-reference and self-modification of code but this is a more advanced topic generally out of scope of this book.
-
-### Tuples
-
-Tuples are a set of values that belong together and are denoted by a values inside parenthesis and separated by a comma. An example might be x-y coordinates in 2 dimensional space:
-
-```{julia}
-x = 3
-y = 4
-p1 = (x, y)
-```
-
-Tuple's values can be accessed like arrays:
-
-```{julia}
-p1[1]
-```
-
-Tuples fill a middle ground between scalar types and arrays in more ways that one:
-
--   Tuples have no problem having heterogeneous types in the different slots.
-
--   Tuples are **immutable**, meaning that you cannot overwrite the value in memory (an error will be thrown if we try to do `p[1] = 5`).
-
--   It's generally expected that within an array, you would be able to apply the same operation to all the elements (e.g. square each element) or do something like sum all of the elements together which isn't generally case for a tuple.
-
--   Tuples are generally stack allocated instead of being heap allocated like arrays[^foundations-of-programming-11], meaning that a lot of times they can be faster than arrays.
-
-[^foundations-of-programming-11]: What this means will be explained in @sec-hardware .
-
-#### Named Tuples
-
-Named tuples provide a way to give each field within the tuple a specific name. For example, our x-y coordinate example above could become:
-
-```{julia}
-p2 = (x=3, y=4)
-```
-
-The benefit is that we can give more meaning to each field and access the values in a nicer way. Previously, we used `location[1]` to access the x-value, but with the new definition we can access it by name:
-
-```{julia}
-p2.x
-```
-
-### Parametric Types
-
-We just saw how tuples can contain heterogeneous types of data inside a common container. Let's look at this a little bit closer by looking at the full type:
-
-```{julia}
-typeof(p1)
-```
-
-`location` is a `Tuple{Int64,Int64}` type, which means that its first and second elements are both `Int64`. Contrast this with:
-
-```{julia}
-typeof(("hello", 1.0))
-```
-
-These tuples are both of the form `Tuple{T,U}` where `T` and `U` are both types. Why does this matter? We and the compiler can distinguish between a `Tuple{Int64,Int64}` and a `Tuple{String,Float64}` which allows us to reason about things ("I can add the first element of tuple together only if both are numbers") and the compiler to optimize (sometimes it can know exactly how many bits in memory a tuple of a certain kind will need and be more efficient about memory use). Further, we will see how this can become a powerful force in writing appropriately abstracted code and more logically organize our entire program when we encounter "multiple dispatch" later on.
-
-### Types for things not there
-
-`nothing` represents that there's nothing to be returned - for example if there's no solution to an optimization problem or if a function just doesn't have any value to `return` (such as in the case with input/output like `println`).
-
-`missing` is to represent something *should* be there but it's not, as is all too common in real-world data. Julia natively supports `missing` and three-value logic, which an an extension of the two-value boolean (true/false) logic, to handle missing logical values:
-
-::: {#tbl-panel layout-nrow="3"}
-| NOT (`!`)     | Value     |
-|---------------|-----------|
-| **`true`**    | `false`   |
-| **`missing`** | `missing` |
-| **`false`**   | `true`    |
-
-: Not logic {#tbl-first}
-
-| AND (`&`)     | `true`    | `missing` | `false` |
-|---------------|-----------|-----------|---------|
-| **`true`**    | `true`    | `missing` | `false` |
-| **`missing`** | `missing` | `missing` | `false` |
-| **`false`**   | `false`   | `false`   | `false` |
-
-: And logic {#tbl-second}
-
-| OR (`|`)      | `true` | `missing` | `false`   |
-|---------------|--------|-----------|-----------|
-| **`true`**    | `true` | `true`    | `true`    |
-| **`missing`** | `true` | `missing` | `missing` |
-| **`false`**   | `true` | `missing` | `false`   |
-
-: Or Logic {#tbl-third}
-
-Three value logic with `true`, `missing`, and `false`.
-:::
-
-::: callout-tip
-`Missing` and `Nothing` are the *types* while `missing` and `nothing` are the values here[^foundations-of-programming-12]. This is analogous to `Float64` being a type and `2.0` being a value.
-:::
-
-[^foundations-of-programming-12]: `Missing` and `Nothing` are instances of **singleton type,** which means that there is only a single value that either type can take on.
-
-### Union Types
-
-When two types may arise in a context, **union types** are a way to represent that. For example, if we have a data feed and we know that it will produce *either* a `Float64` *or* a `Missing` type then we can say that the value for this is `Union{Float64,Missing}`. This is much better for the compiler (and our performance!) than saying that the type of this is `Any`.
-
-### Creating User Defined Types
-
-We've talked about some built-in types but so much additional capabilities come from being able to define our own types. For example, taking the x-y-coordinate example from above, we could do the following instead of defining a tuple:
-
-```{julia}
-struct BasicPoint
-    x::Int64
-    y::Int64
-end
-
-p3 = BasicPoint(3, 4)
-```
-
-`BasicPoint` is a **composite type** because it is composed of elements of other types. Fields are accessed the same way as named tuples:
-
-```{julia}
-p3.x, p3.y # <1>
-```
-
-1.  Note that here, Julia will return a tuple instead of a single value due to the comma separated expressions.
-
-`structs` in Julia are immutable like tuples above.
-
-But wait, didn't tuples let us mix types too via parametric types? Yes, and we can do the same with our type!
-
-```{julia}
-struct Point{T}
-    x::T
-    y::T
-end
-```
-
-Line 1 The `{T}` after the type's name allows for different `Point`s to be created depending on what the type of the underlying `x` and `y` is.
-
-Here's two new points which now have different types:
-
-```{julia}
-p4 = Point(1, 4)
-p5 = Point(2.0, 3.0)
-
-p4, p5
-```
-
-Note that the types are not equal because they have different type parameters!
-
-```{julia}
-typeof(p4), typeof(p5), typeof(p4) == typeof(p5)
-```
-
-But both are now subtypes of `PPoint2D`. The expression `X isa Y` is `true` when `X` is a (sub)type of `Y`:
-
-```{julia}
-p4 isa Point, p5 isa Point
-```
-
-Note though, that the `x` and `y` are both of the same type in each `PPoint2D` that we created. If instead we wanted to allow the coordinates to be of different types, then we could have defined `PPoint2D` as follows:
-
-``` julia
-struct Point{T,U}
-    x::T
-    y::U
-end
-```
-
-::: callout-note
-Can we define the `struct`s above without indicating a (parametric) type? Yes!
-
-``` julia
-struct Point
-    x # no type here!
-    y # no type declared here either!
-end
-```
-
-But! `x` and `y` will both be allowed to be `Any`, which is the fallback type where Julia says that it doesn't know any more about the type until runtime (the time at which our program encounters the data when running). This means that the compiler (and us!) can't reason about or optimize the code as effectively as when the types are explicit or parametric. This is an example of how Julia can provide a nice learning curve - don't worry about the types until you start to get more sophisicated about the program design or need to extract more performance from the code.
-:::
-
-The above `struct`s that we have defined are examples of **concrete types** types which hold data. **Abstract types** don't directly hold data themselves but are used to define a hierarchy of types which we will later exploit (@sec-patterns-abstractions) to implement custom behavior depending on what type our data is.
-
-Here's an example of (1) defining a set of related types that sits above our `Point2D`:
-
-```{julia}
-#| output: false
-abstract type Coordinate end
-abstract type CartesianCoordinate <: Coordinate end
-abstract type PolarCoordinate <: Coordinate end
-
-struct Point2D{T} <: CartesianCoordinate
-    x::T
-    y::T
-end
-
-struct Point3D{T} <: CartesianCoordinate
-    x::T
-    y::T
-    z::T
-end
-
-struct Polar2D{T} <: PolarCoordinate
-    r::T
-    θ::T
-end
-```
-
-::: callout-tip
-## Unicode Characters
-
-Julia has wonderful Unicode support, meaning that it's not a problem to include characters like `θ`. The character can be typed in Julia editors by entering `\theta` and then pressing the TAB key on the keyboard.
-
-Unicode is helpful for following conventions that you may be used to in math. For example, the math formula $\text{circumference}(r) = 2 \times r \times \pi$ can be written in Julia with `circumference(r) = 2 * r * π`.
-
-The name for the characters follows the same for LaTeX, so you can search the internet for,e.g. "theta LaTeX" to find the appropriate name. Furhter, you can use the REPL help mode to find out how to enter a character if you can copy and paste it from somewhere:
-
-``` julia-repl
-help?> θ
-"θ" can be typed by \theta<tab>
-```
-:::
-
-### Mutable structs
-
-It is possible to define `struct`s where the data can be modified - such a data field is said to be **mutable** because it can be changed or mutated. Here's an example of what it would look like if we made `Point2D` mutable:
-
-``` julia
-mutable struct Point2D{T}
-    x::T
-    y::T
-end
-```
-
-You may find that this more naturally represents what you are trying to do. However, recall that an advantage of an immutable datatype is that costly memory doesn't necessarily have to be allocated for it. So you may think that you're being more efficient by re-using the same object... but it may not actually be faster. Again, more will be revealed in @sec-hardware.
-
-::: callout-tip
-## Financial Modeling Pro-tip
-
-Generally you should default to using immutable types and consider only moving to `mutable` types in specific circumstances. You'll see some examples in the applications later in the book.
-:::
-
-### Constructors
-
-**Constructors** are functions that return a data type (functions will be covered more generally later in the chapter). When we declare a `struct`, an implicit function is defined that takes a tuple of arguments and returns the data type that was declared. In the following example, after we define `MyType` the `struct`, Julia creates a function (also called `MyType`) which takes two arguments and will return the datatype `MyType`:
-
-```{julia}
-struct MyDate
-    year::Int
-    month::Int
-    day::Int
-end
-
-methods(MyDate)
-```
-
-Implicit constructors are nice in that you don't have to define a default method and the language does it for you. Sometimes there's reasons to want to control how an object is created, either for convenience or to enforce certain restrictions.
-
-We can use an inner constructor (i.e. inside the `struct` block) to enforce restrictions:\
-
-``` julia
-struct MyDate
-    year::Int
-    month::Int
-    day::Int
-
-    function MyDate(y,m,d)
-        if ~(m in 1:12)
-            error("month is not between 1 and 12")
-        else if ~(d in 1:31)
-            error("day is not between 1 and 31")
-        else
-            return new(y,m,d)
-        end
-
-    end
-                
-end
-```
-
-And outer constructors are simply functions defined that have the same name as the data type , but are not defined inside the `struct` block. Extending the `MyDate` example, say we want to provide a default constructor for if no day is given such that the date returns the 1st of the month:
-
-``` julia
-function MyDate(y,m)
-    return MyDate(y,m,1)
-end
-```
+We will return to this subject in more detail in @sec-assignment.
 
 ## Expressions and Control Flow
 
@@ -960,35 +430,41 @@ map(x -> x^2, v)  # <1>
 
 They are often used when constructing something from another value, or defining a function within optimization or solving routines.
 
-### Passing by Sharing
+### First Class Nature
 
-Arguments to a function in Julia are \*passed-by-sharing\*\* which means that an outside variable can be mutated from within a function. We can modify the array in the outer scope (scope discussed later in this chapter) from within the function. In this example, we modify the array that is assigned to `v` by doubling each element:
+Functions in many languages including Julia are **first class** which means that functions can be assigned and moved around like data variables.
+
+In this example, we have a general approach to calculate the error of a modeled result compared to a known truth. In this context, there are different ways to measure error of the modeled result and we can simplify the implementation of `loss` by keeping the different kinds of error defined separately. Then, we can assign a function to a variable and use it as an argument to another function:
 
 ```{julia}
-v = [1, 2, 3]
-
-function double!(v)
-    for i in eachindex(v)
-        v[1] = 2 * v[i]
-    end
+function square_error(guess, correct)
+    (correct - guess)^2
 end
 
-double!(v)
+function abs_error(guess, correct)
+    abs(correct - guess)
+end
 
-v
+# obs meaning "observations"
+function loss(modeled_obs,
+    actual_obs,
+    loss_function # <1>
+)
+    sum(
+        loss_function.(modeled_obs, actual_obs)
+    )
+end
+
+let # <2>
+    a = loss([1, 5, 11], [1, 4, 9], square_error) # <3>
+    b = loss([1, 5, 11], [1, 4, 9], abs_error)  # <3>
+    a, b
+end
 ```
 
-::: callout-tip
-Convention in Julia is that a function that modifies it's arguments has a `!` in it's name and we follow this convention in `double!` above. Another example would be the built-in function `sort!` which will sort an array in-place without allocating a new array to store the sorted values.
-:::
-
-We won't discuss all potential ways that programming languages can behave in this regard, but an alternative that one may have seen before (e.g. in Matlab) is pass-by-value where a modification to an argument only modifies the value within the scope. Here's how to replicate that in Julia by `copy`ing the value before handing it to a function. This time, v is not modified because we only passed a copy of the array and not the array itself:
-
-```{julia}
-v = [1, 2, 3]
-double!(copy(v))
-v
-```
+1.  `loss_function` is a variable that will refer to a function instead of data.
+2.  Using a `let` block here is good practice to not have temporary variables `a` and `b` scattered around our workspace.
+3.  Using a function as an argument to another function is an example of functions being treated as "first class".
 
 ### Broadcasting
 
@@ -1075,41 +551,547 @@ If we were expecting Julia to return `[1,0]` (that the first needle is in the ha
 in.([1, 9], Ref([1 2 3; 4 5 6]))
 ```
 
-### First Class Nature
+## Data Types
 
-Functions in many languages including Julia are **first class** which means that functions can be assigned and moved around like data variables.
+Data types are a way of categorizing information by intrinsic characteristics. We instinctively know that `13.24` is different than `"this set of words"` and types are how we will formalize this distinction. This is a key conceptual point, and mathematically it's like we have different sets of objects to perform specialized operations on. Beyond this set-like abstraction is implementation details related to computer hardware. You probably know that computers only natively "speak" in binary zeros and ones. Data types are a primary way that a computer can understand if it should interpret `01000010` as `B` or as `66`[^foundations-of-programming-2].
 
-In this example, we have a general approach to calculate the error of a modeled result compared to a known truth. In this context, there are different ways to measure error of the modeled result and we can simplify the implementation of `loss` by keeping the different kinds of error defined separately. Then, we can assign a function to a variable and use it as an argument to another function:
+[^foundations-of-programming-2]: This binary representations correspond to `B` and `66` with the *ASCII character set* and 8-bit integer encodings respectely, discussed later in this chapter.
+
+Each `0` or `1` within a computer is called a **bit** and eight bits in a row form a **byte** (such as `01000010`). This is where we get terms like "gigabytes" or "kilobits per second" as a measure of the quantity or rate of bits something can handle[^foundations-of-programming-3].
+
+[^foundations-of-programming-3]: Some distinctions you may encounter: in short-form, "kb" means kilo*bits* while the upper-case "B" in "kB" means kilo*bytes*. Also confusingly, sometimes the "k" can be binary or decimal - because computers speak in binary, a binary "k" means 1024 (equal to 2\^10) instead of the usual decimal 1000. In most computer contexts, the binary (multiples of 1024) is more common.
+
+### Numbers {#sec-number-types}
+
+Numbers are usually grouped into two categories: **integers** and **floating-point**[^foundations-of-programming-4] numbers. Integers are like the mathematical set of integers while floating-point is a way of representing decimal numbers. Both have some limitations since computers can only natively represent a finite set of numbers due to the hardware (more on this in @sec-hardware). Here are three integers that are input into the **REPL** (Read-Eval-Print-Loop)[^foundations-of-programming-5] and the result is **printed** below the input:
+
+[^foundations-of-programming-4]: The term floating point refers to the fact that the number's radix (decimal) point can "float" between the significant digits of the number.
+
+[^foundations-of-programming-5]: That is, it *reads* the code input from the user, *evaluates* what code was given to it, *prints* the result of the input to the screen, and *loops* through the process again.
 
 ```{julia}
-function square_error(guess, correct)
-    (correct - guess)^2
+2
+```
+
+```{julia}
+423
+```
+
+```{julia}
+1929234
+```
+
+And three floating-point numbers:
+
+```{julia}
+0.2
+```
+
+```{julia}
+-23.3421
+```
+
+```{julia}
+14e3      # the same as 14,000.0
+```
+
+On most systems, `0.2` will be interpreted as a 64-bit floating point type called `Float64` in Julia since most architectures these days are 64-bit[^foundations-of-programming-6], while on a 32-bit system `0.2` would be interpreted as a `Float32`. Given that there are a finite amount of bits attempting to represent a continuous, infinite set of numbers means that some numbers are not able to be represented with perfect precision. For example, if we ask for `0.2`, the closest representations in 64 and 32 bit are:
+
+[^foundations-of-programming-6]: This means that their central processing units (CPUs) use instructions that are 64 bits long.
+
+-   `0.20000000298023223876953125` in 32-bit
+
+-   `0.200000000000000011102230246251565404236316680908203125` in 64-bit
+
+This leads to special considerations that computers take when performing calculations on floating point maths, some of which will be covered in more detail in @sec-hardware. For now, just note that floating point numbers have limited precision and even if we input `0.2`, your computations will use the above decimal representations even if it will print out a number with fewer digits shown:
+
+```{julia}
+x = 0.2 # <1>
+
+big(x) # <2>
+```
+
+1.  Here, we **assign** the value `0.2` to a **variable** `x`. More on variables/assignments in @sec-assignment.
+2.  `big(x)` is a arbitrary precision floating point number and by default prints the full precision that was embedded in our variable `x`, which was originally `Float64`.
+
+::: callout-note
+Note the difference in what printed between the last example and when we input `0.2` earlier in the chapter. The former had the same (not-exactly equal to $0.2$) *value*, but it printed an abbreviated set of digits as a nicety for the user, who usally doesn't want to look at floating point numbers with their full machine precision. The system has the full precision (`0.20...3125`) but is truncating the ouput.
+
+In the last example, we've converted the normal `Float64` to a `BigFloat` which will not truncate the output when printing.
+:::
+
+Integers are similarly represented as 32 or 64 bits (with `Int32` and `Int64`) and are limited to exact precision:
+
+-   -32,767 to 32,767 for `Int32`
+
+-   -2,147,483,647 to 2,147,483,647 for `Int64`
+
+Additional range in the positive direction if one chooses to use "unsigned", non-negative numbers (`UInt32` and `UInt64`). Unlike floating point numbers, the integers have a type `Int` which will use the system bit architecture by default (that is, `Int(30)` will create a 64 bit integer on 64-bit systems and 32-bit on 32-bit systems).
+
+::: callout-tip
+## Financial Modeling Pro-tip
+
+Excel's numeric storage and routine is complex and not quite the same as most programming languages, which follow the Institute of Electrical and Electronics Engineer's standards (such as the IEEE 754 standard for double precision floating point numbers). Excel uses IEEE for the *computations* but results (and therefore the cells that comprise many calculations interim values) are stored with 15 significant digits of information. In some ways this is the worst of both worlds: having the sometimes unusual (but well-defined) behavior of floating point arithmetic *and* having additional modifications to various steps of a calculation. In general, you can assume that the programming language result (following the IEEE 754 standard) is a better result because there are aspects to the IEEE 754 defines techniques to minimize issues that arise in floating point math. Some of the issues (round-off or truncation) can be amplified instead of minimized with Excel.
+
+In practice, this means that it can be difficult to exactly replicate a calculation in Excel in a progamming language and vice-versa. It's best to try to validate a programming model versus Excel model using very small unit calculations (e.g. a single step or iteration of a routine) instead of an all-in result. You may need to define some tolerance threshold for comparison of a value that is the result of a long chain of calculation.
+:::
+
+### Type Hierarchy
+
+We can describe a *hierarchy* of types. Both `Float64` and `Int64` are examples of `Real` numbers (here, `Real` is an **abstract** Julia type which corresponds to the mathematical set of real numbers commonly denoted with $\mathbb{R}$ ). Both `Float64` and `Int32` are `Real` numbers, so why not just define all numbers as a `Real` type? Because for performant calculations, the computer must know in advance how many bits each number is represented with.
+
+@fig-julia-numeric-types shows the type hierarchy for most built-in Julia number types.
+
+```{mermaid}
+%%| label: fig-julia-numeric-types
+%%| fig-cap: "Numeric Type Hierarchy in Julia. Leafs of the tree are concrete types."
+%%| fig-width: 6.5
+graph TD
+    Number --> Real
+    Number --> Complex
+
+    Real --> Integer
+    Real --> AbstractFloat
+    Real --> Rational
+    Real --> Irrational
+
+    Integer --> Signed
+    Integer --> Unsigned
+
+    Signed --> Int8
+    Signed --> Int16
+    Signed --> Int32
+    Signed --> Int64
+    Signed --> Int128
+    Signed --> BigInt
+
+    Unsigned --> UInt8
+    Unsigned --> UInt16
+    Unsigned --> UInt32
+    Unsigned --> UInt64
+    Unsigned --> UInt128
+
+    AbstractFloat --> Float16
+    AbstractFloat --> Float32
+    AbstractFloat --> Float64
+    AbstractFloat --> BigFloat
+```
+
+The integer and floating point types described in the prior section are known as **concrete** types because there are no possible sub types (child types). Further, a concrete type can be a **bit type** if the data type will always have the same number of bits in memory: a `Float32` will always be 32 bits in memory, for example. Contrast this with strings (described below) which can contain an arbitrary number of characters.
+
+### Arrays
+
+::: column-margin
+[]{.juliadots} Julia has very powerful and friendly array types.
+:::
+
+Arrays are the most common way to represent a collection of similar data. For example, we can represent a set of integers as follows:
+
+```{julia}
+[1, 10, 300]
+```
+
+And a floating point array:
+
+```{julia}
+[0.2, 1.3, 300.0]
+```
+
+Note the above two arrays are different types of arrays. The first is `Vector{Int64}` and the second is `Vector{Float64}`. These are arrays of concrete types and so Julia will know that each element of an array is the same amount of bits which will enable more efficient computations. With the following set of mixed numbers, Julia will **promote** the integers to floating point since the integers can be accurately represented[^foundations-of-programming-7] in floating point.
+
+[^foundations-of-programming-7]: Accurate only to a limited precision, as described in @sec-number-types.
+
+```{julia}
+[1, 1.3, 300.0, 21]
+```
+
+However, if we explicitly ask Julia to use a `Real`-typed array, the type is now `Vector{Real}`. Recall that `Real` is an abstract type. Having heterogeneous types within the array is conceptually fine, but in practice limits performance. Again, this will be covered in more detail in @sec-hardware.
+
+In Julia, arrays can be multi-dimensional. Here are are two three-dimensional arrays with length three in each dimension:
+
+```{julia}
+rand(3, 3, 3)
+```
+
+```{julia}
+[x + y + z for x in 1:3, y in 11:13, z in 21:23]
+```
+
+The above example demonstrates **array comprehension** syntax which is a convenient way to create arrays in Julia.
+
+A two-dimensional array has the rows by semi-colons (`;`):
+
+```{julia}
+x = [1 2 3; 4 5 6]
+```
+
+::: callout-note
+In Julia, a `Vector{Float64}` is simply a one-dimensional array of floating points and a `Matrix{Float64}` is a two-dimensional array. More precisely, they are **type aliases** of the more generic `Array{Float64,1}` and `Array{Float64,2}` names. Arrays with three or more dimensions don't have a type alias pre-defined.
+:::
+
+#### Array indexing
+
+Array elements are accessed with the integer position, starting at `1` for the first element[^foundations-of-programming-8] [^foundations-of-programming-9]:
+
+[^foundations-of-programming-8]: Whether an index starts at `1` or `0` is sometimes debated. Zero-based indexing is natural in the context of low-level programming which deal with bits and positional *offsets* in computer memory. For higher level programming one-based indexing is more natural: in a set of data stored in an array, it is much more natural to reference the *first* (through $n^{th}$) datum instead of the *zeroth* (through $(n-1)^{th}$ datum.
+
+[^foundations-of-programming-9]: Arrays in Julia can actually be indexed with an arbitrary starting point: see the package [OffsetArrays.jl](https://github.com/JuliaArrays/OffsetArrays.jl)
+
+```{julia}
+v = [10, 20, 30, 40, 50]
+v[2]
+```
+
+We can also access a subset of the vector's contents by passing a range:
+
+```{julia}
+v[2:4]
+```
+
+And we can generically reference the array's contents, such as:
+
+```{julia}
+v[begin+1:end-1]
+```
+
+We can assign values into the array as well, as well as combine arrays and push new elements to the end:
+
+```{julia}
+v[2] = -1
+push!(v, 5)
+vcat(v, [1, 2, 3])
+```
+
+#### Array Alignment
+
+When you have an MxN matrix (M rows, N columns), a choice must be made as to which elements are next to each other in memory. Typical math convention and fundamental computer linear algebra libraries (dating back decades!) are column major and Julia follows that legacy. **Column major** means that elements going down the rows of a column are stored next to each other in memory. This is important to know so that (1) you remember that vectors are treated like a column vector when working with arrays (that is: a N element 1D vector is like a Nx1 matrix), and (2) when iterating through an array, it will be faster for the computer to access elements next to each other column-wise. A 10x10 matrix is actually stored in memory as 100 elements coming in order, one after another in single file.
+
+This 3x4 matrix is stored with the elements of columns next to each other, which we can see with `vec`:
+
+```{julia}
+mat = [1 2 3; 4 5 6; 7 8 9]
+```
+
+```{julia}
+vec(mat)
+```
+
+### Characters, Strings, and Symbols
+
+Characters are represented in most programming languages as letters within quotation marks. In Julia, individual characters are represented using single quotes:
+
+```{julia}
+'a'
+```
+
+Letters and other characters present more difficulties than numbers to represent within a computer (think of how many languages and alphabets exist!), and it essentially only works because the world at large has agreed to a given representation. Originally **ASCII** (American Standard Code for Information Interchange) was used to represent just 95 of the most common English characters ("a" through "z", zero through nine, etc.). Now, UTF (Unicode Transformation Format) can encode more than a million characters and symbols from many human languages.
+
+**Strings** are a collection[^foundations-of-programming-10] of characters, and can be created in Julia with double quotes:
+
+[^foundations-of-programming-10]: Under the hood, strings are essentially a vector of characters but there are complexities with character encoding that don't allow a lossless conversion to individual characters of uniform bit length. This is for historical compatibility reasons and to avoid making most documents' file sizes larger than it needs to be.
+
+```{julia}
+"hello world"
+```
+
+It's easy to ascertain how 'normal' characters can be inserted into a string, but what about things like new lines or tabs? They are represented by their own characters but are normally not printed in computer output. However, those otherwise invisible characters do exist. For example, here we will use a **string literal** (indicated by the `"""` ) to tell Julia to interpret the string as given, including the invisible new line created by hitting return on the keyboard between the two words:
+
+```{julia}
+"""
+hello
+world
+"""
+```
+
+The output above shows the `\n` character contained within the string.
+
+**Symbols** are a way of representing an identifier which cannot be seen as a collection of individual characters. `:helloworld` is distinct from `"helloworld"` - you can kind of think of the former as an un-executed bit of code - if we were to execute it (with `eval(:helloworld)`), we would get an error `` UndefVarError: `a` not defined `` . Symbols can *look* like strings but do not behave like them. For now, it is best to not worry about symbols but it is an important aspect of Julia which allows the language to represent aspects of itself as data. This allows for powerful self-reference and self-modification of code but this is a more advanced topic generally out of scope of this book.
+
+### Tuples
+
+Tuples are a set of values that belong together and are denoted by a values inside parenthesis and separated by a comma. An example might be x-y coordinates in 2 dimensional space:
+
+```{julia}
+x = 3
+y = 4
+p1 = (x, y)
+```
+
+Tuple's values can be accessed like arrays:
+
+```{julia}
+p1[1]
+```
+
+Tuples fill a middle ground between scalar types and arrays in more ways that one:
+
+-   Tuples have no problem having heterogeneous types in the different slots.
+
+-   Tuples are **immutable**, meaning that you cannot overwrite the value in memory (an error will be thrown if we try to do `p[1] = 5`).
+
+-   It's generally expected that within an array, you would be able to apply the same operation to all the elements (e.g. square each element) or do something like sum all of the elements together which isn't generally case for a tuple.
+
+-   Tuples are generally stack allocated instead of being heap allocated like arrays[^foundations-of-programming-11], meaning that a lot of times they can be faster than arrays.
+
+[^foundations-of-programming-11]: What this means will be explained in @sec-hardware .
+
+#### Named Tuples
+
+Named tuples provide a way to give each field within the tuple a specific name. For example, our x-y coordinate example above could become:
+
+```{julia}
+p2 = (x=3, y=4)
+```
+
+The benefit is that we can give more meaning to each field and access the values in a nicer way. Previously, we used `location[1]` to access the x-value, but with the new definition we can access it by name:
+
+```{julia}
+p2.x
+```
+
+### Parametric Types {#sec-parametric-types}
+
+We just saw how tuples can contain heterogeneous types of data inside a common container. Let's look at this a little bit closer by looking at the full type:
+
+```{julia}
+typeof(p1)
+```
+
+`location` is a `Tuple{Int64,Int64}` type, which means that its first and second elements are both `Int64`. Contrast this with:
+
+```{julia}
+typeof(("hello", 1.0))
+```
+
+These tuples are both of the form `Tuple{T,U}` where `T` and `U` are both types. Why does this matter? We and the compiler can distinguish between a `Tuple{Int64,Int64}` and a `Tuple{String,Float64}` which allows us to reason about things ("I can add the first element of tuple together only if both are numbers") and the compiler to optimize (sometimes it can know exactly how many bits in memory a tuple of a certain kind will need and be more efficient about memory use). Further, we will see how this can become a powerful force in writing appropriately abstracted code and more logically organize our entire program when we encounter "multiple dispatch" later on.
+
+### Types for things not there
+
+`nothing` represents that there's nothing to be returned - for example if there's no solution to an optimization problem or if a function just doesn't have any value to `return` (such as in the case with input/output like `println`).
+
+`missing` is to represent something *should* be there but it's not, as is all too common in real-world data. Julia natively supports `missing` and three-value logic, which an an extension of the two-value boolean (true/false) logic, to handle missing logical values:
+
+::: {#tbl-panel layout-nrow="3"}
+| NOT (`!`)     | Value     |
+|---------------|-----------|
+| **`true`**    | `false`   |
+| **`missing`** | `missing` |
+| **`false`**   | `true`    |
+
+: Not logic {#tbl-first}
+
+| AND (`&`)     | `true`    | `missing` | `false` |
+|---------------|-----------|-----------|---------|
+| **`true`**    | `true`    | `missing` | `false` |
+| **`missing`** | `missing` | `missing` | `false` |
+| **`false`**   | `false`   | `false`   | `false` |
+
+: And logic {#tbl-second}
+
+| OR (`|`)      | `true` | `missing` | `false`   |
+|---------------|--------|-----------|-----------|
+| **`true`**    | `true` | `true`    | `true`    |
+| **`missing`** | `true` | `missing` | `missing` |
+| **`false`**   | `true` | `missing` | `false`   |
+
+: Or Logic {#tbl-third}
+
+Three value logic with `true`, `missing`, and `false`.
+:::
+
+::: callout-tip
+`Missing` and `Nothing` are the *types* while `missing` and `nothing` are the values here[^foundations-of-programming-12]. This is analogous to `Float64` being a type and `2.0` being a value.
+:::
+
+[^foundations-of-programming-12]: `Missing` and `Nothing` are instances of **singleton type,** which means that there is only a single value that either type can take on.
+
+### Union Types
+
+When two types may arise in a context, **union types** are a way to represent that. For example, if we have a data feed and we know that it will produce *either* a `Float64` *or* a `Missing` type then we can say that the value for this is `Union{Float64,Missing}`. This is much better for the compiler (and our performance!) than saying that the type of this is `Any`.
+
+### Creating User Defined Types
+
+We've talked about some built-in types but so much additional capabilities come from being able to define our own types. For example, taking the x-y-coordinate example from above, we could do the following instead of defining a tuple:
+
+```{julia}
+struct BasicPoint
+    x::Int64
+    y::Int64
 end
 
-function abs_error(guess, correct)
-    abs(correct - guess)
-end
+p3 = BasicPoint(3, 4)
+```
 
-# obs meaning "observations"
-function loss(modeled_obs,
-    actual_obs,
-    loss_function # <1>
-)
-    sum(
-        loss_function.(modeled_obs, actual_obs)
-    )
-end
+`BasicPoint` is a **composite type** because it is composed of elements of other types. Fields are accessed the same way as named tuples:
 
-let # <2>
-    a = loss([1, 5, 11], [1, 4, 9], square_error) # <3>
-    b = loss([1, 5, 11], [1, 4, 9], abs_error)  # <3>
-    a, b
+```{julia}
+p3.x, p3.y # <1>
+```
+
+1.  Note that here, Julia will return a tuple instead of a single value due to the comma separated expressions.
+
+`structs` in Julia are immutable like tuples above.
+
+But wait, didn't tuples let us mix types too via parametric types? Yes, and we can do the same with our type!
+
+```{julia}
+struct Point{T}
+    x::T
+    y::T
 end
 ```
 
-1.  `loss_function` is a variable that will refer to a function instead of data.
-2.  Using a `let` block here is good practice to not have temporary variables `a` and `b` scattered around our workspace.
-3.  Using a function as an argument to another function is an example of functions being treated as "first class".
+Line 1 The `{T}` after the type's name allows for different `Point`s to be created depending on what the type of the underlying `x` and `y` is.
+
+Here's two new points which now have different types:
+
+```{julia}
+p4 = Point(1, 4)
+p5 = Point(2.0, 3.0)
+
+p4, p5
+```
+
+Note that the types are not equal because they have different type parameters!
+
+```{julia}
+typeof(p4), typeof(p5), typeof(p4) == typeof(p5)
+```
+
+But both are now subtypes of `PPoint2D`. The expression `X isa Y` is `true` when `X` is a (sub)type of `Y`:
+
+```{julia}
+p4 isa Point, p5 isa Point
+```
+
+Note though, that the `x` and `y` are both of the same type in each `PPoint2D` that we created. If instead we wanted to allow the coordinates to be of different types, then we could have defined `PPoint2D` as follows:
+
+``` julia
+struct Point{T,U}
+    x::T
+    y::U
+end
+```
+
+::: callout-note
+Can we define the `struct`s above without indicating a (parametric) type? Yes!
+
+``` julia
+struct Point
+    x # no type here!
+    y # no type declared here either!
+end
+```
+
+But! `x` and `y` will both be allowed to be `Any`, which is the fallback type where Julia says that it doesn't know any more about the type until runtime (the time at which our program encounters the data when running). This means that the compiler (and us!) can't reason about or optimize the code as effectively as when the types are explicit or parametric. This is an example of how Julia can provide a nice learning curve - don't worry about the types until you start to get more sophisicated about the program design or need to extract more performance from the code.
+:::
+
+The above `struct`s that we have defined are examples of **concrete types** types which hold data. **Abstract types** don't directly hold data themselves but are used to define a hierarchy of types which we will later exploit (@sec-patterns-abstractions) to implement custom behavior depending on what type our data is.
+
+Here's an example of (1) defining a set of related types that sits above our `Point2D`:
+
+```{julia}
+#| output: false
+abstract type Coordinate end
+abstract type CartesianCoordinate <: Coordinate end
+abstract type PolarCoordinate <: Coordinate end
+
+struct Point2D{T} <: CartesianCoordinate
+    x::T
+    y::T
+end
+
+struct Point3D{T} <: CartesianCoordinate
+    x::T
+    y::T
+    z::T
+end
+
+struct Polar2D{T} <: PolarCoordinate
+    r::T
+    θ::T
+end
+```
+
+::: callout-tip
+## Unicode Characters
+
+Julia has wonderful Unicode support, meaning that it's not a problem to include characters like `θ`. The character can be typed in Julia editors by entering `\theta` and then pressing the TAB key on the keyboard.
+
+Unicode is helpful for following conventions that you may be used to in math. For example, the math formula $\text{circumference}(r) = 2 \times r \times \pi$ can be written in Julia with `circumference(r) = 2 * r * π`.
+
+The name for the characters follows the same for LaTeX, so you can search the internet for,e.g. "theta LaTeX" to find the appropriate name. Furhter, you can use the REPL help mode to find out how to enter a character if you can copy and paste it from somewhere:
+
+``` julia-repl
+help?> θ
+"θ" can be typed by \theta<tab>
+```
+:::
+
+### Mutable structs
+
+It is possible to define `struct`s where the data can be modified - such a data field is said to be **mutable** because it can be changed or mutated. Here's an example of what it would look like if we made `Point2D` mutable:
+
+``` julia
+mutable struct Point2D{T}
+    x::T
+    y::T
+end
+```
+
+You may find that this more naturally represents what you are trying to do. However, recall that an advantage of an immutable datatype is that costly memory doesn't necessarily have to be allocated for it. So you may think that you're being more efficient by re-using the same object... but it may not actually be faster. Again, more will be revealed in @sec-hardware.
+
+::: callout-tip
+## Financial Modeling Pro-tip
+
+Generally you should default to using immutable types and consider only moving to `mutable` types in specific circumstances. You'll see some examples in the applications later in the book.
+:::
+
+### Constructors {#sec-constructors}
+
+**Constructors** are functions that return a data type (functions will be covered more generally later in the chapter). When we declare a `struct`, an implicit function is defined that takes a tuple of arguments and returns the data type that was declared. In the following example, after we define `MyType` the `struct`, Julia creates a function (also called `MyType`) which takes two arguments and will return the datatype `MyType`:
+
+```{julia}
+struct MyDate
+    year::Int
+    month::Int
+    day::Int
+end
+
+methods(MyDate)
+```
+
+Implicit constructors are nice in that you don't have to define a default method and the language does it for you. Sometimes there's reasons to want to control how an object is created, either for convenience or to enforce certain restrictions.
+
+We can use an inner constructor (i.e. inside the `struct` block) to enforce restrictions:\
+
+``` julia
+struct MyDate
+    year::Int
+    month::Int
+    day::Int
+
+    function MyDate(y,m,d)
+        if ~(m in 1:12)
+            error("month is not between 1 and 12")
+        else if ~(d in 1:31)
+            error("day is not between 1 and 31")
+        else
+            return new(y,m,d)
+        end
+
+    end
+                
+end
+```
+
+And outer constructors are simply functions defined that have the same name as the data type , but are not defined inside the `struct` block. Extending the `MyDate` example, say we want to provide a default constructor for if no day is given such that the date returns the 1st of the month:
+
+``` julia
+function MyDate(y,m)
+    return MyDate(y,m,1)
+end
+```
 
 ## Scope {#sec-scope}
 
@@ -1187,3 +1169,34 @@ Summarizing related terminology:
 
     -   **Library** is just another name for a package, and the most common context this comes up is when talking about the packages that are bundled with Julia itself called the **standard library** (`stdlib`).
 :::
+
+
+### Passing by Sharing {#sec-pass-by-sharing}
+
+We often want to share data between scopes, such as between modules or by passing something into a function's scope. Arguments to a function in Julia are **passed-by-sharing** which means that an outside variable can be mutated from within a function. We can modify the array in the outer scope (scope discussed later in this chapter) from within the function. In this example, we modify the array that is assigned to `v` by doubling each element:
+
+```{julia}
+v = [1, 2, 3]
+
+function double!(v)
+    for i in eachindex(v)
+        v[1] = 2 * v[i]
+    end
+end
+
+double!(v)
+
+v
+```
+
+::: callout-tip
+Convention in Julia is that a function that modifies it's arguments has a `!` in it's name and we follow this convention in `double!` above. Another example would be the built-in function `sort!` which will sort an array in-place without allocating a new array to store the sorted values.
+:::
+
+We won't discuss all potential ways that programming languages can behave in this regard, but an alternative that one may have seen before (e.g. in Matlab) is pass-by-value where a modification to an argument only modifies the value within the scope. Here's how to replicate that in Julia by `copy`ing the value before handing it to a function. This time, v is not modified because we only passed a copy of the array and not the array itself:
+
+```{julia}
+v = [1, 2, 3]
+double!(copy(v))
+v
+```
