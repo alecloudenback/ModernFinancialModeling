@@ -1,0 +1,202 @@
+# First Abstractions {#sec-first-abstractions}
+
+> QUOTE NEEDED
+
+## In this section
+
+Demonstrate different approaches to a problem which gradually introduce more re-usable or general techniques. These techniques will allow for constructing sophisticated models while maintaining coniststency and simplicity. Imperative programming, functional programming, and using types to simplify program logic.
+
+## Introduction
+
+This chatpter will center around a simple task: calculate the present value of a portfolio of two fixed, copoun-paying bonds under two different interest rate environments. The focus will be on describing different approaches to this problem, not be adding complexity to the problem (e.g. no getting into credit spreads, settlement timing, etc.).
+
+```{julia}
+cf_bond = [10, 10, 10, 10, 110];
+rate = [0.05, 0.06, 0.05, 0.04, 0.05]; # <1>
+```
+
+1.  The rates given are the one year rate for time zero, time one, etc.
+
+The other bond and set of rates is described later in the chapter.
+
+Mathematically, the problem is to determine the $\text{Present Value}$, where:
+
+$$
+\text{Present Value} = \sum{\text{Cashflow}_t \times \text{Discount Factor}_t}
+$$
+
+Where
+
+$$
+\text{Discount Factor}_t = \prod{\frac{1}{1+\text{Discount Rate}_t}}
+$$
+
+We will repeatedly solve the same problem before extending it to more examples. It may feel repetitive but the focus here is not the problem, but rather the variations between the different approaches.
+
+## Imperative Style
+
+One of the most familiar styles of programming is called **imperative** (or **procedural**), where we provide step-by-step commands are provided to the computer. The programmer defines the data involved and how that data moves through the program one step at a time. It commonly uses loops to perform tasks repeatedly or across a set of data. The program's **state** (assigment and logic of the program's variables) is defined and managed by the programmer explicitly.
+
+Here's an imperative style of calculating the present value of the bond.
+
+```{julia}
+let
+    #<1>
+    pv = 0.0
+    discount = 1.0
+
+    for i in 1:length(cf_bond) #<2>
+        discount = discount / (1 + rate[i])
+        pv = pv + discount * cf_bond[i] # <3>
+    end
+    pv
+end
+```
+
+1.  Declare variables to keep track of the discount rate and running total for value
+2.  Loop the length of the cashflow vector.
+3.  At each step of the loop, look up (via index `i`) update the discount factor to account for the prevailing rate and add the discounted cashflow to the running total present value.
+
+This style is simple, digestable, and clear. If we were performing the calculation by hand, it would likely follow a pattern very similar to this. Look up the first cashflow and discount rate, compute a discount factor, and subtotal the value. Repeat for the next set of values.
+
+### Iterators
+
+Note that in the prior code example we defined an index variable `i` and had to manually define the range over which it would operate (`1` through the `length` of the bond's cashflow vector). A couple of reasons this could be sub-optimal:
+
+1.  We are making the *assumption* that the indices of the vectors start with one, when in reality Julia arrays *can* be defined to start at `0` or another arbitrary index.
+2.  We manually perform the lookup of the values within each iteration.
+
+We can solve the first one (partially) by letting Julia return an iterable set of values corresponding to the indices of the `cf_bond` vector. Tihs is an example of an **iterator** which is an object upon which we can repeatedly ask for the next value until it tells us to stop.
+
+By using `eachindex` we can get the indices of the vector since Julia already knows what they are:
+
+```{julia}
+eachindex(cf_bond)
+```
+
+::: callout-note
+## Lazy Programming
+
+The result, `{julia} eachindex(cf_bond)` is a **lazy** object which represents a collection that does not get fully instantiated until asked to (which may not actually be necessary). Many (most?) iterators are lazy but we can interact with them without fully instantiating the data that they represent. For example, we could find the largest index:
+
+```{julia}
+maximum(eachindex(cf_bond))
+```
+
+The point is if we have an object that *represents* a set, we need not actually enumerate each element of the set to interact with it.
+
+We can fully instantiate an iterator with `collect`
+
+```{julia}
+collect(eachindex(cf_bond))
+```
+
+Laziness is generally a good thing in programming because sometimes it can be computationally or memory expensive to fully instantiate the collection of interest.
+:::
+
+And when used in context:
+
+```{julia}
+let
+    pv = 0.0
+    discount = 1.0
+
+    for i in eachindex(cf_bond)
+        discount = discount / (1 + rate[i])
+        pv = pv + discount * cf_bond[i]
+    end
+    pv
+end
+```
+
+Here Julia gave us the index associated with the bond cashflows, but we are still looking up the values (why not just ask for the values instead of their index?) as well as assuming that the indices are the same for the discount rates.
+
+We can get the value and the associated index with `enumerate`:
+
+```{julia}
+collect(enumerate(cf_bond))
+```
+
+This would allow us to skip the step of needing to look up the bond's cashflows. However, we can go even further by just asking for value associated with both collections. With `zip` (named because it's sort of like zipping up two collections together), we get an iterator that provides the values of the underlying collections:
+
+```{julia}
+collect(zip(cf_bond, rate))
+```
+
+This provides the simplest implementation of the imperative approaches:
+
+```{julia}
+let
+    pv = 0.0
+    discount = 1.0
+
+    for (cf, r) in zip(cf_bond, rate)
+        discount = discount / (1 + r)
+        pv = pv + discount * cf
+    end
+    pv
+end
+```
+
+The primary downsides to this approach are:
+
+1.  Needing to keep track of state is fine in simple cases, but can quickly become difficult to reason about and error prone as the number and complexity of variables grows.
+2.  Program flow is explicitly stated, leaving fewer places that the compiler can automatically optimize or parallelize.
+
+Note that it's when state is `mutable` that a program tends to be more complex.
+
+## Functional Techniques and Terminology
+
+**Functional** programming is a paradigm which attempts to minimize state via composing functions together. 
+
+@tbl-funcional-methods introduces a set of core functional methods to familiarize yourself with. Note that anonymous functions (#sec-anonymous-functions) are used frequently to define intermediary steps.
+
++--------------------------+---------------------------------------------------------------------------------------------------------------------------------------+---------------+
+| Function                 | Desciption                                                                                                                            | Example       |
++==========================+=======================================================================================================================================+===============+
+| `map(f,v)`               | Apply function `f` to each element of the collection `v`.                                                                             | ``` julia     |
+|                          |                                                                                                                                       | map(          |
+|                          |                                                                                                                                       |     x->x^2,   |
+|                          |                                                                                                                                       |     [1,3,5]   |
+|                          |                                                                                                                                       | ) # [1,9,25]  |
+|                          |                                                                                                                                       | ```           |
++--------------------------+---------------------------------------------------------------------------------------------------------------------------------------+---------------+
+| `reduce(op,v)`           | Apply binary `op` to pairs of values, reducing the dimension of the collection `v`.\                                                  | ``` julia     |
+|                          | \                                                                                                                                     | reduce(       |
+|                          | Has a couple of important, optional keyword arguments to note (which also apply to other variants of `reduce` below):                 |     *,        |
+|                          |                                                                                                                                       |     [1,3,5]   |
+|                          | -   `init` defines the identity element (e.g. the initial value of `+` and `*` is `0` and `1` respectively)                           | ) # 15        |
+|                          | -   `dims` defines which dimension to reduce across (if the dimension of `v` is more than one).                                       | ```           |
++--------------------------+---------------------------------------------------------------------------------------------------------------------------------------+---------------+
+| `mapreduce(op,f,v)`      | Maps `f` over collection `v` and returns a reduced result using `op`.                                                                 | ``` julia     |
+|                          |                                                                                                                                       | mapreduce(    |
+|                          |                                                                                                                                       |     *,        |
+|                          |                                                                                                                                       |     x->x^2,   |
+|                          |                                                                                                                                       |     [1,3,5]   |
+|                          |                                                                                                                                       | ) # 35        |
+|                          |                                                                                                                                       | ```           |
++--------------------------+---------------------------------------------------------------------------------------------------------------------------------------+---------------+
+| `foldl(op,v)foldr(op,v)` | Like `reduce`, but applies `op` from left to right (`foldl`) or right to left (`foldr`). Also has `mapfoldl` and `mapfoldr` versions. | ``` julia     |
+|                          |                                                                                                                                       | foldl(        |
+|                          |                                                                                                                                       |     *,        |
+|                          |                                                                                                                                       |     [1,3,5]   |
+|                          |                                                                                                                                       | ) # 15        |
+|                          |                                                                                                                                       | ```           |
++--------------------------+---------------------------------------------------------------------------------------------------------------------------------------+---------------+
+| `accumulate(op,v)`       | Apply `op` along `v` , creating a vector with the cumulative result.                                                                  | ``` julia     |
+|                          |                                                                                                                                       | accumulate(   |
+|                          |                                                                                                                                       |     +,        |
+|                          |                                                                                                                                       |     [1,3,5]   |
+|                          |                                                                                                                                       | ) # [1, 4, 9] |
+|                          |                                                                                                                                       | ```           |
++--------------------------+---------------------------------------------------------------------------------------------------------------------------------------+---------------+
+
+: caption TBD {#tbl-funcional-methods}
+
+This paradigm is very powerful in a few ways:
+
+1.  It provides a language for talking about what a computation is doing. Instead of "looping over a collection called `portfolio` and calling a `value` function" we can mnore concisely refer to this as `mapreduce(valuem,portfolio)`.
+2.  Often times you are forced to think about the design of the program more deeply, recognizing the core calculations and data used within the model.
+3. The compiler is free to apply more optimizations. For example, with `reduce`, the compiler could drive the caluclation in any order since the operation is associative. 
+4. The lack of mutable state 
+
