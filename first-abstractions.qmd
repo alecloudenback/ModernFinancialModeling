@@ -212,9 +212,9 @@ Let's build a version of the present value calculation using the functional buil
 First, to show how we could calculate the discount factor:
 
 ```{julia}
-accumulate(
+discount_factors(rates) = accumulate(
     (discount_factor, cur_rate) -> discount_factor / (1 + cur_rate), #<1>
-    rate; # <2>
+    rates; # <2>
     init=1 # <3>
 )
 ```
@@ -225,9 +225,19 @@ accumulate(
 
 Compared to the imperative version, we have still defined a function (albeit an anonymous one) that defines a routine that calculates a discount factor. In this case though, the intermediate variables `cur_rate` and `discount_factor` are local to the anonymous function and can't get mixed up if this code was running simultaneously in different parts of our program.
 
+To complete the example with functional building blocks, we 
+
+```{julia}
+map(*, cf_bond, discount_factors(rate))
+```
+
+```{julia}
+mapreduce(*, +, cf_bond, discount_factors(rate))
+```
+
 ::: callout-tip
-At the risk of sounding obvious, an easy way to make the program more "functional" is to simply use more functions. Do this one thing and it will improve the model's organization, maintainability, and reduce bugs!\
-\
+At the risk of sounding obvious, an easy way to make the program more "functional" is to simply use more functions. Do this one thing and it will improve the model's organization, maintainability, and reduce bugs!
+
 Take the example from earlier:
 
 ``` julia
@@ -265,11 +275,6 @@ Now we could use this definition of `pv` on other instances of rates and cashflo
 
 One of the best things about Julia is how natural it can be to mix the different styles Sometimes the best is the mix of both styles and that's one of the benefits of Julia: use the style that's most natural to the problem.
 
-Goal:
-
-``` julia
-mapreduce(+,value,zip(rates,discount_factors))
-```
 
 ## Array-Oriented Styles
 
