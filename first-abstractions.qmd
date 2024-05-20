@@ -1,6 +1,6 @@
 # First Abstractions {#sec-first-abstractions}
 
-> QUOTE NEEDED
+> The purpose of abstraction is not to be vague, but to create a new semantic level in which one can be absolutely precise. - Edsger Dijkstra (1972)
 
 ## In this section
 
@@ -209,30 +209,111 @@ This paradigm is very powerful in a few ways:
 
 Let's build a version of the present value calculation using the functional building blocks described above.
 
-First, to show how we could calculate the discount factor:
+### `map`
+
+**`map`** is so named for the mathetmatical concept of mapping an input to an output. Here, it's effectively the same thing. We take a collection and use the given function to calculate an output. The size of the output equals the size of the input.
+
+First, to show how we could calculate the discount factor we will use `map` to compute the one-period discount factors:
 
 ```{julia}
-discount_factors(rates) = accumulate(
-    (discount_factor, cur_rate) -> discount_factor / (1 + cur_rate), #<1>
-    rates; # <2>
-    init=1 # <3>
-)
+map(x -> 1 / (1 + x), rate)
 ```
 
-1.  An anonymous function which takes the accumulated discount factor and next value and computes the updated discount factor.
-2.  The collection of rates that we are operating on.
-3.  We define what the initial value should be (otherwise the first value of `rate` will be the initially returned value).
+`map` transforms the `rate` collection by applying the anonomyous function `x -> 1 / (1 + x)`, which is the single period discount factor. This operation is conveyed visually in @tbl-map-diagram.
 
-Compared to the imperative version, we have still defined a function (albeit an anonymous one) that defines a routine that calculates a discount factor. In this case though, the intermediate variables `cur_rate` and `discount_factor` are local to the anonymous function and can't get mixed up if this code was running simultaneously in different parts of our program.
+```{dot}
+digraph G {
+  node [shape=box];
+  rankdir=LR;
 
-To complete the example with functional building blocks, we 
+  subgraph cluster_0 {
+    label = "Input Array (rate)";
+    node [style=filled, color=lightblue];
+    rate1 [label="0.05"];
+    rate2 [label="0.06"];
+    rate3 [label="0.05"];
+    rate4 [label="0.04"];
+    rate5 [label="0.05"];
+  }
+
+  subgraph cluster_1 {
+    label = "Map Function";
+    node [style=filled, color=lightgreen];
+    map1 [label="1 / (1+x)"];
+    map2 [label="1 / (1+x)"];
+    map3 [label="1 / (1+x)"];
+    map4 [label="1 / (1+x)"];
+    map5 [label="1 / (1+x)"];
+  }
+
+  subgraph cluster_2 {
+    label = "Output Array";
+    node [style=filled, color=lightpink];
+    output1 [label="0.9524"];
+    output2 [label="0.9434"];
+    output3 [label="0.9524"];
+    output4 [label="0.9615"];
+    output5 [label="0.9524"];
+  }
+
+  rate1 -> map1 -> output1;
+  rate2 -> map2 -> output2;
+  rate3 -> map3 -> output3;
+  rate4 -> map4 -> output4;
+  rate5 -> map5 -> output5;
+}
+```
+: A diagram showing that `map` creates a new collection mirroring the old one, after applying the given function to each element in the original collection. {#tbl-map-diagram}
+
+::: callout-tip
+`map` is an absolute workhorse of a function and the authors recommend using it liberally within your code. We find ourselves using `map` frequently, usually avoiding defining an explicit loop (unless we are modifying some existing collection). 
+
+An anti-pattern where `map` would likely be a better tool than a loop often looks like this:
+
+```julia
+output = []
+for x in collection
+    result = # ... do stuff ...
+    push!(output,result)
+end
+output
+```
+
+Instead, `map` simplifies this to: 
+
+```julia
+map(collection)
+    # ... do stuff
+end
+```
+
+Not only does this have the advantage of being clearer, more concise, and less work... it also let's Julia manage the output type of your computation so you don't have to worry about the type of `output`.
+:::
+
+### `accumulate`
 
 ```{julia}
-map(*, cf_bond, discount_factors(rate))
+accumulate(*, map(x -> 1 / (1 + x), rate))
+```
+
+
+
+### `reduce`
+
+...
+
+### Putting it all together
+
+In the following example, we take two collections and multiply them together. Specifically, we'll pair up each cashflow with the associated discount factor (this works because the arrays are in the correct time-based order for our problem).
+
+```{julia}
+dfs = accumulate(*, map(x -> 1 / (1 + x), rate))
+map(*, cf_bond, dfs)
 ```
 
 ```{julia}
-mapreduce(*, +, cf_bond, discount_factors(rate))
+dfs = accumulate(*, map(x -> 1 / (1 + x), rate))
+mapreduce(*, +, cf_bond, dfs)
 ```
 
 ::: callout-tip
@@ -275,6 +356,7 @@ Now we could use this definition of `pv` on other instances of rates and cashflo
 
 One of the best things about Julia is how natural it can be to mix the different styles Sometimes the best is the mix of both styles and that's one of the benefits of Julia: use the style that's most natural to the problem.
 
+...
 
 ## Array-Oriented Styles
 
