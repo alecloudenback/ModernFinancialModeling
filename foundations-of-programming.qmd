@@ -238,10 +238,11 @@ y
 
 Note that variables can be re-assigned unless they are marked as `const`:
 
-```
+```         
 const PHI =  π * 2 # <1>
 ```
-1. Capitalizing constant variables is a convention in Julia.
+
+1.  Capitalizing constant variables is a convention in Julia.
 
 If we tried to re-assign `PHI`, we would get an error.
 
@@ -442,11 +443,11 @@ graph TD
 
 The integer and floating point types described in the prior section are known as **concrete** types because there are no possible sub types (child types). Further, a concrete type can be a **bit type** if the data type will always have the same number of bits in memory: a `Float32` will always be 32 bits in memory, for example. Contrast this with strings (described below) which can contain an arbitrary number of characters.
 
-### Arrays
+### Collections
 
-::: column-margin
-[]{.juliadots} Julia has very powerful and friendly array types.
-:::
+Collections are types that are really useful for storing data which contains many elements. This section describes some of the most common and useful types of containers.
+
+#### Arrays
 
 Arrays are the most common way to represent a collection of similar data. For example, we can represent a set of integers as follows:
 
@@ -539,9 +540,46 @@ mat = [1 2 3; 4 5 6; 7 8 9]
 vec(mat)
 ```
 
-### Characters, Strings, and Symbols
+#### Ranges
 
-Characters are represented in most programming languages as letters within quotation marks. In Julia, individual characters are represented using single quotes:
+A **range** is a representation of a range of numbers. We actually used them above to index into arrays. They are expressed as `start:stop`
+
+We don't have to actually store all of these numbers on the computer somewhere as in an `Array`. Instead, this is an object that *represents* the ordered set of numbers. So for example, we can sum up 1 through the number of atoms on the earth instantaneously:
+
+```{julia}
+sum(1:big(100_000_000_000_000_000_000_000_000_000_000_000_000_000_000_000_000))
+```
+
+This is possible due to two things:
+
+1.  not needing to actually store that many numbers in memory, and
+2.  Julia being smart enough to apply the triangular number formula[^foundations-of-programming-11] when `sum` is given a consecutive range.
+
+[^foundations-of-programming-11]: The triangular numbers (sum of integers from $1$ to $n$) are:$$
+    T_n = \sum_{k=1}^n k = 1 + 2 + \cdots + n
+        = \frac{n^2 + n}{2} = \frac{n(n+1)}{2}
+        = \left(\frac{n+1}{2}\right)
+    $$
+
+There are more general ways to construct ranges:
+
+Step by another number instead of the default 1:
+
+```{julia}
+1:2:7
+```
+
+Specify the number of values within the range, inclusive of the first number[^foundations-of-programming-12]:
+
+[^foundations-of-programming-12]: Whether the last number is in the resulting range depends on if the step evenly divides the end of the range.
+
+```{julia}
+range(0, 10, 21)
+```
+
+#### Characters, Strings, and Symbols
+
+**Characters** are represented in most programming languages as letters within quotation marks. In Julia, individual characters are represented using single quotes:
 
 ```{julia}
 'a'
@@ -549,9 +587,9 @@ Characters are represented in most programming languages as letters within quota
 
 Letters and other characters present more difficulties than numbers to represent within a computer (think of how many languages and alphabets exist!), and it essentially only works because the world at large has agreed to a given representation. Originally **ASCII** (American Standard Code for Information Interchange) was used to represent just 95 of the most common English characters ("a" through "z", zero through nine, etc.). Now, UTF (Unicode Transformation Format) can encode more than a million characters and symbols from many human languages.
 
-**Strings** are a collection[^foundations-of-programming-11] of characters, and can be created in Julia with double quotes:
+**Strings** are a collection[^foundations-of-programming-13] of characters, and can be created in Julia with double quotes:
 
-[^foundations-of-programming-11]: Under the hood, strings are essentially a vector of characters but there are complexities with character encoding that don't allow a lossless conversion to individual characters of uniform bit length. This is for historical compatibility reasons and to avoid making most documents' file sizes larger than it needs to be.
+[^foundations-of-programming-13]: Under the hood, strings are essentially a vector of characters but there are complexities with character encoding that don't allow a lossless conversion to individual characters of uniform bit length. This is for historical compatibility reasons and to avoid making most documents' file sizes larger than it needs to be.
 
 ```{julia}
 "hello world"
@@ -570,7 +608,7 @@ The output above shows the `\n` character contained within the string.
 
 **Symbols** are a way of representing an identifier which cannot be seen as a collection of individual characters. `:helloworld` is distinct from `"helloworld"` - you can kind of think of the former as an un-executed bit of code - if we were to execute it (with `eval(:helloworld)`), we would get an error `` UndefVarError: `a` not defined `` . Symbols can *look* like strings but do not behave like them. For now, it is best to not worry about symbols but it is an important aspect of Julia which allows the language to represent aspects of itself as data. This allows for powerful self-reference and self-modification of code but this is a more advanced topic generally out of scope of this book.
 
-### Tuples
+#### Tuples
 
 Tuples are a set of values that belong together and are denoted by a values inside parenthesis and separated by a comma. An example might be x-y coordinates in 2 dimensional space:
 
@@ -594,11 +632,11 @@ Tuples fill a middle ground between scalar types and arrays in more ways that on
 
 -   It's generally expected that within an array, you would be able to apply the same operation to all the elements (e.g. square each element) or do something like sum all of the elements together which isn't generally case for a tuple.
 
--   Tuples are generally stack allocated instead of being heap allocated like arrays[^foundations-of-programming-12], meaning that a lot of times they can be faster than arrays.
+-   Tuples are generally stack allocated instead of being heap allocated like arrays[^foundations-of-programming-14], meaning that a lot of times they can be faster than arrays.
 
-[^foundations-of-programming-12]: What this means will be explained in @sec-hardware .
+[^foundations-of-programming-14]: What this means will be explained in @sec-hardware .
 
-#### Named Tuples
+##### Named Tuples
 
 Named tuples provide a way to give each field within the tuple a specific name. For example, our x-y coordinate example above could become:
 
@@ -611,6 +649,28 @@ The benefit is that we can give more meaning to each field and access the values
 ```{julia}
 p2.x
 ```
+
+#### Dictionaries
+
+**Dictionaries** are a container which relates a **key** to an associated **value**. Kind of like how arrays relate an index to a value, but the difference is that a dictionary is (1) un-ordered and (2) the key doesn't have to be an integer.
+
+Here's an example which relates a name to an age:
+
+```{julia}
+d = Dict(
+    "Joelle" => 10,
+    "Monica" => 84,
+    "Zaylee" => 39,
+)
+```
+
+Then we can look up an age given a name:
+
+```{julia}
+d["Zaylee"]
+```
+
+Dictionaries are super flexible data strucures and can be used in many situations.
 
 ### Parametric Types {#sec-parametric-types}
 
@@ -663,10 +723,10 @@ Three value logic with `true`, `missing`, and `false`.
 :::
 
 ::: callout-tip
-`Missing` and `Nothing` are the *types* while `missing` and `nothing` are the values here[^foundations-of-programming-13]. This is analogous to `Float64` being a type and `2.0` being a value.
+`Missing` and `Nothing` are the *types* while `missing` and `nothing` are the values here[^foundations-of-programming-15]. This is analogous to `Float64` being a type and `2.0` being a value.
 :::
 
-[^foundations-of-programming-13]: `Missing` and `Nothing` are instances of **singleton type,** which means that there is only a single value that either type can take on.
+[^foundations-of-programming-15]: `Missing` and `Nothing` are instances of **singleton type,** which means that there is only a single value that either type can take on.
 
 ### Union Types
 
@@ -894,7 +954,7 @@ In Julia, we distinguish between **functions** which define behavior that maps a
 
 Funcitons more generally are defined like so:
 
-```julia
+``` julia
 function functionname(arguments)
     # ... code that does things
 end
@@ -902,7 +962,7 @@ end
 
 Here's an example which returns the difference between the highest and lowest values in a collection:
 
-```julia
+``` julia
 function value_range(collection)
 
     hi = maximum(collection)
@@ -910,8 +970,8 @@ function value_range(collection)
     return hi - lo # <1>
 end
 ```
-1. `return` is optional but recommended to convey to readers of the program where you expect your function to terminate and return a value.
 
+1.  `return` is optional but recommended to convey to readers of the program where you expect your function to terminate and return a value.
 
 ### Defining Methods on Types {#sec-methods}
 
@@ -940,9 +1000,9 @@ However, we might at this point note a flaw in our function's definition if we t
 distance(Point3D(1, 1, 1,))
 ```
 
-The above value should be $\sqrt(3)$, or approximately $1.73205$. 
+The above value should be $\sqrt(3)$, or approximately $1.73205$.
 
-What we need to do is define a refined distance for each type, which we'll call `dist` to distinguish from the earlier definition. 
+What we need to do is define a refined distance for each type, which we'll call `dist` to distinguish from the earlier definition.
 
 ```{julia}
 """
@@ -967,6 +1027,7 @@ In @sec-patterns-abstractions we will see how dispatch (single and multiple) can
 
 ::: callout-note
 ## Docstrings (Documentation Strings)
+
 Notice the strings preceding the defintion of `dist`. In Julia, putting a string (`"..."`) or string literal (`"""..."""`) right above the definition will allow Julia to recognize the string as documentation and provided it to the user in help mode (@sec-help-mode) and/or have a documentation tool create a webpage or PDF documentation resource.
 :::
 
@@ -1141,7 +1202,6 @@ If we were expecting Julia to return `[1,0]` (that the first needle is in the ha
 in.([1, 9], Ref([1 2 3; 4 5 6]))
 ```
 
-
 ### Passing by Sharing {#sec-pass-by-sharing}
 
 We often want to share data between scopes, such as between modules or by passing something into a function's scope. Arguments to a function in Julia are **passed-by-sharing** which means that an outside variable can be mutated from within a function. We can modify the array in the outer scope (scope discussed later in this chapter) from within the function. In this example, we modify the array that is assigned to `v` by doubling each element:
@@ -1171,7 +1231,6 @@ v = [1, 2, 3]
 double!(copy(v))
 v
 ```
-
 
 ## Scope {#sec-scope}
 
@@ -1273,8 +1332,3 @@ Summarizing related terminology:
 
     -   **Library** is just another name for a package, and the most common context this comes up is when talking about the packages that are bundled with Julia itself called the **standard library** (`stdlib`).
 :::
-
-## TODO
-
-- ranges (`1:2:10`)
-- Dicts
