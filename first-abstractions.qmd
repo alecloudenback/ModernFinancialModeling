@@ -222,6 +222,8 @@ map(x -> 1 / (1 + x), rate)
 `map` transforms the `rate` collection by applying the anonomyous function `x -> 1 / (1 + x)`, which is the single period discount factor. This operation is conveyed visually in @tbl-map-diagram.
 
 ```{dot}
+//| label: fig-map-diagram
+//| fig-cap: "A diagram showing that `map` creates a new collection mirroring the old one, after applying the given function to each element in the original collection. "
 digraph G {
   node [shape=box];
   rankdir=LR;
@@ -263,7 +265,6 @@ digraph G {
   rate5 -> map5 -> output5;
 }
 ```
-: A diagram showing that `map` creates a new collection mirroring the old one, after applying the given function to each element in the original collection. {#tbl-map-diagram}
 
 ::: callout-tip
 `map` is an absolute workhorse of a function and the authors recommend using it liberally within your code. We find ourselves using `map` frequently, usually avoiding defining an explicit loop (unless we are modifying some existing collection). 
@@ -292,29 +293,166 @@ Not only does this have the advantage of being clearer, more concise, and less w
 
 ### `accumulate`
 
+`accumulate` takes an operation and a collection and returns a collection where each element is the cumulative result of applying the operation from the first element to the current one.
+For example, to calculate the cumulative product of the one-period discount factors:
 ```{julia}
 accumulate(*, map(x -> 1 / (1 + x), rate))
 ```
 
+This results in a vector of the cumulative discount factors for each point in time corresponding to the given cashflows.
 
+```{dot}
+//| label: fig-accumulate-diagram
+//| fig-cap: "A diagram showing that `accumulate` creates a new collection where each element is the cumulative result of applying the given operation to all previous elements."
+digraph G {
+  node [shape=box];
+  rankdir=LR;
+
+  subgraph cluster_0 {
+    label = "Input Array (discount factors)";
+    node [style=filled, color=lightblue];
+    df1 [label="0.9524"];
+    df2 [label="0.9434"];
+    df3 [label="0.9524"];
+    df4 [label="0.9615"];
+    df5 [label="0.9524"];
+  }
+
+  subgraph cluster_1 {
+    label = "Accumulate Function (*)";
+    node [style=filled, color=lightgreen];
+    acc1 [label="df1 * init"];
+    acc2 [label="df2 * output_1"];
+    acc3 [label="df3 * output_2"];
+    acc4 [label="df4 * output_3"];
+    acc5 [label="df5 * output_4"];
+  }
+subgraph cluster_3{
+
+output0 [label="init=1.0"];
+  subgraph cluster_2 {
+    label = "Output Array";
+    node [style=filled, color=lightpink];
+    output1 [label="0.9524"];
+    output2 [label="0.8985"];
+    output3 [label="0.8561"];
+    output4 [label="0.8230"];
+    output5 [label="0.7831"];
+  }
+}
+
+  df1 -> acc1;
+  df2 -> acc2;
+  df3 -> acc3;
+  df4 -> acc4;
+  df5 -> acc5;
+  
+  acc1 -> output1;
+  acc2 -> output2;
+  acc3 -> output3;
+  acc4 -> output4;
+  acc5 -> output5;
+
+  output0 -> acc1;
+  output1 -> acc2;
+  output2 -> acc3;
+  output3 -> acc4;
+  output4 -> acc5;
+
+}
+```
+
+::: callout-note
+For `accumulate` and `reduce`, an important value is the `init` (an optional keyword argument), which is the initial value to start the accumulation or reduction. By default, for common operations this **identity element** is predefined. For example, for `+` the identity is `0` while for `*` it is `1`. The identity element $e$ is the one where for a given binary operation $\bigodot$, that $x \bigodot e = x$.
+
+Another example beyond addition and subtraction is string concatenation. In Julia, two strings are concatenated with `*` (like in mathematics, $a * b$ is also written as $ab$). The identitiy element for strings where the binary operation $\bigodot = *$ is `""`. For example:
+
+```{julia}
+accumulate(*, ["a", "b", "c"], init="")
+```
+
+*This is a taste of a branch of mathematics known as Category Theory, a very rich subject but largely beyond the immediate scope of this book. The category theoretical term for sets of things that work with the binary operator and identity elements as described above is a **monoid**. You may ignore this fact.
+*
+:::
 
 ### `reduce`
 
-...
 
-### Putting it all together
+`reduce` takes an operation and a collection and applies the operation repeatedly to pairs of elements until there is only a single value left.
 
-In the following example, we take two collections and multiply them together. Specifically, we'll pair up each cashflow with the associated discount factor (this works because the arrays are in the correct time-based order for our problem).
-
+For example, we start with the calculation of the vector of discounted cashflows 
 ```{julia}
 dfs = accumulate(*, map(x -> 1 / (1 + x), rate))
-map(*, cf_bond, dfs)
+discounted_cfs = map(*, cf_bond, dfs)
 ```
 
+Then we can sum them with reduce:
+
+```{julia}
+reduce(+, discounted_cfs)
+```
+
+
+```{dot}
+//| label: fig-reduce-diagram
+//| fig-cap: "A diagram showing how `reduce` applies the given operation to pairs of elements, ultimately reducing the collection to a single value."
+
+digraph G {
+  node [shape=box];
+  rankdir=LR;
+
+  subgraph cluster_0 {
+    label = "Input Array (discounted cashflows)";
+    node [style=filled, color=lightblue];
+    cf1 [label="9.52"];
+    cf2 [label="8.98"];
+    cf3 [label="8.56"];
+    cf4 [label="8.23"];
+    cf5 [label="86.20"];
+  }
+
+  subgraph cluster_1 {
+      rank=max;
+    rankdir=TB;
+    label = "Reduce Function (+)";
+    node [style=filled, color=lightgreen];
+    red0 [label="init=0.0 + cf1"];
+    red1 [label="red0 + cf2"];
+    red2 [label="red1 + cf3"];
+    red3 [label="red2 + cf4"];
+    red4 [label="red3 + cf5"];
+  }
+
+  subgraph cluster_2 {
+      rankdir=TB;
+    label = "Output Value";
+    node [style=filled, color=lightpink];
+    output [label="121.49"];
+  }
+
+  cf1 -> red0;
+  cf2 -> red1;
+  cf3 -> red2;
+  cf4 -> red3;
+  cf5 -> red4;
+  
+  red0 -> red1;
+  red1 -> red2;
+  red2 -> red3;
+  red3 -> red4;
+  red4 -> output;
+}
+```
+
+### `mapreduce`
+
+We can combine `map`, `accumulate` and `reduce` to concisely calculate the present value in a functional style:
 ```{julia}
 dfs = accumulate(*, map(x -> 1 / (1 + x), rate))
 mapreduce(*, +, cf_bond, dfs)
 ```
+
+This calculates the discount factors, applies them to the cashflows with map, and sums the result with a reduction.
 
 ::: callout-tip
 At the risk of sounding obvious, an easy way to make the program more "functional" is to simply use more functions. Do this one thing and it will improve the model's organization, maintainability, and reduce bugs!
@@ -351,6 +489,31 @@ end
 
 Now we could use this definition of `pv` on other instances of rates and cashflows.
 :::
+
+### `filter`
+
+`filter` does what you might think - filter a collection based on some critereon that can be determined as true or false.
+
+For example filtering out even numbers using the `isodd` function:
+
+```{julia}
+filter(isodd, 1:6)
+```
+
+Or filtering out things that don't match a criteria:
+
+```{julia}
+filter(x -> ~(x == 5), 1:6)
+```
+
+While we didn't need `filter` to calculate a bond's present value in the example above, one can imagine how you may want to filter dates that a bond might pay a cashflow, say last day of a quarter:
+
+```{julia}
+using Dates
+let d = Date(2024, 01, 01)
+    filter(d -> lastdayofquarter(d) == d, d:Day(1):lastdayofyear(d))
+end
+```
 
 ## Mixing Funcitonal And Imperative Styles
 

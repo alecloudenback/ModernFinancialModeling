@@ -275,3 +275,60 @@ An alternative and more limiting approach would be to be forced to assign the ow
 ### Recursion
 
 ### Iterators
+
+#### Currying, or Partially Evaluated Functions
+
+An advanced technique that shows off the first class nature of a special kind of functions: curried or partially evaluated functions are multi-argument functions where part of the function's arguments have already been defined so that they can be used more convieniently. 
+
+Here's some examples of how to do this with a test of equality. Say we want to later test if something is greater than or equal to 2. For example:
+
+```{julia}
+10 >= 2
+```
+
+We could also use these alternatively defined versions:
+
+```{julia}
+let
+    f1 = x -> x >= 2 # <1>
+    f2 = >=(2)
+    f3 = Base.Fix2(>=,2) # <2>
+
+    f1(10), f2(10), f3(10)
+
+end
+```
+1. Not really a partially evaluated form, since there's only a single argument involved.
+2. From the manual: "`Base.Fix2` is a type representing a partially-applied version of the two-argument function `f`, with the second argument fixed to the value "x". In other words, `Fix2(f, x)` behaves similarly to `y->f(y, x)`."
+
+
+Why is this convienent?
+
+A generic example is filtering a collection, such as: 
+
+```{julia}
+filter(>=(2),[1,10,20,4])
+```
+
+Another use-case that would come up in financial applications. Say that you had a function `interpolate((xs,ys),x)` which took two arguments: 
+1. a tuple of input values with associated output values, and
+2. an argument for the new input that you want to calculate the interpolated value for.
+
+This might look like this:
+
+```julia
+function interpolate(data,x)
+ # ... code to perform the interpolation 
+ # such that f(x) represents represents the 
+ # desired interpolated value
+ return f(x)
+end
+
+# get a function that will provide interpolated rates
+my_curve = Base.Fix1(interpolate,(maturities,rates))
+
+# get the rate assocated with time 1.5
+my_curve(1.5) 
+```
+
+You probably don't want to do this exact thing if the runtime to calculate the interpolation is expensive, but the technique comes up sometimes when trying to wrtie more general code.
