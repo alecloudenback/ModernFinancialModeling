@@ -1,0 +1,308 @@
+# Abstractions of Types
+
+> I am only one, but I am one. I can't do everything, but I can do something. The something I ought to do, I can do. And by the grace of God, I will - Edward Everett Hale (1902)
+
+## In this section
+
+The powerful benefits that using assigning types to data has within the model's system, some examples and relating some aspects of object oriented design.
+
+## Using Types to Value a Portfolio
+
+We will assemble a set of interfaces that let's us value a portfolio of assets. Using the constructs introduced in the prior chapter, we can describe this as additively reducing over the value-mapped collection of assets in the portfolio. Or more concisely:
+
+```julia
+mapreduce(value,+,portfolio)
+```
+
+In `portfolio`, the assets may be heterogeneous so we will need to define what the valuation semantics are for the different kinds of assets. To get to our end goal, we will need to:
+
+1. Define the different kinds of assets within our portfolio
+2. How the assets are to be valued.
+
+## Benefits of Using Types
+
+Defining types allows us to do several things:
+
+1. **Separate concerns**. For examaple, deciding how to value an option need not know how we value a bond. The code and associated logic is kept distinct which is easier to reason about and to test.
+2. **Re-use code**. When a set of types within a hiearchy all share the same logic, then we can define the method at the highest relevant level and avoid writing the method for each possible type. In our simple example we won't get as much benefit here since the hiearchy is simple and the set of types small.
+3. **Dispatch on type**. By defining types for our assets, we can use multiple dispatch to define specialized behavior for each type. This allows us to write generic code that works with any asset type, and the Julia compiler will automatically select the appropriate method based on the type of the asset at runtime. This is a powerful feature that enables extensibility and modularity in our code.
+4. **Improve readability and clarity**. By defining types for our assets, we make our code more expressive and self-documenting. The types provide a clear indication of what kind of data we are working with, making it easier for other developers (or ourselves in the future) to understand and maintain the codebase.
+5. **Enable type safety**. By specifying the expected types for function arguments and return values, we can catch type-related errors at compile time rather than at runtime. This helps prevent bugs and makes our code more robust.
+
+With these benefits in mind, let's start by defining the types for our assets. We'll create an abstract type called Asset that will serve as the parent type for all our asset types. If you haven't read it already, @sec-user-defined-types is a good reference for details on types at the language level (this section is focused on organizaiton and building up the abstracted valuation process).
+
+## Defining Types for Portfolio Valuation
+
+We will define five types of assets in this simplified universe:
+
+- Cash
+- Risk Free Bonds (coupon and zero-coupon varieties)
+- European Puts and Calls on Equities
+
+To do the valuation of these, we need some economic parameters as well: risk free rates and option implied volatilites, which we will pass via named tuples. In a more robust model it would be wise to use types to differentiate between different kinds of economic assumption sets but we will limit the scope here such that 
+
+Here's the outline of what follows to get an understanding of types, type hierarchy, and multiple dispatch.
+
+1. Define the Cash and Bond types.
+2. Define the most basic economic parameter set.
+3. Define the `value` functions for Cash and Bonds.
+
+```{julia}
+#| output: false
+
+## Data type definitions
+abstract type AbstractAsset end #<1>
+
+struct Cash <: AbstractAsset
+    balance::Float64
+end
+
+abstract type AbstractBond <: AbstractAsset end #<2>
+
+struct CouponBond <: AbstractBond #<2>
+    par::Float64
+    coupon::Float64
+    tenor::Int
+end
+
+struct ZeroCouponBond <: AbstractBond #<2>
+    par::Float64
+    tenor::Int
+end
+```
+1.  General convention is to name abstract types beginning with `Abstract...`
+
+
+Now to define the economic parameters:
+
+```{julia}
+struct EconomicAssumptions{T}
+  riskfree::T
+end
+```
+
+ This is a paramatetric type because later on we will vary what objects we use for `riskfree`. For now, we will use simple scalar values, like in this potential scenario:
+
+ ```{julia}
+econ_baseline = EconomicAssumptions(0.05)
+ ```
+
+
+Now on to defining the valuation for `Cash` and `AbstractBonds`. Cash is always equal to it's balance:
+```{julia}
+
+value(asset::Cash, ea::EconomicAssumptions) = asset.balance
+```
+
+Risk free bonds are the discounted present value of the riskless cashflows. We first define a method that generically operates on any fixed bond, all that's left to do is for different types of bonds to define how much cashflow occurs at the given point in time by defining `cashflow` for the associated type.
+```{julia}
+function value(asset::AbstractBond, r::Float64) # <2>
+    discount_factor = 1.0
+    value = 0.0
+    for t in 1:asset.tenor
+        discount_factor /= (1 + r) # <1>
+        value += discount_factor * cashflow(asset, t)
+    end
+    return value
+end
+
+function cashflow(bond::CouponBond, time)
+    if time == bond.tenor
+        (1 + bond.coupon) * bond.par
+    else
+        bond.coupon * bond.par
+    end
+end
+
+function value(bond::ZeroCouponBond, r::Float64) # <3>
+    return bond.par / (1 + r)^bond.tenor
+end
+
+```
+
+1.  `x /= y`, `x += y`, etc. are shorthand ways to write `x = x / y` or `x = x + y`
+2.  `value` is defined for `AbstractBond`s in general...
+3.  ... and then more specifically for `ZeroCouponBond`s. This will be explained when discussing "dispatch" below.
+
+### (Multiple) Dispatch
+When a function is called, the computer has to decide which method to use. In the example above, when we want to `value` a `ZeroCouponBond`, does the `value(asset::AbstractBond, r)` or `value(bond::ZeroCouponBond, r)` version get used? **Dispatch** is the process of determining the right method to use and the rule is that *the most specific defined method gets used*. In this case, that means that even though our `ZeroCouponBond` is an `AbstractBond`, the routine that will used is the most specific `value(bond::ZeroCouponBond, r)`.
+
+Already, this is a powerful tool to simplify our code. Imagine the alternative of a long chain of conditional statements trying to find the right logic to use:
+
+``` julia
+# don't do this!
+function value(asset,r)
+    if asset.type == "ZeroCouponBond"
+        # special code for Zero coupon bonds
+        # ...
+    elseif asset.type == "ParBond"
+        # special code for Par bonds
+        # ...
+    elseif asset.type == "AmortizingBond"
+        # special code for Amortizing Bonds
+        # ...
+    else
+        # here define the generic AbstractBond logic
+    end
+end
+```
+
+A more general concept is that of **multiple dispatch**, where the types of *all arguments* are used to determine which method to use. This is a very general paradigm, and in many ways is more extensible than traditional object oriented approaches, (more on that in the next section).
+
+In our definition of `value` above, we used a simple scalar interest rate to determine the rate to discount the cash flows. What if instead of a scalar interest rate value we wanted to instead pass an object that represented a term structure of interest rates?
+Note how in the definition of `value` for `ZeroCouponBond`, we have defined a *more specific* signature: both the first and second arguments are specific, concrete types. When we call `value(ZeroCouponBond(100.0,3),0.05)`, we avoid the loop that's defined in the generic case and jump immediate to a more efficient definition of its `value`. This is **dispatching** on the combination of types and picking the most relevant (specific) version for what has been passed to it.
+
+Despite the definitions above, the following will error because we haven't defined a method for `value` which takes as it's second argument a type of `EconomicAssumptions`:
+
+```{julia}
+#| error: true
+value(ZeroCouponBond(100.0,5),econ_baseline)
+```
+
+Let's fix that. Here we define a method which takes the economic assumption type and just relays the relevant risk free rate to the `value` methods already defined (which take an `AbstractBond` and a scalar `r`).
+
+```{julia}
+value(bond::AbstractBond,econ::EconomicAssumptions) = value(bond,econ.riskfree)
+```
+
+Now this following works:
+
+```{julia}
+value(ZeroCouponBond(100.0, 5), econ_baseline)
+```
+
+Here's an example of how this would be used:
+
+```{julia}
+portfolio = [
+    Cash(50.0),
+    CouponBond(100.0, 0.05, 5),
+    ZeroCouponBond(100.0, 5),
+]
+
+map(asset-> value(asset,econ_baseline), portfolio)
+```
+
+This is very close to the goal that we set out at the end of the section. We can complete it by reducing over the collection to sum up the value:
+
+```{julia}
+mapreduce(asset -> value(asset,econ_baseline), +, portfolio)
+```
+
+::: callout-note
+This code:
+
+```
+mapreduce(asset-> value(asset,econ_baseline), +, portfolio)
+```
+
+is more verbose than what we set out do at the start (`mapreduce(value,+,portfolio)`) due to the two-argument `value` function requiring a second arugment for the economic variables. This works well! However, there is a way to define it which avoids the anonymous function, which in some cases will end up needing to be compiled more frequently than you want it to. Sometime we want a lightweight, okay-to-compile-on-the-fly function. Other times, we know it's something that will be passed around in compute-intensive parts of the code. A technique in this situation is to define an object which "locks in" one of the arguments but behaves like the anonymous version. There is a pair of types in the Base module, `Fix1` and `Fix2`, which represent partially-applied versions of the two-argument function f, with the first or second argument fixed to the value "x". 
+
+This is, `Base.Fix1(f, x)` behaves like `y->f(x, y)`  and `Base.Fix2(f, x)` behaves like `y->f(y, x)`. 
+
+In the context of our valuation model, this would look like:
+
+```{julia}
+val = Base.Fix2(value,econ_baseline)
+mapreduce(val,+,portfolio)
+```
+
+:::
+
+
+Extending the example, we can use a time-varying risk free rate instead of a constaint. For fun, let's say that the risk free rate has a sinusoidal pattern:
+
+```{julia}
+econ_sin = EconomicAssumptions(t -> 0.05 + sin(t) / 100)
+```
+
+Now value will not work, because we've only defined how `value` works on bonds if the given rate is a `Float64` type:
+
+```{julia}
+#| error: true
+value(ZeroCouponBond(100.0, 5), econ_sin)
+```
+
+We can extend our methods to account for this:
+
+```{julia}
+function value(bond::ZeroCouponBond, r::T) where {T<:Function} # <1>
+    return bond.par / (1 + r(bond.tenor))^bond.tenor # <2>
+end
+```
+1. The `r::T ... where {T<:Function}` says use this method if `r` is any concrete subtype of the (abstract) `Function` type.
+2. `r` is a fuction, where we call the time to get the zero coupon bond (a.k.a. spot) rate for the given timepoint. 
+
+Now it works:
+```{julia}
+value(ZeroCouponBond(100.0, 5), econ_sin)
+```
+
+## Objected Oriented Design
+
+There's enough general familiarity with object oriented ("OO") design that it's worth describing for understanding how it compares and contrasts to other design patterns. Object oriented systems attempt to form the analogy that various parts of the system are their own objects which encapsulate both data and behavior. Object oriented design is often one the first computer programming abstractions introduced because it very relatable[^1], however this comparative discussion will point out a number of its flaws as well. That said, much of OO design can be emulated in Julia except for data inheritance.
+
+[^1]: "Many people who have no idea how a computer works find the idea of object-oriented programming quite natural. In contrast, many people who have experience with computers initially think there is something strange about object oriented systems.” - David Robson, "Object Oriented Software Systems" in Byte Magazine (1981).
+
+We bring up object oriented design not because of the authors (admittedly subjective) opinion that the object-oriented paradigm can be less suitable for financial modeling, but because by having a (potentially more relatable) contrasting approach we can better illuminate certain ideas and concepts.
+
+## Assigning Behavior 
+
+The `value` function is a good example of where the OO requriment to ascribe behavior to a single type (class) can lead to confusing design. If we had to assign `value` to one of the objects involved, should it be the economic parameteres of the asset contracts? The choice is not obvious at all. Isn't it the market (economic parameters) that determines the value? But then if `value` were to be a method wholly owned by the economic parameters, how could it possible define in advance the valuation semantics of all types of assets? What if one wanted to extend the valuation to a new asset class? These are problems presented in traditional OO designs and that resolve so elegantly with multiple dispatch. 
+
+## Inheritance
+
+We discussed the type hierarchy in @sec-elements-programming and in most OO implementations this hierarchy comes with inheriting both data *and* behavior. This is different from Julia where subtypes inherit behavior but not data from the parent type.
+
+Inheriting the data tends to introduce a tight coupling between the parent and the child classes in OO systems. This tight coupling can lead to several issues, particularly as systems grow in complexity. For example, changes in the parent class can inadvertently affect the behavior of all its child classes, which can be problematic if these changes are not carefully managed. This is often referred to as the "fragile base class problem," where base classes are delicate and changes to them can have widespread, unintended consequences.
+
+Another issue with inheritance in OO design is the temptation to use it for code reuse, which can lead to inappropriate hierarchies. Developers might create deep inheritance structures just to reuse code, leading to a scenario where classes are not logically related but are forced into a hierarchy. This can make the system harder to understand and maintain.
+
+Moreover, inheritance can sometimes lead to the duplication of code across the hierarchy, especially if the inherited behavior needs to be slightly modified in different child classes. This goes against the DRY (Don't Repeat Yourself) principle, which is a fundamental concept in software engineering advocating for the reduction of repetition in code.
+
+### Composition over Inheritance
+
+To mitigate some of the problems associated with inheritance, there's a growing preference for *composition*. Composition involves creating objects that contain instances of other objects to achieve complex behaviors. This approach is more flexible than inheritance as it allows for the creation of more modular and reusable code. There is a general preference for "composition over inheritance" among professional developers these days.
+
+In composition, objects are constructed from other objects, and behaviors are delegated to these contained objects. This approach allows for greater flexibility, as it's easier to change the behavior of a system by replacing parts of it without affecting the entire hierarchy, as is often the case with inheritance.
+
+Composition looks like this:
+
+``` julia
+struct CUSIP
+    code::string
+end
+
+struct FixedIncome
+    coupon::Float64
+    tenor::Float64
+end
+
+struct MunicipalBond
+    cusip::CUSIP
+    fi::FixedIncome
+end
+
+struct ListedOption
+    cusip::CUSIP
+    #... other data fields
+end
+
+struct UnlistedBond
+    fi::FixedIncome
+end
+
+
+# define behavior which relies on defining 
+last_transaction(c::CUSIP) = # ... perform lookup of data
+last_transaction(asset) = last_transaction(asset.cusip)
+
+duration(f::FixedIncome) = # ... calculate duration
+duration(asset) = duration(asset.fi)
+```
+
+In the above example, there are number of asset classes that have CUSIP related attributes (i.e. the 9 character code) and behavior (e.g. being able to look up transaction data). Other assets have fixed income attributes (e.g. calculating a duration). But not all of these assets have a CUSIP! Composition lets us bundle the data and behavior together without needing complex chains of inheritance.
+
+::: callout-note
+A CUSIP (Committee on Uniform Security Identification Procedures) number, is a unique nine-character alphanumeric code assigned to securities, such as stocks and bonds, in the United States and Canada. This code is used to facilitate the clearing and settlement process of securities and to uniquely identify them in transactions and records.
+:::
