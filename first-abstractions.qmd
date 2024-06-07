@@ -151,6 +151,7 @@ Note that it's when state is `mutable` that a program tends to be more complex.
 
 @tbl-funcional-methods introduces a set of core functional methods to familiarize yourself with. Note that anonymous functions (#sec-anonymous-functions) are used frequently to define intermediary steps.
 
+::: column-page
 +--------------------------+---------------------------------------------------------------------------------------------------------------------------------------+---------------+
 | Function                 | Desciption                                                                                                                            | Example       |
 +==========================+=======================================================================================================================================+===============+
@@ -198,8 +199,8 @@ Note that it's when state is `mutable` that a program tends to be more complex.
 |                          |                                                                                                                                       | ```           |
 +--------------------------+---------------------------------------------------------------------------------------------------------------------------------------+---------------+
 
-: caption TBD {#tbl-funcional-methods}
-
+: Important Functional Methods. {#tbl-funcional-methods}
+:::
 This paradigm is very powerful in a few ways:
 
 1.  It provides a language for talking about what a computation is doing. Instead of "looping over a collection called `portfolio` and calling a `value` function" we can more concisely refer to this as `mapreduce(valuem,portfolio)`.
@@ -283,13 +284,14 @@ output
 Instead, `map` simplifies this to: 
 
 ```julia
-map(collection)
+map(collection) do x
     # ... do stuff
 end
 ```
 
 Not only does this have the advantage of being clearer, more concise, and less work... it also let's Julia manage the output type of your computation so you don't have to worry about the type of `output`.
 :::
+
 
 ### `accumulate`
 
@@ -515,7 +517,61 @@ let d = Date(2024, 01, 01)
 end
 ```
 
-### Mixing Funcitonal And Imperative Styles
+### More Tips on Functional Styles
+
+#### `do` Syntax for Function Arguments
+
+In more complex situations such as with multiple collections or mult-line logic, there is a clearer syntax that is often used. `do` is a reserved keyword in Julia that creates an anonymous function and passes its arguments to a function like `map`. For example, this (terrible) code which decides if a number is prime. The anonymous function requires a `begin` block since the logic of the function is extended into multiple lines.
+
+```julia
+map(x -> begin
+  if x == 1
+  "prime"
+  elseif x == 2
+  "not prime"
+  elseif x == 3
+  "prime"
+  elseif x > 4
+  "probably not prime"
+  end
+end, 
+[1, 2, 3, 10]
+)
+```
+
+This can be written more cleanly with the `do` syntax:
+
+```julia
+map([1, 2, 3, 10]) do x
+if x == 1
+"prime"
+elseif x == 2
+"not prime"
+elseif x == 3
+"prime"
+elseif x > 4
+"probably not prime"
+end)
+```
+
+#### Multiple Collections
+
+`map` and the other functional operators discussed in this section can take multiple arguments. This is convienient if you have multiple arguments to a function:
+
+```{julia}
+discounts = [0.9, 0.81, 0.73]
+cashflows = [10, 10, 10]
+
+map((d, c) -> d * c, discounts, cashflows)
+```
+Or an example with the `do` syntax:
+```{julia}
+map(discounts, cashflows) do d,c
+  d * c
+end
+```
+
+#### Mixing Funcitonal And Imperative Styles
 
 One of the best things about Julia is how natural it can be to mix the different styles Sometimes the best is the mix of both styles and that's one of the benefits of Julia: use the style that's most natural to the problem.
 
