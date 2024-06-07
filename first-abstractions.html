@@ -1,0 +1,2257 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.5.43">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Computational Thinking for Actuaries and Financial Professionals – 6&nbsp; First Abstractions</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./type-abstractions.html" rel="next">
+<link href="./interlude-abstractions.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-dark.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark.min.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script data-goatcounter="https://julia-fin-book.goatcounter.com/count" async="" src="//gc.zgo.at/count.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="nav-sidebar floating">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./interlude-abstractions.html">Interlude: Abstractions</a></li><li class="breadcrumb-item"><a href="./first-abstractions.html"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">First Abstractions</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Computational Thinking for Actuaries and Financial Professionals</a> 
+        <div class="sidebar-tools-main">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+</div>
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./cover_draft.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Draft of Cover</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./intro.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Introduction</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./why-program.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Why Program?</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./why-julia.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Why use Julia?</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./conceptual-foundations.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Conceptual Foundations (Part I)</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./elements-of-financial-modeling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Elements of Financial Modeling</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./foundations-of-programming.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Elements of Programming</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./interlude-abstractions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Interlude: Abstractions</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./first-abstractions.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">First Abstractions</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./type-abstractions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Abstractions of Types</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./patterns-abstraction.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Patterns of Abstraction</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./conceptual-foundations2.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Conceptual Foundations (Part II)</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./elements-of-compsci.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Elements of Computer Science</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./hardware.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Hardware and It’s Implications</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./software.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Applying Software Engineering Principles</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./statistics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Statistical Inference and Information Theory</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./computational-thinking.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Computational Thinking in an Actuarial and Financial Context</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./modeling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Modeling</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./autodiff.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Automatic Differentiation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Optimization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./sensitivity-analysis.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Sensitivity Analysis</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./stochastic.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Stochastic Modeling</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./visualization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Visiualizations</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./matrices.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Matrices and Their Uses</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./data-learning.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Learning from Data</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./applications.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Applications in Practice</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./stochastic-mortality.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Stochastic Mortality Projections</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./scenario-generation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Scenario Generation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./similarity-calculation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Similarity Analysis</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./portfolio-optimization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Portfolio Optimization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./bayesian-mortality.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Bayesian Mortality Modeling</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./other-techniques.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Other Useful Techniques</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./appendices.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Appendices</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./julia.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Set up Julia and the Computing Environment</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./environment.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Environment and Package Management</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ecosystem.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">The Julia Ecosystem Today</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">References</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#in-this-section" id="toc-in-this-section" class="nav-link active" data-scroll-target="#in-this-section"><span class="header-section-number">6.1</span> In this section</a></li>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link" data-scroll-target="#introduction"><span class="header-section-number">6.2</span> Introduction</a></li>
+  <li><a href="#imperative-style" id="toc-imperative-style" class="nav-link" data-scroll-target="#imperative-style"><span class="header-section-number">6.3</span> Imperative Style</a>
+  <ul class="collapse">
+  <li><a href="#iterators" id="toc-iterators" class="nav-link" data-scroll-target="#iterators"><span class="header-section-number">6.3.1</span> Iterators</a></li>
+  </ul></li>
+  <li><a href="#functional-techniques-and-terminology" id="toc-functional-techniques-and-terminology" class="nav-link" data-scroll-target="#functional-techniques-and-terminology"><span class="header-section-number">6.4</span> Functional Techniques and Terminology</a>
+  <ul class="collapse">
+  <li><a href="#map" id="toc-map" class="nav-link" data-scroll-target="#map"><span class="header-section-number">6.4.1</span> <code>map</code></a></li>
+  <li><a href="#accumulate" id="toc-accumulate" class="nav-link" data-scroll-target="#accumulate"><span class="header-section-number">6.4.2</span> <code>accumulate</code></a></li>
+  <li><a href="#reduce" id="toc-reduce" class="nav-link" data-scroll-target="#reduce"><span class="header-section-number">6.4.3</span> <code>reduce</code></a></li>
+  <li><a href="#mapreduce" id="toc-mapreduce" class="nav-link" data-scroll-target="#mapreduce"><span class="header-section-number">6.4.4</span> <code>mapreduce</code></a></li>
+  <li><a href="#filter" id="toc-filter" class="nav-link" data-scroll-target="#filter"><span class="header-section-number">6.4.5</span> <code>filter</code></a></li>
+  <li><a href="#more-tips-on-functional-styles" id="toc-more-tips-on-functional-styles" class="nav-link" data-scroll-target="#more-tips-on-functional-styles"><span class="header-section-number">6.4.6</span> More Tips on Functional Styles</a></li>
+  </ul></li>
+  <li><a href="#array-oriented-styles" id="toc-array-oriented-styles" class="nav-link" data-scroll-target="#array-oriented-styles"><span class="header-section-number">6.5</span> Array-Oriented Styles</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./interlude-abstractions.html">Interlude: Abstractions</a></li><li class="breadcrumb-item"><a href="./first-abstractions.html"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">First Abstractions</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span id="sec-first-abstractions" class="quarto-section-identifier"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">First Abstractions</span></span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<blockquote class="blockquote">
+<p>The purpose of abstraction is not to be vague, but to create a new semantic level in which one can be absolutely precise. - Edsger Dijkstra (1972)</p>
+</blockquote>
+<section id="in-this-section" class="level2" data-number="6.1">
+<h2 data-number="6.1" class="anchored" data-anchor-id="in-this-section"><span class="header-section-number">6.1</span> In this section</h2>
+<p>Demonstrate different approaches to a problem which gradually introduce more re-usable or general techniques. These techniques will allow for constructing sophisticated models while maintaining coniststency and simplicity. Imperative programming, functional programming, and using types to simplify program logic.</p>
+</section>
+<section id="introduction" class="level2" data-number="6.2">
+<h2 data-number="6.2" class="anchored" data-anchor-id="introduction"><span class="header-section-number">6.2</span> Introduction</h2>
+<p>This chatpter will center around a simple task: calculate the present value of a portfolio of two fixed, copoun-paying bonds under two different interest rate environments. The focus will be on describing different approaches to this problem, not be adding complexity to the problem (e.g.&nbsp;no getting into credit spreads, settlement timing, etc.).</p>
+<div id="3e154f3f" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="annotated-cell-1"><pre class="sourceCode julia code-annotation-code code-with-copy code-annotated"><code class="sourceCode julia"><span id="annotated-cell-1-1"><a href="#annotated-cell-1-1" aria-hidden="true" tabindex="-1"></a>cf_bond <span class="op">=</span> [<span class="fl">10</span>, <span class="fl">10</span>, <span class="fl">10</span>, <span class="fl">10</span>, <span class="fl">110</span>];</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-1" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-1-2" class="code-annotation-target"><a href="#annotated-cell-1-2" aria-hidden="true" tabindex="-1"></a>rate <span class="op">=</span> [<span class="fl">0.05</span>, <span class="fl">0.06</span>, <span class="fl">0.05</span>, <span class="fl">0.04</span>, <span class="fl">0.05</span>];</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-annotation">
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-1" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-1" data-code-lines="2" data-code-annotation="1">The rates given are the one year rate for time zero, time one, etc.</span>
+</dd>
+</dl>
+</div>
+</div>
+<p>The other bond and set of rates is described later in the chapter.</p>
+<p>Mathematically, the problem is to determine the <span class="math inline">\(\text{Present Value}\)</span>, where:</p>
+<p><span class="math display">\[
+\text{Present Value} = \sum{\text{Cashflow}_t \times \text{Discount Factor}_t}
+\]</span></p>
+<p>Where</p>
+<p><span class="math display">\[
+\text{Discount Factor}_t = \prod^t{\frac{1}{1+\text{Discount Rate}_i}}
+\]</span></p>
+<p>We will repeatedly solve the same problem before extending it to more examples. It may feel repetitive but the focus here is not the problem, but rather the variations between the different approaches.</p>
+</section>
+<section id="imperative-style" class="level2" data-number="6.3">
+<h2 data-number="6.3" class="anchored" data-anchor-id="imperative-style"><span class="header-section-number">6.3</span> Imperative Style</h2>
+<p>One of the most familiar styles of programming is called <strong>imperative</strong> (or <strong>procedural</strong>), where we provide step-by-step commands are provided to the computer. The programmer defines the data involved and how that data moves through the program one step at a time. It commonly uses loops to perform tasks repeatedly or across a set of data. The program’s <strong>state</strong> (assigment and logic of the program’s variables) is defined and managed by the programmer explicitly.</p>
+<p>Here’s an imperative style of calculating the present value of the bond.</p>
+<div id="b7f6301b" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="annotated-cell-2"><pre class="sourceCode julia code-annotation-code code-with-copy code-annotated"><code class="sourceCode julia"><span id="annotated-cell-2-1"><a href="#annotated-cell-2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-2" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-2-2" class="code-annotation-target"><a href="#annotated-cell-2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-2-3"><a href="#annotated-cell-2-3" aria-hidden="true" tabindex="-1"></a>    pv <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="annotated-cell-2-4"><a href="#annotated-cell-2-4" aria-hidden="true" tabindex="-1"></a>    discount <span class="op">=</span> <span class="fl">1.0</span></span>
+<span id="annotated-cell-2-5"><a href="#annotated-cell-2-5" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-2" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-2-6" class="code-annotation-target"><a href="#annotated-cell-2-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fu">length</span>(cf_bond)</span>
+<span id="annotated-cell-2-7"><a href="#annotated-cell-2-7" aria-hidden="true" tabindex="-1"></a>        discount <span class="op">=</span> discount <span class="op">/</span> (<span class="fl">1</span> <span class="op">+</span> rate[i])</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-2" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-2-8" class="code-annotation-target"><a href="#annotated-cell-2-8" aria-hidden="true" tabindex="-1"></a>        pv <span class="op">=</span> pv <span class="op">+</span> discount <span class="op">*</span> cf_bond[i]</span>
+<span id="annotated-cell-2-9"><a href="#annotated-cell-2-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="annotated-cell-2-10"><a href="#annotated-cell-2-10" aria-hidden="true" tabindex="-1"></a>    pv</span>
+<span id="annotated-cell-2-11"><a href="#annotated-cell-2-11" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-annotation">
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-2" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-2" data-code-lines="2" data-code-annotation="1">Declare variables to keep track of the discount rate and running total for value</span>
+</dd>
+<dt data-target-cell="annotated-cell-2" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-2" data-code-lines="6" data-code-annotation="2">Loop the length of the cashflow vector.</span>
+</dd>
+<dt data-target-cell="annotated-cell-2" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-2" data-code-lines="8" data-code-annotation="3">At each step of the loop, look up (via index <code>i</code>) update the discount factor to account for the prevailing rate and add the discounted cashflow to the running total present value.</span>
+</dd>
+</dl>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="3">
+<pre><code>121.48888490821489</code></pre>
+</div>
+</div>
+<p>This style is simple, digestable, and clear. If we were performing the calculation by hand, it would likely follow a pattern very similar to this. Look up the first cashflow and discount rate, compute a discount factor, and subtotal the value. Repeat for the next set of values.</p>
+<section id="iterators" class="level3" data-number="6.3.1">
+<h3 data-number="6.3.1" class="anchored" data-anchor-id="iterators"><span class="header-section-number">6.3.1</span> Iterators</h3>
+<p>Note that in the prior code example we defined an index variable <code>i</code> and had to manually define the range over which it would operate (<code>1</code> through the <code>length</code> of the bond’s cashflow vector). A couple of reasons this could be sub-optimal:</p>
+<ol type="1">
+<li>We are making the <em>assumption</em> that the indices of the vectors start with one, when in reality Julia arrays <em>can</em> be defined to start at <code>0</code> or another arbitrary index.</li>
+<li>We manually perform the lookup of the values within each iteration.</li>
+</ol>
+<p>We can solve the first one (partially) by letting Julia return an iterable set of values corresponding to the indices of the <code>cf_bond</code> vector. Tihs is an example of an <strong>iterator</strong> which is an object upon which we can repeatedly ask for the next value until it tells us to stop.</p>
+<p>By using <code>eachindex</code> we can get the indices of the vector since Julia already knows what they are:</p>
+<div id="bcdaaa75" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">eachindex</span>(cf_bond)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="4">
+<pre><code>Base.OneTo(5)</code></pre>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Lazy Programming
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The result, Base.OneTo(5) is a <strong>lazy</strong> object which represents a collection that does not get fully instantiated until asked to (which may not actually be necessary). Many (most?) iterators are lazy but we can interact with them without fully instantiating the data that they represent. For example, we could find the largest index:</p>
+<div id="c16ea8d3" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">maximum</span>(<span class="fu">eachindex</span>(cf_bond))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="6">
+<pre><code>5</code></pre>
+</div>
+</div>
+<p>The point is if we have an object that <em>represents</em> a set, we need not actually enumerate each element of the set to interact with it.</p>
+<p>We can fully instantiate an iterator with <code>collect</code></p>
+<div id="d7ce0ef2" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">collect</span>(<span class="fu">eachindex</span>(cf_bond))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="7">
+<pre><code>5-element Vector{Int64}:
+ 1
+ 2
+ 3
+ 4
+ 5</code></pre>
+</div>
+</div>
+<p>Laziness is generally a good thing in programming because sometimes it can be computationally or memory expensive to fully instantiate the collection of interest.</p>
+</div>
+</div>
+<p>And when used in context:</p>
+<div id="e707f8be" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    pv <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    discount <span class="op">=</span> <span class="fl">1.0</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="fu">eachindex</span>(cf_bond)</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>        discount <span class="op">=</span> discount <span class="op">/</span> (<span class="fl">1</span> <span class="op">+</span> rate[i])</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>        pv <span class="op">=</span> pv <span class="op">+</span> discount <span class="op">*</span> cf_bond[i]</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    pv</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="8">
+<pre><code>121.48888490821489</code></pre>
+</div>
+</div>
+<p>Here Julia gave us the index associated with the bond cashflows, but we are still looking up the values (why not just ask for the values instead of their index?) as well as assuming that the indices are the same for the discount rates.</p>
+<p>We can get the value and the associated index with <code>enumerate</code>:</p>
+<div id="2e92f0b6" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">collect</span>(<span class="fu">enumerate</span>(cf_bond))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="9">
+<pre><code>5-element Vector{Tuple{Int64, Int64}}:
+ (1, 10)
+ (2, 10)
+ (3, 10)
+ (4, 10)
+ (5, 110)</code></pre>
+</div>
+</div>
+<p>This would allow us to skip the step of needing to look up the bond’s cashflows. However, we can go even further by just asking for value associated with both collections. With <code>zip</code> (named because it’s sort of like zipping up two collections together), we get an iterator that provides the values of the underlying collections:</p>
+<div id="8790cd52" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">collect</span>(<span class="fu">zip</span>(cf_bond, rate))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="10">
+<pre><code>5-element Vector{Tuple{Int64, Float64}}:
+ (10, 0.05)
+ (10, 0.06)
+ (10, 0.05)
+ (10, 0.04)
+ (110, 0.05)</code></pre>
+</div>
+</div>
+<p>This provides the simplest implementation of the imperative approaches:</p>
+<div id="7ee714ce" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    pv <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    discount <span class="op">=</span> <span class="fl">1.0</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (cf, r) <span class="kw">in</span> <span class="fu">zip</span>(cf_bond, rate)</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>        discount <span class="op">=</span> discount <span class="op">/</span> (<span class="fl">1</span> <span class="op">+</span> r)</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>        pv <span class="op">=</span> pv <span class="op">+</span> discount <span class="op">*</span> cf</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    pv</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="11">
+<pre><code>121.48888490821489</code></pre>
+</div>
+</div>
+<p>The primary downsides to this approach are:</p>
+<ol type="1">
+<li>Needing to keep track of state is fine in simple cases, but can quickly become difficult to reason about and error prone as the number and complexity of variables grows.</li>
+<li>Program flow is explicitly stated, leaving fewer places that the compiler can automatically optimize or parallelize.</li>
+</ol>
+<p>Note that it’s when state is <code>mutable</code> that a program tends to be more complex.</p>
+</section>
+</section>
+<section id="functional-techniques-and-terminology" class="level2" data-number="6.4">
+<h2 data-number="6.4" class="anchored" data-anchor-id="functional-techniques-and-terminology"><span class="header-section-number">6.4</span> Functional Techniques and Terminology</h2>
+<p><strong>Functional</strong> programming is a paradigm which attempts to minimize state via composing functions together.</p>
+<p><a href="#tbl-funcional-methods" class="quarto-xref">Table&nbsp;<span>6.1</span></a> introduces a set of core functional methods to familiarize yourself with. Note that anonymous functions (#sec-anonymous-functions) are used frequently to define intermediary steps.</p>
+<div id="tbl-funcional-methods" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-funcional-methods-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;6.1: caption TBD
+</figcaption>
+<div aria-describedby="tbl-funcional-methods-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 15%">
+<col style="width: 75%">
+<col style="width: 8%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Function</th>
+<th>Desciption</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>map(f,v)</code></td>
+<td>Apply function <code>f</code> to each element of the collection <code>v</code>.</td>
+<td><div class="sourceCode" id="cb16"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">map</span>(</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    x<span class="op">-&gt;</span>x<span class="op">^</span><span class="fl">2</span>,</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    [<span class="fl">1</span>,<span class="fl">3</span>,<span class="fl">5</span>]</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>) <span class="co"># [1,9,25]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div></td>
+</tr>
+<tr class="even">
+<td><code>reduce(op,v)</code></td>
+<td><p>Apply binary <code>op</code> to pairs of values, reducing the dimension of the collection <code>v</code>.<br>
+<br>
+Has a couple of important, optional keyword arguments to note (which also apply to other variants of <code>reduce</code> below):</p>
+<ul>
+<li><code>init</code> defines the identity element (e.g.&nbsp;the initial value of <code>+</code> and <code>*</code> is <code>0</code> and <code>1</code> respectively)</li>
+<li><code>dims</code> defines which dimension to reduce across (if the dimension of <code>v</code> is more than one).</li>
+</ul></td>
+<td><div class="sourceCode" id="cb17"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">reduce</span>(</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    <span class="op">*</span>,</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    [<span class="fl">1</span>,<span class="fl">3</span>,<span class="fl">5</span>]</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>) <span class="co"># 15</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div></td>
+</tr>
+<tr class="odd">
+<td><code>mapreduce(op,f,v)</code></td>
+<td>Maps <code>f</code> over collection <code>v</code> and returns a reduced result using <code>op</code>.</td>
+<td><div class="sourceCode" id="cb18"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mapreduce</span>(</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    <span class="op">*</span>,</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    x<span class="op">-&gt;</span>x<span class="op">^</span><span class="fl">2</span>,</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    [<span class="fl">1</span>,<span class="fl">3</span>,<span class="fl">5</span>]</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>) <span class="co"># 35</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div></td>
+</tr>
+<tr class="even">
+<td><code>foldl(op,v)foldr(op,v)</code></td>
+<td>Like <code>reduce</code>, but applies <code>op</code> from left to right (<code>foldl</code>) or right to left (<code>foldr</code>). Also has <code>mapfoldl</code> and <code>mapfoldr</code> versions.</td>
+<td><div class="sourceCode" id="cb19"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">foldl</span>(</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    <span class="op">*</span>,</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    [<span class="fl">1</span>,<span class="fl">3</span>,<span class="fl">5</span>]</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>) <span class="co"># 15</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div></td>
+</tr>
+<tr class="odd">
+<td><code>accumulate(op,v)</code></td>
+<td>Apply <code>op</code> along <code>v</code> , creating a vector with the cumulative result.</td>
+<td><div class="sourceCode" id="cb20"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">accumulate</span>(</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    <span class="op">+</span>,</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    [<span class="fl">1</span>,<span class="fl">3</span>,<span class="fl">5</span>]</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>) <span class="co"># [1, 4, 9]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div></td>
+</tr>
+<tr class="even">
+<td><code>filter(f,v)</code></td>
+<td>Apply <code>f</code> along <code>v</code> and return a copy of <code>v</code> with elements where <code>f</code> is true</td>
+<td><div class="sourceCode" id="cb21"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">filter</span>(</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    <span class="op">&gt;=</span>(<span class="fl">3</span>),</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    [<span class="fl">1</span>,<span class="fl">3</span>,<span class="fl">5</span>]</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>) <span class="co"># [3, 5]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div></td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>This paradigm is very powerful in a few ways:</p>
+<ol type="1">
+<li>It provides a language for talking about what a computation is doing. Instead of “looping over a collection called <code>portfolio</code> and calling a <code>value</code> function” we can more concisely refer to this as <code>mapreduce(valuem,portfolio)</code>.</li>
+<li>Often times you are forced to think about the design of the program more deeply, recognizing the core calculations and data used within the model.</li>
+<li>The compiler is free to apply more optimizations. For example, with <code>reduce</code>, the compiler could drive the calculation in any order since the operation is associative.</li>
+<li>The lack of mutable state</li>
+</ol>
+<p>Let’s build a version of the present value calculation using the functional building blocks described above.</p>
+<section id="map" class="level3" data-number="6.4.1">
+<h3 data-number="6.4.1" class="anchored" data-anchor-id="map"><span class="header-section-number">6.4.1</span> <code>map</code></h3>
+<p><strong><code>map</code></strong> is so named for the mathetmatical concept of mapping an input to an output. Here, it’s effectively the same thing. We take a collection and use the given function to calculate an output. The size of the output equals the size of the input.</p>
+<p>First, to show how we could calculate the discount factor we will use <code>map</code> to compute the one-period discount factors:</p>
+<div id="215442ec" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">map</span>(x <span class="op">-&gt;</span> <span class="fl">1</span> <span class="op">/</span> (<span class="fl">1</span> <span class="op">+</span> x), rate)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="12">
+<pre><code>5-element Vector{Float64}:
+ 0.9523809523809523
+ 0.9433962264150942
+ 0.9523809523809523
+ 0.9615384615384615
+ 0.9523809523809523</code></pre>
+</div>
+</div>
+<p><code>map</code> transforms the <code>rate</code> collection by applying the anonomyous function <code>x -&gt; 1 / (1 + x)</code>, which is the single period discount factor. This operation is conveyed visually in <a href="#fig-map-diagram" class="quarto-xref">Figure&nbsp;<span>6.1</span></a>.</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div id="fig-map-diagram" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-map-diagram-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div>
+<svg width="672" height="480" viewbox="0.00 0.00 347.61 317.00" xmlns="http://www.w3.org/2000/svg" xlink="http://www.w3.org/1999/xlink" style="; max-width: none; max-height: none">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 313)">
+<title>G</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-313 343.61,-313 343.61,4 -4,4"></polygon>
+<g id="clust1" class="cluster">
+<title>cluster_0</title>
+<polygon fill="none" stroke="black" points="0,-8 0,-301 115,-301 115,-8 0,-8"></polygon>
+<text text-anchor="middle" x="57.5" y="-284.4" font-family="Times,serif" font-size="14.00">Input Array (rate)</text>
+</g>
+<g id="clust2" class="cluster">
+<title>cluster_1</title>
+<polygon fill="none" stroke="black" points="135,-8 135,-301 229.11,-301 229.11,-8 135,-8"></polygon>
+<text text-anchor="middle" x="182.05" y="-284.4" font-family="Times,serif" font-size="14.00">Map Function</text>
+</g>
+<g id="clust3" class="cluster">
+<title>cluster_2</title>
+<polygon fill="none" stroke="black" points="249.11,-8 249.11,-301 339.61,-301 339.61,-8 249.11,-8"></polygon>
+<text text-anchor="middle" x="294.36" y="-284.4" font-family="Times,serif" font-size="14.00">Output Array</text>
+</g>
+<!-- rate1 -->
+<g id="node1" class="node">
+<title>rate1</title>
+<polygon fill="lightblue" stroke="lightblue" points="84,-268 30,-268 30,-232 84,-232 84,-268"></polygon>
+<text text-anchor="middle" x="57" y="-245.8" font-family="Times,serif" font-size="14.00">0.05</text>
+</g>
+<!-- map1 -->
+<g id="node6" class="node">
+<title>map1</title>
+<polygon fill="lightgreen" stroke="lightgreen" points="214.16,-268 148.95,-268 148.95,-232 214.16,-232 214.16,-268"></polygon>
+<text text-anchor="middle" x="181.55" y="-245.8" font-family="Times,serif" font-size="14.00">1 / (1+x)</text>
+</g>
+<!-- rate1&#45;&gt;map1 -->
+<g id="edge1" class="edge">
+<title>rate1-&gt;map1</title>
+<path fill="none" stroke="black" d="M84.29,-250C100.05,-250 120.45,-250 138.41,-250"></path>
+<polygon fill="black" stroke="black" points="138.65,-253.5 148.65,-250 138.65,-246.5 138.65,-253.5"></polygon>
+</g>
+<!-- rate2 -->
+<g id="node2" class="node">
+<title>rate2</title>
+<polygon fill="lightblue" stroke="lightblue" points="84,-214 30,-214 30,-178 84,-178 84,-214"></polygon>
+<text text-anchor="middle" x="57" y="-191.8" font-family="Times,serif" font-size="14.00">0.06</text>
+</g>
+<!-- map2 -->
+<g id="node7" class="node">
+<title>map2</title>
+<polygon fill="lightgreen" stroke="lightgreen" points="214.16,-214 148.95,-214 148.95,-178 214.16,-178 214.16,-214"></polygon>
+<text text-anchor="middle" x="181.55" y="-191.8" font-family="Times,serif" font-size="14.00">1 / (1+x)</text>
+</g>
+<!-- rate2&#45;&gt;map2 -->
+<g id="edge3" class="edge">
+<title>rate2-&gt;map2</title>
+<path fill="none" stroke="black" d="M84.29,-196C100.05,-196 120.45,-196 138.41,-196"></path>
+<polygon fill="black" stroke="black" points="138.65,-199.5 148.65,-196 138.65,-192.5 138.65,-199.5"></polygon>
+</g>
+<!-- rate3 -->
+<g id="node3" class="node">
+<title>rate3</title>
+<polygon fill="lightblue" stroke="lightblue" points="84,-160 30,-160 30,-124 84,-124 84,-160"></polygon>
+<text text-anchor="middle" x="57" y="-137.8" font-family="Times,serif" font-size="14.00">0.05</text>
+</g>
+<!-- map3 -->
+<g id="node8" class="node">
+<title>map3</title>
+<polygon fill="lightgreen" stroke="lightgreen" points="214.16,-160 148.95,-160 148.95,-124 214.16,-124 214.16,-160"></polygon>
+<text text-anchor="middle" x="181.55" y="-137.8" font-family="Times,serif" font-size="14.00">1 / (1+x)</text>
+</g>
+<!-- rate3&#45;&gt;map3 -->
+<g id="edge5" class="edge">
+<title>rate3-&gt;map3</title>
+<path fill="none" stroke="black" d="M84.29,-142C100.05,-142 120.45,-142 138.41,-142"></path>
+<polygon fill="black" stroke="black" points="138.65,-145.5 148.65,-142 138.65,-138.5 138.65,-145.5"></polygon>
+</g>
+<!-- rate4 -->
+<g id="node4" class="node">
+<title>rate4</title>
+<polygon fill="lightblue" stroke="lightblue" points="84,-106 30,-106 30,-70 84,-70 84,-106"></polygon>
+<text text-anchor="middle" x="57" y="-83.8" font-family="Times,serif" font-size="14.00">0.04</text>
+</g>
+<!-- map4 -->
+<g id="node9" class="node">
+<title>map4</title>
+<polygon fill="lightgreen" stroke="lightgreen" points="214.16,-106 148.95,-106 148.95,-70 214.16,-70 214.16,-106"></polygon>
+<text text-anchor="middle" x="181.55" y="-83.8" font-family="Times,serif" font-size="14.00">1 / (1+x)</text>
+</g>
+<!-- rate4&#45;&gt;map4 -->
+<g id="edge7" class="edge">
+<title>rate4-&gt;map4</title>
+<path fill="none" stroke="black" d="M84.29,-88C100.05,-88 120.45,-88 138.41,-88"></path>
+<polygon fill="black" stroke="black" points="138.65,-91.5 148.65,-88 138.65,-84.5 138.65,-91.5"></polygon>
+</g>
+<!-- rate5 -->
+<g id="node5" class="node">
+<title>rate5</title>
+<polygon fill="lightblue" stroke="lightblue" points="84,-52 30,-52 30,-16 84,-16 84,-52"></polygon>
+<text text-anchor="middle" x="57" y="-29.8" font-family="Times,serif" font-size="14.00">0.05</text>
+</g>
+<!-- map5 -->
+<g id="node10" class="node">
+<title>map5</title>
+<polygon fill="lightgreen" stroke="lightgreen" points="214.16,-52 148.95,-52 148.95,-16 214.16,-16 214.16,-52"></polygon>
+<text text-anchor="middle" x="181.55" y="-29.8" font-family="Times,serif" font-size="14.00">1 / (1+x)</text>
+</g>
+<!-- rate5&#45;&gt;map5 -->
+<g id="edge9" class="edge">
+<title>rate5-&gt;map5</title>
+<path fill="none" stroke="black" d="M84.29,-34C100.05,-34 120.45,-34 138.41,-34"></path>
+<polygon fill="black" stroke="black" points="138.65,-37.5 148.65,-34 138.65,-30.5 138.65,-37.5"></polygon>
+</g>
+<!-- output1 -->
+<g id="node11" class="node">
+<title>output1</title>
+<polygon fill="lightpink" stroke="lightpink" points="321.36,-268 267.36,-268 267.36,-232 321.36,-232 321.36,-268"></polygon>
+<text text-anchor="middle" x="294.36" y="-245.8" font-family="Times,serif" font-size="14.00">0.9524</text>
+</g>
+<!-- map1&#45;&gt;output1 -->
+<g id="edge2" class="edge">
+<title>map1-&gt;output1</title>
+<path fill="none" stroke="black" d="M214.31,-250C227.66,-250 243.27,-250 257.07,-250"></path>
+<polygon fill="black" stroke="black" points="257.21,-253.5 267.21,-250 257.21,-246.5 257.21,-253.5"></polygon>
+</g>
+<!-- output2 -->
+<g id="node12" class="node">
+<title>output2</title>
+<polygon fill="lightpink" stroke="lightpink" points="321.36,-214 267.36,-214 267.36,-178 321.36,-178 321.36,-214"></polygon>
+<text text-anchor="middle" x="294.36" y="-191.8" font-family="Times,serif" font-size="14.00">0.9434</text>
+</g>
+<!-- map2&#45;&gt;output2 -->
+<g id="edge4" class="edge">
+<title>map2-&gt;output2</title>
+<path fill="none" stroke="black" d="M214.31,-196C227.66,-196 243.27,-196 257.07,-196"></path>
+<polygon fill="black" stroke="black" points="257.21,-199.5 267.21,-196 257.21,-192.5 257.21,-199.5"></polygon>
+</g>
+<!-- output3 -->
+<g id="node13" class="node">
+<title>output3</title>
+<polygon fill="lightpink" stroke="lightpink" points="321.36,-160 267.36,-160 267.36,-124 321.36,-124 321.36,-160"></polygon>
+<text text-anchor="middle" x="294.36" y="-137.8" font-family="Times,serif" font-size="14.00">0.9524</text>
+</g>
+<!-- map3&#45;&gt;output3 -->
+<g id="edge6" class="edge">
+<title>map3-&gt;output3</title>
+<path fill="none" stroke="black" d="M214.31,-142C227.66,-142 243.27,-142 257.07,-142"></path>
+<polygon fill="black" stroke="black" points="257.21,-145.5 267.21,-142 257.21,-138.5 257.21,-145.5"></polygon>
+</g>
+<!-- output4 -->
+<g id="node14" class="node">
+<title>output4</title>
+<polygon fill="lightpink" stroke="lightpink" points="321.36,-106 267.36,-106 267.36,-70 321.36,-70 321.36,-106"></polygon>
+<text text-anchor="middle" x="294.36" y="-83.8" font-family="Times,serif" font-size="14.00">0.9615</text>
+</g>
+<!-- map4&#45;&gt;output4 -->
+<g id="edge8" class="edge">
+<title>map4-&gt;output4</title>
+<path fill="none" stroke="black" d="M214.31,-88C227.66,-88 243.27,-88 257.07,-88"></path>
+<polygon fill="black" stroke="black" points="257.21,-91.5 267.21,-88 257.21,-84.5 257.21,-91.5"></polygon>
+</g>
+<!-- output5 -->
+<g id="node15" class="node">
+<title>output5</title>
+<polygon fill="lightpink" stroke="lightpink" points="321.36,-52 267.36,-52 267.36,-16 321.36,-16 321.36,-52"></polygon>
+<text text-anchor="middle" x="294.36" y="-29.8" font-family="Times,serif" font-size="14.00">0.9524</text>
+</g>
+<!-- map5&#45;&gt;output5 -->
+<g id="edge10" class="edge">
+<title>map5-&gt;output5</title>
+<path fill="none" stroke="black" d="M214.31,-34C227.66,-34 243.27,-34 257.07,-34"></path>
+<polygon fill="black" stroke="black" points="257.21,-37.5 267.21,-34 257.21,-30.5 257.21,-37.5"></polygon>
+</g>
+</g>
+</svg>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-map-diagram-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;6.1: A diagram showing that <code>map</code> creates a new collection mirroring the old one, after applying the given function to each element in the original collection.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><code>map</code> is an absolute workhorse of a function and the authors recommend using it liberally within your code. We find ourselves using <code>map</code> frequently, usually avoiding defining an explicit loop (unless we are modifying some existing collection).</p>
+<p>An anti-pattern where <code>map</code> would likely be a better tool than a loop often looks like this:</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>output <span class="op">=</span> []</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> x <span class="kw">in</span> collection</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    result <span class="op">=</span> <span class="co"># ... do stuff ...</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">push!</span>(output,result)</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>output</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Instead, <code>map</code> simplifies this to:</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">map</span>(collection) <span class="cf">do</span> x</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ... do stuff</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Not only does this have the advantage of being clearer, more concise, and less work… it also let’s Julia manage the output type of your computation so you don’t have to worry about the type of <code>output</code>.</p>
+</div>
+</div>
+</section>
+<section id="accumulate" class="level3" data-number="6.4.2">
+<h3 data-number="6.4.2" class="anchored" data-anchor-id="accumulate"><span class="header-section-number">6.4.2</span> <code>accumulate</code></h3>
+<p><code>accumulate</code> takes an operation and a collection and returns a collection where each element is the cumulative result of applying the operation from the first element to the current one. For example, to calculate the cumulative product of the one-period discount factors:</p>
+<div id="8a1c4a0c" class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">accumulate</span>(<span class="op">*</span>, <span class="fu">map</span>(x <span class="op">-&gt;</span> <span class="fl">1</span> <span class="op">/</span> (<span class="fl">1</span> <span class="op">+</span> x), rate))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="13">
+<pre><code>5-element Vector{Float64}:
+ 0.9523809523809523
+ 0.898472596585804
+ 0.8556881872245752
+ 0.822777103100553
+ 0.7835972410481457</code></pre>
+</div>
+</div>
+<p>This results in a vector of the cumulative discount factors for each point in time corresponding to the given cashflows.</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div id="fig-accumulate-diagram" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-accumulate-diagram-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div>
+<svg width="672" height="480" viewbox="0.00 0.00 489.22 379.00" xmlns="http://www.w3.org/2000/svg" xlink="http://www.w3.org/1999/xlink" style="; max-width: none; max-height: none">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 375)">
+<title>G</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-375 485.22,-375 485.22,4 -4,4"></polygon>
+<g id="clust3" class="cluster">
+<title>cluster_3</title>
+<polygon fill="none" stroke="black" points="374.72,-8 374.72,-363 481.22,-363 481.22,-8 374.72,-8"></polygon>
+</g>
+<g id="clust4" class="cluster">
+<title>cluster_2</title>
+<polygon fill="none" stroke="black" points="382.72,-62 382.72,-355 473.22,-355 473.22,-62 382.72,-62"></polygon>
+<text text-anchor="middle" x="427.97" y="-338.4" font-family="Times,serif" font-size="14.00">Output Array</text>
+</g>
+<g id="clust1" class="cluster">
+<title>cluster_0</title>
+<polygon fill="none" stroke="black" points="0,-35 0,-328 183.5,-328 183.5,-35 0,-35"></polygon>
+<text text-anchor="middle" x="91.75" y="-311.4" font-family="Times,serif" font-size="14.00">Input Array (discount factors)</text>
+</g>
+<g id="clust2" class="cluster">
+<title>cluster_1</title>
+<polygon fill="none" stroke="black" points="203.5,-35 203.5,-328 359.94,-328 359.94,-35 203.5,-35"></polygon>
+<text text-anchor="middle" x="281.72" y="-311.4" font-family="Times,serif" font-size="14.00">Accumulate Function (*)</text>
+</g>
+<!-- df1 -->
+<g id="node1" class="node">
+<title>df1</title>
+<polygon fill="lightblue" stroke="lightblue" points="118.25,-79 64.25,-79 64.25,-43 118.25,-43 118.25,-79"></polygon>
+<text text-anchor="middle" x="91.25" y="-56.8" font-family="Times,serif" font-size="14.00">0.9524</text>
+</g>
+<!-- acc1 -->
+<g id="node6" class="node">
+<title>acc1</title>
+<polygon fill="lightgreen" stroke="lightgreen" points="315.55,-79 247.89,-79 247.89,-43 315.55,-43 315.55,-79"></polygon>
+<text text-anchor="middle" x="281.72" y="-56.8" font-family="Times,serif" font-size="14.00">df1 * init</text>
+</g>
+<!-- df1&#45;&gt;acc1 -->
+<g id="edge1" class="edge">
+<title>df1-&gt;acc1</title>
+<path fill="none" stroke="black" d="M118.46,-61C149.2,-61 200.64,-61 237.36,-61"></path>
+<polygon fill="black" stroke="black" points="237.77,-64.5 247.77,-61 237.77,-57.5 237.77,-64.5"></polygon>
+</g>
+<!-- df2 -->
+<g id="node2" class="node">
+<title>df2</title>
+<polygon fill="lightblue" stroke="lightblue" points="118.25,-187 64.25,-187 64.25,-151 118.25,-151 118.25,-187"></polygon>
+<text text-anchor="middle" x="91.25" y="-164.8" font-family="Times,serif" font-size="14.00">0.9434</text>
+</g>
+<!-- acc2 -->
+<g id="node7" class="node">
+<title>acc2</title>
+<polygon fill="lightgreen" stroke="lightgreen" points="331.16,-187 232.28,-187 232.28,-151 331.16,-151 331.16,-187"></polygon>
+<text text-anchor="middle" x="281.72" y="-164.8" font-family="Times,serif" font-size="14.00">df2 * output_1</text>
+</g>
+<!-- df2&#45;&gt;acc2 -->
+<g id="edge2" class="edge">
+<title>df2-&gt;acc2</title>
+<path fill="none" stroke="black" d="M118.46,-169C145.15,-169 187.45,-169 222.16,-169"></path>
+<polygon fill="black" stroke="black" points="222.2,-172.5 232.2,-169 222.2,-165.5 222.2,-172.5"></polygon>
+</g>
+<!-- df3 -->
+<g id="node3" class="node">
+<title>df3</title>
+<polygon fill="lightblue" stroke="lightblue" points="118.25,-295 64.25,-295 64.25,-259 118.25,-259 118.25,-295"></polygon>
+<text text-anchor="middle" x="91.25" y="-272.8" font-family="Times,serif" font-size="14.00">0.9524</text>
+</g>
+<!-- acc3 -->
+<g id="node8" class="node">
+<title>acc3</title>
+<polygon fill="lightgreen" stroke="lightgreen" points="331.16,-295 232.28,-295 232.28,-259 331.16,-259 331.16,-295"></polygon>
+<text text-anchor="middle" x="281.72" y="-272.8" font-family="Times,serif" font-size="14.00">df3 * output_2</text>
+</g>
+<!-- df3&#45;&gt;acc3 -->
+<g id="edge3" class="edge">
+<title>df3-&gt;acc3</title>
+<path fill="none" stroke="black" d="M118.46,-277C145.15,-277 187.45,-277 222.16,-277"></path>
+<polygon fill="black" stroke="black" points="222.2,-280.5 232.2,-277 222.2,-273.5 222.2,-280.5"></polygon>
+</g>
+<!-- df4 -->
+<g id="node4" class="node">
+<title>df4</title>
+<polygon fill="lightblue" stroke="lightblue" points="118.25,-241 64.25,-241 64.25,-205 118.25,-205 118.25,-241"></polygon>
+<text text-anchor="middle" x="91.25" y="-218.8" font-family="Times,serif" font-size="14.00">0.9615</text>
+</g>
+<!-- acc4 -->
+<g id="node9" class="node">
+<title>acc4</title>
+<polygon fill="lightgreen" stroke="lightgreen" points="331.16,-241 232.28,-241 232.28,-205 331.16,-205 331.16,-241"></polygon>
+<text text-anchor="middle" x="281.72" y="-218.8" font-family="Times,serif" font-size="14.00">df4 * output_3</text>
+</g>
+<!-- df4&#45;&gt;acc4 -->
+<g id="edge4" class="edge">
+<title>df4-&gt;acc4</title>
+<path fill="none" stroke="black" d="M118.46,-223C145.15,-223 187.45,-223 222.16,-223"></path>
+<polygon fill="black" stroke="black" points="222.2,-226.5 232.2,-223 222.2,-219.5 222.2,-226.5"></polygon>
+</g>
+<!-- df5 -->
+<g id="node5" class="node">
+<title>df5</title>
+<polygon fill="lightblue" stroke="lightblue" points="118.25,-133 64.25,-133 64.25,-97 118.25,-97 118.25,-133"></polygon>
+<text text-anchor="middle" x="91.25" y="-110.8" font-family="Times,serif" font-size="14.00">0.9524</text>
+</g>
+<!-- acc5 -->
+<g id="node10" class="node">
+<title>acc5</title>
+<polygon fill="lightgreen" stroke="lightgreen" points="331.16,-133 232.28,-133 232.28,-97 331.16,-97 331.16,-133"></polygon>
+<text text-anchor="middle" x="281.72" y="-110.8" font-family="Times,serif" font-size="14.00">df5 * output_4</text>
+</g>
+<!-- df5&#45;&gt;acc5 -->
+<g id="edge5" class="edge">
+<title>df5-&gt;acc5</title>
+<path fill="none" stroke="black" d="M118.46,-115C145.15,-115 187.45,-115 222.16,-115"></path>
+<polygon fill="black" stroke="black" points="222.2,-118.5 232.2,-115 222.2,-111.5 222.2,-118.5"></polygon>
+</g>
+<!-- output1 -->
+<g id="node12" class="node">
+<title>output1</title>
+<polygon fill="lightpink" stroke="lightpink" points="454.98,-160 400.97,-160 400.97,-124 454.98,-124 454.98,-160"></polygon>
+<text text-anchor="middle" x="427.97" y="-137.8" font-family="Times,serif" font-size="14.00">0.9524</text>
+</g>
+<!-- acc1&#45;&gt;output1 -->
+<g id="edge6" class="edge">
+<title>acc1-&gt;output1</title>
+<path fill="none" stroke="black" d="M315.47,-66.84C330.34,-70.81 347.37,-77.35 359.94,-88 370.38,-96.85 364.93,-105.44 374.72,-115 379.68,-119.84 385.68,-124.01 391.82,-127.53"></path>
+<polygon fill="black" stroke="black" points="390.33,-130.7 400.82,-132.22 393.57,-124.49 390.33,-130.7"></polygon>
+</g>
+<!-- output2 -->
+<g id="node13" class="node">
+<title>output2</title>
+<polygon fill="lightpink" stroke="lightpink" points="454.98,-268 400.97,-268 400.97,-232 454.98,-232 454.98,-268"></polygon>
+<text text-anchor="middle" x="427.97" y="-245.8" font-family="Times,serif" font-size="14.00">0.8985</text>
+</g>
+<!-- acc2&#45;&gt;output2 -->
+<g id="edge7" class="edge">
+<title>acc2-&gt;output2</title>
+<path fill="none" stroke="black" d="M330.95,-179.77C341.29,-183.67 351.6,-188.93 359.94,-196 370.38,-204.85 364.93,-213.44 374.72,-223 379.68,-227.84 385.68,-232.01 391.82,-235.53"></path>
+<polygon fill="black" stroke="black" points="390.33,-238.7 400.82,-240.22 393.57,-232.49 390.33,-238.7"></polygon>
+</g>
+<!-- output3 -->
+<g id="node14" class="node">
+<title>output3</title>
+<polygon fill="lightpink" stroke="lightpink" points="454.98,-322 400.97,-322 400.97,-286 454.98,-286 454.98,-322"></polygon>
+<text text-anchor="middle" x="427.97" y="-299.8" font-family="Times,serif" font-size="14.00">0.8561</text>
+</g>
+<!-- acc3&#45;&gt;output3 -->
+<g id="edge8" class="edge">
+<title>acc3-&gt;output3</title>
+<path fill="none" stroke="black" d="M331.16,-286.07C350.68,-289.72 372.81,-293.86 390.87,-297.24"></path>
+<polygon fill="black" stroke="black" points="390.25,-300.69 400.72,-299.09 391.54,-293.81 390.25,-300.69"></polygon>
+</g>
+<!-- output4 -->
+<g id="node15" class="node">
+<title>output4</title>
+<polygon fill="lightpink" stroke="lightpink" points="454.98,-214 400.97,-214 400.97,-178 454.98,-178 454.98,-214"></polygon>
+<text text-anchor="middle" x="427.97" y="-191.8" font-family="Times,serif" font-size="14.00">0.8230</text>
+</g>
+<!-- acc4&#45;&gt;output4 -->
+<g id="edge9" class="edge">
+<title>acc4-&gt;output4</title>
+<path fill="none" stroke="black" d="M331.16,-213.93C350.68,-210.28 372.81,-206.14 390.87,-202.76"></path>
+<polygon fill="black" stroke="black" points="391.54,-206.19 400.72,-200.91 390.25,-199.31 391.54,-206.19"></polygon>
+</g>
+<!-- output5 -->
+<g id="node16" class="node">
+<title>output5</title>
+<polygon fill="lightpink" stroke="lightpink" points="454.98,-106 400.97,-106 400.97,-70 454.98,-70 454.98,-106"></polygon>
+<text text-anchor="middle" x="427.97" y="-83.8" font-family="Times,serif" font-size="14.00">0.7831</text>
+</g>
+<!-- acc5&#45;&gt;output5 -->
+<g id="edge10" class="edge">
+<title>acc5-&gt;output5</title>
+<path fill="none" stroke="black" d="M331.16,-105.93C350.68,-102.28 372.81,-98.14 390.87,-94.76"></path>
+<polygon fill="black" stroke="black" points="391.54,-98.19 400.72,-92.91 390.25,-91.31 391.54,-98.19"></polygon>
+</g>
+<!-- output0 -->
+<g id="node11" class="node">
+<title>output0</title>
+<polygon fill="none" stroke="black" points="458.04,-52 397.91,-52 397.91,-16 458.04,-16 458.04,-52"></polygon>
+<text text-anchor="middle" x="427.97" y="-29.8" font-family="Times,serif" font-size="14.00">init=1.0</text>
+</g>
+<!-- output0&#45;&gt;acc1 -->
+<g id="edge11" class="edge">
+<title>output0-&gt;acc1</title>
+<path fill="none" stroke="black" d="M397.8,-39.46C377.02,-43.35 348.75,-48.64 325.44,-53"></path>
+<polygon fill="black" stroke="black" points="324.64,-49.59 315.45,-54.87 325.93,-56.47 324.64,-49.59"></polygon>
+</g>
+<!-- output1&#45;&gt;acc2 -->
+<g id="edge12" class="edge">
+<title>output1-&gt;acc2</title>
+<path fill="none" stroke="black" d="M400.72,-146.91C384.07,-150.03 361.83,-154.19 341.15,-158.06"></path>
+<polygon fill="black" stroke="black" points="340.34,-154.65 331.16,-159.93 341.63,-161.53 340.34,-154.65"></polygon>
+</g>
+<!-- output2&#45;&gt;acc3 -->
+<g id="edge13" class="edge">
+<title>output2-&gt;acc3</title>
+<path fill="none" stroke="black" d="M400.72,-254.91C384.07,-258.03 361.83,-262.19 341.15,-266.06"></path>
+<polygon fill="black" stroke="black" points="340.34,-262.65 331.16,-267.93 341.63,-269.53 340.34,-262.65"></polygon>
+</g>
+<!-- output3&#45;&gt;acc4 -->
+<g id="edge14" class="edge">
+<title>output3-&gt;acc4</title>
+<path fill="none" stroke="black" d="M400.82,-294.22C391.79,-289.93 382.1,-284.2 374.72,-277 364.93,-267.44 370.38,-258.85 359.94,-250 354.21,-245.14 347.54,-241.13 340.58,-237.84"></path>
+<polygon fill="black" stroke="black" points="341.52,-234.44 330.95,-233.77 338.8,-240.89 341.52,-234.44"></polygon>
+</g>
+<!-- output4&#45;&gt;acc5 -->
+<g id="edge15" class="edge">
+<title>output4-&gt;acc5</title>
+<path fill="none" stroke="black" d="M400.82,-186.22C391.79,-181.93 382.1,-176.2 374.72,-169 364.93,-159.44 370.38,-150.85 359.94,-142 354.21,-137.14 347.54,-133.13 340.58,-129.84"></path>
+<polygon fill="black" stroke="black" points="341.52,-126.44 330.95,-125.77 338.8,-132.89 341.52,-126.44"></polygon>
+</g>
+</g>
+</svg>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-accumulate-diagram-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;6.2: A diagram showing that <code>accumulate</code> creates a new collection where each element is the cumulative result of applying the given operation to all previous elements.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>For <code>accumulate</code> and <code>reduce</code>, an important value is the <code>init</code> (an optional keyword argument), which is the initial value to start the accumulation or reduction. By default, for common operations this <strong>identity element</strong> is predefined. For example, for <code>+</code> the identity is <code>0</code> while for <code>*</code> it is <code>1</code>. The identity element <span class="math inline">\(e\)</span> is the one where for a given binary operation <span class="math inline">\(\bigodot\)</span>, that <span class="math inline">\(x \bigodot e = x\)</span>.</p>
+<p>Another example beyond addition and subtraction is string concatenation. In Julia, two strings are concatenated with <code>*</code> (like in mathematics, <span class="math inline">\(a * b\)</span> is also written as <span class="math inline">\(ab\)</span>). The identitiy element for strings where the binary operation <span class="math inline">\(\bigodot = *\)</span> is <code>""</code>. For example:</p>
+<div id="1e85b18b" class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="fu">accumulate</span>(<span class="op">*</span>, [<span class="st">"a"</span>, <span class="st">"b"</span>, <span class="st">"c"</span>], init<span class="op">=</span><span class="st">""</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="14">
+<pre><code>3-element Vector{String}:
+ "a"
+ "ab"
+ "abc"</code></pre>
+</div>
+</div>
+<p><em>This is a taste of a branch of mathematics known as Category Theory, a very rich subject but largely beyond the immediate scope of this book. The category theoretical term for sets of things that work with the binary operator and identity elements as described above is a <strong>monoid</strong>. You may ignore this fact. </em></p>
+</div>
+</div>
+</section>
+<section id="reduce" class="level3" data-number="6.4.3">
+<h3 data-number="6.4.3" class="anchored" data-anchor-id="reduce"><span class="header-section-number">6.4.3</span> <code>reduce</code></h3>
+<p><code>reduce</code> takes an operation and a collection and applies the operation repeatedly to pairs of elements until there is only a single value left.</p>
+<p>For example, we start with the calculation of the vector of discounted cashflows</p>
+<div id="26bcd4cf" class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>dfs <span class="op">=</span> <span class="fu">accumulate</span>(<span class="op">*</span>, <span class="fu">map</span>(x <span class="op">-&gt;</span> <span class="fl">1</span> <span class="op">/</span> (<span class="fl">1</span> <span class="op">+</span> x), rate))</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>discounted_cfs <span class="op">=</span> <span class="fu">map</span>(<span class="op">*</span>, cf_bond, dfs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="15">
+<pre><code>5-element Vector{Float64}:
+  9.523809523809524
+  8.98472596585804
+  8.556881872245752
+  8.22777103100553
+ 86.19569651529602</code></pre>
+</div>
+</div>
+<p>Then we can sum them with reduce:</p>
+<div id="4ddd0b1a" class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="fu">reduce</span>(<span class="op">+</span>, discounted_cfs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="16">
+<pre><code>121.48888490821487</code></pre>
+</div>
+</div>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div id="fig-reduce-diagram" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-reduce-diagram-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div>
+<svg width="672" height="480" viewbox="0.00 0.00 900.93 317.00" xmlns="http://www.w3.org/2000/svg" xlink="http://www.w3.org/1999/xlink" style="; max-width: none; max-height: none">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 313)">
+<title>G</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-313 896.93,-313 896.93,4 -4,4"></polygon>
+<g id="clust1" class="cluster">
+<title>cluster_0</title>
+<polygon fill="none" stroke="black" points="0,-8 0,-301 214,-301 214,-8 0,-8"></polygon>
+<text text-anchor="middle" x="107" y="-284.4" font-family="Times,serif" font-size="14.00">Input Array (discounted cashflows)</text>
+</g>
+<g id="clust2" class="cluster">
+<title>cluster_1</title>
+<polygon fill="none" stroke="black" points="234,-200 234,-277 781.43,-277 781.43,-200 234,-200"></polygon>
+<text text-anchor="middle" x="507.71" y="-260.4" font-family="Times,serif" font-size="14.00">Reduce Function (+)</text>
+</g>
+<g id="clust3" class="cluster">
+<title>cluster_2</title>
+<polygon fill="none" stroke="black" points="801.43,-200 801.43,-277 892.93,-277 892.93,-200 801.43,-200"></polygon>
+<text text-anchor="middle" x="847.18" y="-260.4" font-family="Times,serif" font-size="14.00">Output Value</text>
+</g>
+<!-- cf1 -->
+<g id="node1" class="node">
+<title>cf1</title>
+<polygon fill="lightblue" stroke="lightblue" points="134,-268 80,-268 80,-232 134,-232 134,-268"></polygon>
+<text text-anchor="middle" x="107" y="-245.8" font-family="Times,serif" font-size="14.00">9.52</text>
+</g>
+<!-- red0 -->
+<g id="node6" class="node">
+<title>red0</title>
+<polygon fill="lightgreen" stroke="lightgreen" points="334.75,-244 242.08,-244 242.08,-208 334.75,-208 334.75,-244"></polygon>
+<text text-anchor="middle" x="288.42" y="-221.8" font-family="Times,serif" font-size="14.00">init=0.0 + cf1</text>
+</g>
+<!-- cf1&#45;&gt;red0 -->
+<g id="edge1" class="edge">
+<title>cf1-&gt;red0</title>
+<path fill="none" stroke="black" d="M134.09,-246.51C159.52,-243.11 199.01,-237.83 231.54,-233.47"></path>
+<polygon fill="black" stroke="black" points="232.39,-236.89 241.83,-232.1 231.46,-229.95 232.39,-236.89"></polygon>
+</g>
+<!-- cf2 -->
+<g id="node2" class="node">
+<title>cf2</title>
+<polygon fill="lightblue" stroke="lightblue" points="134,-214 80,-214 80,-178 134,-178 134,-214"></polygon>
+<text text-anchor="middle" x="107" y="-191.8" font-family="Times,serif" font-size="14.00">8.98</text>
+</g>
+<!-- red1 -->
+<g id="node7" class="node">
+<title>red1</title>
+<polygon fill="lightgreen" stroke="lightgreen" points="444.31,-244 371.01,-244 371.01,-208 444.31,-208 444.31,-244"></polygon>
+<text text-anchor="middle" x="407.66" y="-221.8" font-family="Times,serif" font-size="14.00">red0 + cf2</text>
+</g>
+<!-- cf2&#45;&gt;red1 -->
+<g id="edge2" class="edge">
+<title>cf2-&gt;red1</title>
+<path fill="none" stroke="black" d="M134.14,-193.45C176.66,-189.94 263.24,-185.5 334.84,-199 343.59,-200.65 352.66,-203.28 361.3,-206.26"></path>
+<polygon fill="black" stroke="black" points="360.23,-209.6 370.82,-209.75 362.64,-203.03 360.23,-209.6"></polygon>
+</g>
+<!-- cf3 -->
+<g id="node3" class="node">
+<title>cf3</title>
+<polygon fill="lightblue" stroke="lightblue" points="134,-160 80,-160 80,-124 134,-124 134,-160"></polygon>
+<text text-anchor="middle" x="107" y="-137.8" font-family="Times,serif" font-size="14.00">8.56</text>
+</g>
+<!-- red2 -->
+<g id="node8" class="node">
+<title>red2</title>
+<polygon fill="lightgreen" stroke="lightgreen" points="553.96,-244 480.66,-244 480.66,-208 553.96,-208 553.96,-244"></polygon>
+<text text-anchor="middle" x="517.31" y="-221.8" font-family="Times,serif" font-size="14.00">red1 + cf3</text>
+</g>
+<!-- cf3&#45;&gt;red2 -->
+<g id="edge3" class="edge">
+<title>cf3-&gt;red2</title>
+<path fill="none" stroke="black" d="M134.12,-144.7C191.17,-150.96 330.94,-168.35 444.48,-199 453.17,-201.35 462.28,-204.33 470.98,-207.46"></path>
+<polygon fill="black" stroke="black" points="469.99,-210.83 480.58,-211.03 472.42,-204.27 469.99,-210.83"></polygon>
+</g>
+<!-- cf4 -->
+<g id="node4" class="node">
+<title>cf4</title>
+<polygon fill="lightblue" stroke="lightblue" points="134,-106 80,-106 80,-70 134,-70 134,-106"></polygon>
+<text text-anchor="middle" x="107" y="-83.8" font-family="Times,serif" font-size="14.00">8.23</text>
+</g>
+<!-- red3 -->
+<g id="node9" class="node">
+<title>red3</title>
+<polygon fill="lightgreen" stroke="lightgreen" points="663.6,-244 590.31,-244 590.31,-208 663.6,-208 663.6,-244"></polygon>
+<text text-anchor="middle" x="626.95" y="-221.8" font-family="Times,serif" font-size="14.00">red2 + cf4</text>
+</g>
+<!-- cf4&#45;&gt;red3 -->
+<g id="edge4" class="edge">
+<title>cf4-&gt;red3</title>
+<path fill="none" stroke="black" d="M134.44,-93.46C203.93,-108.04 397.14,-150.14 554.13,-199 562.73,-201.67 571.79,-204.82 580.47,-208"></path>
+<polygon fill="black" stroke="black" points="579.47,-211.36 590.07,-211.58 581.92,-204.8 579.47,-211.36"></polygon>
+</g>
+<!-- cf5 -->
+<g id="node5" class="node">
+<title>cf5</title>
+<polygon fill="lightblue" stroke="lightblue" points="134,-52 80,-52 80,-16 134,-16 134,-52"></polygon>
+<text text-anchor="middle" x="107" y="-29.8" font-family="Times,serif" font-size="14.00">86.20</text>
+</g>
+<!-- red4 -->
+<g id="node10" class="node">
+<title>red4</title>
+<polygon fill="lightgreen" stroke="lightgreen" points="773.25,-244 699.95,-244 699.95,-208 773.25,-208 773.25,-244"></polygon>
+<text text-anchor="middle" x="736.6" y="-221.8" font-family="Times,serif" font-size="14.00">red3 + cf5</text>
+</g>
+<!-- cf5&#45;&gt;red4 -->
+<g id="edge5" class="edge">
+<title>cf5-&gt;red4</title>
+<path fill="none" stroke="black" d="M134.34,-36.36C186.35,-40.81 305.93,-50 406.66,-50 406.66,-50 406.66,-50 518.31,-50 612,-50 687.92,-150.02 719.62,-199.26"></path>
+<polygon fill="black" stroke="black" points="716.72,-201.23 725.02,-207.83 722.65,-197.5 716.72,-201.23"></polygon>
+</g>
+<!-- red0&#45;&gt;red1 -->
+<g id="edge6" class="edge">
+<title>red0-&gt;red1</title>
+<path fill="none" stroke="black" d="M335.08,-226C343.49,-226 352.28,-226 360.7,-226"></path>
+<polygon fill="black" stroke="black" points="360.74,-229.5 370.74,-226 360.74,-222.5 360.74,-229.5"></polygon>
+</g>
+<!-- red1&#45;&gt;red2 -->
+<g id="edge7" class="edge">
+<title>red1-&gt;red2</title>
+<path fill="none" stroke="black" d="M444.5,-226C452.86,-226 461.86,-226 470.58,-226"></path>
+<polygon fill="black" stroke="black" points="470.62,-229.5 480.62,-226 470.62,-222.5 470.62,-229.5"></polygon>
+</g>
+<!-- red2&#45;&gt;red3 -->
+<g id="edge8" class="edge">
+<title>red2-&gt;red3</title>
+<path fill="none" stroke="black" d="M554.15,-226C562.5,-226 571.51,-226 580.22,-226"></path>
+<polygon fill="black" stroke="black" points="580.27,-229.5 590.27,-226 580.27,-222.5 580.27,-229.5"></polygon>
+</g>
+<!-- red3&#45;&gt;red4 -->
+<g id="edge9" class="edge">
+<title>red3-&gt;red4</title>
+<path fill="none" stroke="black" d="M663.8,-226C672.15,-226 681.16,-226 689.87,-226"></path>
+<polygon fill="black" stroke="black" points="689.91,-229.5 699.91,-226 689.91,-222.5 689.91,-229.5"></polygon>
+</g>
+<!-- output -->
+<g id="node11" class="node">
+<title>output</title>
+<polygon fill="lightpink" stroke="lightpink" points="873.68,-244 819.67,-244 819.67,-208 873.68,-208 873.68,-244"></polygon>
+<text text-anchor="middle" x="846.68" y="-221.8" font-family="Times,serif" font-size="14.00">121.49</text>
+</g>
+<!-- red4&#45;&gt;output -->
+<g id="edge10" class="edge">
+<title>red4-&gt;output</title>
+<path fill="none" stroke="black" d="M773.29,-226C784.87,-226 797.72,-226 809.35,-226"></path>
+<polygon fill="black" stroke="black" points="809.61,-229.5 819.61,-226 809.61,-222.5 809.61,-229.5"></polygon>
+</g>
+</g>
+</svg>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-reduce-diagram-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;6.3: A diagram showing how <code>reduce</code> applies the given operation to pairs of elements, ultimately reducing the collection to a single value.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="mapreduce" class="level3" data-number="6.4.4">
+<h3 data-number="6.4.4" class="anchored" data-anchor-id="mapreduce"><span class="header-section-number">6.4.4</span> <code>mapreduce</code></h3>
+<p>We can combine <code>map</code>, <code>accumulate</code> and <code>reduce</code> to concisely calculate the present value in a functional style:</p>
+<div id="b931d411" class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>dfs <span class="op">=</span> <span class="fu">accumulate</span>(<span class="op">*</span>, <span class="fu">map</span>(x <span class="op">-&gt;</span> <span class="fl">1</span> <span class="op">/</span> (<span class="fl">1</span> <span class="op">+</span> x), rate))</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="fu">mapreduce</span>(<span class="op">*</span>, <span class="op">+</span>, cf_bond, dfs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="17">
+<pre><code>121.48888490821487</code></pre>
+</div>
+</div>
+<p>This calculates the discount factors, applies them to the cashflows with map, and sums the result with a reduction.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>At the risk of sounding obvious, an easy way to make the program more “functional” is to simply use more functions. Do this one thing and it will improve the model’s organization, maintainability, and reduce bugs!</p>
+<p>Take the example from earlier:</p>
+<div class="sourceCode" id="cb36"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>pv <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>discount <span class="op">=</span> <span class="fl">1.0</span></span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (cf, r) <span class="kw">in</span> <span class="fu">zip</span>(cf_bond, rate)</span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>    discount <span class="op">=</span> discount <span class="op">/</span> (<span class="fl">1</span> <span class="op">+</span> r)</span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>    pv <span class="op">=</span> pv <span class="op">+</span> discount <span class="op">*</span> cf</span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>pv</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>We can easy turn this code into a function so that it can operate on data beyond the single pair of <code>cf_bond</code> and <code>rate</code> previously defined:</p>
+<div class="sourceCode" id="annotated-cell-46"><pre class="sourceCode julia code-annotation-code code-with-copy code-annotated"><code class="sourceCode julia"><span id="annotated-cell-46-1"><a href="#annotated-cell-46-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">pv</span>(rates,cashflows)</span>
+<span id="annotated-cell-46-2"><a href="#annotated-cell-46-2" aria-hidden="true" tabindex="-1"></a>    pv <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="annotated-cell-46-3"><a href="#annotated-cell-46-3" aria-hidden="true" tabindex="-1"></a>    discount <span class="op">=</span> <span class="fl">1.0</span></span>
+<span id="annotated-cell-46-4"><a href="#annotated-cell-46-4" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-46" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-46-5" class="code-annotation-target"><a href="#annotated-cell-46-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (cf, r) <span class="kw">in</span> <span class="fu">zip</span>(rates, cashflows)</span>
+<span id="annotated-cell-46-6"><a href="#annotated-cell-46-6" aria-hidden="true" tabindex="-1"></a>        discount <span class="op">=</span> discount <span class="op">/</span> (<span class="fl">1</span> <span class="op">+</span> r)</span>
+<span id="annotated-cell-46-7"><a href="#annotated-cell-46-7" aria-hidden="true" tabindex="-1"></a>        pv <span class="op">=</span> pv <span class="op">+</span> discount <span class="op">*</span> cf</span>
+<span id="annotated-cell-46-8"><a href="#annotated-cell-46-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="annotated-cell-46-9"><a href="#annotated-cell-46-9" aria-hidden="true" tabindex="-1"></a>    pv</span>
+<span id="annotated-cell-46-10"><a href="#annotated-cell-46-10" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-46" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-46" data-code-lines="5" data-code-annotation="1">Here, <code>cf_bond</code> and <code>rate</code> would refer to whatever was passed as arguments to the function instead of any globally defined values.</span>
+</dd>
+</dl>
+<p>Now we could use this definition of <code>pv</code> on other instances of rates and cashflows.</p>
+</div>
+</div>
+</section>
+<section id="filter" class="level3" data-number="6.4.5">
+<h3 data-number="6.4.5" class="anchored" data-anchor-id="filter"><span class="header-section-number">6.4.5</span> <code>filter</code></h3>
+<p><code>filter</code> does what you might think - filter a collection based on some critereon that can be determined as true or false.</p>
+<p>For example filtering out even numbers using the <code>isodd</code> function:</p>
+<div id="5d077f36" class="cell" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">filter</span>(isodd, <span class="fl">1</span><span class="op">:</span><span class="fl">6</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="18">
+<pre><code>3-element Vector{Int64}:
+ 1
+ 3
+ 5</code></pre>
+</div>
+</div>
+<p>Or filtering out things that don’t match a criteria:</p>
+<div id="2a740027" class="cell" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">filter</span>(x <span class="op">-&gt;</span> <span class="fu">~</span>(x <span class="op">==</span> <span class="fl">5</span>), <span class="fl">1</span><span class="op">:</span><span class="fl">6</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="19">
+<pre><code>5-element Vector{Int64}:
+ 1
+ 2
+ 3
+ 4
+ 6</code></pre>
+</div>
+</div>
+<p>While we didn’t need <code>filter</code> to calculate a bond’s present value in the example above, one can imagine how you may want to filter dates that a bond might pay a cashflow, say last day of a quarter:</p>
+<div id="8ef144bc" class="cell" data-execution_count="18">
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Dates</span></span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> d <span class="op">=</span> <span class="fu">Date</span>(<span class="fl">2024</span>, <span class="fl">01</span>, <span class="fl">01</span>)</span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(d <span class="op">-&gt;</span> <span class="fu">lastdayofquarter</span>(d) <span class="op">==</span> d, d<span class="op">:</span><span class="fu">Day</span>(<span class="fl">1</span>)<span class="op">:</span><span class="fu">lastdayofyear</span>(d))</span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="20">
+<pre><code>4-element Vector{Date}:
+ 2024-03-31
+ 2024-06-30
+ 2024-09-30
+ 2024-12-31</code></pre>
+</div>
+</div>
+</section>
+<section id="more-tips-on-functional-styles" class="level3" data-number="6.4.6">
+<h3 data-number="6.4.6" class="anchored" data-anchor-id="more-tips-on-functional-styles"><span class="header-section-number">6.4.6</span> More Tips on Functional Styles</h3>
+<section id="do-syntax-for-function-arguments" class="level4" data-number="6.4.6.1">
+<h4 data-number="6.4.6.1" class="anchored" data-anchor-id="do-syntax-for-function-arguments"><span class="header-section-number">6.4.6.1</span> <code>do</code> Syntax for Function Arguments</h4>
+<p>In more complex situations such as with multiple collections or mult-line logic, there is a clearer syntax that is often used. <code>do</code> is a reserved keyword in Julia that creates an anonymous function and passes its arguments to a function like <code>map</code>. For example, this (terrible) code which decides if a number is prime. The anonymous function requires a <code>begin</code> block since the logic of the function is extended into multiple lines.</p>
+<div class="sourceCode" id="cb43"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">map</span>(x <span class="op">-&gt;</span> <span class="cf">begin</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> x <span class="op">==</span> <span class="fl">1</span></span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">"prime"</span></span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">elseif</span> x <span class="op">==</span> <span class="fl">2</span></span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">"not prime"</span></span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>  <span class="cf">elseif</span> x <span class="op">==</span> <span class="fl">3</span></span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">"prime"</span></span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>  <span class="cf">elseif</span> x <span class="op">&gt;</span> <span class="fl">4</span></span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a>  <span class="st">"probably not prime"</span></span>
+<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a>  <span class="cf">end</span></span>
+<span id="cb43-11"><a href="#cb43-11" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span>, </span>
+<span id="cb43-12"><a href="#cb43-12" aria-hidden="true" tabindex="-1"></a>[<span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">3</span>, <span class="fl">10</span>]</span>
+<span id="cb43-13"><a href="#cb43-13" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>This can be written more cleanly with the <code>do</code> syntax:</p>
+<div class="sourceCode" id="cb44"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="fu">map</span>([<span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">3</span>, <span class="fl">10</span>]) <span class="cf">do</span> x</span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> x <span class="op">==</span> <span class="fl">1</span></span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a><span class="st">"prime"</span></span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a><span class="cf">elseif</span> x <span class="op">==</span> <span class="fl">2</span></span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a><span class="st">"not prime"</span></span>
+<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a><span class="cf">elseif</span> x <span class="op">==</span> <span class="fl">3</span></span>
+<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a><span class="st">"prime"</span></span>
+<span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a><span class="cf">elseif</span> x <span class="op">&gt;</span> <span class="fl">4</span></span>
+<span id="cb44-9"><a href="#cb44-9" aria-hidden="true" tabindex="-1"></a><span class="st">"probably not prime"</span></span>
+<span id="cb44-10"><a href="#cb44-10" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="multiple-collections" class="level4" data-number="6.4.6.2">
+<h4 data-number="6.4.6.2" class="anchored" data-anchor-id="multiple-collections"><span class="header-section-number">6.4.6.2</span> Multiple Collections</h4>
+<p><code>map</code> and the other functional operators discussed in this section can take multiple arguments. This is convienient if you have multiple arguments to a function:</p>
+<div id="0610bfc9" class="cell" data-execution_count="19">
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>discounts <span class="op">=</span> [<span class="fl">0.9</span>, <span class="fl">0.81</span>, <span class="fl">0.73</span>]</span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>cashflows <span class="op">=</span> [<span class="fl">10</span>, <span class="fl">10</span>, <span class="fl">10</span>]</span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a><span class="fu">map</span>((d, c) <span class="op">-&gt;</span> d <span class="op">*</span> c, discounts, cashflows)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="21">
+<pre><code>3-element Vector{Float64}:
+ 9.0
+ 8.100000000000001
+ 7.3</code></pre>
+</div>
+</div>
+<p>Or an example with the <code>do</code> syntax:</p>
+<div id="d7887d30" class="cell" data-execution_count="20">
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="fu">map</span>(discounts, cashflows) <span class="cf">do</span> d,c</span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>  d <span class="op">*</span> c</span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="22">
+<pre><code>3-element Vector{Float64}:
+ 9.0
+ 8.100000000000001
+ 7.3</code></pre>
+</div>
+</div>
+</section>
+<section id="mixing-funcitonal-and-imperative-styles" class="level4" data-number="6.4.6.3">
+<h4 data-number="6.4.6.3" class="anchored" data-anchor-id="mixing-funcitonal-and-imperative-styles"><span class="header-section-number">6.4.6.3</span> Mixing Funcitonal And Imperative Styles</h4>
+<p>One of the best things about Julia is how natural it can be to mix the different styles Sometimes the best is the mix of both styles and that’s one of the benefits of Julia: use the style that’s most natural to the problem.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><strong>Lisp</strong> (“list processing”) is another, much older language than Julia (created in the 1950s!). One of it’s claims to fame is how flexible and powerful the tools are within the language to build upon. There’s a couple aspects of this curse that we wish to describe because we can learn from it while Julia is still a relatively young language.</p>
+<p>Part of the “curse” is that: because there’s so much freedom in what can be expressed in the language, there’s not an obvious “best” way of doing things. This can lead to decision paralysis where you are trying to over-analyze what’s the best way to write part of your code. Our advice: <em>don’t worry about it!</em> A working implemntation of something is better than an over-optimized idea.</p>
+<p>The other part of the “curse” is that because is that it’s relatively easy to implement so many things from the building blocks that Julia provides and compose them together to do what you want. This has a downside becuase the general approach to packages is smaller, standalone pieces that you call as needed. For example, consider Python’s Pandas library, upon which Python’s data science community was built. It came bundled with a CSV reader, Excel reader, Database reader, DataFrame type, visualization library, and statistical functions. In Julia, each of those are separate packages that specialize for the respective topics. This is advantageous in that they can progress independently from one another, you don’t have to include functionality that you don’t need, and you can mix and match libraries depending on your preference.</p>
+</div>
+</div>
+</section>
+</section>
+</section>
+<section id="array-oriented-styles" class="level2" data-number="6.5">
+<h2 data-number="6.5" class="anchored" data-anchor-id="array-oriented-styles"><span class="header-section-number">6.5</span> Array-Oriented Styles</h2>
+<p>Array-oriented programming is one that is practiced in two main contexts:</p>
+<ol type="1">
+<li>GPU programming</li>
+<li>Python numerical computing</li>
+</ol>
+<p>The former because GPUs want large blocks of similar data to operate in parallel. The latter is because native Python is too slow for many modeling problems so libraries like NumPy,SciPy,and tensor libraries define C++ (or similar) libraries for users to call out to.</p>
+<p>Array-oriented programming is not always natural for financial and actuarial applications. Differences in behavior or timing of underling cashflows can make a set of otherwise similar products difficult to capture in nicely gridded arrays. Nonetheless, certain applications (scenario generation, some valuation routines) fit very naturally into this paradigm. Furthermore, for those that work well it’s often a great way to extract additional performance due to the parallelization offered via CPU or GPU array programming.</p>
+<p><a href="#tbl-array-oriented-example" class="quarto-xref">Table&nbsp;<span>6.2</span></a> shows the bond present value example in this style.</p>
+<div id="tbl-array-oriented-example" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-array-oriented-example-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;6.2: Julia’s broadcasting makes for an array-oriented style, similar to the approach that would be used with Python’s NumPy.
+</figcaption>
+<div aria-describedby="tbl-array-oriented-example-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 48%">
+<col style="width: 51%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Julia</th>
+<th>Python (NumPy)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><div class="sourceCode" id="cb49"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>cf_bond <span class="op">=</span> [<span class="fl">10</span>, <span class="fl">10</span>, <span class="fl">10</span>, <span class="fl">10</span>, <span class="fl">110</span>]</span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>rate <span class="op">=</span> [<span class="fl">0.05</span>, <span class="fl">0.06</span>, <span class="fl">0.05</span>, <span class="fl">0.04</span>, <span class="fl">0.05</span>]</span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a>discount_factors <span class="op">=</span> <span class="fu">cumprod</span>(<span class="fl">1</span> <span class="op">./</span> (<span class="fl">1</span> <span class="op">.+</span> rate))</span>
+<span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(cf_bond <span class="op">.*</span> discount_factors)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div></td>
+<td><div class="sourceCode" id="cb50"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a>cf_bond <span class="op">=</span> np.array([<span class="dv">10</span>, <span class="dv">10</span>, <span class="dv">10</span>, <span class="dv">10</span>, <span class="dv">110</span>])</span>
+<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a>rate <span class="op">=</span> np.array([<span class="fl">0.05</span>, <span class="fl">0.06</span>, <span class="fl">0.05</span>, <span class="fl">0.04</span>, <span class="fl">0.05</span>])</span>
+<span id="cb50-5"><a href="#cb50-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-6"><a href="#cb50-6" aria-hidden="true" tabindex="-1"></a>discount_factors <span class="op">=</span> np.cumprod(<span class="dv">1</span> <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> rate))</span>
+<span id="cb50-7"><a href="#cb50-7" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> np.<span class="bu">sum</span>(cf_bond <span class="op">*</span> discount_factors)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div></td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>The downsides to this style are:</p>
+<ol type="1">
+<li>Sometimes it is unnatrual because of non-uniformity of the data we are working with. For example if the length of the cashflows were shorter than the discount rates, we would have to perform intermediate steps to shorten or lengthen arrays in order to get them to be the same size.</li>
+<li>A good bit of runtime performance is lost because the computer needs to allocate and fill many intermediate arrays (note how in <a href="#tbl-array-oriented-example" class="quarto-xref">Table&nbsp;<span>6.2</span></a>, the <code>discount_factors</code> needs to instantiate an entirely new vector even though it’s only temporariliy used). See more on allocations in <a href="hardware.html" class="quarto-xref"><span>Chapter 10</span></a>.</li>
+</ol>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const disableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'prefetch';
+    }
+  }
+  const enableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'stylesheet';
+    }
+  }
+  const manageTransitions = (selector, allowTransitions) => {
+    const els = window.document.querySelectorAll(selector);
+    for (let i=0; i < els.length; i++) {
+      const el = els[i];
+      if (allowTransitions) {
+        el.classList.remove('notransition');
+      } else {
+        el.classList.add('notransition');
+      }
+    }
+  }
+  const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+    const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+    const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+    let newTheme = '';
+    if(darkModeDefault) {
+      newTheme = isAlternate ? baseTheme : alternateTheme;
+    } else {
+      newTheme = isAlternate ? alternateTheme : baseTheme;
+    }
+    const changeGiscusTheme = () => {
+      // From: https://github.com/giscus/giscus/issues/336
+      const sendMessage = (message) => {
+        const iframe = document.querySelector('iframe.giscus-frame');
+        if (!iframe) return;
+        iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+      }
+      sendMessage({
+        setConfig: {
+          theme: newTheme
+        }
+      });
+    }
+    const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+    if (isGiscussLoaded) {
+      changeGiscusTheme();
+    }
+  }
+  const toggleColorMode = (alternate) => {
+    // Switch the stylesheets
+    const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+    manageTransitions('#quarto-margin-sidebar .nav-link', false);
+    if (alternate) {
+      enableStylesheet(alternateStylesheets);
+      for (const sheetNode of alternateStylesheets) {
+        if (sheetNode.id === "quarto-bootstrap") {
+          toggleBodyColorMode(sheetNode);
+        }
+      }
+    } else {
+      disableStylesheet(alternateStylesheets);
+      toggleBodyColorPrimary();
+    }
+    manageTransitions('#quarto-margin-sidebar .nav-link', true);
+    // Switch the toggles
+    const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+    for (let i=0; i < toggles.length; i++) {
+      const toggle = toggles[i];
+      if (toggle) {
+        if (alternate) {
+          toggle.classList.add("alternate");     
+        } else {
+          toggle.classList.remove("alternate");
+        }
+      }
+    }
+    // Hack to workaround the fact that safari doesn't
+    // properly recolor the scrollbar when toggling (#1455)
+    if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+      manageTransitions("body", false);
+      window.scrollTo(0, 1);
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        manageTransitions("body", true);
+      }, 40);  
+    }
+  }
+  const isFileUrl = () => { 
+    return window.location.protocol === 'file:';
+  }
+  const hasAlternateSentinel = () => {  
+    let styleSentinel = getColorSchemeSentinel();
+    if (styleSentinel !== null) {
+      return styleSentinel === "alternate";
+    } else {
+      return false;
+    }
+  }
+  const setStyleSentinel = (alternate) => {
+    const value = alternate ? "alternate" : "default";
+    if (!isFileUrl()) {
+      window.localStorage.setItem("quarto-color-scheme", value);
+    } else {
+      localAlternateSentinel = value;
+    }
+  }
+  const getColorSchemeSentinel = () => {
+    if (!isFileUrl()) {
+      const storageValue = window.localStorage.getItem("quarto-color-scheme");
+      return storageValue != null ? storageValue : localAlternateSentinel;
+    } else {
+      return localAlternateSentinel;
+    }
+  }
+  const darkModeDefault = false;
+  let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+  // Dark / light mode switch
+  window.quartoToggleColorScheme = () => {
+    // Read the current dark / light value 
+    let toAlternate = !hasAlternateSentinel();
+    toggleColorMode(toAlternate);
+    setStyleSentinel(toAlternate);
+    toggleGiscusIfUsed(toAlternate, darkModeDefault);
+  };
+  // Ensure there is a toggle, if there isn't float one in the top right
+  if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+    const a = window.document.createElement('a');
+    a.classList.add('top-right');
+    a.classList.add('quarto-color-scheme-toggle');
+    a.href = "";
+    a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+    const i = window.document.createElement("i");
+    i.classList.add('bi');
+    a.appendChild(i);
+    window.document.body.appendChild(a);
+  }
+  // Switch to dark mode if need be
+  if (hasAlternateSentinel()) {
+    toggleColorMode(true);
+  } else {
+    toggleColorMode(false);
+  }
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./interlude-abstractions.html" class="pagination-link" aria-label="Interlude: Abstractions">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Interlude: Abstractions</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./type-abstractions.html" class="pagination-link" aria-label="Abstractions of Types">
+        <span class="nav-page-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Abstractions of Types</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
