@@ -151,10 +151,10 @@ Note that it's when state is `mutable` that a program tends to be more complex.
 
 @tbl-funcional-methods introduces a set of core functional methods to familiarize yourself with. Note that anonymous functions (#sec-anonymous-functions) are used frequently to define intermediary steps.
 
-::: column-page
+::: column-body-outset
 +--------------------------+---------------------------------------------------------------------------------------------------------------------------------------+---------------+
 | Function                 | Desciption                                                                                                                            | Example       |
-+==========================+=======================================================================================================================================+===============+
++:=========================+:======================================================================================================================================+:==============+
 | `map(f,v)`               | Apply function `f` to each element of the collection `v`.                                                                             | ``` julia     |
 |                          |                                                                                                                                       | map(          |
 |                          |                                                                                                                                       |     x->x^2,   |
@@ -199,7 +199,7 @@ Note that it's when state is `mutable` that a program tends to be more complex.
 |                          |                                                                                                                                       | ```           |
 +--------------------------+---------------------------------------------------------------------------------------------------------------------------------------+---------------+
 
-: Important Functional Methods. {#tbl-funcional-methods}
+: Important Functional Methods. {#tbl-funcional-methods tbl-colwidths="[25,45,30]"}
 :::
 This paradigm is very powerful in a few ways:
 
@@ -617,3 +617,49 @@ The downsides to this style are:
 
 1. Sometimes it is unnatrual because of non-uniformity of the data we are working with. For example if the length of the cashflows were shorter than the discount rates, we would have to perform intermediate steps to shorten or lengthen arrays in order to get them to be the same size.
 2. A good bit of runtime performance is lost because the computer needs to allocate and fill many intermediate arrays (note how in @tbl-array-oriented-example, the `discount_factors` needs to instantiate an entirely new vector even though it's only temporariliy used). See more on allocations in @sec-hardware.
+
+## Recursion
+
+The Fibbonaci sequence is a classic example of a recursive algorithm:
+
+$F(n) = \begin{cases}
+0, & \text{if } n = 0\
+1, & \text{if } n = 1\
+F(n-1) + F(n-2), & \text{if } n > 1
+\end{cases}$
+
+In code, this translates into a function defintition that refers to itself:
+
+```julia
+function fibonacci(n)
+    if n == 0
+        return 0
+    elseif n == 1
+        return 1
+    else
+        return fibonacci(n-1) + fibonacci(n-2)
+    end
+end
+```
+
+One could imagine a possible pattern where the value of a stream of cashflows is defeined as the sum of the value of the discounted next period plus the cashflows that occur this period. 
+
+```{julia}
+function pv_recursive(rate,cashflows,accumulated_value=0.0)
+  if isempty(cashflows)
+    return accumulated_value
+  else
+    v = (accumulated_value + cashflows[end]) / (1 + rate)
+    return pv_recursive(rate,cashflows[begin:end-1], v)
+  end
+end
+
+```
+
+And an example of its use:
+
+```{julia}
+pv_recursive(0.05,[10,10,10])
+```
+
+Generally, the recursive pattern includes defining a 'base case' where you stop the recursive behavior and return the result that has been accumulated up to that point. 
