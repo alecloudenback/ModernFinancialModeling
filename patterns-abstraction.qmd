@@ -10,19 +10,25 @@ Why we talk about abstraction as a technique in and of itself, discussion of abs
 
 In programming and modeling, as in mathematics, abstraction permits the definition of interchangeable components and patterns that can be reused. Abstraction is a selective ignorance—focusing on the aspects of the problem that are relevant, and ignoring the others. The last two chapters described what we might call "micro" level abstractions: specific functions or types. In this chapter, we zoom out and examine some principles that guide good model development and how that manifests itself in architectural conerns such as how different parts of the code are organized, what parts of the program are considered 'public' versus 'private', and patterns themselves.
 
+@sec-elements-programming Described a number of tools that we can utilize as interfaces within our model. We use these tools that are provided by our programming language *in service of* the conceptual abstraction described above.
+
+-   Functions let us implement behavior, where we need trouble ourselves with the low level details.
+-   Data types provide a hierarchical structure to provide meaning to things, and to group those things together into more meaningful structures.
+-   Modules allow us to combine data, and or function, into a related group of concepts which can be shared in different parts of our model
+
 ## Principles for Abstraction
 
 Here is a list of some principles that arise when developing a particular abstraction. Not all abstractions serve all of these purposes but generally fit one or more of them.
 
 ::: column-body-outset
 | Principle | What | Why | Example |
-|-----------|------|-----|---------|
+|-------------------|------------------|------------------|------------------|
 | Separation of Concerns | Divide the system into distinct parts, each addressing a separate concern | Promote modularity and reduce high degree of dependence (coupling) between components | Separating data retrieval, data processing, and output generation steps in a process |
 | Encapsulation | Hide the internal details of a component and expose only a clean, well-defined set of functionality (interface) | Don't let other parts of the program modify internal data and make the system easier to understand and maintain | Defining a type or module with well defined behavior and responsibiltiy |
 | Composability | Design simple components that can be combined to create more complex behaviors, as opposed to a single component that attempts to handle all behavior. | Promote reuse and allow for the components to be combined creatively | Separate details about economic conditions into different types than contracts/instruments |
 | Generalization | Identify common patterns and create generic components that can be specialized as needed. Often this means idenfifying the common behavior that arises repeatedly in a model | Avoid duplication and make the system more expressive and extensible | Defining a generic `Instrument` type that can be specialized for different asset classes |
 
-: Finding abstractions generally means finding patterns that fit into one of these principles. {#tbl-abstraction-principles tbl-colwidths="[17,31,31,31]"}
+: Finding abstractions generally means finding patterns that fit into one of these principles. {#tbl-abstraction-principles tbl-colwidths="\[17,31,31,31\]"}
 :::
 
 These principles provide guidance for creating abstractions that are modular, reusable, and maintainable. By following these principles, developers can create financial models that are easier to understand, extend, and adapt to changing requirements.
@@ -45,25 +51,147 @@ In general, though it is preferred to try to loosely couple systems, you can pic
 
 ## Interfaces
 
-**Interfaces** are the boundary between different encapsulated abstractions. Financial model this might mean that there is an interface for bonds, or there is an interface for interest-rate swaps. There may be a different interface for calculating risk metrics or visualizing the results.
+**Interfaces** are the boundary between different encapsulated abstractions. The user-facing interface is the set of functionality and details that the user of the package or model must consider, which is separate from the intermediate variables, logic, and complexity that may be contained within.
 
-Financial model this might mean that there is an interface for bonds, or there is an interface for interest-rate swaps. There may be a different interface for calculating risk metrics or visualizing the results. A better system design will separate the concern of visualizing output from the mechanics of a fixed income contract. This is what it means to put boundaries on different parts of a models logic.
+::: callout-note
+## Example of an interface
 
-One of the easiest places to see this is with the available open source packages. There are packages available for visualizations, data frames, file, storage, statistical analysis, etc. for many of these it's easy to see where the natural boundary lies, However, it's often difficult to find where to draw lines within financial models. For example, should bonds and interest-rate swaps be in separate packages? Or both part of a broader fixed income package? This is where much of the art and domain expertise of the financial professional comes to bear in modeling. There would be no way for a pure software engineer to think about the right design for the system without understanding how underlying components share, similarities or differences and how those components interact.
+When looking up a ticker for a market quote, one need not be mindful of the underlying realtime databases, networking, rendering text to the screen, memory management, etc. The interface is "put in symbol, get out number". By design there are multiple layers of interfaces and abstractions that are used but the financial modeler need only be actively concerned about the points that he or she comes in contact with, not the entire chain of complexity.
+:::
 
+For a financial model this might mean that there is an interface for bonds, or there is an interface for interest-rate swaps. There may be a different interface for calculating risk metrics or visualizing the results.
 
-## Programming Interfaces and Patterns
+Financial model this might mean that there is an interface for bonds, or there is an interface for interest-rate swaps. There may be a different interface for calculating risk metrics or visualizing the results. A better system design will separate the concern of visualizing output from the mechanics of a fixed income contract. This is what it means to put boundaries on different parts of a models logic. One of the easiest places to see this is with the available open source packages. There are packages available for visualizations, data frames, file, storage, statistical analysis, etc. for many of these it's easy to see where the natural boundary lies.
 
-@sec-elements-programming Described a number of tools that we can utilize as interfaces within our model. We use these tools that are provided by our programming language *in service of* the conceptual abstraction described above.
+However, it's often difficult to find where to draw lines within financial models. For example, should bonds and interest-rate swaps be in separate packages? Or both part of a broader fixed income package? This is where much of the art and domain expertise of the financial professional comes to bear in modeling. There would be no way for a pure software engineer to think about the right design for the system without understanding how underlying components share, similarities or differences and how those components interact.
 
--   Functions let us implement behavior, where we need trouble ourselves with the low level details.
--   Data types provide a hierarchical structure to provide meaning to things, and to group those things together into more meaningful structures.
--   Modules allow us to combine data, and or function, into a related group of concepts which can be shared in different parts of our model
+### Defining Good Interfaces
 
-We will also discuss here some **patterns** which are ways of doing things that seem to appear repeatedly and specific design choices have proven to work well in the past and should be considered when similar conditions arise in the future.
+A well-designed interface should follow these principles:
 
+1.  **Be minimal and focused.** The interface should provide only the essential functionality needed, without unnecessary clutter or features. This makes the interface easier to understand and and faciliates building the necessary complexity through digestable, composable components.
+2.  **Be consistent and intuitive.** The interface should use consistent naming conventions, parameter orders, and behaviors. It should match the user's mental model and expectations.
+3.  **Hide implementation details.** The interface should abstract away the internal complexity and expose only what the user needs to know. This of details allows the implementation to change without affecting users of the interface.
+4.  **Be documented and contractual.** The interface should clearly specify what inputs it expects and what outputs or behaviors it provides. It forms a contract between the implementation and the users.
+5.  **Be testable.** A good interface allows the functionality to be easily tested through the public interface, without needing to access internal details.
+
+### Interfaces: A Financial Modeling Case Study
+
+As a case study, we'll look at the FinanceModels.jl and related packages to discuss some of the background and design choices that went into the functionality. This suite was written by one of the authors and is publically available as set of installable Julia packages.
+
+#### Background
+
+In actuarial work, it is common to need to work with interest rate and bond yield curves to determine current forward rates, estimates of the shape of future yield curves, or discount a series of cashflows to determine a present value. Determining things like "given a par yield curve, what's the implied discount factor for a cashflow at time 10" or "what is the 10 year BBB public corporate rate implied by the current curve in five years' time" is cumbersome at best in a spreadsheet.
+
+For example, to determine the answer to the first one ("a discount factor for time 10") actually requires quite a bit of detail and assumption to derive:
+
+-   Reference market data and a specification for how that market data should be interpreted. For example, if given the rate `0.05` for time 10, quoted as a continuous rate or annual effective? Is that a par rate, a zero-coupon bond (spot) rate, or a one-year-forward rate from time 10?
+-   Smoothing, interpolation, or extrapolation for noisy or sparse data. Should the rates be bootstrapped or fit to a parametrically specified curve?
+
+This is the type of complexity that we wish to save the user from needing to keep front of mind when the primary goal is, e.g., valuation of a stream of riskless life insurance payments, which might look like this:
+
+``` julia
+risk_free_rates = [0.05,0.06,...0.06]
+tenors = [1/12,3/12,...30]
+yield_curve = Yields.Par(risk_free_rates,tenors)
+
+cashflow_vector = [1e6,3e6,...,1e3]
+present_value(yield_curve,cashflow_vector)
+```
+
+This is very clear from the variable and function names what the purpose and steps in the analysis are. Imagine starting with rates and cashflows in a spreadsheet, needing to perform the bootstrapping, interpolation, and discounting before getting to the simple present value sought in the analysis. What can be, with the right abstractions, distilled into five lines of code would take hundreds of cells in a spreadsheet. Providing abstractions like this at the hand of financial modelers is a productivity multiplier.
+
+#### Initial Versions
+
+There were two main abstractions to talk about from early versions of the packages.
+
+##### Rates
+
+Utilizing the benefit of the type system, it was decided that it would be most useful to represent rates not as simple floating point numbers (e.g. `0.05`) but instead with dedicated types to distinguish between rate conventions. The abstract type `CompoudingFrequency` had two subtypes: `Continuous` and `Periodic` sop that a 5% rate compounded continuously versus an effective per period rate would be distinguished via `Continuous(0.05)` versus `Periodic(0.05,1)`. The two could be converted between by extending the built-in `Base.convert` function.
+
+This was useful because once rates were converted into `Rate`s within the ecosystem, that data contained within itself charateristics that could distinguish how downstream functionality should treat the rates.
+
+##### Yield Curves
+
+At first, only bootstrapping was supported as a method to construct curve objects. This required that there was only one rate given per time period (no noisy data) and only supported linear, quadratic, and cubic splines.
+
+Further, there was a specific constructor for different common types of instruments. From the old documentation:
+
+> -   `Yields.Zero(rates,maturities)` using a vector of zero, or spot, rates
+> -   `Yields.Forward(rates,maturities)` using a vector of one-period
+> -   `Yields.Constant(rate)` takes a single constant rate for all times
+> -   `Yields.Par(rates,maturities)` takes a series of yields for securities priced at par.Assumes that maturities \<= 1 year do not pay coupons and that after one year, pays coupons with frequency equal to the CompoundingFrequency of the corresponding rate.
+> -   `Yields.CMT(rates,maturities)` takes the most commonly presented rate data (e.g. [Treasury.gov](https://www.treasury.gov/resource-center/data-chart-center/interest-rates/Pages/TextView.aspx?data=yield)) and bootstraps the curve given the combination of bills and bonds.
+> -   `Yields.OIS(rates,maturities)` takes the most commonly presented rate data for overnight swaps and bootstraps the curve.
+
+This covered a lot of lightweight use-cases, but made a lot of implicit assumptions about how the given rates should be interpreted.
+
+#### The Birth of FinanceModels
+
+There were a multiple of insights that led to a more flexible interface in more recent versions.
+
+![A conceptual sketch of FinanceModels.jl components.](assets/financemodels-relations.png)
+
+First, realizing that yield curves were just a particular kind of model - one that used interest rates to discount cashflows. But you can have different kinds of models - such as Black-Scholes option valuation or a Monte Carlo valuation approach. Likewise, the cashflows need not simply be a vector of floating point values, and instead it could be the representation of a generic financial contract. As long as the model knew how to value it, an appropriate present value could be derived.
+
+Where previously it was:
+
+``` julia
+present_value(yield_curve,cashflow_vector)
+```
+
+Now, it was
+
+``` julia
+present_value(model,contract)
+```
+
+Second, that a model was simple some generic box that had been "fit" to previously observed prices for similar types of contracts we would be trying to value in the model. The combination of a contract and a price constituted a "quote" and with multiple quotes a model could be fit using various algorithms.
+
+With these changes, the package that was originally called Yields.jl was renamed to FinanceModels.jl. The updated code from the earlier example now would e implemented like this:
+
+``` julia
+risk_free_rates = [0.05,0.06,...0.06]
+tenors = [1/12,3/12,...30]
+quotes = ParYield.(risk_free_rates,tenors)
+model = fit(Spline.Cublic(),quotes,Fit.Bootstrap())
+
+cashflow_vector = [1e6,3e6,...,1e3]
+present_value(model,cashflow_vector)
+```
+
+It's slightly more verbose, but notice how much more powerful and extensible `fit(Spline.Cubic(), quotes, Fit.Boostrap()` is than `Yields.Par(risk_free_rates,tenors)` . The end result is the same, but now the same package and interface can clearly interchange other options, such as a `NelsonSiegelSvennson` curve instead of a spline. And the `quotes` could be a combination of observed bonds of different technical parameters (though still sharing characteristics which make it relevant for the model being constructed).
+
+The same pattern also applies for option valuation, such as this example of vanilla euro options with an assumed constant volatility assumption:\
+
+```         
+a = Option.EuroCall(CommonEquity(), 1.0, 1.0) # <1>
+b = Option.EuroCall(CommonEquity(), 1.0, 2.0)
+
+qs = [ #<2>
+    Quote(0.0541, a),
+    Quote(0.072636, b),
+]
+
+model = Equity.BlackScholesMerton(0.01, 0.02, Volatility.Constant()) # <3>
+
+m = fit(model, qs) # <4> 
+
+present_value(m,qs[1].instrument) # <5> 
+```
+
+1.  The arguments to `EuroCall` are the underlying asset type, strike, and maturity time.
+2.  A vector of observed option prices.
+3.  A BSM model with a given risk free rate, dividend yield, and a to-be-fit constant volatility component.
+4.  Fits the model and derives an approximate volatility of `0.15` .
+5.  Values the contract and in such a simple, noiseless model we recover the original price of `0.0541`
+
+With a consistent interface able to handle a wide variety of situations, the modeler is free to expand the model in new directions of analysis with the built in functionality allowing him or her to compose pieces together that was not possible with the less abstracted design. For example, the equity option example had no parallel when all of the available constructors were `Yields.Zero` or `Yields.Par` and would have required a completely from-scratch implementation with newly defined functions.
+
+Further, and critically, the new design allows modelers to create their own models or contracts[^patterns-abstraction-1] and extend the existing methods rather than needing to create their own: the function signature `fit(model,quotes)` handles a very wide variety of cases, as does `present_value(model,contract)`.
+
+[^patterns-abstraction-1]: And projections, which is handled by defining a `ProjectionKind` , such as a cashflow or accounting basis. This topic is covered in more detail in the FinanceModels.jl documentation.
 
 ## Macros & Homoiconicity
 
 ## Misc Techniques
-
