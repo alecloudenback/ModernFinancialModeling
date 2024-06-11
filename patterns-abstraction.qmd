@@ -1,80 +1,14 @@
-# Patterns of Abstraction {#sec-patterns-abstractions}
+# Higher Levels of Abstraction {#sec-patterns-abstractions}
 
 > "Simple things should be simple, complex things should be possible." — Alan Kay (1970s)
 
 ## In this section
 
-We extend the building blocks from the prior section and talk about how to combine them into more abstract patterns to simplify the design of our programs. Data driven design, object oriented design versus composition, multiple dispatch, and interfaces.
+Why we talk about abstraction as a technique in and of itself, discussion of abstraction at the level of code organizaiton and interfaces.
 
 ## Introduction
 
-Abstraction is a selective ignorance—focusing on the aspects of the problem that are relevant, and ignoring the others. At different times we are interested in different rungs on the **ladder of abstraction**: sometimes we are interested in the small details, but other times we are interested in understanding the behavior of systems at a higher level.
-
-There's multiple dimensions to this. We could be talking about either *abstractions within the model* (such as: what datatype and methods should be used to represent this financial contract) and *abtractions of analysis* (such as: what are the partial derivatives, or "greeks", of this financial contract). In fact, a lot of designing a model is essentially trying to figure out where to put the right abstractions for both of these. What is the right level of detail to model this in and what is the right level of detail to expose to other systems? Are we most interested in a single point result or understanding the relationship between two variables?
-
-We will briefly cover the latter, as the concepts are repeated throughout this book and in more detail in the relevant sections. Instead, most of this chapter will focus on the former: abstractions within the model. This chapter introduces technical abstractions that can be utilized as part of model design.
-
-## Abstractions of Analysis
-
-Say we are an insurance company with a portfolio of fixed income assets supporting long term insurance liabilities. We might delineate different levels of abstraction like so:
-
-::: column-margin
-![Think about moving up and down a ladder of abstraction when analyzing a problem.](assets/simple_ladder.png)
-:::
-
-|               | Item                                                 |
-|---------------|------------------------------------------------------|
-| More Abstract | Sensitivity of an entire company's solvency position |
-|               | Sensitivity of a portfolio of assets                 |
-|               | Behavior over time of an individual contract         |
-| More granular | Mechanics of an individual bond or insurance policy  |
-
-: An example of the different levels of abstraction when thinking about modeling an insurance company's assets and liabilites. {#tbl-insurance-ladder}
-
-At different times, we are often interested in different aspects of a problem. In general, you start to be able to obtain more insights and a greater understanding of the system when you move up the ladder of abstraction. That insight is often predicated of having a solid understanding of the system at lower levels.
-
-One recurring theme for abstracting the analysis is to consider the effect across different dimensions: time, parameter, variable.
-
--   **Time** dimension is understanding how the model evolves through time. What is implied by the state of the model at inception or terminal point?
--   **Parameter** dimension refers to how input variables cause changes in outcomes - is there a pattern or shape that indicates a non-obvious relationship?
--   **Variable** dimesion is like parameter, but instead focusing on an interim variable - such as if there's a internal state to the model that leads to a point-of-no-return (e.g. a debt obligation default or a mortality decrement in life insurance). How does the model react to those events?
-
-Much of the rest of the book covers tactical ways to step up this ladder, including:
-
--   Modeling (@sec-modeling)
--   Automatic Differentiation (@sec-autodiff)
--   Sensitivity Analysis (@sec-sensitivity)
--   Visualization (@sec-visualization)
-
-## Model Abstractions
-
-### Interfaces
-
-**Interfaces** are the boundary between different encapsulated abstractions. For financial model this might mean that there is an interface for bonds, or there is an interface for interest-rate swaps. There may be a different interface for calculating risk metrics or visualizing the results.
-
-Financial model this might mean that there is an interface for bonds, or there is an interface for interest-rate swaps. There may be a different interface for calculating risk metrics or visualizing the results. A better system design will separate the concern of visualizing output from the mechanics of a fixed income contract. This is what it means to put boundaries on different parts of a models logic.
-
-One of the easiest places to see this is with the available open source packages. There are packages available for visualizations, data frames, file, storage, statistical analysis, etc. for many of these it's easy to see where the natural boundary lies, However, it's often difficult to find where to draw lines within financial models. For example, should bonds and interest-rate swaps be in separate packages? Or both part of a broader fixed income package? This is where much of the art and domain expertise of the financial professional comes to bear in modeling. There would be no way for a pure software engineer to think about the right design for the system without understanding how underlying components share, similarities or differences and how those components interact.
-
-#### Conceptual Strategies
-
-Let's consider some stategies that you could think about when deciding where to draw different boundaries inside the model.
-
-##### Behavior-Oriented
-
-This strategies is to effectively group together components with a model that behaves similarly. So, in our example of bonds and interest-rate swaps fundamentally, they share many characteristics and are used in very similar ways within a model. Therefore, it might make sense to group them together when developing a model.
-
-##### Domain Expertise
-
-It may be that components of the model require sufficient expertise that different persons or groups are involved in the development. This may warrant separating a models design, So that different groups contributing to the model can focus on any more narrow aspect, Regardless of inherent similarity of components. For example, at a higher vertical level of obstruction, financial derivatives may fall under similar grouping, but sufficient differences exist for equity credit or foreign exchange derivatives that the model should separate those three asset classes for development purposes.
-
-##### Composability versus All-in-One
-
-For some model design goals, it may be warranted to attempt to bundle together more functionality instead of allowing users to compose a functionality that comes from different packages. For example, perhaps a certain visualization of a model result is particularly useful, It is not easy to create from scratch, And virtually everyone using the model, will desire to see the model output visualized that way. Instead of relying on the user to install a separate visualization package and develop the visualization themselves, it could make sense to bundle visualization functionality with a model that is otherwise unconcerned with graphical capabilities.
-
-In general, though it is preferred to try to loosely couple systems, you can pick and choose which components you use and that those components work well together.
-
-### Programming Interfaces and Patterns
+In programming and modeling, as in mathematics, abstraction permits the definition of interchangeable components and patterns that can be reused. Abstraction is a selective ignorance—focusing on the aspects of the problem that are relevant, and ignoring the others. The last two chapters described what we might call "micro" level abstractions: specific functions or types. In this chapter, we zoom out and examine some principles that guide good model development and how that manifests itself in architectural conerns such as how different parts of the code are organized, what parts of the program are considered 'public' versus 'private', and patterns themselves.
 
 @sec-elements-programming Described a number of tools that we can utilize as interfaces within our model. We use these tools that are provided by our programming language *in service of* the conceptual abstraction described above.
 
@@ -82,236 +16,248 @@ In general, though it is preferred to try to loosely couple systems, you can pic
 -   Data types provide a hierarchical structure to provide meaning to things, and to group those things together into more meaningful structures.
 -   Modules allow us to combine data, and or function, into a related group of concepts which can be shared in different parts of our model
 
-We will also discuss here some **patterns** which are ways of doing things that seem to appear repeatedly and specific design choices have proven to work well in the past and should be considered when similar conditions arise in the future.
+## Principles for Abstraction
 
-Let's develop a simplified system to value simple fixed income assets in order to illustrate some patterns. Inside a module called `Asset`, we'll define a short hiearchy of types and then a function `value` with multiple methods for the relevant types.
+Here is a list of some principles that arise when developing a particular abstraction. Not all abstractions serve all of these purposes but generally fit one or more of them.
 
-```{julia}
-#| output: false
-module Asset
+::: column-body-outset
+| Principle | What | Why | Example |
+|-------------------|------------------|------------------|------------------|
+| Separation of Concerns | Divide the system into distinct parts, each addressing a separate concern | Promote modularity and reduce high degree of dependence (coupling) between components | Separating data retrieval, data processing, and output generation steps in a process |
+| Encapsulation | Hide the internal details of a component and expose only a clean, well-defined set of functionality (interface) | Don't let other parts of the program modify internal data and make the system easier to understand and maintain | Defining a type or module with well defined behavior and responsibiltiy |
+| Composability | Design simple components that can be combined to create more complex behaviors, as opposed to a single component that attempts to handle all behavior. | Promote reuse and allow for the components to be combined creatively | Separate details about economic conditions into different types than contracts/instruments |
+| Generalization | Identify common patterns and create generic components that can be specialized as needed. Often this means idenfifying the common behavior that arises repeatedly in a model | Avoid duplication and make the system more expressive and extensible | Defining a generic `Instrument` type that can be specialized for different asset classes |
 
-## Data type definitions
-abstract type AbstractAsset end #<1>
+: Finding abstractions generally means finding patterns that fit into one of these principles. {#tbl-abstraction-principles tbl-colwidths="\[17,31,31,31\]"}
+:::
 
-struct Cash <: AbstractAsset
-    balance::Float64
-end
+These principles provide guidance for creating abstractions that are modular, reusable, and maintainable. By following these principles, developers can create financial models that are easier to understand, extend, and adapt to changing requirements.
 
-abstract type AbstractBond <: AbstractAsset end #<2>
+### Pragramatic Considerations for Model Design
 
-struct CouponBond <: AbstractBond #<2>
-    par::Float64
-    coupon::Float64
-    tenor::Int
-end
+#### Behavior-Oriented
 
-struct ZeroCouponBond <: AbstractBond #<2>
-    par::Float64
-    tenor::Int
-end
+This strategies is to effectively group together components with a model that behaves similarly. So, in our example of bonds and interest-rate swaps fundamentally, they share many characteristics and are used in very similar ways within a model. Therefore, it might make sense to group them together when developing a model.
 
+#### Domain Expertise
 
-## Functions
+It may be that components of the model require sufficient expertise that different persons or groups are involved in the development. This may warrant separating a models design, So that different groups contributing to the model can focus on any more narrow aspect, Regardless of inherent similarity of components. For example, at a higher vertical level of obstruction, financial derivatives may fall under similar grouping, but sufficient differences exist for equity credit or foreign exchange derivatives that the model should separate those three asset classes for development purposes.
 
-""" 
-    value(asset,discount_rate)
+#### Composability versus All-in-One
 
-The value of an asset with the given discount rate for it's cashflows.
-"""
-value(asset::Cash, r) = asset.balance
+For some model design goals, it may be warranted to attempt to bundle together more functionality instead of allowing users to compose a functionality that comes from different packages. For example, perhaps a certain visualization of a model result is particularly useful, It is not easy to create from scratch, And virtually everyone using the model, will desire to see the model output visualized that way. Instead of relying on the user to install a separate visualization package and develop the visualization themselves, it could make sense to bundle visualization functionality with a model that is otherwise unconcerned with graphical capabilities.
 
-function value(asset::AbstractBond, r) #<4>
-    discount_factor = 1.0
-    value = 0.0
-    for t in 1:asset.tenor
-        discount_factor /= (1 + r) # <3>
-        value += discount_factor * cashflow(asset, t)
-    end
-    return value
-end
+In general, though it is preferred to try to loosely couple systems, you can pick and choose which components you use and that those components work well together.
 
-function cashflow(bond::CouponBond, time)
-    if time == bond.tenor
-        (1 + bond.coupon) * bond.par
-    else
-        bond.coupon * bond.par
-    end
-end
+## Interfaces
 
-function value(bond::ZeroCouponBond, r) # <5>
-    return bond.par / (1 + r)^bond.tenor
-end
+**Interfaces** are the boundary between different encapsulated abstractions. The user-facing interface is the set of functionality and details that the user of the package or model must consider, which is separate from the intermediate variables, logic, and complexity that may be contained within.
 
-end
+::: callout-note
+## Example of an interface
+
+When looking up a ticker for a market quote, one need not be mindful of the underlying realtime databases, networking, rendering text to the screen, memory management, etc. The interface is "put in symbol, get out number". By design there are multiple layers of interfaces and abstractions that are used but the financial modeler need only be actively concerned about the points that he or she comes in contact with, not the entire chain of complexity.
+:::
+
+For a financial model this might mean that there is an interface for bonds, or there is an interface for interest-rate swaps. There may be a different interface for calculating risk metrics or visualizing the results.
+
+Financial model this might mean that there is an interface for bonds, or there is an interface for interest-rate swaps. There may be a different interface for calculating risk metrics or visualizing the results. A better system design will separate the concern of visualizing output from the mechanics of a fixed income contract. This is what it means to put boundaries on different parts of a models logic. One of the easiest places to see this is with the available open source packages. There are packages available for visualizations, data frames, file, storage, statistical analysis, etc. for many of these it's easy to see where the natural boundary lies.
+
+However, it's often difficult to find where to draw lines within financial models. For example, should bonds and interest-rate swaps be in separate packages? Or both part of a broader fixed income package? This is where much of the art and domain expertise of the financial professional comes to bear in modeling. There would be no way for a pure software engineer to think about the right design for the system without understanding how underlying components share, similarities or differences and how those components interact.
+
+### Defining Good Interfaces
+
+A well-designed interface should follow these principles:
+
+1.  **Be minimal and focused.** The interface should provide only the essential functionality needed, without unnecessary clutter or features. This makes the interface easier to understand and and faciliates building the necessary complexity through digestable, composable components.
+2.  **Be consistent and intuitive.** The interface should use consistent naming conventions, parameter orders, and behaviors. It should match the user's mental model and expectations.
+3.  **Hide implementation details.** The interface should abstract away the internal complexity and expose only what the user needs to know. This of details allows the implementation to change without affecting users of the interface.
+4.  **Be documented and contractual.** The interface should clearly specify what inputs it expects and what outputs or behaviors it provides. It forms a contract between the implementation and the users.
+5.  **Be testable.** A good interface allows the functionality to be easily tested through the public interface, without needing to access internal details.
+
+### Interfaces: A Financial Modeling Case Study
+
+As a case study, we'll look at the FinanceModels.jl and related packages to discuss some of the background and design choices that went into the functionality. This suite was written by one of the authors and is publically available as set of installable Julia packages.
+
+#### Background
+
+In actuarial work, it is common to need to work with interest rate and bond yield curves to determine current forward rates, estimates of the shape of future yield curves, or discount a series of cashflows to determine a present value. Determining things like "given a par yield curve, what's the implied discount factor for a cashflow at time 10" or "what is the 10 year BBB public corporate rate implied by the current curve in five years' time" is cumbersome at best in a spreadsheet.
+
+For example, to determine the answer to the first one ("a discount factor for time 10") actually requires quite a bit of detail and assumption to derive:
+
+-   Reference market data and a specification for how that market data should be interpreted. For example, if given the rate `0.05` for time 10, quoted as a continuous rate or annual effective? Is that a par rate, a zero-coupon bond (spot) rate, or a one-year-forward rate from time 10?
+-   Smoothing, interpolation, or extrapolation for noisy or sparse data. Should the rates be bootstrapped or fit to a parametrically specified curve?
+
+This is the type of complexity that we wish to save the user from needing to keep front of mind when the primary goal is, e.g., valuation of a stream of riskless life insurance payments, which might look like this:
+
+``` julia
+risk_free_rates = [0.05,0.06,...0.06]
+tenors = [1/12,3/12,...30]
+yield_curve = Yields.Par(risk_free_rates,tenors)
+
+cashflow_vector = [1e6,3e6,...,1e3]
+present_value(yield_curve,cashflow_vector)
 ```
 
-1.  General convention is to name abstract types beginning with `Abstract...`
-2.  We define two simple bonds: a coupon paying and a zero-coupon instrument.
-3.  `x /= y`, `x += y`, etc. are shorthand ways to write `x = x / y` or `x = x + y`
-4.  `value` is defined for `AbstractBond`s in general...
-5.  ... and then more specifically for `ZeroCouponBond`s. This will be explained when discussing "dispatch" below.
+This is very clear from the variable and function names what the purpose and steps in the analysis are. Imagine starting with rates and cashflows in a spreadsheet, needing to perform the bootstrapping, interpolation, and discounting before getting to the simple present value sought in the analysis. What can be, with the right abstractions, distilled into five lines of code would take hundreds of cells in a spreadsheet. Providing abstractions like this at the hand of financial modelers is a productivity multiplier.
 
-Here's an example of how this would be used:
+#### Initial Versions
 
-```{julia}
-portfolio = [
-    Asset.Cash(50.0),
-    Asset.CouponBond(100.0, 0.05, 5),
-    Asset.ZeroCouponBond(100.0, 5),
+There were two main abstractions to talk about from early versions of the packages.
+
+##### Rates
+
+Utilizing the benefit of the type system, it was decided that it would be most useful to represent rates not as simple floating point numbers (e.g. `0.05`) but instead with dedicated types to distinguish between rate conventions. The abstract type `CompoudingFrequency` had two subtypes: `Continuous` and `Periodic` sop that a 5% rate compounded continuously versus an effective per period rate would be distinguished via `Continuous(0.05)` versus `Periodic(0.05,1)`. The two could be converted between by extending the built-in `Base.convert` function.
+
+This was useful because once rates were converted into `Rate`s within the ecosystem, that data contained within itself charateristics that could distinguish how downstream functionality should treat the rates.
+
+##### Yield Curves
+
+At first, only bootstrapping was supported as a method to construct curve objects. This required that there was only one rate given per time period (no noisy data) and only supported linear, quadratic, and cubic splines.
+
+Further, there was a specific constructor for different common types of instruments. From the old documentation:
+
+> -   `Yields.Zero(rates,maturities)` using a vector of zero, or spot, rates
+> -   `Yields.Forward(rates,maturities)` using a vector of one-period
+> -   `Yields.Constant(rate)` takes a single constant rate for all times
+> -   `Yields.Par(rates,maturities)` takes a series of yields for securities priced at par.Assumes that maturities \<= 1 year do not pay coupons and that after one year, pays coupons with frequency equal to the CompoundingFrequency of the corresponding rate.
+> -   `Yields.CMT(rates,maturities)` takes the most commonly presented rate data (e.g. [Treasury.gov](https://www.treasury.gov/resource-center/data-chart-center/interest-rates/Pages/TextView.aspx?data=yield)) and bootstraps the curve given the combination of bills and bonds.
+> -   `Yields.OIS(rates,maturities)` takes the most commonly presented rate data for overnight swaps and bootstraps the curve.
+
+This covered a lot of lightweight use-cases, but made a lot of implicit assumptions about how the given rates should be interpreted.
+
+#### The Birth of FinanceModels
+
+There were a multiple of insights that led to a more flexible interface in more recent versions.
+
+![A conceptual sketch of FinanceModels.jl components.](assets/financemodels-relations.png)
+
+First, realizing that yield curves were just a particular kind of model - one that used interest rates to discount cashflows. But you can have different kinds of models - such as Black-Scholes option valuation or a Monte Carlo valuation approach. Likewise, the cashflows need not simply be a vector of floating point values, and instead it could be the representation of a generic financial contract. As long as the model knew how to value it, an appropriate present value could be derived.
+
+Where previously it was:
+
+``` julia
+present_value(yield_curve,cashflow_vector)
+```
+
+Now, it was
+
+``` julia
+present_value(model,contract)
+```
+
+Second, that a model was simple some generic box that had been "fit" to previously observed prices for similar types of contracts we would be trying to value in the model. The combination of a contract and a price constituted a "quote" and with multiple quotes a model could be fit using various algorithms.
+
+With these changes, the package that was originally called Yields.jl was renamed to FinanceModels.jl. The updated code from the earlier example now would e implemented like this:
+
+``` julia
+risk_free_rates = [0.05,0.06,...0.06]
+tenors = [1/12,3/12,...30]
+quotes = ParYield.(risk_free_rates,tenors)
+model = fit(Spline.Cublic(),quotes,Fit.Bootstrap())
+
+cashflow_vector = [1e6,3e6,...,1e3]
+present_value(model,cashflow_vector)
+```
+
+It's slightly more verbose, but notice how much more powerful and extensible `fit(Spline.Cubic(), quotes, Fit.Boostrap()` is than `Yields.Par(risk_free_rates,tenors)` . The end result is the same, but now the same package and interface can clearly interchange other options, such as a `NelsonSiegelSvennson` curve instead of a spline. And the `quotes` could be a combination of observed bonds of different technical parameters (though still sharing characteristics which make it relevant for the model being constructed).
+
+The same pattern also applies for option valuation, such as this example of vanilla euro options with an assumed constant volatility assumption:\
+
+``` julia
+a = Option.EuroCall(CommonEquity(), 1.0, 1.0) # <1>
+b = Option.EuroCall(CommonEquity(), 1.0, 2.0)
+
+qs = [ #<2>
+    Quote(0.0541, a),
+    Quote(0.072636, b),
 ]
 
-Asset.value.(portfolio, 0.05)
+model = Equity.BlackScholesMerton(0.01, 0.02, Volatility.Constant()) # <3>
+
+m = fit(model, qs) # <4> 
+
+present_value(m,qs[1].instrument) # <5> 
 ```
 
-::: callout-note
-In the example above, a docstring was included over `value(asset::Cash)` - but not over the others. That's okay. Julia will show docstrings for the *function* `value` not just individual *methods*.
-:::
+1.  The arguments to `EuroCall` are the underlying asset type, strike, and maturity time.
+2.  A vector of observed option prices.
+3.  A BSM model with a given risk free rate, dividend yield, and a to-be-fit constant volatility component.
+4.  Fits the model and derives an approximate volatility of `0.15` .
+5.  Values the contract and in such a simple, noiseless model we recover the original price of `0.0541`
 
-There are quite a few things demonstrated here: dispatch, programming paradigms, and \[!!what else?\] . As each are addressed in turn, we will review how we could have designed the interface differently.
+With a consistent interface able to handle a wide variety of situations, the modeler is free to expand the model in new directions of analysis with the built in functionality allowing him or her to compose pieces together that was not possible with the less abstracted design. For example, the equity option example had no parallel when all of the available constructors were `Yields.Zero` or `Yields.Par` and would have required a completely from-scratch implementation with newly defined functions.
 
-#### (Multiple) Dispatch
+Further, and critically, the new design allows modelers to create their own models or contracts[^1] and extend the existing methods rather than needing to create their own: the function signature `fit(model,quotes)` handles a very wide variety of cases, as does `present_value(model,contract)`.
 
-When a function is called, the computer has to decide which method to use. In the example above, when we want to `value` a `ZeroCouponBond`, does the `value(asset::AbstractBond, r)` or `value(bond::ZeroCouponBond, r)` version get used? **Dispatch** is the process of determining the right method to use and the rule is that *the most specific defined method gets used*. In this case, that means that even though our `ZeroCouponBond` is an `AbstractBond`, the routine that will used is the more specific `value(bond::ZeroCouponBond, r)`.
+[^1]: And projections, which is handled by defining a `ProjectionKind` , such as a cashflow or accounting basis. This topic is covered in more detail in the FinanceModels.jl documentation.
 
-Already, this is a powerful tool to simplify our code. Imagine the alternative of a long chain of conditional statements trying to find the right logic to use:
+## Macros & Homoiconicity
+
+We've talked about transforming data and restructuring logic in order to make the model more effective. We can go still deeper!(Or is it higher level?) We can actually abstract the process of writing code itself! This subject is a bit advanced, so we are simply going to introduce it because you will likely find many convenient instances of it as a *user* even if you never find a need to implement this yourself.
+
+**Homoiconicity** refers to the property of a programming language where the language's code can be represented and manipulated as a data structure in the language itself. In other words, the code is data and can be treated as such. This enables powerful metaprogramming (i.e. code that writes other code) capabilities, where code can be generated or transformed during the compilation process.
+
+**Macros** are a metaprogramming feature that leverage homoiconicity in Julia. They allow the programmer to write code that generates or manipulates other code at compile-time. Macros take code as input, transform it based on certain rules or patterns, and return the modified code which then gets compiled.
+
+For example, a built-in macro is `@time` which will measure the elapsed runtime for a piece of code[^2].
+
+[^2]: @time is a simple, built-in function. For true benchmarking purposes, see @sec-benchmarking.
 
 ``` julia
-# don't do this!
-function value(asset,r)
-    if asset.type == "ZeroCouponBond"
-        # special code for Zero coupon bonds
-        # ...
-    elseif asset.type == "ParBond"
-        # special code for Par bonds
-        # ...
-    elseif asset.type == "AmortizingBond"
-        # special code for Amortizing Bonds
-        # ...
-    else
-        # here define the generic AbstractBond logic
-    end
-end
+@time exp(rand())
 ```
 
-A more general concept is that of **multiple dispatch**, where the types of *all arguments* are used to determine which method to use. This is a very general paradigm, and in many ways is more extensible than traditional object oriented approaches, (more on that in the next section).
-
-In our definition of `value` above, we used a simple scalar interest rate to determine the rate to discount the cash flows. What if instead of a scalar interest rate value we wanted to instead pass an object that represented a term structure of interest rates? All we have to do is define a new method where the first argument is our `AbstractBond`s as already written above, but the second argument is our new type, which might look like this:
+Will effectively expand to:
 
 ``` julia
-struct MyCurve{F} where {F<:Function}
-    discount_rate::F
-end
-
-function value(bond::ZeroCouponBond, c::MyCurve) # <5>
-    return bond.par * c.discount_rate(bond.tenor)
-end
+t0 = time_ns()
+value = exp(rand())
+t1 = time_ns()
+println("elapsed time: ", (t1-t0)/1e9, " seconds")
+value
 ```
 
-In this way, multiple dispatch allows us to naturally define methods based on the combination of types.
+Here it is when we run it:
 
-what if we wanted to extend from a rate to a yield curve and fixed to floating. Where does logic lie? In yield curve or in bond?)
-
-#### Programming Paradigms
-
-**Programming paradigm** refers to the set of structure and concepts used to organize a program. There are many nuances and blurry lines that are encountered in practice, but in broad, conceptual strokes here are the categories that we will discuss:
-
--   Imperative: explicit definition of the sequence of steps and instructions that control the program's execution flow and modify its state.
-    -   Procedural Paradigm: Organization of code into reusable procedures or functions. These procedures can be called and executed from different parts of the program, promoting code modularity and reusability.
-    -   Object-Oriented: Object-oriented programming (OOP) revolves around the concept of objects, which encapsulate both data (attributes) and behavior (methods). Objects interact with each other to achieve the desired functionality.
--   Declarative: In contrast to the imperative paradigm, declarative programming focuses on describing the desired results or properties of the program without specifying the detailed steps to achieve them. The language or runtime system determines how to accomplish it[^patterns-abstraction-1].
-    -   Functional: Programs are constructed by composing and applying functions to data, avoiding mutable state and side effects. Functions are treated as first-class citizens, meaning they can be passed as arguments, returned as values, and assigned to variables.
-    -   Reactive Paradigm: Reactive programming deals with data streams and the propagation of change. It focuses on modeling and reacting to asynchronous data flows and events. In this paradigm, the program reacts to changes in input data and propagates those changes throughout the system, allowing for responsive and event-driven behavior[^patterns-abstraction-2].
-
-[^patterns-abstraction-1]: SQL is an excellent example of this, where one defines what you want as a result rather than defining steps on how to compute the result.
-
-[^patterns-abstraction-2]: Pluto Notebooks (<https://plutojl.org>) are an example of a library that provides a reactive layer on top of Julia, where updating code in one part of the notebook automatically re-runs other code that depends on the modified portion incrementally (instead of needing to re-run the entire notebook).
-
-We will discuss each of these in more detail next.
-
-##### Objected Oriented Design
-
-There's enough general familiarity with object oriented ("OO") design that it's worth describing for understanding how it compares and contrasts to other design patterns. Object oriented systems attempt to form the analogy that various parts of the system are their own objects which encapsulate both data and behavior. Object oriented design is often one the first computer programming abstractions introduced because it very relatable[^patterns-abstraction-3], however this comparative discussion will point out a number of its flaws as well. That said, much of OO design can be emulated in Julia except for data inheritance.
-
-[^patterns-abstraction-3]: "Many people who have no idea how a computer works find the idea of object-oriented programming quite natural. In contrast, many people who have experience with computers initially think there is something strange about object oriented systems.” - David Robson, "Object Oriented Software Systems" in Byte Magazine (1981).
-
-###### Inheritance
-
-We discussed the type hierarchy in @sec-elements-programming and in most OO implementations this hierarchy comes with inheriting both data *and* behavior. This is different from Julia where subtypes inherit behavior but not data from the parent type.
-
-Inheriting the data tends to introduce a tight coupling between the parent and the child classes in OO systems. This tight coupling can lead to several issues, particularly as systems grow in complexity. For example, changes in the parent class can inadvertently affect the behavior of all its child classes, which can be problematic if these changes are not carefully managed. This is often referred to as the "fragile base class problem," where base classes are delicate and changes to them can have widespread, unintended consequences.
-
-Another issue with inheritance in OO design is the temptation to use it for code reuse, which can lead to inappropriate hierarchies. Developers might create deep inheritance structures just to reuse code, leading to a scenario where classes are not logically related but are forced into a hierarchy. This can make the system harder to understand and maintain.
-
-Moreover, inheritance can sometimes lead to the duplication of code across the hierarchy, especially if the inherited behavior needs to be slightly modified in different child classes. This goes against the DRY (Don't Repeat Yourself) principle, which is a fundamental concept in software engineering advocating for the reduction of repetition in code.
-
-#### Composition over Inheritance
-
-To mitigate some of the problems associated with inheritance, there's a growing preference for *composition*. Composition involves creating objects that contain instances of other objects to achieve complex behaviors. This approach is more flexible than inheritance as it allows for the creation of more modular and reusable code. There is a general preference for "composition over inheritance" among professional developers in recent years.
-
-In composition, objects are constructed from other objects, and behaviors are delegated to these contained objects. This approach allows for greater flexibility, as it's easier to change the behavior of a system by replacing parts of it without affecting the entire hierarchy, as is often the case with inheritance.
-
-Composition looks like this:
-
-``` julia
-struct CUSIP
-    code::string
-end
-
-struct FixedIncome
-    coupon::Float64
-    tenor::Float64
-end
-
-struct MunicipalBond
-    cusip::CUSIP
-    fi::FixedIncome
-end
-
-struct ListedOption
-    cusip::CUSIP
-    #... other data fields
-end
-
-struct UnlistedBond
-    fi::FixedIncome
-end
-
-
-# define behavior which relies on defining 
-last_transaction(c::CUSIP) = # ... perform lookup of data
-last_transaction(asset) = last_transaction(asset.cusip)
-
-duration(f::FixedIncome) = # ... calculate duration
-duration(asset) = duration(asset.fi)
+```{julia}
+@time exp(rand())
 ```
 
-In the above example, there are number of asset classes that have CUSIP related attributes (i.e. the 9 character code) and behavior (e.g. being able to look up transaction data). Other assets have fixed income attributes (e.g. calculating a duration). But not all of these assets have a CUSIP! Composition lets us bundle the data and behavior together without needing complex chains of inheritance.
+### Metaprogramming in Financial Modeling
 
-::: callout-note
-A CUSIP (Committee on Uniform Security Identification Procedures) number, is a unique nine-character alphanumeric code assigned to securities, such as stocks and bonds, in the United States and Canada. This code is used to facilitate the clearing and settlement process of securities and to uniquely identify them in transactions and records.
-:::
+In the context of financial modeling, macros can be used to simplify repetitive or complex code patterns, enforce certain conventions or constraints, or generate code based on data or configuration.
 
-#### Method Dispatch
+Here are a few potential use cases of macros in financial modeling. Again, these are more advanced use-cases but knowing that these paths exist may benefit your work in the future.
 
-An alternative and more limiting approach would be to be forced to assign the ownership of the method to one of the associated types, as is done in single-dispatch.
+1.  Defining custom DSLs (Domain-Specific Languages): Macros can be used to create expressive and concise DSLs tailored to financial modeling. For example, a macro could allow defining financial contracts using a syntax closer to the domain language, which then gets expanded into the underlying implementation code.
 
--   Alternative designs:
-    -   ZeroCouponBond(par,tenor) = CouponBond(par,0.0,tenor)
+2.  Automating boilerplate code: Macros can help reduce code duplication by generating common patterns or boilerplate code. This can include generating accessor functions[^3], constructors, or serialization logic based on type definitions.
 
-#### Functional
+3.  Enforcing conventions and constraints: Macros can be used to enforce coding conventions, such as naming rules or type checks, by automatically transforming code that doesn't adhere to the conventions. They can also be used to add runtime assertions or checks based on certain conditions.
 
-#### Other "Paradigms" 
+4.  Optimizing performance: Macros can be used to perform code optimizations at compile-time. For example, a macro could unroll loops, inline functions, or specialize generic code based on specific types or parameters, resulting in more efficient runtime code.
 
-##### Array Oriented
+5.  Generating code from data: Macros can be used to generate code based on external data or configuration files. For example, a macro could read a specification file and generate the corresponding financial contract types and functions.
 
-##### DataFrame Oriented
+[^3]: Accessor functions are useful when working with nested data structures. For example, if you have a `struct` within a `struct` and want to conveniently access an inner structs field.
 
-##### Data Driven Design
+### Commonly Encountered Macros
 
-### Macros & Homoiconicity
+| Macro | Description |
+|------------------|-------------------------------------------|
+| `BenchmarkTools.@benchmark` | Runs the given expression multiple times, collecting timing and memory allocation statistics. Useful for benchmarking and performance analysis. |
+| `BenchmarkTools.@btime` | Similar to `@benchmark`, but focuses on the minimum execution time and provides a more concise output. |
+| `@edit` | Opens the source code of a function or module in an editor for inspection or modification. |
+| `@which` | Displays the method that would be called for a given function call, helping to understand method dispatch. |
+| `@code_warntype` | Shows the type inference results for a given function call, highlighting any type instabilities or performance issues. |
+| `@info`, `@warn`, `@error` | Used for logging messages at different severity levels (info, warning, error) during program execution. |
+| `@assert` | Asserts that a given condition is true, throwing an error if the condition is false. Useful for runtime checks and debugging. |
+| `@view`, `@views` | Access a subset of an array without copying the data in that slice. `@views` applies to all array slicing operations within the expressions that follow it. |
+| `Test.@test`, `Test.@testset` | Used for defining unit tests. `@test` checks that a condition is true, while `@testset` groups related tests together. |
+| `@raw` | Encloses a string literal, disabling string interpolation and escape sequences. Useful for writing raw string data. This is especially helpful when working with filepaths where the `\` in Windows paths otherwise needs to be escaped with a leading slash (e.g. `\\` ). |
+| `@fastmath` | Enables aggressive floating-point optimizations within a block, potentially sacrificing strict IEEE compliance for performance. |
+| `@inbounds` | Disables bounds checking for array accesses within a block, improving performance but removing safety checks. |
+| `@inline` | Suggests to the compiler that a function should be inlined at its call sites, potentially improving performance by reducing function call overhead. |
 
-### Misc Techniques
-
-#### Recursion
-
-#### Iterators
+: Useful macros for modeling work. There are others related to parallelism which will be covered in @sec-parallelization.
