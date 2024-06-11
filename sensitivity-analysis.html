@@ -340,7 +340,7 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./visualization.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Visiualizations</span></span></a>
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Visualizations</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -433,6 +433,12 @@ window.Quarto = {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./debugging.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">Debugging and Performance Measurement</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./references.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">References</span></a>
   </div>
@@ -470,7 +476,7 @@ window.Quarto = {
 
 <header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./computational-thinking.html">Computational Thinking in an Actuarial and Financial Context</a></li><li class="breadcrumb-item"><a href="./sensitivity-analysis.html"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Sensitivity Analysis</span></a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Sensitivity Analysis</span></h1>
+<h1 class="title"><span id="sec-sensitivity" class="quarto-section-identifier"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Sensitivity Analysis</span></span></h1>
 </div>
 
 
@@ -494,14 +500,14 @@ window.Quarto = {
 </section>
 <section id="setup" class="level2" data-number="16.2">
 <h2 data-number="16.2" class="anchored" data-anchor-id="setup"><span class="header-section-number">16.2</span> Setup</h2>
-<div id="9d9d9a77" class="cell" data-execution_count="2">
+<div id="68d76739" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">CSV</span>, <span class="bu">DataFrames</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">MortalityTables</span>, <span class="bu">Dates</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">GlobalSensitivity</span></span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">QuasiMonteCarlo</span></span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">CairoMakie</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="873549c8" class="cell" data-execution_count="3">
+<div id="0de40404" class="cell" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@enum</span> Sex Female <span class="op">=</span> <span class="fl">1</span> Male <span class="op">=</span> <span class="fl">2</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@enum</span> Risk Standard <span class="op">=</span> <span class="fl">1</span> Preferred <span class="op">=</span> <span class="fl">2</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -519,7 +525,7 @@ window.Quarto = {
 </section>
 <section id="the-data" class="level2" data-number="16.3">
 <h2 data-number="16.3" class="anchored" data-anchor-id="the-data"><span class="header-section-number">16.3</span> The Data</h2>
-<div id="05c64026" class="cell" data-execution_count="4">
+<div id="cda3dc3f" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>sample_csv_data <span class="op">=</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">IOBuffer</span>(</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>        <span class="st">raw"id,sex,benefit_base,COLA,mode,issue_date,issue_age,risk</span></span>
@@ -536,7 +542,7 @@ window.Quarto = {
   Female =&gt; [0.00745, 0.00745, 0.00745, 0.00745, 0.00745, 0.00745, 0.00745, 0.0…</code></pre>
 </div>
 </div>
-<div id="b363f093" class="cell" data-execution_count="5">
+<div id="c60cbb34" class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>policies <span class="op">=</span> <span class="kw">let</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># read CSV directly into a dataframe</span></span>
@@ -575,7 +581,7 @@ res(y) = \sum_{t=age+y}^{120} (sur_(t-age-y) * mort_t * B_y * \sqrt(1 + r)) - (P
 <li><span class="math inline">\(P_y\)</span> is the level premium within the first 10 policy years which is 0 for policy years after 10</li>
 <li><span class="math inline">\(r\)</span> is the level interest rate throughout the policy</li>
 </ul>
-<div id="e33a0916" class="cell" data-execution_count="6">
+<div id="bbbae084" class="cell" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">sur</span>(y<span class="op">::</span><span class="dt">Int</span>, pol<span class="op">::</span><span class="dt">Policy</span>)</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> y <span class="op">==</span> <span class="fl">0</span></span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>        <span class="fl">1</span></span>
@@ -609,7 +615,7 @@ res(y) = \sum_{t=age+y}^{120} (sur_(t-age-y) * mort_t * B_y * \sqrt(1 + r)) - (P
 <section id="finite-differences" class="level3" data-number="16.4.1">
 <h3 data-number="16.4.1" class="anchored" data-anchor-id="finite-differences"><span class="header-section-number">16.4.1</span> Finite Differences</h3>
 <p>Define a customized finite difference function with respect to the COLA, rippled by a small difference.</p>
-<div id="45881f78" class="cell" data-execution_count="7">
+<div id="98c1c571" class="cell" data-execution_count="7">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">res_wrt_r_fd</span>(y<span class="op">::</span><span class="dt">Int</span>, pol<span class="op">::</span><span class="dt">Policy</span>, P<span class="op">::</span><span class="dt">Float64</span>, r<span class="op">::</span><span class="dt">Float64</span>, h<span class="op">=</span><span class="fl">1e-3</span>)</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    p₊, p₋ <span class="op">=</span> <span class="fu">deepcopy</span>(pol), <span class="fu">deepcopy</span>(pol)</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    p₊.COLA <span class="op">=</span> r <span class="op">+</span> h, p₋.COLA <span class="op">=</span> r <span class="op">-</span> h</span>
@@ -626,7 +632,7 @@ res(y) = \sum_{t=age+y}^{120} (sur_(t-age-y) * mort_t * B_y * \sqrt(1 + r)) - (P
 </section>
 <section id="regression-analyses" class="level3" data-number="16.4.3">
 <h3 data-number="16.4.3" class="anchored" data-anchor-id="regression-analyses"><span class="header-section-number">16.4.3</span> Regression Analyses</h3>
-<div id="ef3ac80b" class="cell" data-execution_count="8">
+<div id="6b3671bc" class="cell" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">r1_wrt_r</span>(r)</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    p <span class="op">=</span> <span class="fu">deepcopy</span>(policies[<span class="fl">1</span>])</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    p.COLA <span class="op">=</span> r[<span class="fl">2</span>]</span>
@@ -643,7 +649,7 @@ res(y) = \sum_{t=age+y}^{120} (sur_(t-age-y) * mort_t * B_y * \sqrt(1 + r)) - (P
 <h3 data-number="16.4.4" class="anchored" data-anchor-id="sobol-indices"><span class="header-section-number">16.4.4</span> Sobol Indices</h3>
 <p>Sobol is a variance-based method, and it decomposes the variance of the output of the model or system into fractions which can be attributed to inputs or sets of inputs. This helps to get not just the individual parameter’s sensitivities, but also gives a way to quantify the affect and sensitivity from the interaction between the parameters.</p>
 <p>The Sobol Indices are “order”ed, the first order indices given by ​ the contribution to the output variance of the main effect of ​ . Therefore, it measures the effect of varying ​ alone, but averaged over variations in other input parameters. It is standardized by the total variance to provide a fractional contribution. Higher-order interaction indices ​ and so on can be formed by dividing other terms in the variance decomposition by Var(Y).</p>
-<div id="b4200bb7" class="cell" data-execution_count="9">
+<div id="42ea493a" class="cell" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>L, U <span class="op">=</span> QuasiMonteCarlo.<span class="fu">generate_design_matrices</span>(<span class="fl">1000</span>, [<span class="fl">1</span>, <span class="fl">0.025</span>, <span class="fl">10000.0</span>], [<span class="fl">1</span>, <span class="fl">0.035</span>, <span class="fl">10000.1</span>], <span class="fu">SobolSample</span>())</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="fu">gsa</span>(r1_wrt_r, <span class="fu">Sobol</span>(), L, U)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
@@ -664,19 +670,19 @@ EE_i = \frac{f(x_1, x_2, ...x_i + \Delta, ...x_k) - y}{\Delta}
 \]</span></p>
 <p>We calculate local sensitivity measures known as “elementary effects”, which are calculated by measuring the perturbation in the output of the model on changing one parameter.</p>
 <p>These are evaluated at various points in the input chosen such that a wide “spread” of the parameter space is explored and considered in the analysis, to provide an approximate global importance measure. The mean and variance of these elementary effects is computed. A high value of the mean implies that a parameter is important, a high variance implies that its effects are non-linear or the result of interactions with other inputs. This method does not evaluate separately the contribution from the interaction and the contribution of the parameters individually and gives the effects for each parameter which takes into consideration all the interactions and its individual contribution.</p>
-<div id="8abe01f1" class="cell" data-execution_count="10">
+<div id="19eb040c" class="cell" data-execution_count="10">
 <div class="sourceCode cell-code" id="cb16"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>m <span class="op">=</span> <span class="fu">gsa</span>(r1_wrt_r, <span class="fu">Morris</span>(), [[<span class="fl">1</span>, <span class="fl">1.01</span>], [<span class="fl">0.025</span>, <span class="fl">0.035</span>], [<span class="fl">10000.0</span>, <span class="fl">10000.1</span>]])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="11">
-<pre><code>GlobalSensitivity.MorrisResult{Matrix{Float64}, Vector{Any}}([0.0 1.3648365591807393e6 -17.367693435046522], [0.0 1.3648365591807393e6 17.367693435046522], [0.0 4.6443967268497715e9 0.5419405449313682], Any[[-0.0, -0.0, -0.0, 0.0, 0.0, -0.0, -0.0, 0.0, -0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.0, 0.0, -0.0, 0.0], [1.4615955693109499e6, 1.312637415949225e6, 1.3052047502529023e6, 1.3052047502529023e6, 1.3455315574772784e6, 1.3481020423382914e6, 1.3506782407351201e6, 1.2129077177044624e6, 1.3741174661970746e6, 1.4587648256996553e6, 1.4587648256996553e6, 1.3126435118960075e6, 1.3151381715473882e6, 1.411590999216871e6, 1.4088740833439322e6, 1.4088738363142894e6, 1.4115917421365648e6], [-18.430568990895505, -18.456464920030285, -18.456464920030285, -18.456464920030285, -18.456465107313434, -18.456465107313434, -17.10030859706926, -17.10030859706926, -17.10030859706926, -17.07773105161255  …  -17.100308483799527, -17.100308654694846, -17.100308654694846, -17.100308654694846, -17.122940469045567, -17.95058996920134, -17.975292933490028, -17.975292947896424, -17.975292919083632, -17.97529285060876]])</code></pre>
+<pre><code>GlobalSensitivity.MorrisResult{Matrix{Float64}, Vector{Any}}([0.0 1.3415886175575547e6 -17.3705883934486], [0.0 1.3415886175575547e6 17.3705883934486], [0.0 7.388987327704615e9 0.5973769562917856], Any[[0.0, 0.0, -0.0, 0.0, -0.0, 0.0, 0.0, 0.0, -0.0, -0.0, -0.0, 0.0, -0.0, 0.0, -0.0, -0.0, 0.0, 0.0, -0.0, 0.0], [1.2735236409098222e6, 1.4143258782873524e6, 1.4225250165987348e6, 1.4225245164000192e6, 1.4225242663012377e6, 1.2855799678389216e6, 1.2880116718813693e6, 1.4335506759846301e6, 1.263957687706597e6, 1.2615815569131228e6, 1.4419167206638255e6, 1.2615819864526435e6, 1.2592113190762473e6, 1.259211533340271e6, 1.2242879614379266e6, 1.4363460493428556e6, 1.4363460493428556e6], [-16.7237287603869, -16.72372880360609, -16.72372880360609, -16.7237287603869, -16.723728774793297, -16.723728774793297, -16.7237287603869, -18.024881996174297, -18.000056822427716, -18.000056894459696  …  -16.615834319904348, -16.299669231666666, -16.299669231666666, -16.29966924553342, -16.29966924553342, -16.29966924553342, -18.200388060408965, -18.200388060408965, -18.225709793815426, -18.225709793815426]])</code></pre>
 </div>
 </div>
 </section>
 <section id="fourier-amplitude-sensitivity-tests" class="level3" data-number="16.4.6">
 <h3 data-number="16.4.6" class="anchored" data-anchor-id="fourier-amplitude-sensitivity-tests"><span class="header-section-number">16.4.6</span> Fourier Amplitude Sensitivity Tests</h3>
-<div id="54396421" class="cell" data-execution_count="11">
+<div id="f9860fb4" class="cell" data-execution_count="11">
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">gsa</span>(r1_wrt_r, <span class="fu">eFAST</span>(), [[<span class="fl">1</span>, <span class="fl">1.01</span>], [<span class="fl">0.025</span>, <span class="fl">0.035</span>], [<span class="fl">10000.0</span>, <span class="fl">10000.1</span>]], samples<span class="op">=</span><span class="fl">1000</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="12">
-<pre><code>GlobalSensitivity.eFASTResult{Matrix{Float64}}([3.93533922035943e-11 0.9976630706052224 1.6773375462880564e-8], [6.9466748675584e-7 0.9999973468524299 0.002317695923137353])</code></pre>
+<pre><code>GlobalSensitivity.eFASTResult{Matrix{Float64}}([4.545440942097076e-11 0.997674735976488 1.6770867913419316e-8], [7.421006319452417e-7 0.9999975248447088 0.0023460871117844118])</code></pre>
 </div>
 </div>
 </section>

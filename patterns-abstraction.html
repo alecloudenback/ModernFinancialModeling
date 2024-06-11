@@ -311,7 +311,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./visualization.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Visiualizations</span></span></a>
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Visualizations</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -404,6 +404,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./debugging.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">Debugging and Performance Measurement</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./references.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">References</span></a>
   </div>
@@ -431,8 +437,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#defining-good-interfaces" id="toc-defining-good-interfaces" class="nav-link" data-scroll-target="#defining-good-interfaces"><span class="header-section-number">8.4.1</span> Defining Good Interfaces</a></li>
   <li><a href="#interfaces-a-financial-modeling-case-study" id="toc-interfaces-a-financial-modeling-case-study" class="nav-link" data-scroll-target="#interfaces-a-financial-modeling-case-study"><span class="header-section-number">8.4.2</span> Interfaces: A Financial Modeling Case Study</a></li>
   </ul></li>
-  <li><a href="#macros-homoiconicity" id="toc-macros-homoiconicity" class="nav-link" data-scroll-target="#macros-homoiconicity"><span class="header-section-number">8.5</span> Macros &amp; Homoiconicity</a></li>
-  <li><a href="#misc-techniques" id="toc-misc-techniques" class="nav-link" data-scroll-target="#misc-techniques"><span class="header-section-number">8.6</span> Misc Techniques</a></li>
+  <li><a href="#macros-homoiconicity" id="toc-macros-homoiconicity" class="nav-link" data-scroll-target="#macros-homoiconicity"><span class="header-section-number">8.5</span> Macros &amp; Homoiconicity</a>
+  <ul class="collapse">
+  <li><a href="#metaprogramming-in-financial-modeling" id="toc-metaprogramming-in-financial-modeling" class="nav-link" data-scroll-target="#metaprogramming-in-financial-modeling"><span class="header-section-number">8.5.1</span> Metaprogramming in Financial Modeling</a></li>
+  <li><a href="#commonly-encountered-macros" id="toc-commonly-encountered-macros" class="nav-link" data-scroll-target="#commonly-encountered-macros"><span class="header-section-number">8.5.2</span> Commonly Encountered Macros</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -692,16 +701,118 @@ Example of an interface
 </section>
 <section id="macros-homoiconicity" class="level2" data-number="8.5">
 <h2 data-number="8.5" class="anchored" data-anchor-id="macros-homoiconicity"><span class="header-section-number">8.5</span> Macros &amp; Homoiconicity</h2>
+<p>We’ve talked about transforming data and restructuring logic in order to make the model more effective. We can go still deeper!(Or is it higher level?) We can actually abstract the process of writing code itself! This subject is a bit advanced, so we are simply going to introduce it because you will likely find many convenient instances of it as a <em>user</em> even if you never find a need to implement this yourself.</p>
+<p><strong>Homoiconicity</strong> refers to the property of a programming language where the language’s code can be represented and manipulated as a data structure in the language itself. In other words, the code is data and can be treated as such. This enables powerful metaprogramming (i.e.&nbsp;code that writes other code) capabilities, where code can be generated or transformed during the compilation process.</p>
+<p><strong>Macros</strong> are a metaprogramming feature that leverage homoiconicity in Julia. They allow the programmer to write code that generates or manipulates other code at compile-time. Macros take code as input, transform it based on certain rules or patterns, and return the modified code which then gets compiled.</p>
+<p>For example, a built-in macro is <code>@time</code> which will measure the elapsed runtime for a piece of code<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@time</span> <span class="fu">exp</span>(<span class="fu">rand</span>())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Will effectively expand to:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>t0 <span class="op">=</span> <span class="fu">time_ns</span>()</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>value <span class="op">=</span> <span class="fu">exp</span>(<span class="fu">rand</span>())</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>t1 <span class="op">=</span> <span class="fu">time_ns</span>()</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"elapsed time: "</span>, (t1<span class="op">-</span>t0)<span class="op">/</span><span class="fl">1e9</span>, <span class="st">" seconds"</span>)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>value</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Here it is when we run it:</p>
+<div id="fb9186ee" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@time</span> <span class="fu">exp</span>(<span class="fu">rand</span>())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  0.000004 seconds</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="2">
+<pre><code>2.585074682367439</code></pre>
+</div>
+</div>
+<section id="metaprogramming-in-financial-modeling" class="level3" data-number="8.5.1">
+<h3 data-number="8.5.1" class="anchored" data-anchor-id="metaprogramming-in-financial-modeling"><span class="header-section-number">8.5.1</span> Metaprogramming in Financial Modeling</h3>
+<p>In the context of financial modeling, macros can be used to simplify repetitive or complex code patterns, enforce certain conventions or constraints, or generate code based on data or configuration.</p>
+<p>Here are a few potential use cases of macros in financial modeling. Again, these are more advanced use-cases but knowing that these paths exist may benefit your work in the future.</p>
+<ol type="1">
+<li><p>Defining custom DSLs (Domain-Specific Languages): Macros can be used to create expressive and concise DSLs tailored to financial modeling. For example, a macro could allow defining financial contracts using a syntax closer to the domain language, which then gets expanded into the underlying implementation code.</p></li>
+<li><p>Automating boilerplate code: Macros can help reduce code duplication by generating common patterns or boilerplate code. This can include generating accessor functions<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a>, constructors, or serialization logic based on type definitions.</p></li>
+<li><p>Enforcing conventions and constraints: Macros can be used to enforce coding conventions, such as naming rules or type checks, by automatically transforming code that doesn’t adhere to the conventions. They can also be used to add runtime assertions or checks based on certain conditions.</p></li>
+<li><p>Optimizing performance: Macros can be used to perform code optimizations at compile-time. For example, a macro could unroll loops, inline functions, or specialize generic code based on specific types or parameters, resulting in more efficient runtime code.</p></li>
+<li><p>Generating code from data: Macros can be used to generate code based on external data or configuration files. For example, a macro could read a specification file and generate the corresponding financial contract types and functions.</p></li>
+</ol>
 </section>
-<section id="misc-techniques" class="level2" data-number="8.6">
-<h2 data-number="8.6" class="anchored" data-anchor-id="misc-techniques"><span class="header-section-number">8.6</span> Misc Techniques</h2>
+<section id="commonly-encountered-macros" class="level3" data-number="8.5.2">
+<h3 data-number="8.5.2" class="anchored" data-anchor-id="commonly-encountered-macros"><span class="header-section-number">8.5.2</span> Commonly Encountered Macros</h3>
+<table class="caption-top table">
+<caption>Useful macros for modeling work. There are others related to parallelism which will be covered in <span class="quarto-unresolved-ref">?sec-parallelization</span>.</caption>
+<colgroup>
+<col style="width: 29%">
+<col style="width: 70%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Macro</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>BenchmarkTools.@benchmark</code></td>
+<td>Runs the given expression multiple times, collecting timing and memory allocation statistics. Useful for benchmarking and performance analysis.</td>
+</tr>
+<tr class="even">
+<td><code>BenchmarkTools.@btime</code></td>
+<td>Similar to <code>@benchmark</code>, but focuses on the minimum execution time and provides a more concise output.</td>
+</tr>
+<tr class="odd">
+<td><code>@edit</code></td>
+<td>Opens the source code of a function or module in an editor for inspection or modification.</td>
+</tr>
+<tr class="even">
+<td><code>@which</code></td>
+<td>Displays the method that would be called for a given function call, helping to understand method dispatch.</td>
+</tr>
+<tr class="odd">
+<td><code>@code_warntype</code></td>
+<td>Shows the type inference results for a given function call, highlighting any type instabilities or performance issues.</td>
+</tr>
+<tr class="even">
+<td><code>@info</code>, <code>@warn</code>, <code>@error</code></td>
+<td>Used for logging messages at different severity levels (info, warning, error) during program execution.</td>
+</tr>
+<tr class="odd">
+<td><code>@assert</code></td>
+<td>Asserts that a given condition is true, throwing an error if the condition is false. Useful for runtime checks and debugging.</td>
+</tr>
+<tr class="even">
+<td><code>@view</code>, <code>@views</code></td>
+<td>Access a subset of an array without copying the data in that slice. <code>@views</code> applies to all array slicing operations within the expressions that follow it.</td>
+</tr>
+<tr class="odd">
+<td><code>Test.@test</code>, <code>Test.@testset</code></td>
+<td>Used for defining unit tests. <code>@test</code> checks that a condition is true, while <code>@testset</code> groups related tests together.</td>
+</tr>
+<tr class="even">
+<td><code>@raw</code></td>
+<td>Encloses a string literal, disabling string interpolation and escape sequences. Useful for writing raw string data. This is especially helpful when working with filepaths where the <code>\</code> in Windows paths otherwise needs to be escaped with a leading slash (e.g.&nbsp;<code>\\</code> ).</td>
+</tr>
+<tr class="odd">
+<td><code>@fastmath</code></td>
+<td>Enables aggressive floating-point optimizations within a block, potentially sacrificing strict IEEE compliance for performance.</td>
+</tr>
+<tr class="even">
+<td><code>@inbounds</code></td>
+<td>Disables bounds checking for array accesses within a block, improving performance but removing safety checks.</td>
+</tr>
+<tr class="odd">
+<td><code>@inline</code></td>
+<td>Suggests to the compiler that a function should be inlined at its call sites, potentially improving performance by reducing function call overhead.</td>
+</tr>
+</tbody>
+</table>
 
 
+</section>
 </section>
 <section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes">
 <hr>
 <ol>
 <li id="fn1"><p>And projections, which is handled by defining a <code>ProjectionKind</code> , such as a cashflow or accounting basis. This topic is covered in more detail in the FinanceModels.jl documentation.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p><span class="citation" data-cites="time">(<a href="references.html#ref-time" role="doc-biblioref"><strong>time?</strong></a>)</span> is a simple, built-in function. For true benchmarking purposes, see <a href="debugging.html#sec-benchmarking" class="quarto-xref"><span>Section 30.1</span></a>.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3"><p>Accessor functions are useful when working with nested data structures. For example, if you have a <code>struct</code> within a <code>struct</code> and want to conveniently access an inner structs field.<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section>
 
