@@ -1,0 +1,665 @@
+# Functional Abstractions {#sec-first-abstractions}
+
+> The purpose of abstraction is not to be vague, but to create a new semantic level in which one can be absolutely precise. - Edsger Dijkstra (1972)
+
+## In this section
+
+Demonstrate different approaches to a problem which gradually introduce more re-usable or general techniques. These techniques will allow for constructing sophisticated models while maintaining consistency and simplicity. Imperative programming, functional programming, and recursion.
+
+## Introduction
+
+This chapter will center around a simple task: calculate the present value of a portfolio of a single fixed, risk-free, coupon-paying bonds under two different interest rate environments. The focus will be on describing different approaches to this problem, not be adding complexity to the problem (e.g. no getting into credit spreads, settlement timing, etc.).
+
+```{julia}
+cf_bond = [10, 10, 10, 10, 110];
+rate = [0.05, 0.06, 0.05, 0.04, 0.05]; # <1>
+```
+
+1.  The rates given are the one year rate for time zero, time one, etc.
+
+The other bond and set of rates is described later in the chapter.
+
+Mathematically, the problem is to determine the $\text{Present Value}$, where:
+
+$$
+\text{Present Value} = \sum{\text{Cashflow}_t \times \text{Discount Factor}_t}
+$$
+
+Where
+
+$$
+\text{Discount Factor}_t = \prod^t{\frac{1}{1+\text{Discount Rate}_i}}
+$$
+
+We will repeatedly solve the same problem before extending it to more examples. It may feel repetitive but the focus here is not the problem, but rather the variations between the different approaches.
+
+## Imperative Style
+
+One of the most familiar styles of programming is called **imperative** (or **procedural**), where we provide step-by-step commands are provided to the computer. The programmer defines the data involved and how that data moves through the program one step at a time. It commonly uses loops to perform tasks repeatedly or across a set of data. The program's **state** (assigment and logic of the program's variables) is defined and managed by the programmer explicitly.
+
+Here's an imperative style of calculating the present value of the bond.
+
+```{julia}
+let
+    #<1>
+    pv = 0.0
+    discount = 1.0
+
+    for i in 1:length(cf_bond) #<2>
+        discount = discount / (1 + rate[i])
+        pv = pv + discount * cf_bond[i] # <3>
+    end
+    pv
+end
+```
+
+1.  Declare variables to keep track of the discount rate and running total for value
+2.  Loop the length of the cashflow vector.
+3.  At each step of the loop, look up (via index `i`) update the discount factor to account for the prevailing rate and add the discounted cashflow to the running total present value.
+
+This style is simple, digestible, and clear. If we were performing the calculation by hand, it would likely follow a pattern very similar to this. Look up the first cashflow and discount rate, compute a discount factor, and subtotal the value. Repeat for the next set of values.
+
+### Iterators
+
+Note that in the prior code example we defined an index variable `i` and had to manually define the range over which it would operate (`1` through the `length` of the bond's cashflow vector). A couple of reasons this could be sub-optimal:
+
+1.  We are making the *assumption* that the indices of the vectors start with one, when in reality Julia arrays *can* be defined to start at `0` or another arbitrary index.
+2.  We manually perform the lookup of the values within each iteration.
+
+We can solve the first one (partially) by letting Julia return an iterable set of values corresponding to the indices of the `cf_bond` vector. Tihs is an example of an **iterator** which is an object upon which we can repeatedly ask for the next value until it tells us to stop.
+
+By using `eachindex` we can get the indices of the vector since Julia already knows what they are:
+
+```{julia}
+eachindex(cf_bond)
+```
+
+::: callout-note
+## Lazy Programming
+
+The result, `{julia} eachindex(cf_bond)` is a **lazy** object which represents a collection that does not get fully instantiated until asked to (which may not actually be necessary). Many (most?) iterators are lazy but we can interact with them without fully instantiating the data that they represent. For example, we could find the largest index:
+
+```{julia}
+maximum(eachindex(cf_bond))
+```
+
+The point is if we have an object that *represents* a set, we need not actually enumerate each element of the set to interact with it.
+
+We can fully instantiate an iterator with `collect`
+
+```{julia}
+collect(eachindex(cf_bond))
+```
+
+Laziness is generally a good thing in programming because sometimes it can be computationally or memory expensive to fully instantiate the collection of interest.
+:::
+
+And when used in context:
+
+```{julia}
+let
+    pv = 0.0
+    discount = 1.0
+
+    for i in eachindex(cf_bond)
+        discount = discount / (1 + rate[i])
+        pv = pv + discount * cf_bond[i]
+    end
+    pv
+end
+```
+
+Here Julia gave us the index associated with the bond cashflows, but we are still looking up the values (why not just ask for the values instead of their index?) as well as assuming that the indices are the same for the discount rates.
+
+We can get the value and the associated index with `enumerate`:
+
+```{julia}
+collect(enumerate(cf_bond))
+```
+
+This would allow us to skip the step of needing to look up the bond's cashflows. However, we can go even further by just asking for value associated with both collections. With `zip` (named because it's sort of like zipping up two collections together), we get an iterator that provides the values of the underlying collections:
+
+```{julia}
+collect(zip(cf_bond, rate))
+```
+
+This provides the simplest implementation of the imperative approaches:
+
+```{julia}
+let
+    pv = 0.0
+    discount = 1.0
+
+    for (cf, r) in zip(cf_bond, rate)
+        discount = discount / (1 + r)
+        pv = pv + discount * cf
+    end
+    pv
+end
+```
+
+The primary downsides to this approach are:
+
+1.  Needing to keep track of state is fine in simple cases, but can quickly become difficult to reason about and error prone as the number and complexity of variables grows.
+2.  Program flow is explicitly stated, leaving fewer places that the compiler can automatically optimize or parallelize.
+
+Note that it's when state is `mutable` that a program tends to be more complex.
+
+## Functional Techniques and Terminology
+
+**Functional** programming is a paradigm which attempts to minimize state via composing functions together.
+
+@tbl-funcional-methods introduces a set of core functional methods to familiarize yourself with. Note that anonymous functions (#sec-anonymous-functions) are used frequently to define intermediary steps.
+
+::: column-body-outset
++--------------------------+---------------------------------------------------------------------------------------------------------------------------------------+---------------+
+| Function                 | Desciption                                                                                                                            | Example       |
++:=========================+:======================================================================================================================================+:==============+
+| `map(f,v)`               | Apply function `f` to each element of the collection `v`.                                                                             | ``` julia     |
+|                          |                                                                                                                                       | map(          |
+|                          |                                                                                                                                       |     x->x^2,   |
+|                          |                                                                                                                                       |     [1,3,5]   |
+|                          |                                                                                                                                       | ) # [1,9,25]  |
+|                          |                                                                                                                                       | ```           |
++--------------------------+---------------------------------------------------------------------------------------------------------------------------------------+---------------+
+| `reduce(op,v)`           | Apply binary `op` to pairs of values, reducing the dimension of the collection `v`.\                                                  | ``` julia     |
+|                          | \                                                                                                                                     | reduce(       |
+|                          | Has a couple of important, optional keyword arguments to note (which also apply to other variants of `reduce` below):                 |     *,        |
+|                          |                                                                                                                                       |     [1,3,5]   |
+|                          | -   `init` defines the identity element (e.g. the initial value of `+` and `*` is `0` and `1` respectively)                           | ) # 15        |
+|                          | -   `dims` defines which dimension to reduce across (if the dimension of `v` is more than one).                                       | ```           |
++--------------------------+---------------------------------------------------------------------------------------------------------------------------------------+---------------+
+| `mapreduce(op,f,v)`      | Maps `f` over collection `v` and returns a reduced result using `op`.                                                                 | ``` julia     |
+|                          |                                                                                                                                       | mapreduce(    |
+|                          |                                                                                                                                       |     *,        |
+|                          |                                                                                                                                       |     x->x^2,   |
+|                          |                                                                                                                                       |     [1,3,5]   |
+|                          |                                                                                                                                       | ) # 35        |
+|                          |                                                                                                                                       | ```           |
++--------------------------+---------------------------------------------------------------------------------------------------------------------------------------+---------------+
+| `foldl(op,v)foldr(op,v)` | Like `reduce`, but applies `op` from left to right (`foldl`) or right to left (`foldr`). Also has `mapfoldl` and `mapfoldr` versions. | ``` julia     |
+|                          |                                                                                                                                       | foldl(        |
+|                          |                                                                                                                                       |     *,        |
+|                          |                                                                                                                                       |     [1,3,5]   |
+|                          |                                                                                                                                       | ) # 15        |
+|                          |                                                                                                                                       | ```           |
++--------------------------+---------------------------------------------------------------------------------------------------------------------------------------+---------------+
+| `accumulate(op,v)`       | Apply `op` along `v` , creating a vector with the cumulative result.                                                                  | ``` julia     |
+|                          |                                                                                                                                       | accumulate(   |
+|                          |                                                                                                                                       |     +,        |
+|                          |                                                                                                                                       |     [1,3,5]   |
+|                          |                                                                                                                                       | ) # [1, 4, 9] |
+|                          |                                                                                                                                       | ```           |
++--------------------------+---------------------------------------------------------------------------------------------------------------------------------------+---------------+
+| `filter(f,v)`            | Apply `f` along `v` and return a copy of `v` with elements where `f` is true                                                          | ``` julia     |
+|                          |                                                                                                                                       | filter(       |
+|                          |                                                                                                                                       |     >=(3),    |
+|                          |                                                                                                                                       |     [1,3,5]   |
+|                          |                                                                                                                                       | ) # [3, 5]    |
+|                          |                                                                                                                                       | ```           |
++--------------------------+---------------------------------------------------------------------------------------------------------------------------------------+---------------+
+
+: Important Functional Methods. {#tbl-funcional-methods tbl-colwidths="\[25,45,30\]"}
+:::
+
+This paradigm is very powerful in a few ways:
+
+1.  It provides a language for talking about what a computation is doing. Instead of "looping over a collection called `portfolio` and calling a `value` function" we can more concisely refer to this as `mapreduce(valuem,portfolio)`.
+2.  Often times you are forced to think about the design of the program more deeply, recognizing the core calculations and data used within the model.
+3.  The compiler is free to apply more optimizations. For example, with `reduce`, the compiler could drive the calculation in any order since the operation is associative.
+4.  The lack of mutable state
+
+Let's build a version of the present value calculation using the functional building blocks described above.
+
+### `map`
+
+**`map`** is so named for the mathematical concept of mapping an input to an output. Here, it's effectively the same thing. We take a collection and use the given function to calculate an output. The size of the output equals the size of the input.
+
+First, to show how we could calculate the discount factor we will use `map` to compute the one-period discount factors:
+
+```{julia}
+map(x -> 1 / (1 + x), rate)
+```
+
+`map` transforms the `rate` collection by applying the anonomyous function `x -> 1 / (1 + x)`, which is the single period discount factor. This operation is conveyed visually in @fig-map-diagram.
+
+```{dot}
+//| label: fig-map-diagram
+//| fig-cap: "A diagram showing that `map` creates a new collection mirroring the old one, after applying the given function to each element in the original collection. "
+digraph G {
+  node [shape=box];
+  rankdir=LR;
+
+  subgraph cluster_0 {
+    label = "Input Array (rate)";
+    node [style=filled, color=lightblue];
+    rate1 [label="0.05"];
+    rate2 [label="0.06"];
+    rate3 [label="0.05"];
+    rate4 [label="0.04"];
+    rate5 [label="0.05"];
+  }
+
+  subgraph cluster_1 {
+    label = "Map Function";
+    node [style=filled, color=lightgreen];
+    map1 [label="1 / (1+x)"];
+    map2 [label="1 / (1+x)"];
+    map3 [label="1 / (1+x)"];
+    map4 [label="1 / (1+x)"];
+    map5 [label="1 / (1+x)"];
+  }
+
+  subgraph cluster_2 {
+    label = "Output Array";
+    node [style=filled, color=lightpink];
+    output1 [label="0.9524"];
+    output2 [label="0.9434"];
+    output3 [label="0.9524"];
+    output4 [label="0.9615"];
+    output5 [label="0.9524"];
+  }
+
+  rate1 -> map1 -> output1;
+  rate2 -> map2 -> output2;
+  rate3 -> map3 -> output3;
+  rate4 -> map4 -> output4;
+  rate5 -> map5 -> output5;
+}
+```
+
+::: callout-tip
+`map` is an absolute workhorse of a function and the authors recommend using it liberally within your code. We find ourselves using `map` frequently, usually avoiding defining an explicit loop (unless we are modifying some existing collection).
+
+An anti-pattern where `map` would likely be a better tool than a loop often looks like this:
+
+``` julia
+output = []
+for x in collection
+    result = # ... do stuff ...
+    push!(output,result)
+end
+output
+```
+
+Instead, `map` simplifies this to:
+
+``` julia
+map(collection) do x
+    # ... do stuff
+end
+```
+
+Not only does this have the advantage of being clearer, more concise, and less work... it also let's Julia manage the output type of your computation so you don't have to worry about the type of `output`.
+:::
+
+### `accumulate`
+
+`accumulate` takes an operation and a collection and returns a collection where each element is the cumulative result of applying the operation from the first element to the current one. For example, to calculate the cumulative product of the one-period discount factors:
+
+```{julia}
+accumulate(*, map(x -> 1 / (1 + x), rate))
+```
+
+This results in a vector of the cumulative discount factors for each point in time corresponding to the given cashflows.
+
+```{dot}
+//| label: fig-accumulate-diagram
+//| fig-cap: "A diagram showing that `accumulate` creates a new collection where each element is the cumulative result of applying the given operation to all previous elements."
+digraph G {
+  node [shape=box];
+  rankdir=LR;
+
+  subgraph cluster_0 {
+    label = "Input Array (discount factors)";
+    node [style=filled, color=lightblue];
+    df1 [label="0.9524"];
+    df2 [label="0.9434"];
+    df3 [label="0.9524"];
+    df4 [label="0.9615"];
+    df5 [label="0.9524"];
+  }
+
+  subgraph cluster_1 {
+    label = "Accumulate Function (*)";
+    node [style=filled, color=lightgreen];
+    acc1 [label="df1 * init"];
+    acc2 [label="df2 * output_1"];
+    acc3 [label="df3 * output_2"];
+    acc4 [label="df4 * output_3"];
+    acc5 [label="df5 * output_4"];
+  }
+subgraph cluster_3{
+
+output0 [label="init=1.0"];
+  subgraph cluster_2 {
+    label = "Output Array";
+    node [style=filled, color=lightpink];
+    output1 [label="0.9524"];
+    output2 [label="0.8985"];
+    output3 [label="0.8561"];
+    output4 [label="0.8230"];
+    output5 [label="0.7831"];
+  }
+}
+
+  df1 -> acc1;
+  df2 -> acc2;
+  df3 -> acc3;
+  df4 -> acc4;
+  df5 -> acc5;
+  
+  acc1 -> output1;
+  acc2 -> output2;
+  acc3 -> output3;
+  acc4 -> output4;
+  acc5 -> output5;
+
+  output0 -> acc1;
+  output1 -> acc2;
+  output2 -> acc3;
+  output3 -> acc4;
+  output4 -> acc5;
+
+}
+```
+
+::: callout-note
+For `accumulate` and `reduce`, an important value is the `init` (an optional keyword argument), which is the initial value to start the accumulation or reduction. By default, for common operations this **identity element** is predefined. For example, for `+` the identity is `0` while for `*` it is `1`. The identity element $e$ is the one where for a given binary operation $\bigodot$, that $x \bigodot e = x$.
+
+Another example beyond addition and subtraction is string concatenation. In Julia, two strings are concatenated with `*` (like in mathematics, $a * b$ is also written as $ab$). The identity element for strings where the binary operation $\bigodot = *$ is `""`. For example:
+
+```{julia}
+accumulate(*, ["a", "b", "c"], init="")
+```
+
+*This is a taste of a branch of mathematics known as Category Theory, a very rich subject but largely beyond the immediate scope of this book. The category theoretical term for sets of things that work with the binary operator and identity elements as described above is a **monoid**. You may ignore this fact.*
+:::
+
+### `reduce`
+
+`reduce` takes an operation and a collection and applies the operation repeatedly to pairs of elements until there is only a single value left.
+
+For example, we start with the calculation of the vector of discounted cashflows
+
+```{julia}
+dfs = accumulate(*, map(x -> 1 / (1 + x), rate))
+discounted_cfs = map(*, cf_bond, dfs)
+```
+
+Then we can sum them with reduce:
+
+```{julia}
+reduce(+, discounted_cfs)
+```
+
+```{dot}
+//| label: fig-reduce-diagram
+//| fig-cap: "A diagram showing how `reduce` applies the given operation to pairs of elements, ultimately reducing the collection to a single value."
+
+digraph G {
+  node [shape=box];
+  rankdir=LR;
+
+  subgraph cluster_0 {
+    label = "Input Array (discounted cashflows)";
+    node [style=filled, color=lightblue];
+    cf1 [label="9.52"];
+    cf2 [label="8.98"];
+    cf3 [label="8.56"];
+    cf4 [label="8.23"];
+    cf5 [label="86.20"];
+  }
+
+  subgraph cluster_1 {
+      rank=max;
+    rankdir=TB;
+    label = "Reduce Function (+)";
+    node [style=filled, color=lightgreen];
+    red0 [label="init=0.0 + cf1"];
+    red1 [label="red0 + cf2"];
+    red2 [label="red1 + cf3"];
+    red3 [label="red2 + cf4"];
+    red4 [label="red3 + cf5"];
+  }
+
+  subgraph cluster_2 {
+      rankdir=TB;
+    label = "Output Value";
+    node [style=filled, color=lightpink];
+    output [label="121.49"];
+  }
+
+  cf1 -> red0;
+  cf2 -> red1;
+  cf3 -> red2;
+  cf4 -> red3;
+  cf5 -> red4;
+  
+  red0 -> red1;
+  red1 -> red2;
+  red2 -> red3;
+  red3 -> red4;
+  red4 -> output;
+}
+```
+
+### `mapreduce`
+
+We can combine `map`, `accumulate` and `reduce` to concisely calculate the present value in a functional style:
+
+```{julia}
+dfs = accumulate(*, map(x -> 1 / (1 + x), rate))
+mapreduce(*, +, cf_bond, dfs)
+```
+
+This calculates the discount factors, applies them to the cashflows with map, and sums the result with a reduction.
+
+::: callout-tip
+At the risk of sounding obvious, an easy way to make the program more "functional" is to simply use more functions. Do this one thing and it will improve the model's organization, maintainability, and reduce bugs!
+
+Take the example from earlier:
+
+``` julia
+pv = 0.0
+discount = 1.0
+
+for (cf, r) in zip(cf_bond, rate)
+    discount = discount / (1 + r)
+    pv = pv + discount * cf
+end
+pv
+```
+
+We can easy turn this code into a function so that it can operate on data beyond the single pair of `cf_bond` and `rate` previously defined:
+
+``` julia
+function pv(rates,cashflows)
+    pv = 0.0
+    discount = 1.0
+
+    for (cf, r) in zip(rates, cashflows) # <1>
+        discount = discount / (1 + r)
+        pv = pv + discount * cf
+    end
+    pv
+end
+```
+
+1.  Here, `cf_bond` and `rate` would refer to whatever was passed as arguments to the function instead of any globally defined values.
+
+Now we could use this definition of `pv` on other instances of rates and cashflows.
+:::
+
+### `filter`
+
+`filter` does what you might think - filter a collection based on some criterion that can be determined as true or false.
+
+For example filtering out even numbers using the `isodd` function:
+
+```{julia}
+filter(isodd, 1:6)
+```
+
+Or filtering out things that don't match a criteria:
+
+```{julia}
+filter(x -> ~(x == 5), 1:6)
+```
+
+While we didn't need `filter` to calculate a bond's present value in the example above, one can imagine how you may want to filter dates that a bond might pay a cashflow, say last day of a quarter:
+
+```{julia}
+using Dates
+let d = Date(2024, 01, 01)
+    filter(d -> lastdayofquarter(d) == d, d:Day(1):lastdayofyear(d))
+end
+```
+
+### More Tips on Functional Styles
+
+#### `do` Syntax for Function Arguments
+
+In more complex situations such as with multiple collections or multi-line logic, there is a clearer syntax that is often used. `do` is a reserved keyword in Julia that creates an anonymous function and passes its arguments to a function like `map`. For example, this (terrible) code which decides if a number is prime. The anonymous function requires a `begin` block since the logic of the function is extended into multiple lines.
+
+``` julia
+map(x -> begin
+  if x == 1
+  "prime"
+  elseif x == 2
+  "not prime"
+  elseif x == 3
+  "prime"
+  elseif x > 4
+  "probably not prime"
+  end
+end, 
+[1, 2, 3, 10]
+)
+```
+
+This can be written more cleanly with the `do` syntax:
+
+``` julia
+map([1, 2, 3, 10]) do x
+if x == 1
+"prime"
+elseif x == 2
+"not prime"
+elseif x == 3
+"prime"
+elseif x > 4
+"probably not prime"
+end)
+```
+
+#### Multiple Collections
+
+`map` and the other functional operators discussed in this section can take multiple arguments. This is convienient if you have multiple arguments to a function:
+
+```{julia}
+discounts = [0.9, 0.81, 0.73]
+cashflows = [10, 10, 10]
+
+map((d, c) -> d * c, discounts, cashflows)
+```
+
+Or an example with the `do` syntax:
+
+```{julia}
+map(discounts, cashflows) do d, c
+    d * c
+end
+```
+
+#### Mixing Funcitonal And Imperative Styles
+
+One of the best things about Julia is how natural it can be to mix the different styles Sometimes the best is the mix of both styles and that's one of the benefits of Julia: use the style that's most natural to the problem.
+
+::: callout-note
+**Lisp** ("list processing") is another, much older language than Julia (created in the 1950s!). One of it's claims to fame is how flexible and powerful the tools are within the language to build upon. There's a couple aspects of this curse that we wish to describe because we can learn from it while Julia is still a relatively young language.
+
+Part of the "curse" is that: because there's so much freedom in what can be expressed in the language, there's not an obvious "best" way of doing things. This can lead to decision paralysis where you are trying to over-analyze what's the best way to write part of your code. Our advice: *don't worry about it!* A working implemntation of something is better than an over-optimized idea.
+
+The other part of the "curse" is that because is that it's relatively easy to implement so many things from the building blocks that Julia provides and compose them together to do what you want. This has a downside becuase the general approach to packages is smaller, standalone pieces that you call as needed. For example, consider Python's Pandas library, upon which Python's data science community was built. It came bundled with a CSV reader, Excel reader, Database reader, DataFrame type, visualization library, and statistical functions. In Julia, each of those are separate packages that specialize for the respective topics. This is advantageous in that they can progress independently from one another, you don't have to include functionality that you don't need, and you can mix and match libraries depending on your preference.
+:::
+
+## Array-Oriented Styles
+
+Array-oriented programming is one that is practiced in two main contexts:
+
+1.  GPU programming
+2.  Python numerical computing
+
+The former because GPUs want large blocks of similar data to operate in parallel. The latter is because native Python is too slow for many modeling problems so libraries like NumPy,SciPy,and tensor libraries define C++ (or similar) libraries for users to call out to.
+
+Array-oriented programming is not always natural for financial and actuarial applications. Differences in behavior or timing of underling cashflows can make a set of otherwise similar products difficult to capture in nicely gridded arrays. Nonetheless, certain applications (scenario generation, some valuation routines) fit very naturally into this paradigm. Furthermore, for those that work well it's often a great way to extract additional performance due to the parallelization offered via CPU or GPU array programming.
+
+@tbl-array-oriented-example shows the bond present value example in this style.
+
++----------------------------------------------+-------------------------------------------------+
+| Julia                                        | Python (NumPy)                                  |
++==============================================+=================================================+
+| ``` julia                                    | ``` python                                      |
+| cf_bond = [10, 10, 10, 10, 110]              | import numpy as np                              |
+| rate = [0.05, 0.06, 0.05, 0.04, 0.05]        |                                                 |
+|                                              | cf_bond = np.array([10, 10, 10, 10, 110])       |
+| discount_factors = cumprod(1 ./ (1 .+ rate)) | rate = np.array([0.05, 0.06, 0.05, 0.04, 0.05]) |
+| sum(cf_bond .* discount_factors)             |                                                 |
+| ```                                          | discount_factors = np.cumprod(1 / (1 + rate))   |
+|                                              | result = np.sum(cf_bond * discount_factors)     |
+|                                              | ```                                             |
++----------------------------------------------+-------------------------------------------------+
+
+: Julia's broadcasting makes for an array-oriented style, similar to the approach that would be used with Python's NumPy. {#tbl-array-oriented-example}
+
+The downsides to this style are:
+
+1.  Sometimes it is unnatural because of non-uniformity of the data we are working with. For example if the length of the cashflows were shorter than the discount rates, we would have to perform intermediate steps to shorten or lengthen arrays in order to get them to be the same size.
+2.  A good bit of runtime performance is lost because the computer needs to allocate and fill many intermediate arrays (note how in @tbl-array-oriented-example, the `discount_factors` needs to instantiate an entirely new vector even though it's only temporarily used). See more on allocations in @sec-hardware.
+
+## Recursion
+
+The Fibbonaci sequence is a classic example of a recursive algorithm:
+
+$$F(n) = \begin{cases}
+0, & \text{if } n = 0\\
+1, & \text{if } n = 1\\
+F(n-1) + F(n-2), & \text{if } n > 1
+\end{cases}$$
+
+In code, this translates into a function definition that refers to itself:
+
+``` julia
+function fibonacci(n)
+    if n == 0
+        return 0
+    elseif n == 1
+        return 1
+    else
+        return fibonacci(n-1) + fibonacci(n-2)
+    end
+end
+```
+
+One could imagine a possible pattern where the value of a stream of cashflows is defined as the sum of the value of the discounted next period plus the cashflows that occur this period.
+
+```{julia}
+function pv_recursive(rate,cashflows,accumulated_value=0.0)
+  if isempty(cashflows)
+    return accumulated_value
+  else
+    v = (accumulated_value + cashflows[end]) / (1 + rate)
+    return pv_recursive(rate,cashflows[begin:end-1], v)
+  end
+end
+
+```
+
+And an example of its use:
+
+```{julia}
+pv_recursive(0.05,[10,10,10])
+```
+
+Generally, the recursive pattern includes defining a 'base case' where you stop the recursive behavior and return the result that has been accumulated up to that point.
