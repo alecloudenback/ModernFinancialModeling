@@ -4,11 +4,11 @@
 
 ## In this section
 
-Demonstrate different approaches to a problem which gradually introduce more re-usable or general techniques. These techniques will allow for constructing sophisticated models while maintaining coniststency and simplicity. Imperative programming, functional programming, and using types to simplify program logic.
+Demonstrate different approaches to a problem which gradually introduce more re-usable or general techniques. These techniques will allow for constructing sophisticated models while maintaining consistency and simplicity. Imperative programming, functional programming, and recursion.
 
 ## Introduction
 
-This chatpter will center around a simple task: calculate the present value of a portfolio of two fixed, copoun-paying bonds under two different interest rate environments. The focus will be on describing different approaches to this problem, not be adding complexity to the problem (e.g. no getting into credit spreads, settlement timing, etc.).
+This chapter will center around a simple task: calculate the present value of a portfolio of a single fixed, risk-free, coupon-paying bonds under two different interest rate environments. The focus will be on describing different approaches to this problem, not be adding complexity to the problem (e.g. no getting into credit spreads, settlement timing, etc.).
 
 ```{julia}
 cf_bond = [10, 10, 10, 10, 110];
@@ -57,7 +57,7 @@ end
 2.  Loop the length of the cashflow vector.
 3.  At each step of the loop, look up (via index `i`) update the discount factor to account for the prevailing rate and add the discounted cashflow to the running total present value.
 
-This style is simple, digestable, and clear. If we were performing the calculation by hand, it would likely follow a pattern very similar to this. Look up the first cashflow and discount rate, compute a discount factor, and subtotal the value. Repeat for the next set of values.
+This style is simple, digestible, and clear. If we were performing the calculation by hand, it would likely follow a pattern very similar to this. Look up the first cashflow and discount rate, compute a discount factor, and subtotal the value. Repeat for the next set of values.
 
 ### Iterators
 
@@ -199,7 +199,7 @@ Note that it's when state is `mutable` that a program tends to be more complex.
 |                          |                                                                                                                                       | ```           |
 +--------------------------+---------------------------------------------------------------------------------------------------------------------------------------+---------------+
 
-: Important Functional Methods. {#tbl-funcional-methods tbl-colwidths="[25,45,30]"}
+: Important Functional Methods. {#tbl-funcional-methods tbl-colwidths="\[25,45,30\]"}
 :::
 
 This paradigm is very powerful in a few ways:
@@ -213,7 +213,7 @@ Let's build a version of the present value calculation using the functional buil
 
 ### `map`
 
-**`map`** is so named for the mathetmatical concept of mapping an input to an output. Here, it's effectively the same thing. We take a collection and use the given function to calculate an output. The size of the output equals the size of the input.
+**`map`** is so named for the mathematical concept of mapping an input to an output. Here, it's effectively the same thing. We take a collection and use the given function to calculate an output. The size of the output equals the size of the input.
 
 First, to show how we could calculate the discount factor we will use `map` to compute the one-period discount factors:
 
@@ -269,11 +269,11 @@ digraph G {
 ```
 
 ::: callout-tip
-`map` is an absolute workhorse of a function and the authors recommend using it liberally within your code. We find ourselves using `map` frequently, usually avoiding defining an explicit loop (unless we are modifying some existing collection). 
+`map` is an absolute workhorse of a function and the authors recommend using it liberally within your code. We find ourselves using `map` frequently, usually avoiding defining an explicit loop (unless we are modifying some existing collection).
 
 An anti-pattern where `map` would likely be a better tool than a loop often looks like this:
 
-```julia
+``` julia
 output = []
 for x in collection
     result = # ... do stuff ...
@@ -282,9 +282,9 @@ end
 output
 ```
 
-Instead, `map` simplifies this to: 
+Instead, `map` simplifies this to:
 
-```julia
+``` julia
 map(collection) do x
     # ... do stuff
 end
@@ -293,11 +293,10 @@ end
 Not only does this have the advantage of being clearer, more concise, and less work... it also let's Julia manage the output type of your computation so you don't have to worry about the type of `output`.
 :::
 
-
 ### `accumulate`
 
-`accumulate` takes an operation and a collection and returns a collection where each element is the cumulative result of applying the operation from the first element to the current one.
-For example, to calculate the cumulative product of the one-period discount factors:
+`accumulate` takes an operation and a collection and returns a collection where each element is the cumulative result of applying the operation from the first element to the current one. For example, to calculate the cumulative product of the one-period discount factors:
+
 ```{julia}
 accumulate(*, map(x -> 1 / (1 + x), rate))
 ```
@@ -368,22 +367,21 @@ output0 [label="init=1.0"];
 ::: callout-note
 For `accumulate` and `reduce`, an important value is the `init` (an optional keyword argument), which is the initial value to start the accumulation or reduction. By default, for common operations this **identity element** is predefined. For example, for `+` the identity is `0` while for `*` it is `1`. The identity element $e$ is the one where for a given binary operation $\bigodot$, that $x \bigodot e = x$.
 
-Another example beyond addition and subtraction is string concatenation. In Julia, two strings are concatenated with `*` (like in mathematics, $a * b$ is also written as $ab$). The identitiy element for strings where the binary operation $\bigodot = *$ is `""`. For example:
+Another example beyond addition and subtraction is string concatenation. In Julia, two strings are concatenated with `*` (like in mathematics, $a * b$ is also written as $ab$). The identity element for strings where the binary operation $\bigodot = *$ is `""`. For example:
 
 ```{julia}
 accumulate(*, ["a", "b", "c"], init="")
 ```
 
-*This is a taste of a branch of mathematics known as Category Theory, a very rich subject but largely beyond the immediate scope of this book. The category theoretical term for sets of things that work with the binary operator and identity elements as described above is a **monoid**. You may ignore this fact.
-*
+*This is a taste of a branch of mathematics known as Category Theory, a very rich subject but largely beyond the immediate scope of this book. The category theoretical term for sets of things that work with the binary operator and identity elements as described above is a **monoid**. You may ignore this fact.*
 :::
 
 ### `reduce`
 
-
 `reduce` takes an operation and a collection and applies the operation repeatedly to pairs of elements until there is only a single value left.
 
-For example, we start with the calculation of the vector of discounted cashflows 
+For example, we start with the calculation of the vector of discounted cashflows
+
 ```{julia}
 dfs = accumulate(*, map(x -> 1 / (1 + x), rate))
 discounted_cfs = map(*, cf_bond, dfs)
@@ -394,7 +392,6 @@ Then we can sum them with reduce:
 ```{julia}
 reduce(+, discounted_cfs)
 ```
-
 
 ```{dot}
 //| label: fig-reduce-diagram
@@ -450,6 +447,7 @@ digraph G {
 ### `mapreduce`
 
 We can combine `map`, `accumulate` and `reduce` to concisely calculate the present value in a functional style:
+
 ```{julia}
 dfs = accumulate(*, map(x -> 1 / (1 + x), rate))
 mapreduce(*, +, cf_bond, dfs)
@@ -495,7 +493,7 @@ Now we could use this definition of `pv` on other instances of rates and cashflo
 
 ### `filter`
 
-`filter` does what you might think - filter a collection based on some critereon that can be determined as true or false.
+`filter` does what you might think - filter a collection based on some criterion that can be determined as true or false.
 
 For example filtering out even numbers using the `isodd` function:
 
@@ -522,9 +520,9 @@ end
 
 #### `do` Syntax for Function Arguments
 
-In more complex situations such as with multiple collections or mult-line logic, there is a clearer syntax that is often used. `do` is a reserved keyword in Julia that creates an anonymous function and passes its arguments to a function like `map`. For example, this (terrible) code which decides if a number is prime. The anonymous function requires a `begin` block since the logic of the function is extended into multiple lines.
+In more complex situations such as with multiple collections or multi-line logic, there is a clearer syntax that is often used. `do` is a reserved keyword in Julia that creates an anonymous function and passes its arguments to a function like `map`. For example, this (terrible) code which decides if a number is prime. The anonymous function requires a `begin` block since the logic of the function is extended into multiple lines.
 
-```julia
+``` julia
 map(x -> begin
   if x == 1
   "prime"
@@ -542,7 +540,7 @@ end,
 
 This can be written more cleanly with the `do` syntax:
 
-```julia
+``` julia
 map([1, 2, 3, 10]) do x
 if x == 1
 "prime"
@@ -565,10 +563,12 @@ cashflows = [10, 10, 10]
 
 map((d, c) -> d * c, discounts, cashflows)
 ```
+
 Or an example with the `do` syntax:
+
 ```{julia}
-map(discounts, cashflows) do d,c
-  d * c
+map(discounts, cashflows) do d, c
+    d * c
 end
 ```
 
@@ -581,9 +581,8 @@ One of the best things about Julia is how natural it can be to mix the different
 
 Part of the "curse" is that: because there's so much freedom in what can be expressed in the language, there's not an obvious "best" way of doing things. This can lead to decision paralysis where you are trying to over-analyze what's the best way to write part of your code. Our advice: *don't worry about it!* A working implemntation of something is better than an over-optimized idea.
 
-The other part of the "curse" is that because is that it's relatively easy to implement so many things from the building blocks that Julia provides and compose them together to do what you want. This has a downside becuase the general approach to packages is smaller, standalone pieces that you call as needed. For example, consider Python's Pandas library, upon which Python's data science community was built. It came bundled with a CSV reader, Excel reader, Database reader, DataFrame type, visualization library, and statistical functions. In Julia, each of those are separate packages that specialize for the respective topics. This is advantageous in that they can progress independently from one another, you don't have to include functionality that you don't need, and you can mix and match libraries depending on your preference. 
+The other part of the "curse" is that because is that it's relatively easy to implement so many things from the building blocks that Julia provides and compose them together to do what you want. This has a downside becuase the general approach to packages is smaller, standalone pieces that you call as needed. For example, consider Python's Pandas library, upon which Python's data science community was built. It came bundled with a CSV reader, Excel reader, Database reader, DataFrame type, visualization library, and statistical functions. In Julia, each of those are separate packages that specialize for the respective topics. This is advantageous in that they can progress independently from one another, you don't have to include functionality that you don't need, and you can mix and match libraries depending on your preference.
 :::
-
 
 ## Array-Oriented Styles
 
@@ -596,7 +595,7 @@ The former because GPUs want large blocks of similar data to operate in parallel
 
 Array-oriented programming is not always natural for financial and actuarial applications. Differences in behavior or timing of underling cashflows can make a set of otherwise similar products difficult to capture in nicely gridded arrays. Nonetheless, certain applications (scenario generation, some valuation routines) fit very naturally into this paradigm. Furthermore, for those that work well it's often a great way to extract additional performance due to the parallelization offered via CPU or GPU array programming.
 
-@tbl-array-oriented-example shows the bond present value example in this style. 
+@tbl-array-oriented-example shows the bond present value example in this style.
 
 +----------------------------------------------+-------------------------------------------------+
 | Julia                                        | Python (NumPy)                                  |
@@ -616,22 +615,22 @@ Array-oriented programming is not always natural for financial and actuarial app
 
 The downsides to this style are:
 
-1. Sometimes it is unnatrual because of non-uniformity of the data we are working with. For example if the length of the cashflows were shorter than the discount rates, we would have to perform intermediate steps to shorten or lengthen arrays in order to get them to be the same size.
-2. A good bit of runtime performance is lost because the computer needs to allocate and fill many intermediate arrays (note how in @tbl-array-oriented-example, the `discount_factors` needs to instantiate an entirely new vector even though it's only temporariliy used). See more on allocations in @sec-hardware.
+1.  Sometimes it is unnatural because of non-uniformity of the data we are working with. For example if the length of the cashflows were shorter than the discount rates, we would have to perform intermediate steps to shorten or lengthen arrays in order to get them to be the same size.
+2.  A good bit of runtime performance is lost because the computer needs to allocate and fill many intermediate arrays (note how in @tbl-array-oriented-example, the `discount_factors` needs to instantiate an entirely new vector even though it's only temporarily used). See more on allocations in @sec-hardware.
 
 ## Recursion
 
 The Fibbonaci sequence is a classic example of a recursive algorithm:
 
-$F(n) = \begin{cases}
-0, & \text{if } n = 0\
-1, & \text{if } n = 1\
+$$F(n) = \begin{cases}
+0, & \text{if } n = 0\\
+1, & \text{if } n = 1\\
 F(n-1) + F(n-2), & \text{if } n > 1
-\end{cases}$
+\end{cases}$$
 
-In code, this translates into a function defintition that refers to itself:
+In code, this translates into a function definition that refers to itself:
 
-```julia
+``` julia
 function fibonacci(n)
     if n == 0
         return 0
@@ -643,7 +642,7 @@ function fibonacci(n)
 end
 ```
 
-One could imagine a possible pattern where the value of a stream of cashflows is defeined as the sum of the value of the discounted next period plus the cashflows that occur this period. 
+One could imagine a possible pattern where the value of a stream of cashflows is defined as the sum of the value of the discounted next period plus the cashflows that occur this period.
 
 ```{julia}
 function pv_recursive(rate,cashflows,accumulated_value=0.0)
@@ -663,4 +662,4 @@ And an example of its use:
 pv_recursive(0.05,[10,10,10])
 ```
 
-Generally, the recursive pattern includes defining a 'base case' where you stop the recursive behavior and return the result that has been accumulated up to that point. 
+Generally, the recursive pattern includes defining a 'base case' where you stop the recursive behavior and return the result that has been accumulated up to that point.
