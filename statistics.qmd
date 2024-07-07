@@ -537,13 +537,16 @@ Here is what a complete example looks like. We will try to find the posterior of
 ```{julia}
 #| fig-cap: "The target probability density which we will attempt to infer via MCMC."
 
-target_dist = product_distribution(Exponential(1.),Beta(2.,15.))
+target_dist = product_distribution(Poisson(0.1),LogNormal(8.,1.2))
 
 # plot the target_distirubution
 xs = LinRange(-0.5, 3, 400)
 ys = LinRange(0, 3, 400)
 zs = [pdf(target_dist,[x,y]) for x in xs, y in ys]
-contour(xs, ys, zs)
+samples = rand(target_dist,250)
+f, ax, _ = contour(xs, ys, zs)
+scatter!(ax,samples[1,:],samples[2,:])
+f
 ```
 
 We will next define a probability distribution for the random step that we take from the `current_point`. We choose a 2D Guassian for this. The `proposal_std` controls how big of a movement is taken at each step.
@@ -564,7 +567,7 @@ burn_in = 500
 # Initialize the Markov chain
 current_state = [0.0, 0.0]
 chain = zeros(num_samples, 2)
-
+current_probability = 0.0
 
 # MCMC sampling loop
 for i in 1:num_samples
@@ -572,13 +575,13 @@ for i in 1:num_samples
     proposal = rand(proposal_dist) + current_state
     
     # Calculate the acceptance ratio
-    current_prob = pdf(target_dist, current_state)
-    proposal_prob = pdf(target_dist, proposal)
-    acceptance_ratio = proposal_prob / current_prob
+    proposal_prob = pdf(target_dist, proposal) # <1>
+    acceptance_ratio = proposal_prob / current_probability
     
     # Accept or reject the proposal
     if rand() < acceptance_ratio
         current_state = proposal
+        current_probability = proposal_prob
     end
     
     # Store the current state as a sample
