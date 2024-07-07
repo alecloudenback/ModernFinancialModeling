@@ -113,25 +113,25 @@ We can categorize the above implementations using a convention called **Big-O No
 
 [^elements-of-compsci-1]: "Big-O", so named because of the "O" in used in $O(1)$. $O(n)$, etc. Not one of the sciences' more creative names.
 
-| Function         | Computational Cost | Complexity Description | Big-O Order | Steps ($n=10,000$) |
+| Function | Computational Cost | Complexity Description | Big-O Order | Steps ($n=10,000$) |
 |---------------|---------------|---------------|---------------|---------------|
-| `nsum_constant`  | fixed              | Constant               | $O(1)$      | \~1                |
-| `nsum_linear`    | $n$                | Linear                 | $O(n)$      | \~10,000           |
-| `nsum_quadratic` | $n^2 + n ÷ 2$      | Quadratic              | $O(n^2)$    | \~100,000,000      |
+| `nsum_constant` | fixed | Constant | $O(1)$ | \~1 |
+| `nsum_linear` | $n$ | Linear | $O(n)$ | \~10,000 |
+| `nsum_quadratic` | $n^2 + n ÷ 2$ | Quadratic | $O(n^2)$ | \~100,000,000 |
 
 : Complexity comparison for the three sample cases of summing integers from $1$ to $n$. {#tbl-complexity-sum}
 
 @tbl-complexity-generic shows a comparison of a more extended set of complexity levels. For the most complex categories of problems, the cost to compute grows so fast that it boggles the mind. What sorts of problems fall into the most complex categories? $O(2^n)$, or exponential complexity, examples include the traveling salesman problem if solved with dynamic programming or the recursive approach to calculating the $nth$ Fibbonnaci number. The beastly $O(n!)$ algorithms include brute force solving the traveling salesman problem or enumerating all partitions of a set. In financial modeling, we may encounter these sorts of problems in portfolio optimization (using the brute-force approach of testing every potential combination assets to optimize a portfolio).
 
-| Big-O Order         | $n=10$    | $n=1,000$  | $n=1,000,000$ |
-|---------------------|-----------|------------|---------------|
-| $O(1)$              | 1         | 1          | 1             |
-| $O(n)$              | 10        | 1,000      | 1,000,000     |
-| $O(n^2)$            | 100       | 1,000,000  | 10\^12        |
-| $O(log(n))$         | 3         | 7          | 14            |
-| $O(n\times log(n))$ | 30        | 7,000      | 14,000,000    |
-| $O(2^n)$            | 1,024     | \~10\^300  | \~10\^301029  |
-| $O(n!)$             | 3,628,800 | \~10\^2567 | \~10\^5565708 |
+| Big-O Order         | Description       | $n=10$    | $n=1,000$  | $n=1,000,000$ |
+|----------------|--------------|--------------|--------------|--------------|
+| $O(1)$              | Constant Time     | 1         | 1          | 1             |
+| $O(n)$              | Linear Time       | 10        | 1,000      | 1,000,000     |
+| $O(n^2)$            | Quadratic Time    | 100       | 1,000,000  | 10\^12        |
+| $O(log(n))$         | Logarithmic Time  | 3         | 7          | 14            |
+| $O(n\times log(n))$ | Linearithmic Time | 30        | 7,000      | 14,000,000    |
+| $O(2^n)$            | Exponential Time  | 1,024     | \~10\^300  | \~10\^301029  |
+| $O(n!)$             | Factorial Time    | 3,628,800 | \~10\^2567 | \~10\^5565708 |
 
 : Different Big-O Orders of Complexity {#tbl-complexity-generic}
 
@@ -166,7 +166,7 @@ using BenchmarkTools
 
 The preceding examples of constant, linear, and exponential times are *conceptually* correct but if we try to run them in practice we see that the description doesn't seem to hold at all for the linear time version, as it runs as quickly as the constant time version.
 
-What happened was that the compiler was able to understand and optimize the linear version such that it effectively transformed it into the constant time version and avoid the iterative summation that we had written. For examples that are simple enough to use as a teaching problem, the compiler can often optimize different written code down to the same efficient machine code.
+What happened was that the compiler was able to understand and optimize the linear version such that it effectively transformed it into the constant time version and avoid the iterative summation that we had written. For examples that are simple enough to use as a teaching problem, the compiler can often optimize different written code down to the same efficient machine code (this is the same Triangular Number optimization we saw in @sec-programming-ranges).
 
 ### Expected versus worst-case complexity
 
@@ -178,8 +178,261 @@ The idea of algorithmic complexity is important because it grounds us in the har
 
 ## Data Structures
 
-**Data structures** is the art and science of how to represent data in discreate objects. There are
+**Data structures** is the art and science of how to represent data in discrete objects. There are many common kinds and many specialized sub-kinds, and we will describe some of the most common ones here. Julia has many data structures available in the Base library, but an extensive collection of other data structures can be found in the [DataStructures.jl package](https://github.com/JuliaCollections/DataStructures.jl).
+
+### Arrays
+
+An **array** is a contiguous block of memory containing elements of the same type, accessed via integer indices. Arrays have fast random access and are the fastest data structure for linear/iterated access of data.
+
+In Julia, an array is a very common data structure and is implmemented with a simple declaration, such as:
+
+``` julia
+x = [1,2,3]
+```
+
+In memory, the integers are stored as consecutive bits representing the integer values of `1`, `2`, and `3`, and would look like this (with the different integers shown on new lines for clarity):
+
+```         
+0000000000000000000000000000000000000000000000000000000000000001
+0000000000000000000000000000000000000000000000000000000000000010
+0000000000000000000000000000000000000000000000000000000000000011
+```
+
+This is great for accessing the values one-by-one or in consecutive groups, but it's not efficient if values need to be inserted in between. For example, if we wanted to insert `0` between the `1` and `2` in `x`, then we'd need to overwrite the second position in the array, ask the operating system to allocate more memory[^elements-of-compsci-2], and re-write the bytes that come after our new value. Inserting values at the end (`push!(array, value)`) is usually fast unless more memory needs to be allocated.
+
+[^elements-of-compsci-2]: In practice, the operating system may have already allocated space for an array that's larger than what the program is actually using so far, so this step may be 'quick' at times, while other times the operating system may actually need to extend the block of memory allocated to the array.
+
+### Linked Lists
+
+A **linked list** is a chain of nodes where each node contains a value and a pointer to the next node. Linked lists allow for efficient insertion and deletion but slower random access compared to arrays.
+
+In Julia, a simple linked list node could be implemented as:
+
+``` julia
+mutable struct Node
+    value::Any
+    next::Union{Node, Nothing} # <1>
+end
+
+z = Node(3,Nothing)
+y = Node(2,z)
+x = Node(1,y)
+```
+
+1.  Here, 'Nothing' would represent the end of the linked list.
+
+Inserting a new node between existing nodes is efficient - if we wanted to inser a new node between the ones with value `2` and `3`, we could do this:
+
+``` julia
+a = Node(0,z) # <1> Create a new `Node` with `next` equal to `z`
+y.next = a # <2> Set the reference to `next` in `y` to be the new `Node` `a`.
+```
+
+However, accessing the nth element requires traversing the list from the beginning, making it O(n) time complexity for random access. Also, if tyou have an intermediate node such as `y`, `y` itself does not know about `x` so there's no way to move 'up' the list to get to previous values.
+
+### Records/Structs
+
+An aggregate of named fields, typically of fixed size and sequence. Records group related data together. We've encountered structs in @sec-user-defined-types, but here we'll add that simple `structs` with primitive fields can themselves be represented without creating pointers to the data stored:
+
+```{julia}
+struct SimpleBond
+    id::Int
+    par::Float64
+end
+
+struct LessSimpleBond
+    id::String
+    par::Float64
+end
+
+a = SimpleBond(1, 100.0)
+b = LessSimpleBond("1", 100.0)
+isbits(a), isbits(b)
+```
+
+Because `a` is comprised of simple elements, it can be represented as a contiguous set of bits in memory. It would look something like this in memory:
+
+```         
+0000000000000000000000000000000000000000000000000000000000000001 # <1>
+0100000001011001000000000000000000000000000000000000000000000000 # <2>
+```
+
+1.  The bits of `1`
+2.  The bits of `100.0`
+
+In contrast, the `LessSimpleBond` uses a `String` to represent the ID of the bond. Strings are essentially arrays of containers, and the arrays themselves are mutable containers which is by definition not a constant set of bits. In memory, `b` would look like:
+
+```         
+.... a pointer ... # <1>
+0100000001011001000000000000000000000000000000000000000000000000 # <2>
+```
+
+1.  a pointer/reference to the array of characters that comprise the string ID
+2.  The bits of `100.0`
+
+In performance critical code, having data that is represented with simple bits instead of references/pointers can be much faster (see @sec-stochastic-mortality for an example).
+
+::: callout-note
+For many mutable types, there are immutable, bits-types alternatives. For example:
+
+-   Arrays have a `StaticArray` counterpart (from the [StaticArrays.jl package](https://github.com/JuliaArrays/StaticArrays.jl)).
+
+-   Strings have `InlineStrings` (from the [InlineStrings.jl package](https://github.com/JuliaStrings/InlineStrings.jl)) which use fixed-width representations of strings.
+
+The downsides to the immutable alternatives (other than the loss of potentially desired flexibly that mutability provides) are that they can be harder on the compiler (more upfront compilation cost) to handle the specialized cases involved.
+:::
+
+### Dictionaries (Hash Tables)
 
 
+#### Hashes and Hash Functions. 
+**Hashes** are the result of a **hash function** that maps arbitrary data to a fixed size value. It's sort of a "one way" mapping to a simpler value which has the benefits of:
+
+1.  One way so that if someone knows the hashed value, it's *very* difficult to guess what the original value was. This is most useful in cryptographic and security applications.
+2.  Creating (probabilistically) unique IDs for a given set of data.
+
+For example, we can calculate a type of has called an SHA hash on any data:
+
+```{julia}
+import SHA
+let
+    a = SHA.sha256("hello world") |> bytes2hex
+    b = SHA.sha256(rand(UInt8, 10^6)) |> bytes2hex
+    println(a)
+    println(b)
+end
+```
+
+We can easily verify that the `sha256` hash of `"hello world"` is the same each time, but it's virtually impossible to guess `"hello world"` if we are just given the resulting hash. This is the premise of trying to "crack" a password when the stored password hash is stolen.
+
+One way to check if two set of data are the same is to compute the hash and see if the resulting hashes are equal. For example, maybe you want to see if two data files with different names contain the same data - comparing the hashes is a sure way to determine if they contain the same data.
+
+#### Dictionaries
+
+Dictionaries map a *key* to a *value*. More specifically, they use the *hash of a key* to store a reference to the *value*. 
+
+Dictionaries offer constant-time average case access but must handle potential collisions of keys (generally, the more robust the collision handling means higher fixed cost for access).
+
+### Graphs
+
+A **graph** is a collection of nodes (also called vertices) connected by edges to represent relationships or connections between entities. Graphs are versatile data structures that can model various real-world scenarios such as social networks, transportation systems, or computer networks.
+
+In Julia, a simple graph could be implemented using a dictionary where keys are nodes and values are lists of connected nodes:
+```julia
+struct Graph
+    nodes::Dict{Any, Vector{Any}}
+end
+
+function add_edge!(graph::Graph, node1, node2)
+    push!(get!(graph.nodes, node1, []), node2)
+    push!(get!(graph.nodes, node2, []), node1)
+end
+
+g = Graph(Dict())
+add_edge!(g, 1, 2)
+add_edge!(g, 2, 3)
+add_edge!(g, 1, 3)
+```
+
+This implementation represents an undirected graph. For a directed graph, you would only add the edge in one direction.
+
+Graphs can be traversed using various algorithms such as depth-first search (DFS) or breadth-first search (BFS). These traversals are useful for finding paths, detecting cycles, or exploring connected components.
+
+For more advanced graph operations, the [Graphs.jl package](https://github.com/JuliaGraphs/Graphs.jl) provides a comprehensive set of tools for working with graphs in Julia.
+
+### Trees
+
+A tree is a hierarchical data structure with a root node and child subtrees. Each node in a tree can have zero or more child nodes, and every node (except the root) has exactly one parent node. Trees are widely used for representing hierarchical relationships, organizing data for efficient searching and sorting, and in various algorithms.
+
+A simple binary tree node in Julia could be implemented as:
+
+```julia
+mutable struct TreeNode
+    value::Any
+    left::Union{TreeNode, Nothing}
+    right::Union{TreeNode, Nothing}
+end
+
+# Creating a simple binary tree
+root = TreeNode(1, 
+    TreeNode(2, 
+        TreeNode(4, nothing, nothing), 
+        TreeNode(5, nothing, nothing)
+    ), 
+    TreeNode(3, 
+        nothing, 
+        TreeNode(6, nothing, nothing)
+    )
+)
+```
+
+Trees have various specialized forms, each with its own properties and use cases:
+
+- Binary Search Trees (BST): Each node has at most two children, with all left descendants less than the current node, and all right descendants greater.
+- AVL Trees: Self-balancing binary search trees, ensuring that the heights of the two child subtrees of any node differ by at most one.
+- B-trees: Generalization of binary search trees, allowing nodes to have more than two children. Commonly used in databases and file systems.
+- Trie (Prefix Tree): Used for efficient retrieval of keys in a dataset of strings. Each node represents a common prefix of some keys.
+
+Trees support efficient operations like insertion, deletion, and searching, often with $O(log n)$ time complexity for balanced trees. They are fundamental in many algorithms and data structures, including heaps, syntax trees in compilers, and decision trees in machine learning.
+
+### Data Structures Conclusion
+
+Data structures have strengths and weakness depending on whether you want to priortize computational efficiency, memory (space) efficiency, code simplicity, and/or mutability. Due to the complexity of real world modeling needs, it can be the case that different representations of the data are more natural or more efficient for the use case at hand.  
 
 ## Formal Verification
+
+Formal verification is a technique used to prove or disprove the correctness of algorithms with respect to a certain formal specification or property. In essence, it's a mathematical approach to ensuring that a system behaves exactly as intended under all possible conditions.
+
+### Basic Concept
+In formal verification, we use mathematical methods to:
+
+1. Create a formal model of the system
+2. Specify the desired properties or behaviors
+3. Prove that the model satisfies these properties
+
+This process can be automated using specialized software tools called theorem provers or model checkers.
+
+### Formal Verification in Practice
+
+It sounds like the perfect risk management and regulatory technique: prove that the system works exactly as intented. However, there has been very limited deployment of formal verification in industry. This is for serveral reasons:
+
+1. Incomplete Coverage: It's often impractical to formally verify entire large-scale financial systems. Verification, if at all, is typically limited to critical components.
+2. Incomplete Specification: Actually reasoning through how the system should behave in all scenarios requires actually contemplating mathematically complete and rigorous possiblilities that could occur.
+3. Model-Reality Gap: The formal model may not perfectly represent the real-world system, especially in finance where market behavior can be unpredictable.
+4. Changing Requirements: Financial regulations and market conditions change rapidly, potentially outdating formal verifications.
+5. Performance Trade-offs: Systems designed for easy formal verification might sacrifice performance or flexibility.
+6. Cost: The process can be expensive in terms of time and specialized labor.
+
+### Related Topics {#sec-related-topics-formal-verification}
+
+#### Property Based Testing
+
+Testing will be discussed in more detail in @sec-software-principles, but an intermediate concept between Formal Verification and typical software testing is **property-based** testing, which tests for general rules instead of specific examples. 
+
+For example, a function which is associative ($(a + b) + c = a + (b + c)$) or commutative  ($a + b$ = $b + c$) can be tested with simple examples like:
+
+```julia
+using Test
+
+myadd(a,b) = a + b
+
+@test myadd(1,2) == myadd(2,1)
+@test myadd(myadd(1,2),3) == myadd(1,myadd(2,3))
+```
+
+However, we really haven't proven the associative and commutative properties in general. There are techniques to do this, which is a more comprehensive alternative to testing specific examples above. Packages like [Supposition.jl](https://github.com/Seelengrab/Supposition.jl) provide functionality for this. Note that like Formal Verification, property-based testing is a more advanced topic.
+
+#### Fuzzing
+
+Fuzzing is kind of like property based testing, but instead of testing general rules, we generalize the simple examples using randomness. For example, we could test the commutative property using random numbers instead, therefore statistically checking that the property holds:
+
+```julia
+@testset for i in 1:10000
+    a = rand()
+    b = rand()
+
+    @test myadd(a,b) == myadd(b,a)
+end
+```
+
+This is a good advancement over the simple `@test myadd(1,2) == myadd(2,1)`, in terms of checking the correctness of `myadd`, but it comes at the cost of more computational time and non-deterministic tests.
