@@ -3,3 +3,42 @@
 ## In this section
 
 A discussion of why a cursory understanding of modern computing hardware and architecture is important for making the right design decisions within a modeling context. Stack vs heap allocations, pointers, and bit types. A discussion of parallelism and the different kinds of parallelism.
+
+## Computer Architecture
+
+We can think of a computer as handling data at rest (in memory) or being acted up (processed).
+
+### Memory
+
+The whole point of computers is to perform computations on data, but unfortunately the speed at which data can be accessed has grown much slower than the rate the actual computations can be performed. Further, the size of the available persistent data storage (HDDs/SSDs) has ballooned, exacerbating the problem. The solution that has been developed is a pipeline of places intended to most efficiently shuttle data to and from the processor and the persistent storage.
+
+Memory has an inverse relationship between size and proximity to the processor units. The closer the data is to the processor units, the smaller the storage and the less likely the data will persist at that location for very long.
+
+| Kind | Rough Size | Lifecycle |
+|----|----|----|
+| Solid State Disk (SSD) or Hard Disk Drive (HDD) | TBs | Persistent/Permanent |
+| Random Access Memory (RAM) | Dozens to Hundereds of GBs | Seconds to Hours (while computer is powered on) |
+| CPU Cache - L3 | 8 MB to 128 MB | Microseconds to Milliseconds |
+| CPU Cache - L2 | 2 MB to 16 MB | Nanoseconds to Microseconds |
+| CPU Cache - L1 | \~16 kB | Nanoseconds |
+
+The problem is analogous to a logistics warehouse (persistent data) which needs to package up orders (processor instructions). There's a conveyor belt of items being constantly routed to the packaging station. In order to keep the packing station working at full capacity, the intermediate systems (RAM & CPU caches) are funneling items they *think* will be needed to the packager (data that's *expected* to be used in the processor). Most of the time, the necessary item (data) is optimally brought to the packaging station(process), or a nearby holding spot (CPU cache). This system has grown very efficient, but sometimes the predictions miss or a never-before-ordered item needs to be picked from the far side of the warehouse and this causes significant delays to the system. Sometimes a package will start to be assembled before the packager has even gotten to that order (branch prediction) which can make the system faster most of the time, but if the predicted package isn't actually what the customer ordered, then the work is lost and has to be redone (branch mispredict).
+
+### Processor
+
+## Speed of Computer Actions
+
+| Operation | Time (ns) | Distance Light Traveled |
+|----|----|----|
+| Single CPU Cycle (e.g. one `ADD` or `OR` operation on a register) | 0.3 | 9 centimeters |
+| L1 cache reference | 1 | 30 centimeters |
+| Branch mispredict | 5 | 150 centimeters |
+| L2 cache reference | 5 | 150 centimeters |
+| Main memory reference | 100 | 30 meters |
+| Read 1MB sequentially from RAM | 250,000 | 75 km (\~2 marathons) |
+| Round trip within a datacenter | 500,000 | 150km (the thickness of Earth's atmosphere) |
+| Read 1MB sequentially from SSD | 1,000,000 | 300km (distance Washington D.C. to New York City) |
+| Hard disk seek | 10,000,000 | 3,000km (width of continental United States) |
+| Send packet CA-\>Netherlands-\>CA | 150,000,000 | 45,000km (circumference of earth) |
+
+Source: <https://cs.brown.edu/courses/csci0300/2022/assign/labs/lab4.html>
