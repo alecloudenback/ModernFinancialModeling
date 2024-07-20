@@ -35,6 +35,8 @@ mutable struct Policy
     benefit_base::Float64
     COLA::Float64
     mode::Int
+    prem::Float64
+    pp::Int
     issue_date::Date
     issue_age::Int
     risk::Risk
@@ -47,8 +49,8 @@ end
 ```{julia}
 sample_csv_data =
     IOBuffer(
-        raw"id,sex,benefit_base,COLA,mode,issue_date,issue_age,risk
-         1,M,100000.0,0.03,12,1999-12-05,30,Std"
+        raw"id,sex,benefit_base,COLA,mode,prem,pp,issue_date,issue_age,risk
+         1,M,100000.0,0.03,1,1000.0,3,1999-12-05,30,Std"
     )
 
 mort = Dict(
@@ -72,6 +74,8 @@ policies = let
             row.benefit_base,
             row.COLA,
             row.mode,
+            row.prem,
+            row.pp,
             row.issue_date,
             row.issue_age,
             row.risk == "Std" ? Standard : Preferred,
@@ -81,7 +85,7 @@ policies = let
 end
 ```
 
-Given a basic insurance product, a pure whole of life (WOL) policy with level benefits and level premiums payable within the first 10 years, the reserve at the end of the $y^th$ policy year is defined by
+Given a basic insurance product, a pure whole of life (WOL) policy with level benefits and level premiums payable within the first 10 years, the reserve at the end of the $y^(th)$ policy year is defined by
 
 $$
 res(y) = \sum_{t=age+y}^{120} (sur_(t-age-y) * mort_t * B_y * \sqrt(1 + r)) - (P_y * sur_(t-age-y))
@@ -90,7 +94,7 @@ $$
 where
 
 - $mort_t$ is the mortality at age $t$
-- $p_y$ is the survival probability adjusted with COLA, with values of $p_(y-1) = 1$ and $p_x = p_(x-1) * (1 - mort_(age+y)) / (1 + COLA)$ for $x >= y$, and 0 for $x < y - 1$ or $age + x >= 120$, or ultimate age of the current mortality table
+- $p_y$ is the survival probability adjusted with COLA, with values of $p_{y-1} = 1$ and $p_x = p_{x-1} * (1 - mort_{age+y}) / (1 + COLA)$ for $x >= y$, and 0 for $x < y - 1$ or $age + x >= 120$, or ultimate age of the current mortality table
 - $B_y$ is the level benefit throughout the policy
 - $P_y$ is the level premium within the first 10 policy years which is 0 for policy years after 10
 - $r$ is the level interest rate throughout the policy
@@ -106,13 +110,13 @@ function sur(y::Int, pol::Policy)
     end
 end
 
-function res(y::Int, pol::Policy, P::Float64)
+function res(y::Int, pol::Policy)
     s = 0.0
     if y >= 1 && y <= 120 - pol.issue_age
         for t in (pol.issue_age+y):120
             prem = 0.0
-            if y <= 9
-                prem = P
+            if y <= pol.pp
+                prem = pol.prem
             end
             s += sur(t - pol.issue_age - y, pol) * mort[pol.sex][t] * pol.benefit_base - prem * sur(t - pol.issue_age - y, pol)
         end
@@ -129,16 +133,14 @@ end
 Define a customized finite difference function with respect to the COLA, rippled by a small difference.
 
 ```{julia}
-function res_wrt_r_fd(y::Int, pol::Policy, P::Float64, r::Float64, h=1e-3)
+function res_wrt_r_fd(y::Int, pol::Policy, r::Float64, h=1e-3)
     p₊, p₋ = deepcopy(pol), deepcopy(pol)
-    p₊.COLA = r + h, p₋.COLA = r - h
-    (res(y, p₊, P) - res(y, p₋, P)) / (2h)
+    p₊.COLA, p₋.COLA = r + h, r - h
+    (res(y, p₋) - res(y, p₊)) / (2res(y, pol))
 end
+
+res_wrt_r_fd(2, policies[1], 0.03) # changes in reserve at year 2 when the interest rate at 3% with a perturbation of 0.1%
 ```
-
-### Scenario Analyses
-
-Scenarios can be generated following scenario generation methodologies to evaluate impacts. Refer to scenario generation chapter.
 
 ### Regression Analyses
 
@@ -146,31 +148,40 @@ Scenarios can be generated following scenario generation methodologies to evalua
 function r1_wrt_r(r)
     p = deepcopy(policies[1])
     p.COLA = r[2]
-    res(Int(floor(r[1])), p, r[3])
+    p.prem = r[3]
+    res(Int(floor(r[1])), p)
 end
 
-gsa(r1_wrt_r, RegressionGSA(), [[1, 1.01], [0.025, 0.035], [10000.0, 10000.1]], samples=1000)
+# reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1
+reg_anal = gsa(r1_wrt_r, RegressionGSA(), [[1, 2], [0.029, 0.031], [999.9, 1000.1]], samples=1000)
+@show reg_anal.pearson
 ```
+
+The Pearson Spearman coefficients show the correlation coefficient matrix between inputs and outputs.
 
 ### Sobol Indices
 
 Sobol is a variance-based method, and it decomposes the variance of the output of the model or system into fractions which can be attributed to inputs or sets of inputs. This helps to get not just the individual parameter's sensitivities, but also gives a way to quantify the affect and sensitivity from the interaction between the parameters.
 
-The Sobol Indices are "order"ed, the first order indices given by 
-​
-  the contribution to the output variance of the main effect of 
-​
- . Therefore, it measures the effect of varying 
-​
-  alone, but averaged over variations in other input parameters. It is standardized by the total variance to provide a fractional contribution. Higher-order interaction indices 
-​
-  and so on can be formed by dividing other terms in the variance decomposition by 
-Var(Y).
+$$
+Y = f_0 + \sum_{i=1}^{d}f_i(X_i) + \sum_{i<j}^{d}f_{ij}(X_i, X_j) + ... + f_{1,2,...,d}(X_1, X_2, ..., X_d)
+$$
+
+$$
+Var(Y) = \sum_{i=1}^{d}V_i + \sum_{i<j}^{d}V_{ij} + ... + V_{1,2,...,d}
+$$
+
+The Sobol Indices are "ordered", the first order indices given by $S_i = \dfrac{V_i}{Var(Y)}$, the contribution to the output variance of the main effect of $X_i$. Therefore, it measures the effect of varying $X_i$ alone, but averaged over variations in other input parameters. It is standardized by the total variance to provide a fractional contribution. Higher-order interaction indices $S_{ij}, S_{ijk}$ and so on can be formed by dividing other terms in the variance decomposition by $Var(Y)$.
 
 ```{julia}
-L, U = QuasiMonteCarlo.generate_design_matrices(1000, [1, 0.025, 10000.0], [1, 0.035, 10000.1], SobolSample())
-gsa(r1_wrt_r, Sobol(), L, U)
+# reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1
+L, U = QuasiMonteCarlo.generate_design_matrices(1000, [1, 0.029, 999.9], [2, 0.031, 1000.1], SobolSample())
+s = gsa(r1_wrt_r, Sobol(), L, U)
+@show s.S1
+@show s.ST
 ```
+
+The output shows the first order and total order of variations in different input parameters.
 
 ### Morris Method
 
@@ -180,18 +191,52 @@ $$
 EE_i = \frac{f(x_1, x_2, ...x_i + \Delta, ...x_k) - y}{\Delta}
 $$
 
-We calculate local sensitivity measures known as “elementary effects”, which are calculated by measuring the perturbation in the output of the model on changing one parameter.
+We calculate local sensitivity measures known as "elementary effects", which are calculated by measuring the perturbation in the output of the model on changing one parameter.
 
-These are evaluated at various points in the input chosen such that a wide “spread” of the parameter space is explored and considered in the analysis, to provide an approximate global importance measure. The mean and variance of these elementary effects is computed. A high value of the mean implies that a parameter is important, a high variance implies that its effects are non-linear or the result of interactions with other inputs. This method does not evaluate separately the contribution from the interaction and the contribution of the parameters individually and gives the effects for each parameter which takes into consideration all the interactions and its individual contribution.
+These are evaluated at various points in the input chosen such that a wide "spread" of the parameter space is explored and considered in the analysis, to provide an approximate global importance measure. The mean and variance of these elementary effects is computed. A high value of the mean implies that a parameter is important, a high variance implies that its effects are non-linear or the result of interactions with other inputs. This method does not evaluate separately the contribution from the interaction and the contribution of the parameters individually and gives the effects for each parameter which takes into consideration all the interactions and its individual contribution.
 
 ```{julia}
-m = gsa(r1_wrt_r, Morris(), [[1, 1.01], [0.025, 0.035], [10000.0, 10000.1]])
+# reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1
+m = gsa(r1_wrt_r, Morris(), [[1, 2], [0.029, 0.031], [999.9, 1000.1]])
+@show m.means
+@show m.variances
 ```
+
+From the means it can be observed which variables are more important, and the variances imply higher degree of nonlinearity or interactions with other variables.
 
 ### Fourier Amplitude Sensitivity Tests
 
+FAST offers a robust, especially at low sample size, and computationally efficient procedure to get the first and total order indices as discussed in Sobol. It utilizes monodimensional Fourier decomposition along a curve, exploring the parameter space. The curve is defined by a set of parametric equations,
+
+$$
+EE_i = \frac{f(x_1, x_2, ...x_i + \Delta, ...x_k) - y}{\Delta}
+$$
+
+where $s$ is a scalar variable varying over the range $−∞ < s < +∞$, $G_i$ are transformation functions and $w_i, ∀i=1,2,…,N$ is a set of different (angular) frequencies, to be properly selected, associated with each factor for all $N$ (samples) number of parameter sets.
+
 ```{julia}
-gsa(r1_wrt_r, eFAST(), [[1, 1.01], [0.025, 0.035], [10000.0, 10000.1]], samples=1000)
+# reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1
+fast = gsa(r1_wrt_r, eFAST(), [[1, 2], [0.029, 0.031], [999.9, 1000.1]], samples=1000)
+@show fast.S1
+@show fast.ST
 ```
+
+The output shows the first order and total order of variations in different input parameters.
+
+### Automatic Differentiation
+
+By applying the chain rule repeatedly on elementary operations of computer calculations, automatic differentiation can be applied to measure impacts of small differences. More details in the chapter on automatic differentiation.
+
+### Scenario Analyses
+
+Scenarios can be generated following scenario generation methodologies to evaluate impacts. More details in the chapter on scenario generation.
+
+When scenarios are generated to evaluate sensitivities, one may need to take the following into consideration.
+
+- Reverse stress testing. Reverse stress testing in scenario analysis involves identifying extreme scenarios that could potentially lead to catastrophic outcomes for a financial institution or a system. Unlike traditional sensitivity testing to simulate the impact of adverse events on the system, reverse stress testing starts with a catastrophic outcome and works backwards to determine the combination of events or circumstances that could lead to such an outcome.
+
+- Stylistic scenarios. Developing stylistic scenarios in scenario analysis involves creating narratives or storylines that describe plausible future states or situations. These scenarios are crafted to capture key uncertainties, trends, and factors that could significantly impact the organization, industry, or environment under study.
+
+- Backtesting against historical data. Backtesting in scenario analysis involves an iterative process of using past data to validate the effectiveness and accuracy of scenarios developed for forecasting future outcomes. Scenarios are first defined and applied on selective historical data, and refined after any discrepancies of scenario outcomes versus historical results are identified.
 
 ## Benchmarking
