@@ -2,7 +2,7 @@
 
 ## In This Chapter
 
-Optimization as root finding or minimization/maximazation of defined objectives. Differentiable programming and the benefits to optimization problems. Model fitting as an optimization problem.
+Optimization as root finding or minimization/maximazation of defined objectives. Differentiable programming and the benefits to optimization problems. Other non gradient based optimization approaches. Model fitting as an optimization problem.
 
 ```{julia}
 #| echo: false
@@ -18,6 +18,11 @@ Pkg.instantiate()
 using Flux
 using LsqFit
 using CairoMakie
+using JuMP
+using GLPK
+using Optim
+using Distributions
+using Random
 ```
 
 ## Differentiable programming
@@ -26,15 +31,17 @@ Differentiable programming is an approach to programming where functions are def
 
 Elements in differentiable programming
 
-- Differentiable Functions: Functions are defined using operations that are differentiable. These operations include basic arithmetic operations (addition, subtraction, multiplication, division), as well as more complex operations like exponentials, logarithms, trigonometric functions, etc.
+- Differentiable functions: Functions are defined using operations that are differentiable. These operations include basic arithmetic operations (addition, subtraction, multiplication, division), as well as more complex operations like exponentials, logarithms, trigonometric functions, etc.
 
-- Automatic Differentiation (AD): Automatic differentiation is used to compute derivatives of functions with respect to their inputs or parameters. AD exploits the fact that every computer program, no matter how complex, executes a sequence of elementary arithmetic operations (addition, subtraction, multiplication, division), and elementary functions (exponentials, logarithms, trigonometric functions). By applying the chain rule repeatedly to these operations, derivatives of arbitrary order can be computed automatically, accurately to working precision, and using at most a small constant factor more arithmetic operations than the original program.
+- Automatic differentiation (AD): Automatic differentiation is used to compute derivatives of functions with respect to their inputs or parameters. AD exploits the fact that every computer program, no matter how complex, executes a sequence of elementary arithmetic operations (addition, subtraction, multiplication, division), and elementary functions (exponentials, logarithms, trigonometric functions). By applying the chain rule repeatedly to these operations, derivatives of arbitrary order can be computed automatically, accurately to working precision, and using at most a small constant factor more arithmetic operations than the original program. Refer to chapter on automatic differentiation.
 
-- Optimization and Machine Learning: Differentiable programming is particularly useful in optimization problems, where gradients or higher-order derivatives are required to find the minimum or maximum of a function. It's also widely used in machine learning, where optimization algorithms like gradient descent are used to train models by adjusting their parameters to minimize a loss function.
+- Optimization and machine learning: Differentiable programming is particularly useful in optimization problems, where gradients or higher-order derivatives are required to find the minimum or maximum of a function. It's also widely used in machine learning, where optimization algorithms like gradient descent are used to train models by adjusting their parameters to minimize a loss function.
+
+- Gradient calculation: The gradient plays a crucial role in optimization problems primarily because it provides the direction of the steepest ascent of a function. Optimization algorithms often iteratively update parameters in the direction opposite to the gradient (for minimization problems), which tends to converge towards a local minimum (or maximum for maximization problems). Besides, computing the gradient is often computationally feasible and relatively inexpensive compared to other methods for determining function behavior, such as higher-order derivatives or function evaluations at different points. Beyond just the direction, the magnitude (or norm) of the gradient also indicates how steep the function change is in that direction. This information is used to adjust step sizes in optimization algorithms, balancing between convergence speed and stability.
+
+- Local and global optimization: A local optimal value refers to a solution where the objective function (or cost function) has the best possible value in a neighborhood surrounding that solution. A global optimal value, on the other hand, is the best possible value of the objective function across the entire feasible domain. For smooth and convex functions, the gradient points towards the global minimum (or maximum), making it extremely efficient for finding the optimal solution. Even for non-convex functions, the gradient provides valuable information about the direction to move towards improving the objective function value locally.
 
 ```{julia}
-using Flux
-
 # Define a differentiable function
 f(x) = 3x^2 + 2x + 1
 # Define an input value
@@ -42,6 +49,221 @@ x = 2.0
 
 @show "Value of f(x) at x=$x: ", f(x)
 @show "Gradient of f(x) at x=$x: ", gradient(x -> f(x), x)
+```
+
+## Gradient-Free Optimization
+
+This category includes algorithms that do not rely on gradients or derivative information. They often explore the objective function using heuristics or other types of probes to guide the search.
+
+### Linear optimization
+
+Linear optimization, also known as linear programming (LP), is a mathematical method for finding the best outcome in a mathematical model with linear relationships. It involves optimizing a linear objective function subject to a set of linear equality and inequality constraints. Linear programming has a wide range of applications across various fields, including operations research, economics, engineering, and logistics.
+
+```{julia}
+# Define the objective coefficients
+c = [1.0, 2.0, 3.0]
+# Define the constraint matrix (A) and right-hand side (b)
+A = [1.0 1.0 0.0;
+     0.0 1.0 1.0]
+b = [10.0, 20.0]
+# Create a JuMP model
+model = Model(GLPK.Optimizer)
+# Define decision variables
+@variable(model, x[1:3] >= 0)
+# Define objective function
+@objective(model, Min, dot(c, x))
+# Add constraints
+@constraint(model, constr[i=1:2], dot(A[i,:], x) <= b[i])
+# Solve the optimization problem
+optimize!(model)
+
+# Print results
+println("Objective value: ", objective_value(model))
+println("Optimal solution:")
+for i in 1:3
+    println("\tx[$i] = ", value(x[i]))
+end
+```
+
+### Evolutionary algorithm
+
+An evolutionary algorithm (EA) is a family of optimization algorithms inspired by the principles of biological evolution. They are particularly useful for solving complex optimization problems where traditional gradient-based methods may struggle due to non-linearity, multimodality, or high dimensionality of the search space.
+
+```{julia}
+# Define the objective function to maximize
+function objective_function(x)
+    return sum(x .^ 2)  # Example function: sum of squares
+end
+# Define the evolutionary algorithm function
+function evolutionary_algorithm(dim::Int, pop_size::Int, max_gen::Int)
+    # Initialization
+    population = rand(Bool, dim, pop_size)  # Random binary population
+    best_solution = population[:, argmax([objective_function(sol) for sol in eachcol(population)])]
+    best_fitness = objective_function(best_solution)
+    # Evolution loop
+    for gen in 1:max_gen
+        # Selection: Binary tournament selection
+        parents = zeros(Bool, dim, pop_size)
+        for i in 1:pop_size
+            idx1, idx2 = rand(1:pop_size, 2)
+            parents[:, i] = if objective_function(population[:, idx1]) > objective_function(population[:, idx2])
+                                population[:, idx1]
+                            else
+                                population[:, idx2]
+                            end
+        end
+        # Crossover: Single-point crossover
+        offspring = zeros(Bool, dim, pop_size)
+        for i in 1:2:pop_size
+            point = rand(1:dim-1)
+            offspring[1:point, i] = parents[1:point, i]
+            offspring[1:point, i+1] = parents[1:point, i+1]
+            offspring[point+1:end, i] = parents[point+1:end, i+1]
+            offspring[point+1:end, i+1] = parents[point+1:end, i]
+        end
+        # Mutation: Uniform mutation
+        mutation_rate = 0.05
+        for i in 1:pop_size
+            for j in 1:dim
+                if rand() < mutation_rate
+                    offspring[j, i] = !offspring[j, i]  # Flip the bit
+                end
+            end
+        end
+        # Replace population with offspring
+        population = offspring
+        # Update best solution found so far
+        current_best = population[:, argmax([objective_function(sol) for sol in eachcol(population)])]
+        current_best_fitness = objective_function(current_best)
+        if current_best_fitness > best_fitness
+            best_solution = current_best
+            best_fitness = current_best_fitness
+        end
+        # Print best fitness in each generation (optional)
+        println("Generation $gen: Best fitness = $best_fitness")
+    end
+    return best_solution, best_fitness
+end
+
+dim = 10         # Dimension of the problem (e.g., number of variables)
+pop_size = 50    # Population size
+max_gen = 100    # Maximum number of generations
+# Run the evolutionary algorithm
+best_solution, best_fitness = evolutionary_algorithm(dim, pop_size, max_gen)
+
+# Print the best solution found
+println("\nBest solution found:")
+println("Solution = ", best_solution)
+println("Fitness = ", best_fitness)
+```
+
+### Simulated annealing
+
+Simulated Annealing (SA) is a probabilistic optimization technique inspired by the annealing process in metallurgy. It is used to find near-optimal solutions to optimization problems, particularly in cases where traditional gradient-based methods may get stuck in local minima/maxima. SA accepts worse solutions with a certain probability, allowing it to explore the search space more broadly initially and then gradually narrow down towards better solutions as it progresses.
+
+```{julia}
+# Objective function to minimize
+function objective_function(x)
+    return x^2
+end
+# Simulated Annealing function
+function simulated_annealing(initial_solution, initial_temperature, cooling_rate, num_iterations)
+    current_solution = initial_solution
+    best_solution = initial_solution
+    current_temperature = initial_temperature 
+    for iteration in 1:num_iterations
+        # Generate a new solution near the current solution
+        new_solution = current_solution + randn()  # Example: small random change
+        # Calculate objective function values
+        current_value = objective_function(current_solution)
+        new_value = objective_function(new_solution)
+        # Decide whether to accept the new solution
+        if new_value < current_value || rand() < exp(-(new_value - current_value) / current_temperature)
+            current_solution = new_solution
+        end
+        # Update the best solution found so far
+        if objective_function(current_solution) < objective_function(best_solution)
+            best_solution = current_solution
+        end
+        # Cool down the temperature
+        current_temperature *= cooling_rate
+    end
+    return best_solution, objective_function(best_solution)
+end
+
+initial_solution = 5.0       # Initial solution guess
+initial_temperature = 10.0   # Initial temperature
+cooling_rate = 0.95          # Cooling rate
+num_iterations = 1000        # Number of iterations
+# Run simulated annealing
+best_solution, best_value = simulated_annealing(initial_solution, initial_temperature, cooling_rate, num_iterations)
+
+# Print results
+println("Best solution found: x = ", best_solution)
+println("Objective function value at best solution: ", best_value)
+```
+
+### Bayesian optimization
+
+Bayesian Optimization (BO) is a powerful technique for global optimization of expensive-to-evaluate black-box functions. It leverages probabilistic models to predict the objective function's behavior across the search space and uses these models to make informed decisions about where to evaluate the function next. This approach efficiently balances exploration (searching for promising regions) and exploitation (exploiting regions likely to yield optimal values), making it particularly suitable for optimization problems where function evaluations are costly, such as tuning hyperparameters of machine learning models or optimizing parameters of complex simulations.
+
+```{julia}
+# Define your objective function to be optimized
+function objective(x::Float64)
+    return -(x^2 + 0.1 * sin(5 * x))  # Example objective function (negative because we seek maximum)
+end
+# Bayesian optimization function
+function bayesian_optimization(objective, bounds::Tuple{Float64, Float64}, num_iterations::Int)
+    Random.seed!(1234)  # Setting a seed for reproducibility
+    X = Float64[]  # List to store evaluated points
+    Y = Float64[]  # List to store objective values
+    # Initial random point (you can choose other initial points as well)
+    x_init = rand() * (bounds[2] - bounds[1]) + bounds[1]
+    push!(X, x_init)
+    push!(Y, objective(x_init))
+    # Main loop
+    for i in 1:num_iterations
+        # Fit a model to the observed data (Gaussian Process in this case)
+        # For simplicity, let's just use the current best observed value
+        x_next = rand() * (bounds[2] - bounds[1]) + bounds[1]  # Random sampling
+        # Evaluate the objective function at the chosen point
+        y_next = objective(x_next)
+        # Update the data with the new observation
+        push!(X, x_next)
+        push!(Y, y_next)
+        # Here, we will just print the current best observed value
+        println("Iteration $i: Best value = $(maximum(Y))")
+    end
+    # Return the best observed value and corresponding parameter
+    best_idx = argmax(Y)
+    return X[best_idx], Y[best_idx]
+end
+
+best_x, best_value = bayesian_optimization(objective, (-5.0, 5.0), 10)
+println("Best x found: $best_x, Best value: $best_value")
+```
+
+### BFGS
+
+The Broyden-Fletcher-Goldfarb-Shanno (BFGS) method is a popular iterative optimization algorithm used for unconstrained optimization problems. It belongs to the family of quasi-Newton methods, which are designed to find the local minimum of a differentiable objective function without needing its Hessian matrix directly. Instead, BFGS iteratively constructs an approximation to the inverse Hessian matrix using gradients of the objective function.
+
+```{julia}
+# Define the objective function to minimize
+function objective_function(x)
+    return sum(x .* x)
+end
+
+# Initial guess for the minimization
+initial_x = [1.0]
+# Perform optimization using BFGS method
+result = optimize(objective_function, initial_x, BFGS())
+# Extract the optimized solution
+solution = result.minimizer
+minimum_value = result.minimum
+
+# Print the result
+println("Optimized solution: x = ", solution)
+println("Minimum value found: ", minimum_value)
 ```
 
 ## Model fitting
@@ -53,8 +275,6 @@ Root finding, also known as root approximation or root isolation, is the process
 There are various algorithms for root finding, each with its own advantages and disadvantages depending on the characteristics of the function and the requirements of the problem. One notable approach is Newton's method, an iterative method that uses the derivative of the function to approximate the root with increasing accuracy in each iteration.
 
 ```{julia}
-using Flux
-
 # Define a differentiable function
 f(x) = 3x^2 + 2x + 1
 # Define an initial value
@@ -74,6 +294,68 @@ else
     @show "Root found after", iter, " iterations."
 end
 @show "Approximate root: ", x
+```
+
+### Bracketed search algorithm
+
+A bracketed search algorithm is a technique used in optimization and numerical methods to confine or "bracket" a minimum or maximum of a function within a specified interval. The primary goal is to reduce the search space systematically until a satisfactory solution or range containing the optimal value is found.
+
+```{julia}
+function bisection_method(f, a, b; tol=1e-6, max_iter=100)
+    """
+    Bisection method to find a root of the function f(x) within the interval [a, b].
+
+    Parameters:
+    - f: Function to find the root of.
+    - a, b: Initial interval [a, b] where the root is expected to be.
+    - tol: Tolerance for the root (default is 1e-6).
+    - max_iter: Maximum number of iterations allowed (default is 100).
+
+    Returns:
+    - root: Approximate root found within the tolerance.
+    - iterations: Number of iterations taken to converge.
+    """
+    fa = f(a)
+    fb = f(b)
+    if fa * fb > 0
+        error("The function values at the endpoints must have opposite signs.")
+    end
+    iterations = 0
+    while (b - a) / 2 > tol && iterations < max_iter
+        c = (a + b) / 2
+        fc = f(c) 
+        if fc == 0
+            return c, iterations
+        end
+        if fa * fc < 0
+            b = c
+            fb = fc
+        else
+            a = c
+            fa = fc
+        end
+        iterations += 1
+    end
+    root = (a + b) / 2
+    return root, iterations
+end
+
+# Define the function we want to find the root of
+function f(x)
+    return x^3 - 6x^2 + 11x - 6.1
+end
+
+# Initial interval [a, b] and tolerance
+a = 0.5
+b = 10
+tolerance = 1e-6
+# Apply the bisection method
+root, iterations = bisection_method(f, a, b, tol=tolerance)
+
+# Print results
+println("Approximate root: ", root)
+println("Iterations taken: ", iterations)
+println("Function value at root: ", f(root))
 ```
 
 ### Best fitting curve
