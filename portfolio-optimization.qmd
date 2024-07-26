@@ -69,6 +69,42 @@ for i = 1:nₐ
 end
 ```
 
+In mean-variance portfolio optimization, incorporating a cost of risk-based capital on assets is a practical consideration that reflects the additional capital required to support riskier assets in a portfolio. This approach ensures that the optimization process not only maximizes returns relative to risk but also considers the regulatory or internal cost implications associated with holding riskier assets.
+
+\begin{align*}
+\text{maximize} \quad &{w}^{T}R_{adj}\\
+\text{subject to} \quad &{w}^{T}\Sigma{w}\le\sigma^2_{max}\\
+&{1}^{T}{w}={1}\\
+&{w}\geq{0}
+\end{align*}
+
+where $R_{adj} = [(\mu_1 - \lambda_1), (\mu_2 - \lambda_2), ..., (\mu_N - \lambda_N)]$ is the adjusted expected returns.
+
+```{julia}
+# Create an optimization model
+model = Model(optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 0))
+r = μ .- [0.01, 0.02, 0.05] # risk adjusted returns
+σ²_max = 0.1 # maximum portfolio variance
+# Set up weights as variables to optimize
+@variable(model, w[1:nₐ] >= zero(0.0))
+# Objective: minimize portfolio variance
+@objective(model, Max, sum(w[i] * r[i] for i in 1:nₐ))
+# Constraints: Sum of portfolio weights should equal to 1, and all weights should be zero or positive
+@constraint(model, sum(w) == 1)
+# Constraints: Sum of allowable portfolio variance is limited
+@constraint(model, sum(w[i] * ρ[i, j] * w[j] for i in 1:nₐ, j in 1:nₐ) <= σ²_max)
+# May also add additional constraints
+# target_return = 0.1
+# @constraint(model, dot(μ, w) >= target_return)
+# Solve the optimization problem
+optimize!(model)
+# Print results
+@show "Optimal Portfolio Weights:"
+for i = 1:nₐ
+    @show ("Asset ", i, ": ", value.(w)[i])
+end
+```
+
 ### Efficient frontier analysis
 
 The efficient frontier represents the set of portfolios that offer the highest expected return for a given level of risk or the lowest risk for a given level of return. Efficient frontier analysis involves plotting risk-return combinations for different portfolios and identifying the optimal portfolio on the frontier.
@@ -216,7 +252,7 @@ end
 
 ### Robust Optimization
 
-Robust optimization techniques aim to create portfolios that are resilient to uncertainties and fluctuations in market conditions. These techniques consider a range of possible scenarios and optimize portfolios to perform well across different market environments. Robust optimization may involve incorporating stress tests, scenario analysis, or robust risk measures into the portfolio construction process.
+Robust optimization techniques aim to create portfolios that are resilient to uncertainties and fluctuations in market conditions. These techniques consider a range of possible scenarios and optimize portfolios to perform well across different market environments. A robust parameter in robust portfolio optimization is typically chosen to ensure the portfolio's performance remains stable and satisfactory under different market conditions or variations in input data. Robust optimization may involve incorporating stress tests, scenario analysis, or robust risk measures into the portfolio construction process.
 
 \begin{align*}
 \text{minimize} \quad & w^T \Sigma w + \gamma \|w - w_0\|_2^2 \\
@@ -233,7 +269,7 @@ model = Model(optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 0))
 # Objective: minimize portfolio variance
 ε = 0.05  # Uncertainty level
 γ = 0.1  # Robustness parameter
-w₀ = [0.3, 0.4, 0.3]
+w₀ = [0.3, 0.4, 0.3] # expected weights
 @objective(model, Min, dot(w, ρ * w) + γ * sum((w[i] - w₀[i])^2 for i in 1:nₐ))
 # Constraints: Sum of portfolio weights should equal to 1, and all weights should be zero or positive
 @constraint(model, sum(w) == 1)
@@ -246,3 +282,48 @@ for i = 1:nₐ
     @show ("Asset ", i, ": ", value.(w)[i])
 end
 ```
+
+### Asset weights from different methodologies
+
+| Methodology            | Asset weights      |
+|------------------------|--------------------|
+| Standard mean variance | [0.33, 0.17, 0.50] |
+| (with RBC costs)       | [0.17, 0.83, 0.00] |
+| Black-Litterman        | [0.00, 0.23, 0.77] |
+| Risk parity            | [0.00, 1.00, 0.00] |
+| Sharpe ratio           | [0.01, 0.54, 0.45] |
+| Robust                 | [0.31, 0.31, 0.38] |
+
+: Optimized asset weights from different methodologies {.striped .hover}
+
+Seeing from the asset weights from a standard mean variance approach, due to RBC costs asset weights shifted to ones with higher yields. Asset weights from Sharpe raio approach aligns with the Sharpe ratio for each asset. Those from Robust approach seek results not far away from expected weights under different conditions.
+
+## Practical considerations
+
+### Fractional purchases of assets
+
+In traditional portfolio optimization, fractional purchases of assets refer to the ability to allocate fractions or percentages of capital to individual assets. However, in certain contexts or practical implementations, fractional purchases may not be allowed or considered.
+
+- Practical constraints. Some investment vehicles or platforms may restrict investors from purchasing fractions of shares or assets. For instance, certain mutual funds, exchange-traded funds (ETFs), or other investment products may require whole units of shares to be purchased.
+
+- Simplicity and cost-effectiveness. Handling fractional shares can add complexity and operational costs to portfolio management, especially in terms of transaction fees, administrative overhead, and reconciliation processes.
+
+- Market liquidity. Some assets may have limited liquidity or trading volumes, making it impractical or difficult to execute fractional purchases without significantly impacting market prices or transaction costs.
+
+- Regulatory considerations. Regulations in certain jurisdictions may impose restrictions on fractional share trading or ownership, potentially limiting the ability to include fractional purchases in portfolio optimization strategies.
+
+### Large number of assets
+
+In portfolio optimization, a penalty factor for a large volume of assets typically refers to a mechanism or adjustment applied to the optimization process to mitigate the potential biases or challenges that arise when dealing with a large number of assets. This concept is particularly relevant in the context of mean-variance optimization and other optimization frameworks where computational efficiency and practical portfolio management considerations come into play. Too many assets may have the following issues.
+
+- Dimensionality. As the number of assets (or dimensions) increases in a portfolio, traditional optimization methods may become computationally intensive or prone to overfitting. This is because the complexity of the optimization problem grows exponentially with the number of assets.
+
+- Sparsity and concentration. In practice, not all assets may contribute equally to portfolio performance. Some assets may have negligible impact on the overall portfolio characteristics (such as risk or return) due to low weights or correlations with other assets.
+
+- Penalizing excessive complexity. A penalty factor can be introduced to penalize portfolios that overly diversify or allocate small weights to a large number of assets. This encourages the optimization process to focus on more significant assets or reduce the complexity of the portfolio structure.
+
+There are various ways to implement a penalty factor for a large volume of assets:
+
+- Regularization techniques. Techniques like Lasso (L1 regularization) or Ridge (L2 regularization) regression can penalize small weights or excessive diversification by adding a penalty term to the objective function.
+- Subset selection. Methods that explicitly select a subset of assets based on their contribution to portfolio performance, rather than including all assets indiscriminately.
+- Heuristic adjustments. Introducing heuristic rules or adjustments based on practical portfolio management principles or empirical observations.
