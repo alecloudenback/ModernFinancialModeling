@@ -1,3 +1,7 @@
+---
+engine: julia
+---
+
 # Optimization {#sec-optimizaiton}
 
 ## In This Chapter
@@ -8,7 +12,7 @@ Optimization as root finding or minimization/maximazation of defined objectives.
 #| echo: false
 #| output: false
 using Pkg
-Pkg.activate("env/opt")
+Pkg.activate("env/optimization")
 Pkg.instantiate()
 ```
 
@@ -65,7 +69,7 @@ Linear optimization, also known as linear programming (LP), is a mathematical me
 c = [1.0, 2.0, 3.0]
 # Define the constraint matrix (A) and right-hand side (b)
 A = [1.0 1.0 0.0;
-     0.0 1.0 1.0]
+    0.0 1.0 1.0]
 b = [10.0, 20.0]
 # Create a JuMP model
 linear_model = Model(GLPK.Optimizer)
@@ -74,7 +78,7 @@ linear_model = Model(GLPK.Optimizer)
 # Define objective function
 @objective(linear_model, Max, dot(c, x))
 # Add constraints
-@constraint(linear_model, constr[i=1:2], dot(A[i,:], x) <= b[i])
+@constraint(linear_model, constr[i=1:2], dot(A[i, :], x) <= b[i])
 # Solve the optimization problem
 optimize!(linear_model)
 
@@ -108,10 +112,10 @@ function evolutionary_algorithm(dim::Int, pop_size::Int, max_gen::Int)
         for i in 1:pop_size
             idx1, idx2 = rand(1:pop_size, 2)
             parents[:, i] = if objective_function(population[:, idx1]) > objective_function(population[:, idx2])
-                                population[:, idx1]
-                            else
-                                population[:, idx2]
-                            end
+                population[:, idx1]
+            else
+                population[:, idx2]
+            end
         end
         # Crossover: Single-point crossover
         offspring = zeros(Bool, dim, pop_size)
@@ -171,7 +175,7 @@ end
 function simulated_annealing(initial_solution, initial_temperature, cooling_rate, num_iterations)
     current_solution = initial_solution
     best_solution = initial_solution
-    current_temperature = initial_temperature 
+    current_temperature = initial_temperature
     for iteration in 1:num_iterations
         # Generate a new solution near the current solution
         new_solution = current_solution + randn()  # Example: small random change
@@ -214,7 +218,7 @@ function objective(x::Float64)
     return -(x^2 + 0.1 * sin(5 * x))  # Example objective function (negative because we seek maximum)
 end
 # Bayesian optimization function
-function bayesian_optimization(objective, bounds::Tuple{Float64, Float64}, num_iterations::Int)
+function bayesian_optimization(objective, bounds::Tuple{Float64,Float64}, num_iterations::Int)
     Random.seed!(1234)  # Setting a seed for reproducibility
     X = Float64[]  # List to store evaluated points
     Y = Float64[]  # List to store objective values
@@ -324,7 +328,7 @@ function bisection_method(f, a, b; tol=1e-6, max_iter=100)
     iterations = 0
     while (b - a) / 2 > tol && iterations < max_iter
         c = (a + b) / 2
-        fc = f(c) 
+        fc = f(c)
         if fc == 0
             return c, iterations
         end
@@ -377,7 +381,7 @@ The process of finding the best fitting curve typically involves:
 x_data = 0:0.1:10
 y_data = 2 .* sin.(x_data) .+ 0.5 .* randn(length(x_data))
 # Define the model function
-curve_model(x, p) = p[1] * x.^2 + p[2] * x .+ p[3]
+curve_model(x, p) = p[1] * x .^ 2 + p[2] * x .+ p[3]
 # Initial parameter guess
 p₀ = [1.0, 1.0, 1.0]
 # Fit the model to the data
@@ -388,7 +392,7 @@ params = coef(fit_result)
 y_fit = curve_model(x_data, params)
 # Plot the data and the fitted curve
 fig = Figure()
-Axis(fig[1, 1], title = "Curve Fitting")
+Axis(fig[1, 1], title="Curve Fitting")
 scatter!(x_data, y_data, label="Data")
 lines!(x_data, y_fit, label="Fitted Curve", linestyle=:dash, color=:red)
 fig
