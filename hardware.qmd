@@ -6,30 +6,42 @@ A discussion of why a cursory understanding of modern computing hardware and arc
 
 ## Computer Architecture
 
-We can think of a computer as handling data at rest (in memory) or being acted up (processed).
+We can think of a computer as handling data at rest (in memory) or being acted upom (processed).
 
-### Memory
+### Memory and Moving Data Around
 
 The whole point of computers is to perform computations on data, but unfortunately the speed at which data can be accessed has grown much slower than the rate the actual computations can be performed. Further, the size of the available persistent data storage (HDDs/SSDs) has ballooned, exacerbating the problem. The solution that has been developed is a pipeline of places intended to most efficiently shuttle data to and from the processor and the persistent storage.
 
 Memory has an inverse relationship between size and proximity to the processor units. The closer the data is to the processor units, the smaller the storage and the less likely the data will persist at that location for very long.
 
 | Kind | Rough Size | Lifecycle |
-|----|----|----|
+|------------------------|------------------------|------------------------|
 | Solid State Disk (SSD) or Hard Disk Drive (HDD) | TBs | Persistent/Permanent |
 | Random Access Memory (RAM) | Dozens to Hundereds of GBs | Seconds to Hours (while computer is powered on) |
 | CPU Cache - L3 | 8 MB to 128 MB | Microseconds to Milliseconds |
 | CPU Cache - L2 | 2 MB to 16 MB | Nanoseconds to Microseconds |
 | CPU Cache - L1 | \~16 kB | Nanoseconds |
 
-The problem is analogous to a logistics warehouse (persistent data) which needs to package up orders (processor instructions). There's a conveyor belt of items being constantly routed to the packaging station. In order to keep the packing station working at full capacity, the intermediate systems (RAM & CPU caches) are funneling items they *think* will be needed to the packager (data that's *expected* to be used in the processor). Most of the time, the necessary item (data) is optimally brought to the packaging station(process), or a nearby holding spot (CPU cache). This system has grown very efficient, but sometimes the predictions miss or a never-before-ordered item needs to be picked from the far side of the warehouse and this causes significant delays to the system. Sometimes a package will start to be assembled before the packager has even gotten to that order (branch prediction) which can make the system faster most of the time, but if the predicted package isn't actually what the customer ordered, then the work is lost and has to be redone (branch mispredict).
+### Logistics Warehouse Analogy
 
-### Processor
+The problem is analogous to a logistics warehouse (persistent data) which needs to package up orders (processor instructions). There's a conveyor belt of items being constantly routed to the packaging station. In order to keep the packing station working at full capacity, the intermediate systems (RAM & CPU caches) are funneling items they *think* will be needed to the packager (data that's *expected* to be used in the processor). Most of the time, the necessary item (data) is optimally brought to the packaging station(process), or a nearby holding spot (CPU cache).
 
-## Speed of Computer Actions
+This system has grown very efficient, but sometimes the predictions miss or a never-before-ordered item needs to be picked from the far side of the warehouse and this causes significant delays to the system. Sometimes a package will start to be assembled before the packager has even gotten to that order (branch prediction) which can make the system faster most of the time, but if the predicted package isn't actually what the customer ordered, then the work is lost and has to be redone (branch mispredict).
+
+There are a lot more optimizations along the way:
+
+-   Since the items are already mostly arranged so that related items are next to each other, the conveyor belt will bring nearby items at the same time it brings the requested item (memory blocks).
+
+-   If an item usually ordered after another one is, the conveyor system will start to bring that second item as soon as the first one is ordered (prefetching).
+
+-   Different types of packaging stations might be used for specialized items (e.g. vector processing or cryptography instructions in the CPU).
+
+### 
+
+### Speed of Computer Actions
 
 | Operation | Time (ns) | Distance Light Traveled |
-|----|----|----|
+|------------------------|------------------------|------------------------|
 | Single CPU Cycle (e.g. one `ADD` or `OR` operation on a register) | 0.3 | 9 centimeters |
 | L1 cache reference | 1 | 30 centimeters |
 | Branch mispredict | 5 | 150 centimeters |
@@ -42,3 +54,5 @@ The problem is analogous to a logistics warehouse (persistent data) which needs 
 | Send packet CA-\>Netherlands-\>CA | 150,000,000 | 45,000km (circumference of earth) |
 
 Source: <https://cs.brown.edu/courses/csci0300/2022/assign/labs/lab4.html>
+
+### Processor

@@ -1,9 +1,17 @@
+---
+engine: julia
+---
+
 ```{julia}
 #| echo: false
 #| output: false
 using Pkg
 Pkg.activate("env/statistics")
 Pkg.instantiate()
+
+# supress MCMC sampling status printing
+using Logging
+Logging.disable_logging(Logging.Warn)
 ```
 
 # Statistical Inference and Information Theory
@@ -535,54 +543,87 @@ Here is a simple example demonstrated with one of the oldest MCMC algorithm, cal
 Here is what a complete example looks like. We will try to find the posterior of an arbitrary 2D density function. Picking the product of an Exponential and Beta distribution looks like this:
 
 ```{julia}
-#| fig-cap: "The target probability density which we will attempt to infer via MCMC."
+#| fig-cap: "The target probability densities which we will attempt to infer via MCMC."
 
-target_dist = product_distribution(Exponential(1.),Beta(2.,15.))
+σ = 0.15
+μ = 0.1
+
+
+n_observations = 100
+return_dist = Normal(μ,σ)
+returns = rand(return_dist,n_observations)
 
 # plot the target_distirubution
-xs = LinRange(-0.5, 3, 400)
-ys = LinRange(0, 3, 400)
-zs = [pdf(target_dist,[x,y]) for x in xs, y in ys]
-contour(xs, ys, zs)
+μ_range = LinRange(-0.5, 0.5, 400)
+σ_range = LinRange(0.0, 3.0, 400)
+
+f = Figure()
+ax1 = Axis(f[1,1],title="True Distribution of Returns")
+ax2 = Axis(f[2,1],title="Simulated Outcomes",xlabel="Return")
+plot!(ax1,return_dist)
+vlines!(ax1,[μ],color=(:black,0.7))
+text!(ax1,μ,0;text="mean ($μ)",rotation=pi/2)
+hist!(ax2,returns)
+vlines!(ax2,[mean(returns)],color=(:black,0.7))
+text!(ax2,mean(returns),0;text="mean ($(round(mean(returns);digits=3)))",rotation=pi/2)
+
+linkxaxes!(ax1,ax2)
+
+f
 ```
+
+In reality, we don't observe the parameters we are interest in determining the values for. 
 
 We will next define a probability distribution for the random step that we take from the `current_point`. We choose a 2D Guassian for this. The `proposal_std` controls how big of a movement is taken at each step.
 
 ```{julia}
-# Define the proposal distribution (2D Gaussian with diagonal covariance)
-proposal_std = 0.025
-proposal_dist = MvNormal(proposal_std * ones(2))
+# Define the proposal distribution
+proposal_std = 0.05
+proposal_dist = Normal(0,proposal_std)
 ```
 
 We next define how many steps we want the chain to sample for, and implement the algorithm's main loop containing the logic described above. The resulting chain contains a list of points that the algorithm has moved along during the sampling process. Note that there is a `burn-in` parameter. This is because we want the chain to be effectively independent of both (1) the starting point for the sample, and (2) so that different chains are effectively independent.
 
 ```{julia}
 # MCMC parameters
-num_samples = 10000
+num_samples = 5000
 burn_in = 500
 
+# Define priors
+μ_prior = Normal(0, 0.25)
+σ_prior = Gamma(0.5)
+
 # Initialize the Markov chain
-current_state = [0.0, 0.0]
+μ_current, σ_current =  0.0, 0.25
+current_prob = sum(logpdf(Normal(μ_current, σ_current), r) for r in returns) + logpdf(μ_prior, μ_current) + logpdf(σ_prior, σ_current)
+
 chain = zeros(num_samples, 2)
 
-
+count = 0
 # MCMC sampling loop
-for i in 1:num_samples
+while count < num_samples
     # Generate a new proposal
-    proposal = rand(proposal_dist) + current_state
-    
-    # Calculate the acceptance ratio
-    current_prob = pdf(target_dist, current_state)
-    proposal_prob = pdf(target_dist, proposal)
-    acceptance_ratio = proposal_prob / current_prob
-    
-    # Accept or reject the proposal
-    if rand() < acceptance_ratio
-        current_state = proposal
+    μ̇, σ̇ = μ_current + rand(proposal_dist), σ_current + rand(proposal_dist)
+    if σ̇ > 0 
+        
+        # Calculate the acceptance ratio
+        
+        proposal_prob = sum(logpdf(Normal(μ̇, σ̇), r) for r in returns) +
+                           logpdf(μ_prior, μ̇) + logpdf(σ_prior, σ̇)
+        log_acceptance_ratio = proposal_prob - current_prob
+        
+        # Accept or reject the proposal
+        if log(rand()) < log_acceptance_ratio
+            μ_current, σ_current = μ̇, σ̇
+            current_prob = proposal_prob
+        end
+        
+        # Store the current state as a sample
+        count += 1
+        chain[count, :] .= μ_current, σ_current
+    else
+        # skip because σ can't be negative
     end
-    
-    # Store the current state as a sample
-    chain[i, :] = current_state
 end
 
 chain
@@ -595,28 +636,40 @@ After having performed the sampling, we can now visualize the chain versus the `
 
 ```{julia}
 #| label: fig-MH-MCMC
-#| fig-cap: "The blue lines of the MCMC chain explore the posterior density of interest (after discarding the burn-in samples in red). Becuause of the sharp boundary at $x=0$ right next to the highest density region, this will sample somewhat ineficiently since when the current state is near $x=0$, it becomes increasingly likely that any proposal that moves further to the left will be rejected."
+#| fig-cap: "The blue lines of the MCMC chain explore the posterior density of interest (after discarding the burn-in samples in red)."
 
 # Plot the chain
 let 
     f = Figure()
-    ax = Axis(f[1, 1])
+    ax1 = Axis(f[1, 1],yreversed=true)
 
+    scatterlines!(ax1,chain[1:burn_in,1],1:burn_in,color=(:red,0.5),markercolor=:red)
+    scatterlines!(ax1,chain[burn_in+1:end,1],burn_in+1:num_samples,color=(:blue,0.5),markercolor=:blue)
 
+    ax2 = Axis(f[2,1],xlabel="μ")
 
-    contour!(ax,xs, ys, zs)
-    lines!(ax,Point2f.(eachrow(chain[1:burn_in,:])),color=(:red, 0.8))
+    hist!(ax2,chain[burn_in+1:end,1],color=:blue)
+    
+    linkxaxes!(ax1, ax2)
+
+    ax3 = Axis(f[1, 2],yreversed=true)
+
+    scatterlines!(ax3,chain[1:burn_in,2],1:burn_in,color=(:red,0.5),markercolor=:red)
+    scatterlines!(ax3,chain[burn_in+1:end,2],burn_in+1:num_samples,color=(:blue,0.5),markercolor=:blue)
+
+    ax4 = Axis(f[2,2],xlabel="σ")
+    hist!(ax4,chain[burn_in+1:end,2],color=:blue)
 
     
-    for i in burn_in:num_samples #<1>
-        ps = Point2f.(eachrow(chain[i-1:i,:]))
-        lines!(ax,ps,color=(:blue,0.2))
-    end
+    linkxaxes!(ax3, ax4)
+
     f
 end
 ```
 
 1.  Iterate through pairs of points to plot as separate line segments so that the transparent blue line visually stack and the higher density near the center is apparent.
+
+This was a very quick introduction to MCMC sampling, with the point being that the technique is not magic. More advanced libraries will perform the sampling for you with more advanced algorithms than Metropolis-Hastings, but by demonstrating that we could do-it-from-scratch in a small amount of code is intended to make the approach less intimidating.
 
 ### MCMC Algorithms
 
@@ -642,7 +695,7 @@ Another common transform is "Normalizing" the data to center the data around zer
 
 ### Rainfall Example (Continued)
 
-We will construct a Bayesian model using the Turing.jl library, and fit the parameters of one of the competing models in order to demonstrate an MCMC analysis workflow and essential concepts.
+We will construct a Bayesian model using the Turing.jl library which allows us to step back from the intricacies of defining our own sampler and routine. The goal is to fit the parameters of one of the competing models from above in order to demonstrate an MCMC analysis workflow and essential concepts.
 
 The first thing that we will do is use Turing's `@model` macro to define a model. This has a few components:
 
@@ -782,7 +835,7 @@ Comparing to the maximum likelihood analysis from before by plotting the MLE poi
 
 ```{julia}
 #| label: fig-rain-marginal
-#| fig-cap: "The MLE point estimate does not necessarily align with the posterior densities."
+#| fig-cap: "The MLE point estimate need not necessarily align with the peak or center of posterior densities (e.g. in the case of a bimodal distribution)."
 
 let
     # get the parameters from the earlier MLE approach
@@ -811,7 +864,7 @@ end
 
 ```
 
-#### Understanding Model Limitations
+#### Model Limitations
 
 We have built and assessed a simple statistical model that could be used in the estimation of risk for a particular location. Nowhere in our model did we define a mechanism to capture a more sophisticated view of the world. There is no parameter for changes over time due to climate change, or inter-annual seasonality for El Niño or La Niña cycles, or any of a multitude of other real-world factors that can influence the forecasting. All we've defined is that there is a LogNormal process generating rainfall in a particular location. This may or may not be sufficient to capture the dynamics of the problem at hand.
 
