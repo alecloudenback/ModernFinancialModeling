@@ -1,7 +1,22 @@
 ---
 engine: julia
 ---
+
 # Hardware and Its Implications {#sec-hardware}
+
+```{julia}
+#| echo: false
+#| output: false
+using Pkg
+Pkg.activate("env/hardware")
+Pkg.instantiate()
+```
+
+> a CPU is literally a rock that we tricked into thinking.
+>
+> not to oversimplify: first you have to flatten the rock and put lightning inside it.
+>
+> \- Twitter user daisyowl, 2017
 
 ## In this section
 
@@ -9,21 +24,131 @@ A discussion of why a cursory understanding of modern computing hardware and arc
 
 ## Computer Architecture
 
-We can think of a computer as handling data at rest (in memory) or being acted upom (processed).
+We can think of a computer as handling data at rest (in memory) or being acted upon (processed).
 
 ### Memory and Moving Data Around
 
-The whole point of computers is to perform computations on data, but unfortunately the speed at which data can be accessed has grown much slower than the rate the actual computations can be performed. Further, the size of the available persistent data storage (HDDs/SSDs) has ballooned, exacerbating the problem. The solution that has been developed is a pipeline of places intended to most efficiently shuttle data to and from the processor and the persistent storage.
+The core of modeling on computers is to perform computations on data, but unfortunately the speed at which data can be *accessed* has grown much slower than the rate the actual computations can be performed. Further, the size of the available persistent data storage (HDDs/SSDs) has ballooned, exacerbating the problem, making the speed and volume of memory the typical constraint in most workflows. Solution have been developed to create a pipeline intended to most efficiently shuttle data to and from the processor and the persistent storage. This extends further to data between different data stores and computers.
+
+We will focus primarily on the architecture of a single computer, as even laptop computers today contain enough power for most modeling tasks, *if the computer is used effectively*. Further, learning how to optimize a program for a single computer/processesor is almost always a precursor step to effective parallelization as well.
+
+#### Memory Types and Location
 
 Memory has an inverse relationship between size and proximity to the processor units. The closer the data is to the processor units, the smaller the storage and the less likely the data will persist at that location for very long.
 
-| Kind | Rough Size | Lifecycle |
-|------------------------|------------------------|------------------------|
-| Solid State Disk (SSD) or Hard Disk Drive (HDD) | TBs | Persistent/Permanent |
-| Random Access Memory (RAM) | Dozens to Hundereds of GBs | Seconds to Hours (while computer is powered on) |
-| CPU Cache - L3 | 8 MB to 128 MB | Microseconds to Milliseconds |
-| CPU Cache - L2 | 2 MB to 16 MB | Nanoseconds to Microseconds |
-| CPU Cache - L1 | \~16 kB | Nanoseconds |
++-------------------------------------------------+----------------------------+-------------------------------------------------+
+| Kind                                            | Rough Size                 | Lifecycle                                       |
++=================================================+============================+=================================================+
+| Solid State Disk (SSD) or Hard Disk Drive (HDD) | TBs                        | Persistent/Permanent                            |
++-------------------------------------------------+----------------------------+-------------------------------------------------+
+| Random Access Memory (RAM)                      | Dozens to Hundereds of GBs | Seconds to Hours (while computer is powered on) |
++-------------------------------------------------+----------------------------+-------------------------------------------------+
+| CPU Cache - L3                                  | 8 MB to 128 MB             | Microseconds to Milliseconds                    |
++-------------------------------------------------+----------------------------+-------------------------------------------------+
+| CPU Cache - L2                                  | 2 MB to 16 MB              | Nanoseconds to Microseconds                     |
++-------------------------------------------------+----------------------------+-------------------------------------------------+
+| CPU Cache - L1                                  | \~16 kB                    | Nanoseconds                                     |
++-------------------------------------------------+----------------------------+-------------------------------------------------+
+
+After requesting data from a persistent location like a Solid State Drive (SSD), the memory is read into Random Access Memory (RAM). The advantage of RAM over a persistent location is speed, typically that memory can be accessed and modified many times faster than the persistent data location. The tradeoff is that RAM is not persistent: when the computer is powered down, the RAM loses the information stored within. When data is needed by the CPU for data is read from RAM into a small hierarchy of caches. The **CPU Caches** are small (physically and in capacity), but very fast. The caches are also phyiscally colocated with the CPU for efficiency. Data is organized and funneled through the caches as an intermediary between the CPU and RAM and is fed from Level 3 (L3) cache in steps down to L1 cache as the data gets closer to the processor.
+
+### Stack vs Heap
+
+Sitting within the RAM region of memory are two sections called Stack and Heap. These are places where variables created from our program's code can be stored. In both cases, the program will request memory space but they have some differences to be aware of.
+
+The **stack** stores small, fixed-size (known bit length), data and program components. The stack is a last-in-first-out queue of data that is able to be written to and read from very quickly. The **heap** is a region which can be dynamically sized and has random read/write (you need not access the data in a particular order). The heap is much slower but more flexible.
+
+#### Garbage Collector
+
+The **garbage collector** is a program that gets run to free up previously requested/allocated memory. It accomplishes this by keeping track of references to data in memory by section of your code. If a section of code is no longer reachable (e.g. inside a function that will never get called again, or a loop that ran earlier in the program but is now complete) then periodically the garbage collector will pause execution of the primary program in order to "sweep" the memory and mark it as now able to be used by your program or the operating system.
+
+### Processor
+
+The processor reads lines from the cache into registers and then executes instructions (e.g. take the bytes from register 10 and add the bytes from register 11 to them). This is really all a processor does at the lowest level: combine the electrical status of bits using logical circuits. Logical circuits (**transistors**) are an arrangement of wires that output a new electrical signal that varies depending on the input. From a collection of smaller building block gates (e.g. AND, OR, NOR, XOR) more complex operations can be built up[^hardware-1], into operations like addition, multiplication, division, etc. These electrical signals move the state of the program forward once time per CPU cycle. CPU cycles are what's quoted as cycles per second, e.g. when a chip is advertised as as 3.0 GHz (or 3 billion cycles per second).
+
+[^hardware-1]: In fact, only a single logical gate is needed to reproduce all boolean logical gates: NAND (Not AND) and NOR gates can be composed to create AND, OR, NOR, etc. gates.
+
+The programmer (or compiler, if we are working in a higher level language like Julia) tells the CPU which instruction to run. The set of instructions that are valid for a given processor are called the Instruction Set Architecture, or ISA. In computer Assembly language (roughly one-level above directly manipulating the bits), the instructions are given names like `ADD`, `SUB`, `MUL`, `DIV`, `MOV`, etc. These are not all created equal, however, as some instructions take many CPU cycles to complete (floating point `DIV` takes 10-20 CPU cycles while `ADD` only takes a single CPU cycle).
+
+Some architecture examples that may be familiar:
+
+-   Intel x86-64 (a.k.a. AMD64) are common computer processors that use registers that are 64 bits wide (the prior generation was 32 bits wide) and use the **x86** instruction set.
+
+-   ARM chips, including the Apple M-Series processors are characterized by the use of the **ARM** instruction set and recent processors of this kind are also 64 bit.
+
+The ARM is known as a **reduced instruction set chip** (RISC), which means that it has fewer available instructions compared to, e.g. the x86 architecture. The benefit of the reduced instruction set is that it is generally much more power efficient, but comes at the cost of sacrificing specialized instructions such as string manipulation, or in lower-end chips, even the division operation (which have to be implemented via software routines instead of CPU operations). However, for specialized workloads, the availability of a key instruction can make a program run on the CPU 10-100x faster at times. An example of this is that at the time of writing, AVX512 processors are becoming available (see @sec-parallelization for a discussion of vectorization) which can benefit some workloads greatly.
+
+::: callout-tip
+Trying to optimize your program via selecting specialized chips should be one of the *last* ways that you seek to optimize runtime, as generally a similar order of magnitude speedup can be achieved through more efficient algorithm design or general parallelization techniques - in this way the performance is *portable* and can be used on other systems and not just special architectures.
+:::
+
+When writing in Julia, you need not be concerned with the low-level instructions as the compiler will optimize the execution for you. However, should it be useful, it is easy to inspect the compiled code. For example, if we create a function to add three numbers, we can see that the `ADD` instruction is called twice: first adding the first and second arguments, and then adding the third argument to that intermediate sum.
+
+```{julia}
+myadd(x, y, z) = x + y + z
+@code_native myadd(1, 2, 3)
+```
+
+::: callout-tip
+Compilers are complex, hyper-optimized programs which turn your source code into the raw bits executed by the computer. Key milestones in the Julia to binary compilation pipeline include the following items. Note the `@code_...` macros which Julia has and allow the programmer to inspect the intermediate representations.
+
++------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------+
+| Step                               | Description                                                                                                                                                                                         | Example                                                                              |
++====================================+=====================================================================================================================================================================================================+======================================================================================+
+| Julia Source Code                  | The level written by the programmer in a high level language.                                                                                                                                       | `myadd(x,y,z) = x + y + z`                                                           |
++------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------+
+| Lowered Abstract Syntax Tree (AST) | An intermediate representation of the code after the first stage of compilation, where the high-level syntax is simplified into a more structured form that's easier for the compiler to work with. | ``` julia-repl                                                                       |
+|                                    |                                                                                                                                                                                                     | julia> @code_lowered myadd(1,2,3)                                                    |
+|                                    |                                                                                                                                                                                                     | CodeInfo(                                                                            |
+|                                    |                                                                                                                                                                                                     | 1 ─ %1 = x + y + z                                                                   |
+|                                    |                                                                                                                                                                                                     | └──      return %1                                                                   |
+|                                    |                                                                                                                                                                                                     | )                                                                                    |
+|                                    |                                                                                                                                                                                                     | ```                                                                                  |
++------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------+
+| LLVM                               | Low-Level Virtual Machine language, which is a massively popular compiler used by languages like Julia and Rust.                                                                                    | ``` julia-repl                                                                       |
+|                                    |                                                                                                                                                                                                     | julia> @code_llvm myadd(1,2,3)                                                       |
+|                                    |                                                                                                                                                                                                     | ;  @ REPL[7]:1 within `myadd`                                                        |
+|                                    |                                                                                                                                                                                                     | define i64 @julia_myadd_2022(i64 signext %0, i64 signext %1, i64 signext %2) #0 {    |
+|                                    |                                                                                                                                                                                                     | top:                                                                                 |
+|                                    |                                                                                                                                                                                                     | ; ┌ @ operators.jl:587 within `+` @ int.jl:87                                        |
+|                                    |                                                                                                                                                                                                     |    %3 = add i64 %1, %0                                                               |
+|                                    |                                                                                                                                                                                                     |    %4 = add i64 %3, %2                                                               |
+|                                    |                                                                                                                                                                                                     |    ret i64 %4                                                                        |
+|                                    |                                                                                                                                                                                                     | ; └                                                                                  |
+|                                    |                                                                                                                                                                                                     | }                                                                                    |
+|                                    |                                                                                                                                                                                                     | ```                                                                                  |
++------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------+
+| Native                             | The final machine code output, specific to the target CPU architecture. This is at the same level as Assembly language.                                                                             | ``` julia-repl                                                                       |
+|                                    |                                                                                                                                                                                                     | julia> @code_native myadd(1,2,3)                                                     |
+|                                    |                                                                                                                                                                                                     |         .section        __TEXT,__text,regular,pure_instructions                      |
+|                                    |                                                                                                                                                                                                     |         .build_version macos, 14, 0                                                  |
+|                                    |                                                                                                                                                                                                     |         .globl  _julia_myadd_1851               ; -- Begin function julia_myadd_1851 |
+|                                    |                                                                                                                                                                                                     |         .p2align        2                                                            |
+|                                    |                                                                                                                                                                                                     | _julia_myadd_1851:                      ; @julia_myadd_1851                          |
+|                                    |                                                                                                                                                                                                     | ; ┌ @ REPL[7]:1 within `myadd`                                                       |
+|                                    |                                                                                                                                                                                                     | ; %bb.0:                                ; %top                                       |
+|                                    |                                                                                                                                                                                                     | ; │┌ @ operators.jl:587 within `+` @ int.jl:87                                       |
+|                                    |                                                                                                                                                                                                     |         add     x8, x1, x0                                                           |
+|                                    |                                                                                                                                                                                                     |         add     x0, x8, x2                                                           |
+|                                    |                                                                                                                                                                                                     |         ret                                                                          |
+|                                    |                                                                                                                                                                                                     | ; └└                                                                                 |
+|                                    |                                                                                                                                                                                                     | ```                                                                                  |
++------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------+
+:::
+
+#### Increasing Complexity in Search of Performance
+
+Transistors are the building-block that creates the CPU and enables the physical process which governs the computations. For a very long time, the major source of improved computer performance was simply to make smaller transistors, allowing more of them to be packed together to create computer chips. This worked for many years and the propensity for the transistor count to double about every two years. In this way, software performance improvements came as side effect of the phenomenal scaling in hardware capability. However, raw single core performance and clock frequency (CPU cycle speed) dramatically flattened out starting a bit before the year 2010. This was due to the fact that transistor density has been starting to be limited by:
+
+1.  Pure physical constraints (transistors can be measured in width of atoms) where we have limited ability to manufacture something so small.
+2.  Thermodynamics, where heat can't be removed from the CPU core fast enough to avoid damaging the core and therefore operations per second are capped.
+
+To obtain increasing performance, two main strategies have been employed in lieu of throwing more transistors into a single core:
+
+1.  Utilize multiple, separate cores and operate in an increasingly parallel way.
+2.  Use clever tricks to predict, schedule, and optimize the computations to make better use of the memory pipeline and otherwise idle CPU cycles.
+
+We will cover techniques to utilize concurrent/parallel processing in @sec-parallelization. As for the second technique, it is capable of very impressive accelerations (on the order 2x to 100x faster than a naive implementation. However, it has sometimes caused issues. There have been some famous security vulnerabilities such as Spectre and Meltdown, which exploited speculative execution – a technique used to optimize CPU performance which will execute code *before being explicitly asked to* because the scheduler *anticipates* the next steps (with very good, but imperfect accuracy).
 
 ### Logistics Warehouse Analogy
 
@@ -43,19 +168,139 @@ There are a lot more optimizations along the way:
 
 ### Speed of Computer Actions
 
-| Operation | Time (ns) | Distance Light Traveled |
-|------------------------|------------------------|------------------------|
-| Single CPU Cycle (e.g. one `ADD` or `OR` operation on a register) | 0.3 | 9 centimeters |
-| L1 cache reference | 1 | 30 centimeters |
-| Branch mispredict | 5 | 150 centimeters |
-| L2 cache reference | 5 | 150 centimeters |
-| Main memory reference | 100 | 30 meters |
-| Read 1MB sequentially from RAM | 250,000 | 75 km (\~2 marathons) |
-| Round trip within a datacenter | 500,000 | 150km (the thickness of Earth's atmosphere) |
-| Read 1MB sequentially from SSD | 1,000,000 | 300km (distance Washington D.C. to New York City) |
-| Hard disk seek | 10,000,000 | 3,000km (width of continental United States) |
-| Send packet CA-\>Netherlands-\>CA | 150,000,000 | 45,000km (circumference of earth) |
++-------------------------------------------------------------------+-------------+---------------------------------------------------+
+| Operation                                                         | Time (ns)   | Distance Light Traveled                           |
++===================================================================+=============+===================================================+
+| Single CPU Cycle (e.g. one `ADD` or `OR` operation on a register) | 0.3         | 9 centimeters                                     |
++-------------------------------------------------------------------+-------------+---------------------------------------------------+
+| L1 cache reference                                                | 1           | 30 centimeters                                    |
++-------------------------------------------------------------------+-------------+---------------------------------------------------+
+| Branch mispredict                                                 | 5           | 150 centimeters                                   |
++-------------------------------------------------------------------+-------------+---------------------------------------------------+
+| L2 cache reference                                                | 5           | 150 centimeters                                   |
++-------------------------------------------------------------------+-------------+---------------------------------------------------+
+| Main memory reference                                             | 100         | 30 meters                                         |
++-------------------------------------------------------------------+-------------+---------------------------------------------------+
+| Read 1MB sequentially from RAM                                    | 250,000     | 75 km (\~2 marathons)                             |
++-------------------------------------------------------------------+-------------+---------------------------------------------------+
+| Round trip within a datacenter                                    | 500,000     | 150km (the thickness of Earth's atmosphere)       |
++-------------------------------------------------------------------+-------------+---------------------------------------------------+
+| Read 1MB sequentially from SSD                                    | 1,000,000   | 300km (distance Washington D.C. to New York City) |
++-------------------------------------------------------------------+-------------+---------------------------------------------------+
+| Hard disk seek                                                    | 10,000,000  | 3,000km (width of continental United States)      |
++-------------------------------------------------------------------+-------------+---------------------------------------------------+
+| Send packet CA-\>Netherlands-\>CA                                 | 150,000,000 | 45,000km (circumference of earth)                 |
++-------------------------------------------------------------------+-------------+---------------------------------------------------+
 
 Source: <https://cs.brown.edu/courses/csci0300/2022/assign/labs/lab4.html>
 
-### Processor
+## Writing Performant Single-Threaded Code
+
+### Minimize Memory Allocations
+
+Allocating memory onto the Heap takes a lot more time than (1) not using intermediate memory storage at all, or (2) utilizing the Stack. Each allocation requires time for memory management and requires the garbage collector, which can significantly impact performance, especially in tight loops or frequently called functions.
+
+::: callout-note
+**Tight loops** or **hot loops** are the performance critical section of the code that are performed many times during a computation. They are often the "inner-most" loop of a nested loop algorithm.
+:::
+
+In Julia, a general rule of thumb is that dynamically sizable or mutable objects (arrays, mutable structs) will be heap allocated while small fixed size objects can be stack allocated. For mutable objects, a common technique is to pre-allocate an array and then re-use that array for subsequent calculations. In the following example, note how we pre-allocate the output vector instead of creating vectors for each bond *and then* summing the vectors together at the end:
+
+```{julia}
+end_time = 10
+cashflow_output = zeros(end_time)
+
+par_bonds = map(1:1000) do i
+    (tenor=rand((3, 5, 10)), rate=rand() / 10)
+end
+
+for asset in par_bonds
+    for t in 1:end_time
+        if t == asset.tenor
+            cashflow_output[t] += 1 + asset.rate
+        else
+            cashflow_output[t] += asset.rate
+        end
+    end
+end
+cashflow_output
+
+```
+
+Julia's `@allocated` macro will display the number of bytes allocated by an expression, helping you identify and eliminate unnecessary allocations.
+
+```{julia}
+random_sum() = sum([rand() for _ in 1:10])
+@allocated random_sum()
+```
+
+### Optimize Memory Access Patterns
+
+Optimizing memory access patterns is essential for leveraging the CPU's cache hierarchy effectively. Modern CPUs have multiple levels of cache (L1, L2, L3), each with different sizes and access speeds. By structuring your code to access memory in a cache-friendly manner, you can significantly reduce memory latency and improve overall performance. 
+
+What is cache-friendly memory access? Essentially it boils down to spatial and temporal locality.
+
+#### Spatial Locality
+
+Spatial locality refers to accessing data that is phyiscally near each other in memory (e..g contiguous blocks of data in an array).
+
+For example, it's better to access data in a linear order rather than random order. For example, if we sum up the elements of an array in order it will be significantly faster than if we do it randomly:
+
+```{julia}
+using BenchmarkTools, Random
+
+# Create a large array of structs to emphasize memory access patterns
+struct DataPoint
+    value::Float64
+    # Add padding to make each element 64 bytes (a typical cache line size)
+    padding::NTuple{7,Float64}
+end
+
+function create_large_array(n)
+    [DataPoint(rand(), tuple(rand(7)...)) for _ in 1:n]
+end
+
+# Create a large array
+const N = 10_000_000
+large_array = create_large_array(N)
+
+# Function for sequential access
+function sequential_sum(arr)
+    sum = 0.0
+    for i in eachindex(arr)
+        sum += arr[i].value
+    end
+    sum
+end
+
+# Function for random access
+function random_sum(arr, indices)
+    sum = 0.0
+    for i in indices
+        sum += arr[i].value
+    end
+    sum
+end
+
+# Create shuffled indices
+shuffled_indices = shuffle(1:N)
+
+# Benchmark
+println("Sequential access:")
+@btime sequential_sum($large_array)
+
+println("\nRandom access:")
+@btime random_sum($large_array, $shuffled_indices)
+```
+
+When the data is accessed in a linear order, it means that the computer can load chunks of data into the cache and it can operate on that cached data for several cycles before new data needs to be loaded into the cache. In contrast, when accessing the data randomly, then the cache frequently needs to be populated with a different set of bits from a completely different part of our array. Note that we do incur a penalty in the random 
+
+When working with arrays, prefer accessing elements in column-major order (the default in Julia) to maximize spatial locality. This allows the CPU to prefetch data more effectively. For multi-dimensional arrays, consider using nested loops with the innermost loop iterating over the first dimension for better cache utilization.
+
+Avoid stride-1 access patterns when possible, as they can lead to cache thrashing. Instead, reorganize your data structures or algorithms to promote contiguous memory access. When working with large datasets that don't fit in cache, consider techniques like loop tiling (blocking) to improve temporal locality and reduce cache misses.
+
+### Use Efficient Data Types
+
+### Avoid Type Instabilities
+
+### Optimize for Branch Prediction
