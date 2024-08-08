@@ -1,7 +1,111 @@
 # Parallelization {#sec-parallelization}
 
----
-engine: julia
----
+```{julia}
+#| echo: false
+#| output: false
+using Pkg
+Pkg.activate("env/parallelization")
+Pkg.instantiate()
+```
 
-## Vectorization (Single Instruction, Multiple Dispatch) {#sec-vectorization}
+> Quote TBD
+
+## In this section
+
+Fundamentals of parallel workloads, different mechanisms to distribute work: vectorization, mult-threading, GPU, and mult-device workflows. Different programming models: map-reduce, arrays, and tasks.
+
+## Amdahl's Law and the Limits of Parallel Computing
+
+An important ground-truth in computing is that there is an upper limit to how fast a workload can be sped up through distributing the workload among multiple processor units. For example, if there is a modeling workload wherein 90% of the work is independent (say policy or asset level calculations) and the remaining 10% of the workload is an aggregate (say company or portfolio level), then the theoretical maximum speedup of the process is 10x faster (1 / 90% parallelizable load). This is captured in a law known as **Amdahl's Law** and it reflects the *theoretical* maximum speedup a workload could see. In practice, the speedup is worse than this due to overhead of moving data around, scheduling the tasks, and aggregating results. This is why in many cases a good effort in sequential workloads (see @#sec-performance-single) is often a more fruitful effort than trying to parallelize some workloads. 
+
+That said, there are still many modeling use-cases for parallelization. Modern investment and insurance portfolios can easily contain 100's of thousands or millions of seriatim holdings. In many cases, these can be evaluated independently, though on the often times there is interaction with the total portfolio (contract dividends, non-guaranteed elements, profit sharing, etc.). Further, even if the holdings are not parallelizable across the holdings dimension, we are often interested in independent evaluations across economic scenarios which is amendable to parallelization.
+$$
+S(n) = \frac{1}{(1-p) + \frac{p}{n}}
+$$
+
+Where:
+
+- $S(n)$ is the theoretical speedup of the execution of the whole task
+- $n$ is the number of processors
+- $p$ is the proportion of the execution time that benefits from improved resources
+
+We can visualize this for different combitions of $p$ and $n$ in @fig-amdahl.
+
+```{julia}
+#| label: fig-amdahl
+#| fig-cap: "Theoretical upper bound for speedup of a workload given the parallelizable portion $p$ and number of processors $n$."
+using CairoMakie
+
+function amdahl_speedup(p, n)
+    return 1 / ((1 - p) + p / n)
+end
+
+function main()
+    fig = Figure(size=(800, 600))
+    ax = Axis(fig[1, 1],
+        title="Amdahl's Law",
+        xlabel=L"Number of processors ($n$)",
+        ylabel="Speedup",
+        xscale=log2,
+        xticks=2 .^ (0:16),
+        xtickformat=x -> "2^" .* string.(Int.(log.(2, x))),
+        yticks=0:2:20
+    )
+
+    n = 2 .^ (0:16)
+    parallel_portions = [0.5, 0.75, 0.9, 0.95]
+    linestyles = [:solid, :dash, :dashdot, :solid]
+
+    for (i, p) in enumerate(parallel_portions)
+        speedup = [amdahl_speedup(p, ni) for ni in n]
+        lines!(ax, n, speedup, label="$(Int(p*100))%", linestyle=linestyles[i])
+    end
+
+    xlims!(ax, 1, 2^16)
+    ylims!(ax, 0, 20)
+
+    axislegend(ax, L"Parallel portion ($p$)", position=:lt)
+    fig
+end
+
+main()
+```
+
+With this understanding, we will be able to set expectations and analyze the benefit of parallelization.
+
+## Types of Parallelism
+
+Parallel processing comes in different flavors and is related to the details of hardware as discussed in @sec-hardware. We will necessarily extend the discussion of hardware here, as parallelization is (mostly) inextricably tied to hardware details (we will revist this in  @sec-parallel-programming-models). 
+
+### Vectorization
+
+**Vectorization** in the context of parallel processing refers to special circuits within the CPU wherein the CPU will load multiple data units (e.g. 4 or 8 floating point numbers) in a contiguous block and perform the same instruction on them at the same time.
+
+### Multi-Threading
+
+### GPU
+
+### Multi-Device
+
+## Utilizing Vectorization (Single Instruction, Multiple Dispatch) {#sec-vectorization}
+
+## Utilizing Multi-threading
+
+## Utilizing GPU 
+
+## Utiliziing Multi-Device
+
+
+## Parallel Programming Models {#sec-parallel-programming-models}
+
+### Map-Reduce
+
+### Array-Based
+
+### Loop-Based
+
+### Task-Based
+
+## References
+
+- https://book.sciml.ai/notes/06-The_Different_Flavors_of_Parallelism/
