@@ -177,43 +177,33 @@ Here's an example of a system which generates trades in the financial markets at
 ```{julia}
 let
 
-function trade_producer(channel,n)
-    i = 0
-    while i < n # <3>
-        sleep(rand())  # <1> 
-        profit = randn()   #<2>
-        put!(channel, profit)
-        i += 1
-        println("Producer: Trade Result $i $(round(number, digits=3))")
+    function trade_producer(channel,i)
+            sleep(rand())  # <1> 
+            profit = randn()   #<2>
+            put!(channel, profit)
+            println("Producer: Trade Result #$i $(round(profit, digits=3))")
     end
-end
-
-function portfolio_monitor(channel,n)
-    sum = 0.0
-    i = 0
-    while i < n # <3>
-        profit = take!(channel)
-        sum += profit
-        i += 1
-        println("Monitor: Received $(round(number, digits=3)), Cumulative profit: $(round(sum, digits=3))")
+    
+    function portfolio_monitor(channel,n)
+        sum = 0.0
+        for _ in 1:n # <3>
+            profit = take!(channel)
+            sum += profit
+            println("Monitor: Received $(round(profit, digits=3)), Cumulative profit: $(round(sum, digits=3))")
+        end
     end
-end
 
-# Create a channel
-
-# Start producer and consumer tasks
-@sync begin # <5>
     channel = Channel{Float64}(32)  # <4> 
-    @async trade_producer(channel,5)  # <6>
-    @async portfolio_monitor(channel,5) # <6>
-end
-
-
-# Close the channel and wait for tasks to finish
-close(channel)
-
-
-println("Main: Simulation completed.")
+    
+    # Start producer and consumer tasks
+    @sync begin # <5>
+        for i in 1:5; @async trade_producer(channel,i); end  # <6>
+        @async portfolio_monitor(channel,5) # <6>
+    end
+    
+    
+    # Close the channel and wait for tasks to finish
+    close(channel)
 end
 
 ```
@@ -221,13 +211,17 @@ end
 1. Random sleep between 0 and 1 seconds
 2. Generate a random number from standard normal distribution to simulate profit or loss from a trade
 3. In this teaching example, we've limited the system to produce just five "trades". In practice, this could be kept running indefinitely via, e.g., `while true`.
-4. Buffer size of 32 floats (in this limited example, we could have gotten away with just 5 since that's how many the demonstration produces). In practice, you want this to be long enough that the consumer of the channel never gets so far behind that the channel fills up.
+4. Create a channel with a buffer size of 32 floats (in this limited example, we could have gotten away with just 5 since that's how many the demonstration produces). In practice, you want this to be long enough that the consumer of the channel never gets so far behind that the channel fills up. The channel is created outside of the `@sync` block so that `channel` is in scope when we `close` it. 
 5. `@sync` waits (like `wait(task)`) for all of the scheduled tasks within the block to complete before proceeding with the rest of the program.
 6. `@async` does the combination of creating a task via `@task` and `schedule`-ing in one, simpler call. 
 
 This is really useful for handling events that are "external" to our program. If we were just doing a modelign excersise using static data, then we could control the order of processing and not need to worry about monitoring a volatile source of data. Nonetheless, tasks can still be useful in some cases even if a model is not using "live" data: for example if one of the steps in a model is to load a very large dataset, it may be possible to perform some computations while chunked task requests are queued to load more data from the disk.
 
-The key takeaway for tasks is that it's a way to chunk work into bundles that can be run in a concurrent fashion, even if nothing is technically being processed in parallel. The multi-threading and parallel programming paradigms sections build off of tasks, even if some of the higher level libraries hide the task-based building blocks from you as the user/developer.
+while Julia's garbage collector will eventually clean up unclosed channels, it's a good practice to explicitly `close` them to ensure proper resource management, clear signaling of completion, and to avoid potential blocking or termination issues in your programs. 
+
+An additional thing to be aware of: if the task never finishes properly inside the `@sync`, then your program may get stuck in an infite loop and hang. Such as if one of the tasks never has a termination conidtion such as an upper bound on a loop, or a clear way to `break` out of a `while true` loop. While not different than a normal loop, such issues become less obvious underneath the layer of task abstractions. 
+
+The key takeaway for tasks is that it's a way to chunk work into bundles that can be run in a concurrent fashion, even if nothing is technically being processed in parallel. The multi-threading and parallel programming paradigms sections build off of tasks so an understanding of tasks is helpful. However, some of the higher level libraries hide the task-based building blocks from you as the user/developer and so an intricate understanding of tasks is not required to be successful in parallelizing your Julia code.
 
 #### Multi-Threading Overview
 
@@ -240,12 +234,12 @@ Technically, there are different flavors of threading. While not critical for th
 -   **Operating System Threads** or just **Threads** are managed (as the name implies) at the operating system level. The benefit to this is that operating system level threads have more power: the operating system can pause or limit throughput on running programs if the operating system needs the resources for something it deems higher priority. It's technically possible to use this power to force a higher priority for your own code, but Julia and many other languages do not offer creating of these types of threads in favor of the next type of threads. Operating system threads have a higher amount overhead (time and memory) involved in creating and destroying the threads.
 -   **Green threads**, **cooperative threads**, **fibers**, or **user-threads** are the type of threads that Julia provides. They are managed at the process (Julia) level and don't have as much overhead in their creation as operating system threads. Also in Julia, a thread is implemented via Tasks
 
-The terminology of threading in practice and online documentation is confusing but
+Parallelism in modern computing comes in many flavors, occurs at many different levels (hardward, OS, software, network), and has many different implementations of similar concepts. The terminology of threading in practice and online documentation is confusing and prone to confusion. If you are having a discussion or asking a question, feel free to take the time to ask for clarification on the terminology being used at a given point in time. 
 :::
 
 ```{mermaid}
-//| label: fig-process-threads
-//| fig-cap: "When a program starts, the operating system creates a process for which multiple threads (a *main* thread plus optional additional threads) share memory."
+%%| label: fig-process-threads
+%%| fig-cap: "When a program starts, the operating system creates a process for which multiple threads (a *main* thread plus optional additional threads) share memory."
 
 graph TD
     OS[Operating System]
@@ -254,7 +248,6 @@ graph TD
     TA1[Thread 1]
     TB1[Thread 1]
     TB2[Thread 2]
-
     OS --> PA
     OS --> PB
     PA --> TA1
