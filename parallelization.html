@@ -20,6 +20,40 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -31,7 +65,7 @@ ul.task-list li input[type="checkbox"] {
 <script src="site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="./">
 <link href="./julia-performance.html" rel="next">
-<link href="./performance-single.html" rel="prev">
+<link href="./debugging.html" rel="prev">
 <script src="site_libs/quarto-html/quarto.js"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
@@ -72,6 +106,35 @@ ul.task-list li input[type="checkbox"] {
 }</script>
 <script data-goatcounter="https://julia-fin-book.goatcounter.com/count" async="" src="//gc.zgo.at/count.js"></script>
 
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
 
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -119,12 +182,6 @@ ul.task-list li input[type="checkbox"] {
  <span class="menu-text">Preface</span></a>
   </div>
 </li>
-        <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
-  <a href="./cover_draft.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Draft of Cover</span></span></a>
-  </div>
-</li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a href="./intro.html" class="sidebar-item-text sidebar-link">
@@ -137,19 +194,19 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./why-program.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Why Program?</span></span></a>
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Why Program?</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./why-julia.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Why use Julia?</span></span></a>
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Why use Julia?</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./elements-of-financial-modeling.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Elements of Financial Modeling</span></span></a>
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Elements of Financial Modeling</span></span></a>
   </div>
 </li>
       </ul>
@@ -166,25 +223,25 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./foundations-of-programming.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Elements of Programming</span></span></a>
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Elements of Programming</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./first-abstractions.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Functional Abstractions</span></span></a>
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Functional Abstractions</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./type-abstractions.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Data and Types</span></span></a>
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Data and Types</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./patterns-abstraction.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Higher Levels of Abstraction</span></span></a>
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Higher Levels of Abstraction</span></span></a>
   </div>
 </li>
       </ul>
@@ -201,13 +258,19 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./hardware.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Hardware and Its Implications</span></span></a>
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Hardware and Its Implications</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./performance-single.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Writing Performant Single-Threaded Code</span></span></a>
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Writing Performant Single-Threaded Code</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./debugging.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Debugging and Performance Measurement</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -388,12 +451,6 @@ ul.task-list li input[type="checkbox"] {
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./debugging.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">33</span>&nbsp; <span class="chapter-title">Debugging and Performance Measurement</span></span></a>
-  </div>
-</li>
-          <li class="sidebar-item">
-  <div class="sidebar-item-container"> 
   <a href="./references.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">References</span></a>
   </div>
@@ -410,7 +467,27 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">Table of contents</h2>
    
   <ul>
-  <li><a href="#sec-vectorization" id="toc-sec-vectorization" class="nav-link active" data-scroll-target="#sec-vectorization"><span class="header-section-number">11.1</span> Vectorization (Single Instruction, Multiple Dispatch)</a></li>
+  <li><a href="#in-this-section" id="toc-in-this-section" class="nav-link active" data-scroll-target="#in-this-section"><span class="header-section-number">11.1</span> In this section</a></li>
+  <li><a href="#amdahls-law-and-the-limits-of-parallel-computing" id="toc-amdahls-law-and-the-limits-of-parallel-computing" class="nav-link" data-scroll-target="#amdahls-law-and-the-limits-of-parallel-computing"><span class="header-section-number">11.2</span> Amdahl’s Law and the Limits of Parallel Computing</a></li>
+  <li><a href="#types-of-parallelism" id="toc-types-of-parallelism" class="nav-link" data-scroll-target="#types-of-parallelism"><span class="header-section-number">11.3</span> Types of Parallelism</a>
+  <ul class="collapse">
+  <li><a href="#vectorization" id="toc-vectorization" class="nav-link" data-scroll-target="#vectorization"><span class="header-section-number">11.3.1</span> Vectorization</a></li>
+  <li><a href="#multi-threading" id="toc-multi-threading" class="nav-link" data-scroll-target="#multi-threading"><span class="header-section-number">11.3.2</span> Multi-Threading</a></li>
+  <li><a href="#gpu" id="toc-gpu" class="nav-link" data-scroll-target="#gpu"><span class="header-section-number">11.3.3</span> GPU</a></li>
+  <li><a href="#multi-device" id="toc-multi-device" class="nav-link" data-scroll-target="#multi-device"><span class="header-section-number">11.3.4</span> Multi-Device</a></li>
+  </ul></li>
+  <li><a href="#sec-vectorization" id="toc-sec-vectorization" class="nav-link" data-scroll-target="#sec-vectorization"><span class="header-section-number">11.4</span> Utilizing Vectorization (Single Instruction, Multiple Dispatch)</a></li>
+  <li><a href="#utilizing-multi-threading" id="toc-utilizing-multi-threading" class="nav-link" data-scroll-target="#utilizing-multi-threading"><span class="header-section-number">11.5</span> Utilizing Multi-threading</a></li>
+  <li><a href="#utilizing-gpu" id="toc-utilizing-gpu" class="nav-link" data-scroll-target="#utilizing-gpu"><span class="header-section-number">11.6</span> Utilizing GPU</a></li>
+  <li><a href="#utiliziing-multi-device" id="toc-utiliziing-multi-device" class="nav-link" data-scroll-target="#utiliziing-multi-device"><span class="header-section-number">11.7</span> Utiliziing Multi-Device</a></li>
+  <li><a href="#sec-parallel-programming-models" id="toc-sec-parallel-programming-models" class="nav-link" data-scroll-target="#sec-parallel-programming-models"><span class="header-section-number">11.8</span> Parallel Programming Models</a>
+  <ul class="collapse">
+  <li><a href="#map-reduce" id="toc-map-reduce" class="nav-link" data-scroll-target="#map-reduce"><span class="header-section-number">11.8.1</span> Map-Reduce</a></li>
+  <li><a href="#array-based" id="toc-array-based" class="nav-link" data-scroll-target="#array-based"><span class="header-section-number">11.8.2</span> Array-Based</a></li>
+  <li><a href="#loop-based" id="toc-loop-based" class="nav-link" data-scroll-target="#loop-based"><span class="header-section-number">11.8.3</span> Loop-Based</a></li>
+  <li><a href="#task-based" id="toc-task-based" class="nav-link" data-scroll-target="#task-based"><span class="header-section-number">11.8.4</span> Task-Based</a></li>
+  </ul></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references"><span class="header-section-number">11.9</span> References</a></li>
   </ul>
 </nav>
     </div>
@@ -436,8 +513,130 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<section id="sec-vectorization" class="level2" data-number="11.1">
-<h2 data-number="11.1" class="anchored" data-anchor-id="sec-vectorization"><span class="header-section-number">11.1</span> Vectorization (Single Instruction, Multiple Dispatch)</h2>
+<blockquote class="blockquote">
+<p>Quote TBD</p>
+</blockquote>
+<section id="in-this-section" class="level2" data-number="11.1">
+<h2 data-number="11.1" class="anchored" data-anchor-id="in-this-section"><span class="header-section-number">11.1</span> In this section</h2>
+<p>Fundamentals of parallel workloads, different mechanisms to distribute work: vectorization, mult-threading, GPU, and mult-device workflows. Different programming models: map-reduce, arrays, and tasks.</p>
+</section>
+<section id="amdahls-law-and-the-limits-of-parallel-computing" class="level2" data-number="11.2">
+<h2 data-number="11.2" class="anchored" data-anchor-id="amdahls-law-and-the-limits-of-parallel-computing"><span class="header-section-number">11.2</span> Amdahl’s Law and the Limits of Parallel Computing</h2>
+<p>An important ground-truth in computing is that there is an upper limit to how fast a workload can be sped up through distributing the workload among multiple processor units. For example, if there is a modeling workload wherein 90% of the work is independent (say policy or asset level calculations) and the remaining 10% of the workload is an aggregate (say company or portfolio level), then the theoretical maximum speedup of the process is 10x faster (1 / 90% parallelizable load). This is captured in a law known as <strong>Amdahl’s Law</strong> and it reflects the <em>theoretical</em> maximum speedup a workload could see. In practice, the speedup is worse than this due to overhead of moving data around, scheduling the tasks, and aggregating results. This is why in many cases a good effort in sequential workloads (see @#sec-performance-single) is often a more fruitful effort than trying to parallelize some workloads.</p>
+<p>That said, there are still many modeling use-cases for parallelization. Modern investment and insurance portfolios can easily contain 100’s of thousands or millions of seriatim holdings. In many cases, these can be evaluated independently, though on the often times there is interaction with the total portfolio (contract dividends, non-guaranteed elements, profit sharing, etc.). Further, even if the holdings are not parallelizable across the holdings dimension, we are often interested in independent evaluations across economic scenarios which is amendable to parallelization. <span class="math display">\[
+S(n) = \frac{1}{(1-p) + \frac{p}{n}}
+\]</span></p>
+<p>Where:</p>
+<ul>
+<li><span class="math inline">\(S(n)\)</span> is the theoretical speedup of the execution of the whole task</li>
+<li><span class="math inline">\(n\)</span> is the number of processors</li>
+<li><span class="math inline">\(p\)</span> is the proportion of the execution time that benefits from improved resources</li>
+</ul>
+<p>We can visualize this for different combitions of <span class="math inline">\(p\)</span> and <span class="math inline">\(n\)</span> in <a href="#fig-amdahl" class="quarto-xref">Figure&nbsp;<span>11.1</span></a>.</p>
+<div id="cell-fig-amdahl" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">CairoMakie</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">amdahl_speedup</span>(p, n)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fl">1</span> <span class="op">/</span> ((<span class="fl">1</span> <span class="op">-</span> p) <span class="op">+</span> p <span class="op">/</span> n)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">main</span>()</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    fig <span class="op">=</span> <span class="fu">Figure</span>(size<span class="op">=</span>(<span class="fl">800</span>, <span class="fl">600</span>))</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    ax <span class="op">=</span> <span class="fu">Axis</span>(fig[<span class="fl">1</span>, <span class="fl">1</span>],</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>        title<span class="op">=</span><span class="st">"Amdahl's Law"</span>,</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>        xlabel<span class="op">=</span>L<span class="st">"Number of processors (</span><span class="sc">$</span>n<span class="sc">$</span><span class="st">)",</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="st">        </span>ylabel<span class="st">="</span>Speedup<span class="st">",</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>        xscale<span class="op">=</span>log2,</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>        xticks<span class="op">=</span><span class="fl">2</span> <span class="op">.^</span> (<span class="fl">0</span><span class="op">:</span><span class="fl">16</span>),</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>        xtickformat<span class="op">=</span>x <span class="op">-&gt;</span> <span class="st">"2^"</span> <span class="op">.*</span> <span class="fu">string</span>.(<span class="fu">Int</span>.(<span class="fu">log</span>.(<span class="fl">2</span>, x))),</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>        yticks<span class="op">=</span><span class="fl">0</span><span class="op">:</span><span class="fl">2</span><span class="op">:</span><span class="fl">20</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> <span class="fl">2</span> <span class="op">.^</span> (<span class="fl">0</span><span class="op">:</span><span class="fl">16</span>)</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>    parallel_portions <span class="op">=</span> [<span class="fl">0.5</span>, <span class="fl">0.75</span>, <span class="fl">0.9</span>, <span class="fl">0.95</span>]</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    linestyles <span class="op">=</span> [<span class="op">:</span>solid, <span class="op">:</span>dash, <span class="op">:</span>dashdot, <span class="op">:</span>solid]</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (i, p) <span class="kw">in</span> <span class="fu">enumerate</span>(parallel_portions)</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>        speedup <span class="op">=</span> [<span class="fu">amdahl_speedup</span>(p, ni) for ni <span class="kw">in</span> n]</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>        <span class="fu">lines!</span>(ax, n, speedup, label<span class="op">=</span><span class="st">"</span><span class="sc">$</span>(<span class="fu">Int</span>(p<span class="op">*</span><span class="fl">100</span>))<span class="st">%"</span>, linestyle<span class="op">=</span>linestyles[i])</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>    <span class="fu">xlims!</span>(ax, <span class="fl">1</span>, <span class="fl">2</span><span class="op">^</span><span class="fl">16</span>)</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ylims!</span>(ax, <span class="fl">0</span>, <span class="fl">20</span>)</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>    <span class="fu">axislegend</span>(ax, L<span class="st">"Parallel portion (</span><span class="sc">$</span>p<span class="sc">$</span><span class="st">)", </span>position<span class="st">=:lt)</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>    fig</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a><span class="fu">main</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>┌ Warning: Found `resolution` in the theme when creating a `Scene`. The `resolution` keyword for `Scene`s and `Figure`s has been deprecated. Use `Figure(; size = ...` or `Scene(; size = ...)` instead, which better reflects that this is a unitless size and not a pixel resolution. The key could also come from `set_theme!` calls or related theming functions.
+└ @ Makie ~/.julia/packages/Makie/GtFuI/src/scenes.jl:227</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="3">
+<div id="fig-amdahl" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-amdahl-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="parallelization_files/figure-html/fig-amdahl-output-2.svg" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-amdahl-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;11.1: Theoretical upper bound for speedup of a workload given the parallelizable portion <span class="math inline">\(p\)</span> and number of processors <span class="math inline">\(n\)</span>.
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>With this understanding, we will be able to set expectations and analyze the benefit of parallelization.</p>
+</section>
+<section id="types-of-parallelism" class="level2" data-number="11.3">
+<h2 data-number="11.3" class="anchored" data-anchor-id="types-of-parallelism"><span class="header-section-number">11.3</span> Types of Parallelism</h2>
+<p>Parallel processing comes in different flavors and is related to the details of hardware as discussed in <a href="hardware.html" class="quarto-xref"><span>Chapter 8</span></a>. We will necessarily extend the discussion of hardware here, as parallelization is (mostly) inextricably tied to hardware details (we will revist this in <a href="#sec-parallel-programming-models" class="quarto-xref"><span>Section 11.8</span></a>).</p>
+<section id="vectorization" class="level3" data-number="11.3.1">
+<h3 data-number="11.3.1" class="anchored" data-anchor-id="vectorization"><span class="header-section-number">11.3.1</span> Vectorization</h3>
+<p><strong>Vectorization</strong> in the context of parallel processing refers to special circuits within the CPU wherein the CPU will load multiple data units (e.g.&nbsp;4 or 8 floating point numbers) in a contiguous block and perform the same instruction on them at the same time.</p>
+</section>
+<section id="multi-threading" class="level3" data-number="11.3.2">
+<h3 data-number="11.3.2" class="anchored" data-anchor-id="multi-threading"><span class="header-section-number">11.3.2</span> Multi-Threading</h3>
+</section>
+<section id="gpu" class="level3" data-number="11.3.3">
+<h3 data-number="11.3.3" class="anchored" data-anchor-id="gpu"><span class="header-section-number">11.3.3</span> GPU</h3>
+</section>
+<section id="multi-device" class="level3" data-number="11.3.4">
+<h3 data-number="11.3.4" class="anchored" data-anchor-id="multi-device"><span class="header-section-number">11.3.4</span> Multi-Device</h3>
+</section>
+</section>
+<section id="sec-vectorization" class="level2" data-number="11.4">
+<h2 data-number="11.4" class="anchored" data-anchor-id="sec-vectorization"><span class="header-section-number">11.4</span> Utilizing Vectorization (Single Instruction, Multiple Dispatch)</h2>
+</section>
+<section id="utilizing-multi-threading" class="level2" data-number="11.5">
+<h2 data-number="11.5" class="anchored" data-anchor-id="utilizing-multi-threading"><span class="header-section-number">11.5</span> Utilizing Multi-threading</h2>
+</section>
+<section id="utilizing-gpu" class="level2" data-number="11.6">
+<h2 data-number="11.6" class="anchored" data-anchor-id="utilizing-gpu"><span class="header-section-number">11.6</span> Utilizing GPU</h2>
+</section>
+<section id="utiliziing-multi-device" class="level2" data-number="11.7">
+<h2 data-number="11.7" class="anchored" data-anchor-id="utiliziing-multi-device"><span class="header-section-number">11.7</span> Utiliziing Multi-Device</h2>
+</section>
+<section id="sec-parallel-programming-models" class="level2" data-number="11.8">
+<h2 data-number="11.8" class="anchored" data-anchor-id="sec-parallel-programming-models"><span class="header-section-number">11.8</span> Parallel Programming Models</h2>
+<section id="map-reduce" class="level3" data-number="11.8.1">
+<h3 data-number="11.8.1" class="anchored" data-anchor-id="map-reduce"><span class="header-section-number">11.8.1</span> Map-Reduce</h3>
+</section>
+<section id="array-based" class="level3" data-number="11.8.2">
+<h3 data-number="11.8.2" class="anchored" data-anchor-id="array-based"><span class="header-section-number">11.8.2</span> Array-Based</h3>
+</section>
+<section id="loop-based" class="level3" data-number="11.8.3">
+<h3 data-number="11.8.3" class="anchored" data-anchor-id="loop-based"><span class="header-section-number">11.8.3</span> Loop-Based</h3>
+</section>
+<section id="task-based" class="level3" data-number="11.8.4">
+<h3 data-number="11.8.4" class="anchored" data-anchor-id="task-based"><span class="header-section-number">11.8.4</span> Task-Based</h3>
+</section>
+</section>
+<section id="references" class="level2" data-number="11.9">
+<h2 data-number="11.9" class="anchored" data-anchor-id="references"><span class="header-section-number">11.9</span> References</h2>
+<ul>
+<li>https://book.sciml.ai/notes/06-The_Different_Flavors_of_Parallelism/</li>
+</ul>
 
 
 </section>
@@ -1009,8 +1208,8 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="./performance-single.html" class="pagination-link" aria-label="Writing Performant Single-Threaded Code">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Writing Performant Single-Threaded Code</span></span>
+      <a href="./debugging.html" class="pagination-link" aria-label="Debugging and Performance Measurement">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Debugging and Performance Measurement</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
