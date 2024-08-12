@@ -12,24 +12,23 @@ Pkg.instantiate()
 
 ## In this section
 
-Fundamentals of parallel workloads, different mechanisms to distribute work: vectorization, mult-threading, GPU, and mult-device workflows. Different programming models: map-reduce, arrays, and tasks.
+Fundamentals of parallel workloads, different mechanisms to distribute work: vectorization, multi-threading, GPU, and multi-device workflows. Different programming models: map-reduce, arrays, and tasks.
 
 ## Amdahl's Law and the Limits of Parallel Computing
 
-An important ground-truth in computing is that there is an upper limit to how fast a workload can be sped up through distributing the workload among multiple processor units. For example, if there is a modeling workload wherein 90% of the work is independent (say policy or asset level calculations) and the remaining 10% of the workload is an aggregate (say company or portfolio level), then the theoretical maximum speedup of the process is 10x faster (1 / 90% parallelizable load). This is captured in a law known as **Amdahl's Law** and it reflects the *theoretical* maximum speedup a workload could see. In practice, the speedup is worse than this due to overhead of moving data around, scheduling the tasks, and aggregating results. This is why in many cases a good effort in sequential workloads (see @#sec-performance-single) is often a more fruitful effort than trying to parallelize some workloads. 
+An important ground-truth in computing is that there is an upper limit to how fast a workload can be sped up through distributing the workload among multiple processor units. For example, if there is a modeling workload wherein 90% of the work is independent (say policy or asset level calculations) and the remaining 10% of the workload is an aggregate (say company or portfolio level), then the theoretical maximum speedup of the process is 10x faster (1 / 90% parallelizable load). This is captured in a law known as **Amdahl's Law** and it reflects the *theoretical* maximum speedup a workload could see. In practice, the speedup is worse than this due to overhead of moving data around, scheduling the tasks, and aggregating results. This is why in many cases a good effort in sequential workloads (see \@#sec-performance-single) is often a more fruitful effort than trying to parallelize some workloads.
 
-That said, there are still many modeling use-cases for parallelization. Modern investment and insurance portfolios can easily contain 100's of thousands or millions of seriatim holdings. In many cases, these can be evaluated independently, though on the often times there is interaction with the total portfolio (contract dividends, non-guaranteed elements, profit sharing, etc.). Further, even if the holdings are not parallelizable across the holdings dimension, we are often interested in independent evaluations across economic scenarios which is amendable to parallelization.
-$$
+That said, there are still many modeling use-cases for parallelization. Modern investment and insurance portfolios can easily contain 100's of thousands or millions of seriatim holdings. In many cases, these can be evaluated independently, though on the often times there is interaction with the total portfolio (contract dividends, non-guaranteed elements, profit sharing, etc.). Further, even if the holdings are not parallelizable across the holdings dimension, we are often interested in independent evaluations across economic scenarios which is amendable to parallelization. $$
 S(n) = \frac{1}{(1-p) + \frac{p}{n}}
 $$
 
 Where:
 
-- $S(n)$ is the theoretical speedup of the execution of the whole task
-- $n$ is the number of processors
-- $p$ is the proportion of the execution time that benefits from improved resources
+-   $S(n)$ is the theoretical speedup of the execution of the whole task
+-   $n$ is the number of processors
+-   $p$ is the proportion of the execution time that benefits from improved resources
 
-We can visualize this for different combitions of $p$ and $n$ in @fig-amdahl.
+We can visualize this for different combinations of $p$ and $n$ in @fig-amdahl.
 
 ```{julia}
 #| label: fig-amdahl
@@ -75,26 +74,337 @@ With this understanding, we will be able to set expectations and analyze the ben
 
 ## Types of Parallelism
 
-Parallel processing comes in different flavors and is related to the details of hardware as discussed in @sec-hardware. We will necessarily extend the discussion of hardware here, as parallelization is (mostly) inextricably tied to hardware details (we will revist this in  @sec-parallel-programming-models). 
+Parallel processing comes in different flavors and is related to the details of hardware as discussed in @sec-hardware. We will necessarily extend the discussion of hardware here, as parallelization is (mostly) inextricably tied to hardware details (we will revisit this in @sec-parallel-programming-models).
 
-### Vectorization
+| Type | Description | Strengths | Weaknesses |
+|----------------|--------------------|-----------------|-------------------|
+| Vectorization (SIMD) | Performs same operation on multiple data points simultaneously | Efficient for data-parallel tasks, uses specialized CPU instructions | Limited to certain types of operations, data must be contiguous |
+| Multi-Threading | Executes multiple threads concurrently on a single CPU | Good for task parallelism, utilizes multi-core processors effectively | Overhead from thread management, potential race conditions |
+| GPU | Uses graphics processing units (GPUs) for parallel computations | Excellent for massively parallel tasks, high throughput | Specialized programming required, data transfer overhead |
+| Multi-Device / Distributed | Spreads computation across multiple machines or devices | Scales to very large problems, can use heterogeneous hardware | Complex to implement and manage, network latency issues |
 
-**Vectorization** in the context of parallel processing refers to special circuits within the CPU wherein the CPU will load multiple data units (e.g. 4 or 8 floating point numbers) in a contiguous block and perform the same instruction on them at the same time.
+: Major types of computational parallelism highlighting their key characteristics, advantages, and potential drawbacks.
 
-### Multi-Threading
+## Vectorization
+
+**Vectorization** in the context of parallel processing refers to special circuits within the CPU wherein the CPU will load multiple data units (e.g. 4 or 8 floating point numbers) in a contiguous block and perform the same instruction on them at the same time. This is also known as **SIMD, or Single-Instruction Multiple Data**.
+
+The requirements for SIMD-able code are that:
+
+-   The intended section for SIMD is inside the inner-most loop.
+-   There are no branches (if-statements) inside the loop body.
+    -   Indexing an array is actually a possible branch, as two cases could arise: the index is inbounds or out-of-bounds. To avoid this, either use `for x in collection`, `for i in eachindex(collection)` or `for i in 1:n; @inbounds collection[i]` though the last of these is discouraged in favor of ther prior, safer options.
+-   
+
+```{julia}
+using BenchmarkTools
+
+function prevent_simd(arr)
+    sum = 0
+    for x in arr
+        if x > 0
+            sum += x
+        end
+    end
+    return sum
+end
+
+function allow_simd(arr)
+    sum = 0
+    for x in arr
+        sum += max(x, 0)
+    end
+    return sum
+end
+
+let
+    x = rand(10000)
+
+    @btime prevent_simd($x)
+    @btime allow_simd($x)
+end
+```
+
+In testing the above code, the `allow_simd` version should be several times faster than the `prevent_simd` example. The reason is that `prevent_simd` has a branch (`if x > 0`) where the behavior of the code may change depending on the value in `arr`. Conversely, the behavior of `allow_simd` is always the same in each iteration, no matter the value of `x`. This allows the compiler to generate vectorized code automatically.
+
+Note that the compiler is able to identify vectorizable code in many cases, though through some cases may benefit from a more manual hint to the compiler through macro annotations (see `?@simd` for details).
+
+Other types of parallelism that we will discuss in this chapter have some risk of errors or data corruption if not used correctly. SIMD isn't prone to issues like this because if the code is not SIMD-able then the compiler will not auto-vectorize the code block.
+
+### Hardware
+
+Vectorization is hardware dependent. If the CPU does not support vectorization you will not see speedups from it. Many consumer and professional chips have AVX2 (Advanced Vector Extensions, with the 2 signifying second-generation 256 bit width, allowing four simultaneous 64-bit operations). The next generation is AVX512, having twice the SIMD capacity as AVX2. However, as of 2025 most consumer chips do not yet have that and commercial chips may not actually be faster than the AVX2 due to thermal restrictions (SIMD uses more power and generates more heat).
+
+### Additional Packages
+
+Some additional packages to be aware of include:
+
+-   [LoopVectorization.jl](https://github.com/JuliaSIMD/LoopVectorization.jl) which can enhance the vectorized loops even further, such as handling the "tail" of a vectorized loops more efficiently than the base compiler. The "tail" refers to situations like where you have a vector width of 8, but don't have a collection that's a nice multiple of 8 (say 1001 elements).
+-   [Octavian.jl](https://github.com/JuliaLinearAlgebra/Octavian.jl) implements a linear algebra-like library, utilizing parallelism via vectorization to generate efficent code for the system it's running on.
+-   [Tulio.jl](https://github.com/mcabbott/Tullio.jl) is an einsum library, a domain-specific language for tensor (a specific subset of vectors) operations, common in machine learning and linear algebra.
+
+## Multi-Threading
+
+### Tasks
+
+To understand mulithreading examples, we first need to discuss **Tasks**, which are chunks of computation that get performed together, but after which the computer is free to switch to a new task. Technically, there are some instructions within a task that will let the computer pause and come back to that task later (such as `sleep`). Tasks are do not, by themselves, allow for multiple computations to be performed in parallel. For example, one task might be loading a data file from persistent storage into RAM. After that task is complete, the computer continues on with another task in the queue (rendering a web page, playing a song, etc.). In this way even with a single processor and core, a computer could be "doing multiple things at once" (or "multi-tasking") even though nothing is running in parallel. The scheduling of the tasks is handled automatically by Julia and the operating system.
+
+Here's an example of a couple of tasks where we write to an array. The second task actually writes to the array first, since we asked the first task to sleep (which allows the computer to yield to other tasks in the queue)[^parallelization-1].
+
+[^parallelization-1]: Technically, it's possible that the second task doesn't write to the array first. This could happen if there's enough tasks (from our program or others on the computer) that saturate the CPU during the first task's `sleep` period such that the first task gets picked up again before the second one does.
+
+```{julia}
+let
+   shared_array = zeros(5)
+
+   task1 = @task begin
+        sleep(1)
+       shared_array[1] = 1
+
+       println("Task 1: ", shared_array)
+   end
+
+   task2 = @task begin
+       shared_array[2] = 2
+       println("Task 2: ", shared_array)
+   end
+
+   schedule(task1); schedule(task2)
+   wait(task1)
+   wait(task2)
+
+   println("Main: ", shared_array)
+end
+```
+
+#### Channels
+
+**Channels** are a way to communicate data in an ordered way between tasks. You specify a type of data that the buffer will contain and how many elements it can hold. It then stores items (via `put!`) in a first-in-first-out (FIFO) queue, which can be popped off the queue (via \`take!) by other tasks.
+
+Here's an example of a system which generates trades in the financial markets at random time intervals, and a monitoring tasks takes the results and tabulates running statistics:
+
+```{julia}
+let
+
+    function trade_producer(channel,i)
+            sleep(rand())  # <1> 
+            profit = randn()   #<2>
+            put!(channel, profit)
+            println("Producer: Trade Result #$i $(round(profit, digits=3))")
+    end
+    
+    function portfolio_monitor(channel,n)
+        sum = 0.0
+        for _ in 1:n # <3>
+            profit = take!(channel)
+            sum += profit
+            println("Monitor: Received $(round(profit, digits=3)), Cumulative profit: $(round(sum, digits=3))")
+        end
+    end
+
+    channel = Channel{Float64}(32)  # <4> 
+    
+    # Start producer and consumer tasks
+    @sync begin # <5>
+        for i in 1:5; @async trade_producer(channel,i); end  # <6>
+        @async portfolio_monitor(channel,5) # <6>
+    end
+    
+    
+    # Close the channel and wait for tasks to finish
+    close(channel)
+end
+
+```
+
+1.  Random sleep between 0 and 1 seconds
+2.  Generate a random number from standard normal distribution to simulate profit or loss from a trade
+3.  In this teaching example, we've limited the system to produce just five "trades". In practice, this could be kept running indefinitely via, e.g., `while true`.
+4.  Create a channel with a buffer size of 32 floats (in this limited example, we could have gotten away with just 5 since that's how many the demonstration produces). In practice, you want this to be long enough that the consumer of the channel never gets so far behind that the channel fills up. The channel is created outside of the `@sync` block so that `channel` is in scope when we `close` it.
+5.  `@sync` waits (like `wait(task)`) for all of the scheduled tasks within the block to complete before proceeding with the rest of the program.
+6.  `@async` does the combination of creating a task via `@task` and `schedule`-ing in one, simpler call.
+
+This is really useful for handling events that are "external" to our program. If we were just doing a modelign excersise using static data, then we could control the order of processing and not need to worry about monitoring a volatile source of data. Nonetheless, tasks can still be useful in some cases even if a model is not using "live" data: for example if one of the steps in a model is to load a very large dataset, it may be possible to perform some computations while chunked task requests are queued to load more data from the disk.
+
+while Julia's garbage collector will eventually clean up unclosed channels, it's a good practice to explicitly `close` them to ensure proper resource management, clear signaling of completion, and to avoid potential blocking or termination issues in your programs.
+
+An additional thing to be aware of: if the task never finishes properly inside the `@sync`, then your program may get stuck in an infite loop and hang. Such as if one of the tasks never has a termination conidtion such as an upper bound on a loop, or a clear way to `break` out of a `while true` loop. While not different than a normal loop, such issues become less obvious underneath the layer of task abstractions.
+
+The key takeaway for tasks is that it's a way to chunk work into bundles that can be run in a concurrent fashion, even if nothing is technically being processed in parallel. The multi-threading and parallel programming paradigms sections build off of tasks so an understanding of tasks is helpful. However, some of the higher level libraries hide the task-based building blocks from you as the user/developer and so an intricate understanding of tasks is not required to be successful in parallelizing your Julia code.
+
+### Multi-Threading Overview
+
+When a program starts on your computer, a **process** is created which is where the operating system allocates some overhead items (keeping track of the the code and memory allocations and layout) and block of memory in RAM that can be utilized by that process. Different processes do not have access to each other's allocated memory.
+
+::: callout-note
+Readers may be familar with starting Excel in different processes. When Microsoft Excel is opened multiple times, in different processes, then the workbooks in each respective process do not share memory and cannot create links or use full copy/paste functionality between them. It's only when workbooks are opened within the same process that the workbooks may seamslessley talk to each other.
+:::
+
+Within each process, a main thread is created. That thread is where the running of the code occurs. For the level of the discussion here, you can mainly think of a process as a container with shared memory for threads, which do the real work (as illustrated in @fig-process-threads). Besides the main thread, other threads can be created within the process and access the same shared memory.
+
+```{dot}
+//| label: fig-process-threads
+//| fig-cap: "When a program starts, the operating system creates a process for which multiple threads (a *main* thread plus optional additional threads) share memory."
+
+digraph G {
+    compound=true;
+    node [shape=box];
+    
+    subgraph cluster_0 {
+        label = "Operating System";
+        
+        subgraph cluster_1 {
+            label = "Process ABC";
+            A [label="thread 1"];
+        }
+        
+        subgraph cluster_2 {
+            label = "process XYZ";
+            B [label="thread 1"];
+            C [label="thread 2"];
+        }
+    }
+}
+```
+
+The advantage of threads is that within a single physical processor, there may be multiple cores. Those cores can access the shared process memory and run tasks from different threads simultaneously. This is a technique that takes advantage of modern processor architecture wherein several (sometimes as many as 32 or more) cores exist on the same chip.
+
+::: callout-note
+Technically, there are different flavors of threading. While not critical for the understanding and modeling-focused dicsussion here, for completeness here is a bit more detail on different thread types.
+
+-   Recall that **Tasks** are chunks of computation that get performed together, but after which the computer is free to switch to a new task. For example, one task might be loading a data file from persistent storage into RAM. After that task is complete, the computer continues on with another task in the queue (rendering a web page, playing a song, etc.). In this way even with a single processor and core, a computer could be "doing multiple things at once" (or "multi-tasking") even though nothing is running in parallel.
+-   **Operating System Threads** or just **Threads** are managed (as the name implies) at the operating system level. The benefit to this is that operating system level threads have more power: the operating system can pause or limit throughput on running programs if the operating system needs the resources for something it deems higher priority. It's technically possible to use this power to force a higher priority for your own code, but Julia and many other languages do not offer creating of these types of threads in favor of the next type of threads. Operating system threads have a higher amount overhead (time and memory) involved in creating and destroying the threads.
+-   **Green threads**, **cooperative threads**, **fibers**, or **user-threads** are the type of threads that Julia provides. They are managed at the process (Julia) level and don't have as much overhead in their creation as operating system threads. Also in Julia, a thread is implemented via Tasks
+
+Parallelism in modern computing comes in many flavors, occurs at many different levels (hardward, OS, software, network), and has many different implementations of similar concepts. The terminology of threading in practice and online documentation is confusing and prone to confusion. If you are having a discussion or asking a question, feel free to take the time to ask for clarification on the terminology being used at a given point in time.
+:::
+
+::: callout-important
+To use multi-threading, Julia needs to be started with more than one thread. This can be done by either setting the environment variable `JULIA_NUM_THREADS` to either `auto` or specify a number like `4`. You can also specify how many threads to start julia with if given the `-t` command line argument (such as running `julia -t 4` to start Julia with four threads from the command line). For the examples in this book and how many threads are used, see @sec-colophon for the system settings.
+
+Why doesn't it automatically start with more than one thread? Between "hyperthreading" (synthetic additional thread capacity), multi-core architectures, and the different types of threads it's actually difficult to predict how many threads will be optimal for a given system. Julia's current default is to take the more conservative approach and start single-threaded unless otherwise specified. The "auto" option is a best-guess but can, on certain systems and configurations, be very bad for performance. The authors recommend for most common systems to just use "auto".
+:::
+
+#### Multi-Threading Pitfalls
+
+Different threads being able to access the same memory is a double-edged sword. It is useful because we do not need to create multiple copies of the data in RAM or in the cache[^parallelization-2] and can improve the overall throughput of our usually memory-bandwidth-limited machines. The downside is that if we are mutating the shared data for which our program relies upon, then our program may produce unintended results if the modification occurs carelessly. There are a couple of related issues to be aware of:
+
+[^parallelization-2]: There are some chips which do not have access to the same memory in a multi-threading context, and are known as non-uniform memory access (NUMA). These architectures work more like those in @sec-multi-device.
+
+##### Race Conditions
+
+The first issue is known as a **race condition**, which occurs when a block of memory has been read from or written to in an unintended order. For example, if we have two threads which are accumulating a sub-total, each process may read the running sub-total before the other thread has finished it's update.
+
+In the following example, we use the `Threads.@threads` to tell Julia to automatically distribute the work across threads.
+
+```{julia}
+
+function sum_bad(n)
+    subtotal = 0
+    Threads.@threads for i in 1:n
+        subtotal += i
+    end
+    subtotal
+end
+
+sum_bad(100_000)
+```
+
+The result of this should be that `subtotal` doesn't equal `5000050000` because the different threads pick up the subtotal before the other thread finishes adding it's current value. As a result, when one of the threads finishes it's work another may be starting from a place that ignores the updated value.
+
+#### Avoiding Multi-threading Pitfalls
+
+We will cover several ways to manage multi-threading race conditions, but it is the recommendation of the authors to primarily utilize higher level library code, which will be demonstrated after covering some of the more basic, manual techniques.
+
+##### Chunking up work into single-threaded work
+
+In this example, we can correct `sum_bad` by splitting the work into different threads, each of which is independent. Then, we can aggregate the results of each of the chunks.
+
+```{julia}
+function sum_single(a)
+    s = 0
+    for i in a
+        s += i
+    end
+    s
+end
+@btime sum_single(1:100_000)
+```
+
+Note that in the single-threaded case, Julia is able to identify this common pattern and use a shortcut, calculating the sum of the integers $1$ through $n$ as $\frac{n(n+1)}{2}$.
+
+```{julia}
+function sum_chunker(a)
+
+chunks = Iterators.partition(1:a, a ÷ Threads.nthreads())
+           tasks = map(chunks) do chunk
+               Threads.@spawn sum_single(chunk)
+           end
+           chunk_sums = fetch.(tasks)
+           return sum_single(chunk_sums)
+
+end
+
+@btime sum_chunker(100_000)
+```
+
+##### Using Locks
+
+**Locks** prevent memory from being accessed from more than one thread at a time.
+
+```{julia}
+function sum_with_lock(n)
+    subtotal = 0
+    lock = ReentrantLock()
+    Threads.@threads for i in 1:n
+        Base.@lock lock begin
+            subtotal += i
+        end
+    end
+    subtotal
+end
+@btime sum_with_lock(100_000)
+```
+
+##### Using Atomics
+
+**Atomics** are certain primitive values with a reduced set of operations for which Julia and the compiler can automatically create thread-safe code. This is often significantly faster than the context-switching overhead needed with locking and unlocking memory for threaded tasks. Compared with locks, atomics are simpler to implement and easier to reason about. The downside is that atomics are limited to the available primitive atomics types and methods.
+
+```{julia}
+function sum_with_atomic(n)
+    subtotal = Threads.Atomic{Int}(0)
+    Threads.@threads for i in 1:n
+        Threads.atomic_add!(subtotal, i)
+    end
+    subtotal[]
+end
+
+@btime sum_with_atomic(100_000)
+```
+
+##### Higher Level Libraries
+
+###### OhMyThreads
+
+[ThreadsX.jl](https://github.com/JuliaFolds2/OhMyThreads.jl) provides the threaded versions of essential functions such as `tmap`, `tmapreduce`,`tcollect`, and `tforeach` (see @tbl-funcional-methods). In most cases, the chunking and data sharing is handled automatically for you.
+
+```{julia}
+import OhMyThreads
+@btime OhMyThreads.tmapreduce(x -> x, +, 1:100_000)
+```
+
+###### ThreadsX
+
+[ThreadsX.jl](https://github.com/JuliaFolds2/ThreadsX.jl) is built off of the wonderful [Transducers.jl](https://github.com/JuliaFolds2/Transducers.jl) package, though the latter is a bit more advanced (more abstract, but as a result more composable and powerful). ThreadsX provides threaded versions of many popular base functions. It offers a wider set of readymade threaded functions, but has a much more complex codebase. For the vast majority of threading needs, OhMyThreads.jl should be sufficent and performant. See the documentation for all of the implemented functions, but for our illustrative example:
+
+```{julia}
+import ThreadsX
+@btime ThreadsX.mapreduce(x -> x, +, 1:100_000)
+```
 
 ### GPU
 
-### Multi-Device
-
-## Utilizing Vectorization (Single Instruction, Multiple Dispatch) {#sec-vectorization}
-
-## Utilizing Multi-threading
-
-## Utilizing GPU 
-
-## Utiliziing Multi-Device
-
+### Multi-Device {#sec-multi-device}
 
 ## Parallel Programming Models {#sec-parallel-programming-models}
 
@@ -108,4 +418,5 @@ Parallel processing comes in different flavors and is related to the details of 
 
 ## References
 
-- https://book.sciml.ai/notes/06-The_Different_Flavors_of_Parallelism/
+-   https://book.sciml.ai/notes/06-The_Different_Flavors_of_Parallelism/
+-   https://docs.julialang.org/en/v1/manual/parallel-computing/
