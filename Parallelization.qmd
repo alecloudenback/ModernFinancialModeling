@@ -425,7 +425,7 @@ GPUs have similar components as the CPU as discussed in @sec-hardware. They have
 Like the difference between x86 and ARM architectures, GPU also have specific architectures which vary by the vendor. To make full use of the hardware, the vendors need to (1) provide device drivers which allow the CPU to talk to the GPU, and (2) provide the libraries (lower level application programming interfaces, or APIs) which allow developers to utilize different hardware features without needing to write machine code. As of the mid 2020s, here are the most important GPU vendors and the associated programming library for utilizing their specific hardware:
 
 | Vendor | Hardware | API Library/Package |
-|----|----|----|
+|------------------------|------------------------|------------------------|
 | NVIDIA | Geforce, GTX/RTX, various Data Center focused hardware | CUDA |
 | AMD | Radeon, various Data Center focused hardware | ROCm |
 | Intel | Core, Xeon, Arc processors | OneAPI |
@@ -449,9 +449,83 @@ There's essentially two types of GPU programming we will discuss here:
 
 It is possible to explicitly write a GPU kernel in Julia or vendor API library (CUDA, Metal, etc.) but this is more advanced usage which will not be covered here.
 
+#### Julia GPU Libraries
+
+Julia has wonderful support for several of the primary vendors (at the time of writing, CUDA, Metal, OneAPI, and ROCm) via the [JuliaGPU organization](https://juliagpu.org). Installation of the required dependencies is also very straightforward and the interfaces at the array and generated kernel levels are very similar. The differences are obvious at the lower level vendor-API wrappers (which is the lower-level technique that will not be covered here).
+
+The benefit of the consistency of the higher level libraries we will use here is that examples written for one of the types of accelerators will be largely directly translate-able to another. This book will be rendered on a Mac and therefore the examples will use Metal in order to run computational cells, however we'll show a CUDA translation for some of the examples in order to show the straight-forward nature of translating higher level GPU code in Julia is.
+
+| GPU API | GPU Array Type | Kernel Macro |
+|---------|----------------|--------------|
+| CUDA    | `CuArray`      | `@cuda`      |
+| Metal   | `MtlArray`     | `@metal`     |
+| oneAPI  | `oneArray`     | `@oneAPI`    |
+| ROCm    | `ROCArray`     | `@roc`       |
+
 #### Array Programming
 
 First described in @sec-array-oriented-styles, array programming eschews writing loops and and instead favors initializing blocks of heap-allocated memory and filling it with data to be operated on at a single point in time. While this is often not the most efficient way to utilize CPUs, it's essentially the required style of code to utilize GPUs.
+
+For the example below, we will calculate the present value of a series of cashflows across a number of different scenarios. An explanation of the code is given below the example.
+
+```{julia}
+using Metal
+
+function calculate_present_values(cashflows, discount_matrices) # <1>
+    # Perform element-wise multiplication and sum along the time dimension
+    present_values = sum(cashflows .* discount_matrices, dims=1) # <2>   
+end
+
+# Example usage using 100 time periods
+cashflows = rand(Float32, 100) # <3>
+discount_matrices = rand(Float32, 100, 100_000)  # <4>
+
+# copy the data to the GPU
+cashflows_GPU = MtlArray(cashflows) # <5>
+discount_matrices_GPU = MtlArray(discount_matrices)
+
+
+
+@btime calculate_present_values($cashflows, $discount_matrices)
+@btime calculate_present_values($cashflows_GPU, $discount_matrices_GPU) # <6>
+```
+
+1. The function `calculate_present_values` is written the same way as if we were just writing CPU code.
+2. The code is broadcasted across the first dimension so that the single set of cashflows is discounted for each scenario's discount vector.
+3. Metal only supports 32 bit floating point (some CUDA hardware will support 64 bit floating point)
+4. Using 100 thousand scenarios for this example.
+5. `MtlArray(array)` will copy the array values to the GPU.
+6. Note that the data still lives on the GPU and is of the `MtlMatrix` (a type alias for a 2-D `MtlArray`).
+
+The testing suggests approximately 100 times faster computation when performed on the GPU. Note however, that does not include the overhead of (1) moving the data to the GPU (in the initial `MtlArray(cashflows)` call), or (2) returning the data to the CPU (since the return type for the GPU version is `MtlArray`). We can measure this overhead by wrapping the data transfer inside another function and benchmarking it:
+
+```{julia}
+function GPU_overhead_test(cashflows,discount_matrices)
+    cashflows_GPU = MtlArray(cashflows) # <5>
+    discount_matrices_GPU = MtlArray(discount_matrices)
+
+    result = calculate_present_values(cashflows_GPU, discount_matrices_GPU)
+
+    Array(result) # convert to CPU array
+end
+
+@btime GPU_overhead_test($cashflows,$discount_matrices)
+
+```
+
+With the additional overhead, the computation on the GPU takes more total time as if were done just on the CPU. This is a very simple example, and the balance tips heavily in favor of the GPU when:
+
+1. The computational demands are significantly higher (e.g. we were to do more calculations than just a simple multiply/divide/sum).
+2. The data size grows bigger.
+
+
+:::callout-note
+The previous example can be translated to CUDA by simply exchanging `MtlArray` for `CuArray`.
+:::
+
+::callout-warning
+This example again underscores that hardware paralellization is not an automatic "win" for performance. A lot of uninformed discussion around modeling performance is to simply try to get things to run on the GPU and it is often *not* the case that the models will run faster. Further, as the modeling logic gets more complex, it does require greater care to keep in mind GPU constraints (acceptable data types, memory limitations, avoiding scalar operations, data transfer between CPU and GPU, etc.). A best practice is to contemplate sequential performance and memory usage before leveraging GPU accelerators.
+:::
 
 ## Multi-Device {#sec-multi-device}
 
