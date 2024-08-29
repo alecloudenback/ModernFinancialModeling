@@ -143,9 +143,9 @@ Some additional packages to be aware of include:
 -   [Octavian.jl](https://github.com/JuliaLinearAlgebra/Octavian.jl) implements a linear algebra-like library, utilizing parallelism via vectorization to generate efficent code for the system it's running on.
 -   [Tulio.jl](https://github.com/mcabbott/Tullio.jl) is an einsum library, a domain-specific language for tensor (a specific subset of vectors) operations, common in machine learning and linear algebra.
 
-## Multi-Threading
+## Multi-Threading {#sec-multithreading}
 
-### Tasks
+### Tasks {#sec-tasks}
 
 To understand mulithreading examples, we first need to discuss **Tasks**, which are chunks of computation that get performed together, but after which the computer is free to switch to a new task. Technically, there are some instructions within a task that will let the computer pause and come back to that task later (such as `sleep`). Tasks are do not, by themselves, allow for multiple computations to be performed in parallel. For example, one task might be loading a data file from persistent storage into RAM. After that task is complete, the computer continues on with another task in the queue (rendering a web page, playing a song, etc.). In this way even with a single processor and core, a computer could be "doing multiple things at once" (or "multi-tasking") even though nothing is running in parallel. The scheduling of the tasks is handled automatically by Julia and the operating system.
 
@@ -402,7 +402,7 @@ import ThreadsX
 @btime ThreadsX.mapreduce(x -> x, +, 1:100_000)
 ```
 
-## GPU and TPUs
+## GPU and TPUs {#sec-GPUs}
 
 ### Hardware
 
@@ -438,6 +438,8 @@ Like the difference between x86 and ARM architectures, GPU also have specific ar
 
 With some of the key conceptual differences between CPUs and GPUs explained, let's explore how to incorporate these powerful hardware accelerators.
 
+#### Julia GPU Libraries
+
 There's essentially two types of GPU programming we will discuss here:
 
 1.  Array-based programming can, in Julia, be fairly easily translated into code that will run on GPUs.
@@ -449,11 +451,11 @@ There's essentially two types of GPU programming we will discuss here:
 
 It is possible to explicitly write a GPU kernel in Julia or vendor API library (CUDA, Metal, etc.) but this is more advanced usage which will not be covered here.
 
-#### Julia GPU Libraries
-
 Julia has wonderful support for several of the primary vendors (at the time of writing, CUDA, Metal, OneAPI, and ROCm) via the [JuliaGPU organization](https://juliagpu.org). Installation of the required dependencies is also very straightforward and the interfaces at the array and generated kernel levels are very similar. The differences are obvious at the lower level vendor-API wrappers (which is the lower-level technique that will not be covered here).
 
-The benefit of the consistency of the higher level libraries we will use here is that examples written for one of the types of accelerators will be largely directly translate-able to another. This book will be rendered on a Mac and therefore the examples will use Metal in order to run computational cells, however we'll show a CUDA translation for some of the examples in order to show the straight-forward nature of translating higher level GPU code in Julia is.
+The benefit of the consistency of the higher level libraries we will use here is that examples written for one of the types of accelerators will be largely directly translate-able to another. This is especially true for array programming, a little less so for the kernel style, and the least true for for the low level vendor-API wrapper functionality.
+
+This book will be rendered on a Mac and therefore the examples will use Metal in order to run computational cells, however we'll show a CUDA translation for some of the examples in order to show the straight-forward nature of translating higher level GPU code in Julia is.
 
 | GPU API | GPU Array Type | Kernel Macro |
 |---------|----------------|--------------|
@@ -462,7 +464,7 @@ The benefit of the consistency of the higher level libraries we will use here is
 | oneAPI  | `oneArray`     | `@oneAPI`    |
 | ROCm    | `ROCArray`     | `@roc`       |
 
-#### Array Programming
+#### Array Programming on the GPU
 
 First described in @sec-array-oriented-styles, array programming eschews writing loops and and instead favors initializing blocks of heap-allocated memory and filling it with data to be operated on at a single point in time. While this is often not the most efficient way to utilize CPUs, it's essentially the required style of code to utilize GPUs.
 
@@ -484,18 +486,16 @@ discount_matrices = rand(Float32, 100, 100_000)  # <4>
 cashflows_GPU = MtlArray(cashflows) # <5>
 discount_matrices_GPU = MtlArray(discount_matrices)
 
-
-
 @btime calculate_present_values($cashflows, $discount_matrices)
 @btime calculate_present_values($cashflows_GPU, $discount_matrices_GPU) # <6>
 ```
 
-1. The function `calculate_present_values` is written the same way as if we were just writing CPU code.
-2. The code is broadcasted across the first dimension so that the single set of cashflows is discounted for each scenario's discount vector.
-3. Metal only supports 32 bit floating point (some CUDA hardware will support 64 bit floating point)
-4. Using 100 thousand scenarios for this example.
-5. `MtlArray(array)` will copy the array values to the GPU.
-6. Note that the data still lives on the GPU and is of the `MtlMatrix` (a type alias for a 2-D `MtlArray`).
+1.  The function `calculate_present_values` is written the same way as if we were just writing CPU code.
+2.  The code is broadcasted across the first dimension so that the single set of cashflows is discounted for each scenario's discount vector.
+3.  Metal only supports 32 bit floating point (some CUDA hardware will support 64 bit floating point)
+4.  Using 100 thousand scenarios for this example.
+5.  `MtlArray(array)` will copy the array values to the GPU.
+6.  Note that the data still lives on the GPU and is of the `MtlMatrix` (a type alias for a 2-D `MtlArray`).
 
 The testing suggests approximately 100 times faster computation when performed on the GPU. Note however, that does not include the overhead of (1) moving the data to the GPU (in the initial `MtlArray(cashflows)` call), or (2) returning the data to the CPU (since the return type for the GPU version is `MtlArray`). We can measure this overhead by wrapping the data transfer inside another function and benchmarking it:
 
@@ -515,19 +515,37 @@ end
 
 With the additional overhead, the computation on the GPU takes more total time as if were done just on the CPU. This is a very simple example, and the balance tips heavily in favor of the GPU when:
 
-1. The computational demands are significantly higher (e.g. we were to do more calculations than just a simple multiply/divide/sum).
-2. The data size grows bigger.
+1.  The computational demands are significantly higher (e.g. we were to do more calculations than just a simple multiply/divide/sum).
+2.  The data size grows bigger.
 
-
-:::callout-note
+::: callout-note
 The previous example can be translated to CUDA by simply exchanging `MtlArray` for `CuArray`.
 :::
 
-:::callout-warning
+::: callout-warning
 This example again underscores that hardware paralellization is not an automatic "win" for performance. A lot of uninformed discussion around modeling performance is to simply try to get things to run on the GPU and it is often *not* the case that the models will run faster. Further, as the modeling logic gets more complex, it does require greater care to keep in mind GPU constraints (acceptable data types, memory limitations, avoiding scalar operations, data transfer between CPU and GPU, etc.). A best practice is to contemplate sequential performance and memory usage before leveraging GPU accelerators.
 :::
 
+#### Kernel Programming on the GPU
+
+...
+
 ## Multi-Device {#sec-multi-device}
+
+Mutiple device, or **multi-device** computer refers to using separate groups of memory/processor combinations to accomplish tasks in parallel. This can be as simple as multiple distinct cores on within a single desktop computer, or many separate computers networked across the internet, or many processesors within a high performance cluster or a computing-as-a-service provider like Amazon Web Services or JuliaHub.
+
+Everything discussed previously related to hardware (@sec-hardware, @sec-multithreading, @sec-GPUs) continues to apply. The additional complexity is attempting to syncronize the computation across multiple sets of the same (homogenous) or different (heterogenous) hardware.
+
+As you might imagine, approaches to multi-device computing can vary widely. Julia's approach tries to strike the balance between capability and user-friendliness and uses a primary/worker model wherein one of the processors is the main coordinator while other processors are "workers". If only one processor is started, then the main processor is also a worker processor. This main/worker approach uses a "one-sided" approach to coordination. The main worker utilizes high level calls and the workers respond, with some of the communication and handoff handled by Julia transparently from the user's perspective.
+
+A useful mental model is the asynchronous task-based concepts discussed in @sec-tasks, as the main worker will effectively queue up work with the worker processors. Because there may be a delay associated with the computation or the communication between the processors, the worker runs asynchronously.
+
+| Col1 | Task API            | Distributed Analouge |
+|------|---------------------|----------------------|
+|      |                     |                      |
+|      | `@async`            | `@spawnat`           |
+|      | `fetch` and `@sync` | `fetch` and `sync`   |
+|      | `Channel`           | `RemoteChannel`      |
 
 ## Parallel Programming Models {#sec-parallel-programming-models}
 
@@ -543,3 +561,4 @@ This example again underscores that hardware paralellization is not an automatic
 
 -   https://book.sciml.ai/notes/06-The_Different_Flavors_of_Parallelism/
 -   https://docs.julialang.org/en/v1/manual/parallel-computing/
+-   <https://enccs.github.io/julia-for-hpc/>
