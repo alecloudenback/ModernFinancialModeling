@@ -464,7 +464,7 @@ This book will be rendered on a Mac and therefore the examples will use Metal in
 | oneAPI  | `oneArray`     | `@oneAPI`    |
 | ROCm    | `ROCArray`     | `@roc`       |
 
-#### Array Programming on the GPU
+#### Array Programming on the GPU {#sec-GPU-array}
 
 First described in @sec-array-oriented-styles, array programming eschews writing loops and and instead favors initializing blocks of heap-allocated memory and filling it with data to be operated on at a single point in time. While this is often not the most efficient way to utilize CPUs, it's essentially the required style of code to utilize GPUs.
 
@@ -532,23 +532,48 @@ This example again underscores that hardware paralellization is not an automatic
 
 #### Kernel Programming on the GPU
 
+Another approach to GPU programing is often referred to as kernel programming, or being much more explicit about *how* a computation is performed. This is as opposed to the declarative approach in the array-oriented style (@sec-GPU-array) wherein we specified *what* we wanted the computation to be.
+
+The key ideas here are that we need to manually specifiy several aspects which came 'free' in the array-oriented style. The tradeoff is that we can be more fine-tuned about how the computation leverages our hardware, potentially increasing performance. 
+
+The GPU libraries in Julia abstract much of the low level programming typically necessary for this style of programming, but we still need to explicitly look at:
+
+1. How the GPU will iterate across different cores/threads threads.
+2. How many threads to utilize, the optimal number depends on the shape of the computation (long vectors, multi-dimensional arrays), memory constraints, and hardware specifics.
+  - GPU threads: Individual units of execution within a kernel. Each thread runs the same kernel code but operates on a different portion of the data. 
+3. How to chunk (group) the data to distribute the data to the different GPU threads
+
+Our strategy for the present values example will be to distribute the work such that different GPU threads are working on different scenarios. Within a scenario, the loop is a very familiar approach: initialize a subtotal to zero and then accumulate the calculated present values.
+
 ```{julia}
 function calculate_present_values_kernel!(present_values,cashflows, discount_matrices)
-    idx = thread_position_in_grid_1d()  # Get global thread index
+    idx = thread_position_in_grid_1d()  # <1>
 
-    pv = 0.0f0
+    pv = 0.0f0 # <2>
     for t in 1:size(cashflows, 1)
-        pv += cashflows[t] * discount_matrices[t, idx]
+        pv += cashflows[t] * discount_matrices[t, idx] # <3>
     end
 
-    present_values[idx] = pv
-    return nothing
+    present_values[idx] = pv # <4>
+    return nothing # <5>
 end
 ```
 
+1. As the work is distributed across threads, `thread_position_in_grid_1d()` will give the index of the current thread so that we can index data approporiately for the work as we decide to splitit up (we've split up thw work by scenario in this example).
+2. Recall that we are working with `Float32` on the GPU here, so the zero value is set via the `f0` notation indicating a 32-bit floating point number.
+3. The loop is across timesteps within each thread, while the thread index is tracked with `idx`.
+4. The result is written to the pre-allocated array of present values, and we avoid race conditions because the different threads are working on difference scenarios.
+5. We don't explicitly have to `return nothing` here, but it makes it extra clear that the intention of the function is to mutate the `present_values` array given to it. This mutation intention is also signaled by the `!` convention in the function name.
+
+The kernel above was fairly similar to how we might write code for CPU-threaded approaches, but we now need to specify the technicals of launching this on the GPU. The `threads` defines how many independent calculations to run at a given time, and the maximum will be dependent on the hardware used. The `groups` argument defines the number of threads that share memory and synchronize results together (meaning that group will wait for all threads to finish before moving onto the next chunck of data). The push-pull here is that threads that can share data avoid needing to create duplicate copies of that data in memory, but if there is variability in how long each calculation will take, then the waiting time for synchronizing results may slow the overall computation down.
+
+Our task utilizes shared memory of the cashflows for each thread, so through some experimentation in advance, we find that a relatively large group size of ~512 is optimal.
+
+We bring this all together through the use of the kernel macro `@metal`:
+
 ```{julia}
 threads = 1024
-groups = cld(num_scenarios, 256)
+groups = cld(num_scenarios, 512)
 
 @btime @metal threads=$threads groups=$groups calculate_present_values_kernel!(
     $pvs_GPU,
@@ -556,6 +581,22 @@ groups = cld(num_scenarios, 256)
     $discount_matrices_GPU
     )
 ```
+
+This is approximately seven times faster than the array-oriented style above, meaning that the GPU kernel version's computation is over 1000 times faster than the CPU version. However, we saw previsouly that the cost of moving the data to the GPU memory and then back to the CPU memory was the biggest time sink of all - again we'd need to have more scale in the problem to make offloading to the GPU beneficial overall.
+
+:::callout-note
+The Metal GPUs are able to iterate threads across three different dimensions. In the prior example, we only used one dimension and thus used `thread_position_in_grid_1d()`. If we were distributing the threads across, say, three dimensions then we would use `thread_position_in_grid_2d()`. 
+
+How do you determine how many dimensions to use? A good approach is to mimic the data you are trying to parallelize. In the example of calculating a vector of present values across 100k scenarios, that was the primary 'axis of parallelization'. If instead of a one-dimensional set of cashflows (e.g. a single asset with fixed cashflows), we had a two-dimensional set of cashflows (e.g. a portfolio of many assets), then we may find the best balance of code simplicity and performance to iterate across two dimensions of threads (but we are still limited by the same number of total available threads).
+:::
+
+:::callout-note
+The above example would be translated to CUDA by changing just a few things:
+
+- The thread indexing would be `idx = threadIdx().x` instead of `i = threadIdx().x`
+- The GPU arrays should be created with `CuArray` instead of `MtlArray`.
+- The kernel macro would be `@cuda threads=1024 calculate_present_values_kernel!(...)` instead of `@metal threads=threads groups=groups calculate_present_values_kernel(...)`. The memory sharing and synchronizing between threads is more manual than Metal.jl, but this is not strictly necessary for our example.
+:::
 
 ## Multi-Device {#sec-multi-device}
 
