@@ -177,7 +177,7 @@ let
 end
 ```
 
-#### Channels
+#### Channels {#sec-channels}
 
 **Channels** are a way to communicate data in an ordered way between tasks. You specify a type of data that the buffer will contain and how many elements it can hold. It then stores items (via `put!`) in a first-in-first-out (FIFO) queue, which can be popped off the queue (via \`take!) by other tasks.
 
@@ -382,26 +382,6 @@ end
 @btime sum_with_atomic(100_000)
 ```
 
-##### Higher Level Libraries
-
-###### OhMyThreads
-
-[ThreadsX.jl](https://github.com/JuliaFolds2/OhMyThreads.jl) provides the threaded versions of essential functions such as `tmap`, `tmapreduce`,`tcollect`, and `tforeach` (see @tbl-funcional-methods). In most cases, the chunking and data sharing is handled automatically for you.
-
-```{julia}
-import OhMyThreads
-@btime OhMyThreads.tmapreduce(x -> x, +, 1:100_000)
-```
-
-###### ThreadsX
-
-[ThreadsX.jl](https://github.com/JuliaFolds2/ThreadsX.jl) is built off of the wonderful [Transducers.jl](https://github.com/JuliaFolds2/Transducers.jl) package, though the latter is a bit more advanced (more abstract, but as a result more composable and powerful). ThreadsX provides threaded versions of many popular base functions. It offers a wider set of readymade threaded functions, but has a much more complex codebase. For the vast majority of threading needs, OhMyThreads.jl should be sufficent and performant. See the documentation for all of the implemented functions, but for our illustrative example:
-
-```{julia}
-import ThreadsX
-@btime ThreadsX.mapreduce(x -> x, +, 1:100_000)
-```
-
 ## GPU and TPUs {#sec-GPUs}
 
 ### Hardware
@@ -596,6 +576,30 @@ The above example would be translated to CUDA by changing just a few things:
 - The thread indexing would be `idx = threadIdx().x` instead of `i = threadIdx().x`
 - The GPU arrays should be created with `CuArray` instead of `MtlArray`.
 - The kernel macro would be `@cuda threads=1024 calculate_present_values_kernel!(...)` instead of `@metal threads=threads groups=groups calculate_present_values_kernel(...)`. The memory sharing and synchronizing between threads is more manual than Metal.jl, but this is not strictly necessary for our example.
+
+THIS CODE NEEDS TO BE TESTED ON A CUDA MACHINE:
+
+```julia
+function calculate_present_values_kernel!(present_values,cashflows, discount_matrices)
+    idx = threadIdx().x 
+
+    pv = 0.0f0
+    for t in 1:size(cashflows, 1)
+        pv += cashflows[t] * discount_matrices[t, idx]
+    end
+
+    present_values[idx] = pv
+    return nothing
+end
+
+groups = cld(num_scenarios, 512)
+
+@cuda threads=threads calculate_present_values_kernel!(
+    pvs_GPU,
+    cashflows_GPU, 
+    discount_matrices_GPU
+    )
+```
 :::
 
 ## Multi-Device {#sec-multi-device}
@@ -608,20 +612,151 @@ As you might imagine, approaches to multi-device computing can vary widely. Juli
 
 A useful mental model is the asynchronous task-based concepts discussed in @sec-tasks, as the main worker will effectively queue up work with the worker processors. Because there may be a delay associated with the computation or the communication between the processors, the worker runs asynchronously.
 
-| Col1 | Task API            | Distributed Analouge |
-|------|---------------------|----------------------|
-|      |                     |                      |
-|      | `@async`            | `@spawnat`           |
-|      | `fetch` and `@sync` | `fetch` and `sync`   |
-|      | `Channel`           | `RemoteChannel`      |
+| Description                   | Task API              | Distributed Analogue |
+|-------------------------------|----------------------|----------------------|
+| Create a new task             | `Task()`             | `@spawnat`           |
+| Run task asynchronously       | `@async`             | `@spawnat`           |
+| Retrieve task result          | `fetch`              | `fetch`              |
+| Wait for task completion      | `@sync`              | `sync`               |
+| Communication between tasks   | `Channel`            | `RemoteChannel`      |
+
+Adapting the trade producer and monitor example from above to run on multiple processors (see #sec-channels to review the base model and algorithm), we make a few key changes:
+
+- `using Distributed` loads the Distributed standard Julia library, providing the interface for multi-processing across different hardware.
+- `addprocs(n)` will add `n` worker processors (the main processor is already counted as one worker). When adding local machine processors, the processors are part of the local machine. This starts new Julia processes (you can see this in the task manager of the machine) which inherit the package environment (i.e. `Project.toml` and environment variables) from the main process; this does not occur automatically if not part of the same local machine.
+  - To add processors from other machines, see the [Distributed Computing](https://docs.julialang.org/en/v1/stdlib/Distributed/) section of the Julia docs.
+- `myid()` is the identification number of the given processor that's been spun up.
+- We use a `RemoteChannel` instead of a `Channel` to facilitate communication across processors.
+- Instead of `@async`, we use `@spawnat n` to create a task for processor number `n` (or `:any` will automatically assign a processor).  
+
+See 
+```{julia}
+using Distributed
+let
+
+# Add worker processes if not already added
+if nworkers() == 1
+    addprocs(4)  # Add 4 worker processes
+end
+
+@everywhere function trade_producer(channel, i)
+    sleep(rand())
+    profit = randn()
+    put!(channel, profit)
+    println("Producer $(myid()): Trade Result #$i $(round(profit, digits=3))")
+end
+
+@everywhere function portfolio_monitor(channel, n)
+    sum = 0.0
+    for _ in 1:n  # <3>
+        profit = take!(channel)
+        sum += profit
+        println("Monitor $(myid()): Received $(round(profit, digits=3)), Cumulative profit: $(round(sum, digits=3))")
+    end
+end
+
+function run_distributed_simulation()
+    channel = RemoteChannel(() -> Channel{Float64}(32))  # <4>
+
+    # Start producer and consumer tasks
+    @sync begin  # <5>
+        for i in 1:5
+            @spawnat :any trade_producer(channel, i)  # <6>
+        end
+        @spawnat :any portfolio_monitor(channel, 5)  # <6>
+    end
+
+    # Close the channel and wait for tasks to finish
+    close(channel)
+end
+
+# Run the simulation
+run_distributed_simulation()
+end
+```
+
+Given the similarity to the single-process version, what's the motivation for this approach? A few differences:
+
+- In this simplified example, we are simply starting additional Julia processes on the same machine. Like a threaded approach, the work will be split across the same multi-core processor. In this context, the main difference is that the processes do not share memory. 
+  - Communicating across processes generally has a little bit more overhead than communicating across threads.
+- If distributing across machines, not sharing memory is advantageous if using multi-processing across machines that have their own memory stores which need not compete with the main process (such as distributing chunks of large datasets).
+- The worker processors don't need to be the same architecture as the main processor, allowing usage of different machines or cloud computing that is communicating with a local main process.
 
 ## Parallel Programming Models {#sec-parallel-programming-models}
 
+The previous sections have explained the different parallel programming models and how to directly utilize them to harness additional computing power. Each approach (multi-threading, GPU, distributed processing, etc.) has unique considerations and tradeoffs. These approaches in Julia are generally much more accessable to beginning and intermediate users than other languages, but admittedly still requires a decent amount of thought and care.
+
+It is possible, if you are willing to give up some fine-grained control, to utilize some higher level approaches which look to abstract away some of the particularities of the implementation. 
+
 ### Map-Reduce
+
+Map-Reduce (@sec-map-reduce) operations are inherently parallelizable and various libraries provide parallelized versions of the base `mapreduce`. This is the workhorse function of many 'big data' workloads and many statistical operations are versions of `mapreduce`. 
+
+#### Multi-Threading
+
+##### OhMyThreads
+
+[ThreadsX.jl](https://github.com/JuliaFolds2/OhMyThreads.jl) provides the threaded versions of essential functions such as `tmap`, `tmapreduce`,`tcollect`, and `tforeach` (see @tbl-funcional-methods). In most cases, the chunking and data sharing is handled automatically for you.
+
+```{julia}
+import OhMyThreads
+@btime OhMyThreads.tmapreduce(x -> x, +, 1:100_000)
+```
+
+##### ThreadsX
+
+[ThreadsX.jl](https://github.com/JuliaFolds2/ThreadsX.jl) is built off of the wonderful [Transducers.jl](https://github.com/JuliaFolds2/Transducers.jl) package, though the latter is a bit more advanced (more abstract, but as a result more composable and powerful). ThreadsX provides threaded versions of many popular base functions. It offers a wider set of readymade threaded functions, but has a much more complex codebase. For the vast majority of threading needs, OhMyThreads.jl should be sufficent and performant. See the documentation for all of the implemented functions, but for our illustrative example:
+
+```{julia}
+import ThreadsX
+@btime ThreadsX.mapreduce(x -> x, +, 1:100_000)
+```
+
+#### Multi-Processing
+
+`reduce(op,pmap(f,collection))` will use a distributed map and reduce the resulting map on the main thread. This pattern works well if each application of `f` to elements of `collection` is costly. 
+
+`@distributed (op) for x in collection; f(x); end` is a way to write the loop with the reduction `op` for which the `f` need not be costly. 
+
+The difference between the two approaches is that with `pmap`, `collection` is made available to all workers. In the `@distributed` approach, the collection is partitioned and only a subset is sent to the designated workers. 
+
+Here's an example of both of these, calculating a simple example of counting coin flips:
+
+```{julia}
+# this is a example of poor utilization of pmap, since the operation is 
+# fast and the overhead of moving the whole collection dominates
+@btime reduce(+,pmap(x -> rand((0,1)),1:10^3))
+```
+
+```{julia}
+ 
+function dist_demo()
+    @distributed (+) for _ in 1:10^5
+        rand((0,1))
+    end
+end
+
+@btime dist_demo()
+```
 
 ### Array-Based
 
+Array based approaches will often utilize the parallelism of SIMD on the CPU or many cores on the GPU. It's as simple as using generic library calls which will often be optimized at the compiler level. Examples:
+
+```{julia}
+let
+    x = rand(Float32,10^8)
+    x_GPU = MtlArray(x)
+    @btime sum($x)
+    @btime sum($x_GPU)
+end
+```
+
+`sum(x)` compiles to SIMD instructions on the CPU, while using the GPU array type in `sum(x_GPU)` is enough to let the compiler dispatch on the GPU type and emit efficient, parallelized code for the GPU.
+
 ### Loop-Based
+
+Loops which don't have race conditions can easily become multi-threaded. 
 
 ### Task-Based
 
