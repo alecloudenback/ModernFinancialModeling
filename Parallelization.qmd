@@ -177,7 +177,7 @@ let
 end
 ```
 
-#### Channels
+#### Channels {#sec-channels}
 
 **Channels** are a way to communicate data in an ordered way between tasks. You specify a type of data that the buffer will contain and how many elements it can hold. It then stores items (via `put!`) in a first-in-first-out (FIFO) queue, which can be popped off the queue (via \`take!) by other tasks.
 
@@ -382,26 +382,6 @@ end
 @btime sum_with_atomic(100_000)
 ```
 
-##### Higher Level Libraries
-
-###### OhMyThreads
-
-[ThreadsX.jl](https://github.com/JuliaFolds2/OhMyThreads.jl) provides the threaded versions of essential functions such as `tmap`, `tmapreduce`,`tcollect`, and `tforeach` (see @tbl-funcional-methods). In most cases, the chunking and data sharing is handled automatically for you.
-
-```{julia}
-import OhMyThreads
-@btime OhMyThreads.tmapreduce(x -> x, +, 1:100_000)
-```
-
-###### ThreadsX
-
-[ThreadsX.jl](https://github.com/JuliaFolds2/ThreadsX.jl) is built off of the wonderful [Transducers.jl](https://github.com/JuliaFolds2/Transducers.jl) package, though the latter is a bit more advanced (more abstract, but as a result more composable and powerful). ThreadsX provides threaded versions of many popular base functions. It offers a wider set of readymade threaded functions, but has a much more complex codebase. For the vast majority of threading needs, OhMyThreads.jl should be sufficent and performant. See the documentation for all of the implemented functions, but for our illustrative example:
-
-```{julia}
-import ThreadsX
-@btime ThreadsX.mapreduce(x -> x, +, 1:100_000)
-```
-
 ## GPU and TPUs {#sec-GPUs}
 
 ### Hardware
@@ -464,7 +444,7 @@ This book will be rendered on a Mac and therefore the examples will use Metal in
 | oneAPI  | `oneArray`     | `@oneAPI`    |
 | ROCm    | `ROCArray`     | `@roc`       |
 
-#### Array Programming on the GPU
+#### Array Programming on the GPU {#sec-GPU-array}
 
 First described in @sec-array-oriented-styles, array programming eschews writing loops and and instead favors initializing blocks of heap-allocated memory and filling it with data to be operated on at a single point in time. While this is often not the most efficient way to utilize CPUs, it's essentially the required style of code to utilize GPUs.
 
@@ -473,47 +453,51 @@ For the example below, we will calculate the present value of a series of cashfl
 ```{julia}
 using Metal
 
-function calculate_present_values(cashflows, discount_matrices) # <1>
+function calculate_present_values!(present_values,cashflows, discount_matrices) # <1>
     # Perform element-wise multiplication and sum along the time dimension
-    present_values = sum(cashflows .* discount_matrices, dims=1) # <2>   
+    present_values .= sum(cashflows .* discount_matrices, dims=1) # <2>   
 end
 
-# Example usage using 100 time periods
+# Example usage using 100 time periods, 100k scenarios
+num_scenarios = 10^5
+pvs = zeros(Float32,1,num_scenarios)
 cashflows = rand(Float32, 100) # <3>
-discount_matrices = rand(Float32, 100, 100_000)  # <4>
+discount_matrices = rand(Float32, 100, num_scenarios)  # <4>
 
 # copy the data to the GPU
+pvs_GPU = MtlArray(pvs)
 cashflows_GPU = MtlArray(cashflows) # <5>
 discount_matrices_GPU = MtlArray(discount_matrices)
 
-@btime calculate_present_values($cashflows, $discount_matrices)
-@btime calculate_present_values($cashflows_GPU, $discount_matrices_GPU) # <6>
+@btime calculate_present_values!($pvs,$cashflows, $discount_matrices)
+@btime calculate_present_values!($pvs_GPU,$cashflows_GPU, $discount_matrices_GPU) # <6>
 ```
 
-1.  The function `calculate_present_values` is written the same way as if we were just writing CPU code.
+1.  The function `calculate_present_values!` is written the same way as if we were just writing CPU code. Note that we are also passing a pre-allocated vector, `present_values` to store the result. This will allow us to isolate the performance of the computation, rather than including any overhead of allocating the array for the result.
 2.  The code is broadcasted across the first dimension so that the single set of cashflows is discounted for each scenario's discount vector.
 3.  Metal only supports 32 bit floating point (some CUDA hardware will support 64 bit floating point)
 4.  Using 100 thousand scenarios for this example.
 5.  `MtlArray(array)` will copy the array values to the GPU.
 6.  Note that the data still lives on the GPU and is of the `MtlMatrix` (a type alias for a 2-D `MtlArray`).
 
-The testing suggests approximately 100 times faster computation when performed on the GPU. Note however, that does not include the overhead of (1) moving the data to the GPU (in the initial `MtlArray(cashflows)` call), or (2) returning the data to the CPU (since the return type for the GPU version is `MtlArray`). We can measure this overhead by wrapping the data transfer inside another function and benchmarking it:
+The testing suggests approximately 200 times faster computation when performed on the GPU. Note however, that does not include the overhead of (1) moving the data to the GPU (in the initial `MtlArray(cashflows)` call), or (2) returning the data to the CPU (since the return type for the GPU version is `MtlArray`). We can measure this overhead by wrapping the data transfer inside another function and benchmarking it:
 
 ```{julia}
-function GPU_overhead_test(cashflows,discount_matrices)
+function GPU_overhead_test(present_values, cashflows,discount_matrices)
+    pvs_GPU = MtlArray(present_values)
     cashflows_GPU = MtlArray(cashflows) # <5>
     discount_matrices_GPU = MtlArray(discount_matrices)
 
-    result = calculate_present_values(cashflows_GPU, discount_matrices_GPU)
+    calculate_present_values!(pvs_GPU,cashflows_GPU, discount_matrices_GPU)
 
-    Array(result) # convert to CPU array
+    Array(pvs_GPU) # convert to CPU array
 end
 
-@btime GPU_overhead_test($cashflows,$discount_matrices)
+@btime GPU_overhead_test($pvs,$cashflows,$discount_matrices)
 
 ```
 
-With the additional overhead, the computation on the GPU takes more total time as if were done just on the CPU. This is a very simple example, and the balance tips heavily in favor of the GPU when:
+With the additional overhead, the computation on the GPU takes more total time than if the work were done just on the CPU. This is a very simple example, and the balance tips heavily in favor of the GPU when:
 
 1.  The computational demands are significantly higher (e.g. we were to do more calculations than just a simple multiply/divide/sum).
 2.  The data size grows bigger.
@@ -528,9 +512,97 @@ This example again underscores that hardware paralellization is not an automatic
 
 #### Kernel Programming on the GPU
 
-...
+Another approach to GPU programing is often referred to as kernel programming, or being much more explicit about *how* a computation is performed. This is as opposed to the declarative approach in the array-oriented style (@sec-GPU-array) wherein we specified *what* we wanted the computation to be.
 
-## Multi-Device {#sec-multi-device}
+The key ideas here are that we need to manually specifiy several aspects which came 'free' in the array-oriented style. The tradeoff is that we can be more fine-tuned about how the computation leverages our hardware, potentially increasing performance. 
+
+The GPU libraries in Julia abstract much of the low level programming typically necessary for this style of programming, but we still need to explicitly look at:
+
+1. How the GPU will iterate across different cores/threads threads.
+2. How many threads to utilize, the optimal number depends on the shape of the computation (long vectors, multi-dimensional arrays), memory constraints, and hardware specifics.
+  - GPU threads: Individual units of execution within a kernel. Each thread runs the same kernel code but operates on a different portion of the data. 
+3. How to chunk (group) the data to distribute the data to the different GPU threads
+
+Our strategy for the present values example will be to distribute the work such that different GPU threads are working on different scenarios. Within a scenario, the loop is a very familiar approach: initialize a subtotal to zero and then accumulate the calculated present values.
+
+```{julia}
+function calculate_present_values_kernel!(present_values,cashflows, discount_matrices)
+    idx = thread_position_in_grid_1d()  # <1>
+
+    pv = 0.0f0 # <2>
+    for t in 1:size(cashflows, 1)
+        pv += cashflows[t] * discount_matrices[t, idx] # <3>
+    end
+
+    present_values[idx] = pv # <4>
+    return nothing # <5>
+end
+```
+
+1. As the work is distributed across threads, `thread_position_in_grid_1d()` will give the index of the current thread so that we can index data approporiately for the work as we decide to splitit up (we've split up thw work by scenario in this example).
+2. Recall that we are working with `Float32` on the GPU here, so the zero value is set via the `f0` notation indicating a 32-bit floating point number.
+3. The loop is across timesteps within each thread, while the thread index is tracked with `idx`.
+4. The result is written to the pre-allocated array of present values, and we avoid race conditions because the different threads are working on difference scenarios.
+5. We don't explicitly have to `return nothing` here, but it makes it extra clear that the intention of the function is to mutate the `present_values` array given to it. This mutation intention is also signaled by the `!` convention in the function name.
+
+The kernel above was fairly similar to how we might write code for CPU-threaded approaches, but we now need to specify the technicals of launching this on the GPU. The `threads` defines how many independent calculations to run at a given time, and the maximum will be dependent on the hardware used. The `groups` argument defines the number of threads that share memory and synchronize results together (meaning that group will wait for all threads to finish before moving onto the next chunck of data). The push-pull here is that threads that can share data avoid needing to create duplicate copies of that data in memory, but if there is variability in how long each calculation will take, then the waiting time for synchronizing results may slow the overall computation down.
+
+Our task utilizes shared memory of the cashflows for each thread, so through some experimentation in advance, we find that a relatively large group size of ~512 is optimal.
+
+We bring this all together through the use of the kernel macro `@metal`:
+
+```{julia}
+threads = 1024
+groups = cld(num_scenarios, 512)
+
+@btime @metal threads=$threads groups=$groups calculate_present_values_kernel!(
+    $pvs_GPU,
+    $cashflows_GPU, 
+    $discount_matrices_GPU
+    )
+```
+
+This is approximately seven times faster than the array-oriented style above, meaning that the GPU kernel version's computation is over 1000 times faster than the CPU version. However, we saw previsouly that the cost of moving the data to the GPU memory and then back to the CPU memory was the biggest time sink of all - again we'd need to have more scale in the problem to make offloading to the GPU beneficial overall.
+
+:::callout-note
+The Metal GPUs are able to iterate threads across three different dimensions. In the prior example, we only used one dimension and thus used `thread_position_in_grid_1d()`. If we were distributing the threads across, say, three dimensions then we would use `thread_position_in_grid_2d()`. 
+
+How do you determine how many dimensions to use? A good approach is to mimic the data you are trying to parallelize. In the example of calculating a vector of present values across 100k scenarios, that was the primary 'axis of parallelization'. If instead of a one-dimensional set of cashflows (e.g. a single asset with fixed cashflows), we had a two-dimensional set of cashflows (e.g. a portfolio of many assets), then we may find the best balance of code simplicity and performance to iterate across two dimensions of threads (but we are still limited by the same number of total available threads).
+:::
+
+:::callout-note
+The above example would be translated to CUDA by changing just a few things:
+
+- The thread indexing would be `idx = threadIdx().x` instead of `i = threadIdx().x`
+- The GPU arrays should be created with `CuArray` instead of `MtlArray`.
+- The kernel macro would be `@cuda threads=1024 calculate_present_values_kernel!(...)` instead of `@metal threads=threads groups=groups calculate_present_values_kernel(...)`. The memory sharing and synchronizing between threads is more manual than Metal.jl, but this is not strictly necessary for our example.
+
+THIS CODE NEEDS TO BE TESTED ON A CUDA MACHINE:
+
+```julia
+function calculate_present_values_kernel!(present_values,cashflows, discount_matrices)
+    idx = threadIdx().x 
+
+    pv = 0.0f0
+    for t in 1:size(cashflows, 1)
+        pv += cashflows[t] * discount_matrices[t, idx]
+    end
+
+    present_values[idx] = pv
+    return nothing
+end
+
+groups = cld(num_scenarios, 512)
+
+@cuda threads=threads calculate_present_values_kernel!(
+    pvs_GPU,
+    cashflows_GPU, 
+    discount_matrices_GPU
+    )
+```
+:::
+
+## Multi-Processing / Multi-Device {#sec-multi-device}
 
 Mutiple device, or **multi-device** computer refers to using separate groups of memory/processor combinations to accomplish tasks in parallel. This can be as simple as multiple distinct cores on within a single desktop computer, or many separate computers networked across the internet, or many processesors within a high performance cluster or a computing-as-a-service provider like Amazon Web Services or JuliaHub.
 
@@ -540,22 +612,207 @@ As you might imagine, approaches to multi-device computing can vary widely. Juli
 
 A useful mental model is the asynchronous task-based concepts discussed in @sec-tasks, as the main worker will effectively queue up work with the worker processors. Because there may be a delay associated with the computation or the communication between the processors, the worker runs asynchronously.
 
-| Col1 | Task API            | Distributed Analouge |
-|------|---------------------|----------------------|
-|      |                     |                      |
-|      | `@async`            | `@spawnat`           |
-|      | `fetch` and `@sync` | `fetch` and `sync`   |
-|      | `Channel`           | `RemoteChannel`      |
+| Description                   | Task API              | Distributed Analogue |
+|-------------------------------|----------------------|----------------------|
+| Create a new task             | `Task()`             | `@spawnat`           |
+| Run task asynchronously       | `@async`             | `@spawnat`           |
+| Retrieve task result          | `fetch`              | `fetch`              |
+| Wait for task completion      | `@sync`              | `sync`               |
+| Communication between tasks   | `Channel`            | `RemoteChannel`      |
+
+Adapting the trade producer and monitor example from above to run on multiple processors (see #sec-channels to review the base model and algorithm), we make a few key changes:
+
+- `using Distributed` loads the Distributed standard Julia library, providing the interface for multi-processing across different hardware.
+- `addprocs(n)` will add `n` worker processors (the main processor is already counted as one worker). When adding local machine processors, the processors are part of the local machine. This starts new Julia processes (you can see this in the task manager of the machine) which inherit the package environment (i.e. `Project.toml` and environment variables) from the main process; this does not occur automatically if not part of the same local machine.
+  - To add processors from other machines, see the [Distributed Computing](https://docs.julialang.org/en/v1/stdlib/Distributed/) section of the Julia docs.
+- `myid()` is the identification number of the given processor that's been spun up.
+- We use a `RemoteChannel` instead of a `Channel` to facilitate communication across processors.
+- Instead of `@async`, we use `@spawnat n` to create a task for processor number `n` (or `:any` will automatically assign a processor).  
+
+See 
+```{julia}
+using Distributed
+let
+
+# Add worker processes if not already added
+if nworkers() == 1
+    addprocs(4)  # Add 4 worker processes
+end
+
+@everywhere function trade_producer(channel, i)
+    sleep(rand())
+    profit = randn()
+    put!(channel, profit)
+    println("Producer $(myid()): Trade Result #$i $(round(profit, digits=3))")
+end
+
+@everywhere function portfolio_monitor(channel, n)
+    sum = 0.0
+    for _ in 1:n  # <3>
+        profit = take!(channel)
+        sum += profit
+        println("Monitor $(myid()): Received $(round(profit, digits=3)), Cumulative profit: $(round(sum, digits=3))")
+    end
+end
+
+function run_distributed_simulation()
+    channel = RemoteChannel(() -> Channel{Float64}(32))  # <4>
+
+    # Start producer and consumer tasks
+    @sync begin  # <5>
+        for i in 1:5
+            @spawnat :any trade_producer(channel, i)  # <6>
+        end
+        @spawnat :any portfolio_monitor(channel, 5)  # <6>
+    end
+
+    # Close the channel and wait for tasks to finish
+    close(channel)
+end
+
+# Run the simulation
+run_distributed_simulation()
+end
+```
+
+Given the similarity to the single-process version, what's the motivation for this approach? A few differences:
+
+- In this simplified example, we are simply starting additional Julia processes on the same machine. Like a threaded approach, the work will be split across the same multi-core processor. In this context, the main difference is that the processes do not share memory. 
+  - Communicating across processes generally has a little bit more overhead than communicating across threads.
+- If distributing across machines, not sharing memory is advantageous if using multi-processing across machines that have their own memory stores which need not compete with the main process (such as distributing chunks of large datasets).
+- The worker processors don't need to be the same architecture as the main processor, allowing usage of different machines or cloud computing that is communicating with a local main process.
 
 ## Parallel Programming Models {#sec-parallel-programming-models}
 
+The previous sections have explained the different parallel programming models and how to directly utilize them to harness additional computing power. Each approach (multi-threading, GPU, distributed processing, etc.) has unique considerations and tradeoffs. These approaches in Julia are generally much more accessable to beginning and intermediate users than other languages, but admittedly still requires a decent amount of thought and care.
+
+It is possible, if you are willing to give up some fine-grained control, to utilize some higher level approaches which look to abstract away some of the particularities of the implementation. 
+
 ### Map-Reduce
+
+Map-Reduce (@sec-map-reduce) operations are inherently parallelizable and various libraries provide parallelized versions of the base `mapreduce`. This is the workhorse function of many 'big data' workloads and many statistical operations are versions of `mapreduce`. 
+
+#### Multi-Threading
+
+##### OhMyThreads
+
+[ThreadsX.jl](https://github.com/JuliaFolds2/OhMyThreads.jl) provides the threaded versions of essential functions such as `tmap`, `tmapreduce`,`tcollect`, and `tforeach` (see @tbl-funcional-methods). In most cases, the chunking and data sharing is handled automatically for you.
+
+```{julia}
+import OhMyThreads
+@btime OhMyThreads.tmapreduce(x -> x, +, 1:100_000)
+```
+
+##### ThreadsX
+
+[ThreadsX.jl](https://github.com/JuliaFolds2/ThreadsX.jl) is built off of the wonderful [Transducers.jl](https://github.com/JuliaFolds2/Transducers.jl) package, though the latter is a bit more advanced (more abstract, but as a result more composable and powerful). ThreadsX provides threaded versions of many popular base functions. It offers a wider set of readymade threaded functions, but has a much more complex codebase. For the vast majority of threading needs, OhMyThreads.jl should be sufficent and performant. See the documentation for all of the implemented functions, but for our illustrative example:
+
+```{julia}
+import ThreadsX
+@btime ThreadsX.mapreduce(x -> x, +, 1:100_000)
+```
+
+#### Multi-Processing
+
+`reduce(op,pmap(f,collection))` will use a distributed map and reduce the resulting map on the main thread. This pattern works well if each application of `f` to elements of `collection` is costly. 
+
+`@distributed (op) for x in collection; f(x); end` is a way to write the loop with the reduction `op` for which the `f` need not be costly. 
+
+The difference between the two approaches is that with `pmap`, `collection` is made available to all workers. In the `@distributed` approach, the collection is partitioned and only a subset is sent to the designated workers. 
+
+Here's an example of both of these, calculating a simple example of counting coin flips:
+
+```{julia}
+# this is a example of poor utilization of pmap, since the operation is 
+# fast and the overhead of moving the whole collection dominates
+@btime reduce(+,pmap(x -> rand((0,1)),1:10^3))
+```
+
+```{julia}
+ 
+function dist_demo()
+    @distributed (+) for _ in 1:10^5
+        rand((0,1))
+    end
+end
+
+@btime dist_demo()
+```
 
 ### Array-Based
 
+Array based approaches will often utilize the parallelism of SIMD on the CPU or many cores on the GPU. It's as simple as using generic library calls which will often be optimized at the compiler level. Examples:
+
+```{julia}
+let
+    x = rand(Float32,10^8)
+    x_GPU = MtlArray(x)
+    @btime sum($x)
+    @btime sum($x_GPU)
+end
+```
+
+`sum(x)` compiles to SIMD instructions on the CPU, while using the GPU array type in `sum(x_GPU)` is enough to let the compiler dispatch on the GPU type and emit efficient, parallelized code for the GPU.
+
+Distributed array types allow for large datasets to effectively be partitioned across mutliple processors, and have implementations in the [DistributedArrays.jl](https://juliaparallel.org/DistributedArrays.jl/stable/) and [Dagger.jl](https://juliaparallel.org/Dagger.jl/dev/darray/) libraries.
+
 ### Loop-Based
 
+Loops which don't have race conditions can easily become multi-threaded. Here, we have three versions of updating a collection to square the contained values:
+
+```{julia}
+let v = collect(1:10000)
+
+    for i in eachindex(v)
+        v[i] = v[i]^2
+    end
+    v[1:3]
+end
+```
+
+Using multi-threading
+```{julia}
+let v = collect(1:10000)
+    Threads.@threads  for i in eachindex(v)
+        v[i] = v[i]^2
+    end
+    v[1:3]
+end
+```
+
+Using multi-processing:
+```{julia}
+let v = collect(1:10000)
+    Distributed.@distributed for i in eachindex(v)
+        v[i] = v[i]^2
+    end
+    v[1:3]
+end
+```
+
+For more advanced usage, including handling shared memory see @sec-multi-device and @sec-multithreading.
+
 ### Task-Based
+
+Task based approaches attempt to abstract the scheduling and distribution of work from the user. Instead of saying how the computation should be done, the user specifies the inteded operations and allows the library to handle the workflow. The main library for this in Julia is [Dagger.jl](https://juliaparallel.org/Dagger.jl/dev/darray/).
+
+Effectively, the library establishes a network topology (a map of how different processor nodes can communicate) and models the work as a directed, acyclic graph (a DAG, which is like a map of how the work is related). The library is then able to assign the work in the appropriate order to the available computation devices. The benefit of this is most apparent with complex workflows or network topologies where it would be difficult to manually assign, communicate, and schedule the workflow. 
+
+Here's a very simple example which demonstrates Dagger waiting for the two tasks which work in parallel (we already added multiple processors to this environment in @sec-multi-device):
+
+```{julia}
+import Dagger
+
+# This runs first:
+a = Dagger.@spawn rand(100, 100)
+
+# These run in parallel:
+b = Dagger.@spawn sum(a)
+c = Dagger.@spawn prod(a)
+
+# Finally, this runs:
+wait(Dagger.@spawn println("b: ", b, ", c: ", c))
+```
 
 ## References
 
