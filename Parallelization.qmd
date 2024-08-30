@@ -473,47 +473,51 @@ For the example below, we will calculate the present value of a series of cashfl
 ```{julia}
 using Metal
 
-function calculate_present_values(cashflows, discount_matrices) # <1>
+function calculate_present_values!(present_values,cashflows, discount_matrices) # <1>
     # Perform element-wise multiplication and sum along the time dimension
-    present_values = sum(cashflows .* discount_matrices, dims=1) # <2>   
+    present_values .= sum(cashflows .* discount_matrices, dims=1) # <2>   
 end
 
-# Example usage using 100 time periods
+# Example usage using 100 time periods, 100k scenarios
+num_scenarios = 10^5
+pvs = zeros(Float32,1,num_scenarios)
 cashflows = rand(Float32, 100) # <3>
-discount_matrices = rand(Float32, 100, 100_000)  # <4>
+discount_matrices = rand(Float32, 100, num_scenarios)  # <4>
 
 # copy the data to the GPU
+pvs_GPU = MtlArray(pvs)
 cashflows_GPU = MtlArray(cashflows) # <5>
 discount_matrices_GPU = MtlArray(discount_matrices)
 
-@btime calculate_present_values($cashflows, $discount_matrices)
-@btime calculate_present_values($cashflows_GPU, $discount_matrices_GPU) # <6>
+@btime calculate_present_values!($pvs,$cashflows, $discount_matrices)
+@btime calculate_present_values!($pvs_GPU,$cashflows_GPU, $discount_matrices_GPU) # <6>
 ```
 
-1.  The function `calculate_present_values` is written the same way as if we were just writing CPU code.
+1.  The function `calculate_present_values!` is written the same way as if we were just writing CPU code. Note that we are also passing a pre-allocated vector, `present_values` to store the result. This will allow us to isolate the performance of the computation, rather than including any overhead of allocating the array for the result.
 2.  The code is broadcasted across the first dimension so that the single set of cashflows is discounted for each scenario's discount vector.
 3.  Metal only supports 32 bit floating point (some CUDA hardware will support 64 bit floating point)
 4.  Using 100 thousand scenarios for this example.
 5.  `MtlArray(array)` will copy the array values to the GPU.
 6.  Note that the data still lives on the GPU and is of the `MtlMatrix` (a type alias for a 2-D `MtlArray`).
 
-The testing suggests approximately 100 times faster computation when performed on the GPU. Note however, that does not include the overhead of (1) moving the data to the GPU (in the initial `MtlArray(cashflows)` call), or (2) returning the data to the CPU (since the return type for the GPU version is `MtlArray`). We can measure this overhead by wrapping the data transfer inside another function and benchmarking it:
+The testing suggests approximately 200 times faster computation when performed on the GPU. Note however, that does not include the overhead of (1) moving the data to the GPU (in the initial `MtlArray(cashflows)` call), or (2) returning the data to the CPU (since the return type for the GPU version is `MtlArray`). We can measure this overhead by wrapping the data transfer inside another function and benchmarking it:
 
 ```{julia}
-function GPU_overhead_test(cashflows,discount_matrices)
+function GPU_overhead_test(present_values, cashflows,discount_matrices)
+    pvs_GPU = MtlArray(present_values)
     cashflows_GPU = MtlArray(cashflows) # <5>
     discount_matrices_GPU = MtlArray(discount_matrices)
 
-    result = calculate_present_values(cashflows_GPU, discount_matrices_GPU)
+    calculate_present_values!(pvs_GPU,cashflows_GPU, discount_matrices_GPU)
 
-    Array(result) # convert to CPU array
+    Array(pvs_GPU) # convert to CPU array
 end
 
-@btime GPU_overhead_test($cashflows,$discount_matrices)
+@btime GPU_overhead_test($pvs,$cashflows,$discount_matrices)
 
 ```
 
-With the additional overhead, the computation on the GPU takes more total time as if were done just on the CPU. This is a very simple example, and the balance tips heavily in favor of the GPU when:
+With the additional overhead, the computation on the GPU takes more total time than if the work were done just on the CPU. This is a very simple example, and the balance tips heavily in favor of the GPU when:
 
 1.  The computational demands are significantly higher (e.g. we were to do more calculations than just a simple multiply/divide/sum).
 2.  The data size grows bigger.
@@ -528,7 +532,30 @@ This example again underscores that hardware paralellization is not an automatic
 
 #### Kernel Programming on the GPU
 
-...
+```{julia}
+function calculate_present_values_kernel!(present_values,cashflows, discount_matrices)
+    idx = thread_position_in_grid_1d()  # Get global thread index
+
+    pv = 0.0f0
+    for t in 1:size(cashflows, 1)
+        pv += cashflows[t] * discount_matrices[t, idx]
+    end
+
+    present_values[idx] = pv
+    return nothing
+end
+```
+
+```{julia}
+threads = 1024
+groups = cld(num_scenarios, 256)
+
+@btime @metal threads=$threads groups=$groups calculate_present_values_kernel!(
+    $pvs_GPU,
+    $cashflows_GPU, 
+    $discount_matrices_GPU
+    )
+```
 
 ## Multi-Device {#sec-multi-device}
 
