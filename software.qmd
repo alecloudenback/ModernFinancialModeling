@@ -1,7 +1,5 @@
 # Applying Software Engineering Principles {#sec-software-principles}
 
-
-
 > “Programs must be written for people to read, and only incidentally for machines to execute.” — Harold Abelson and Gerald Jay Sussman (1984)
 
 ## In this section
@@ -14,9 +12,85 @@ In addition to the core concepts from computer science described so far, there's
 
 That is, the majority of a professional finanical modeler's time is often spent *doing things other than building models*, such as testing the model's results, writing documentation, collaborating with others on the design, and figuring out how to share the model with others inside the company. This chapter covers how a code-first workflow makes each one of those responsibilities easier or more effective.
 
+Thre are three essential topics covered in this chapter:
 
+- **Testing** is the practice of implementing automated checks for desired behavior and outputs in the system.
+- **Documentation** is the practice of writing plain English (or your local language) to compliment the computer code for better human understanding.
+- **Version Control** is the systematic practice of tracking changes and facilitating collaborative workflows on projects.
+
+Additionally, some highly related topics are covered which help bridge some of the conceptual ideas into practical implementations for your own code and models.
 
 ## Testing
+
+Testing is a crucial aspect of software engineering that ensures the reliability and correctness of code. In financial modeling, where accuracy is paramount, implementing robust testing practices is essential, and in many cases now legally required by the regulatory body or financial reporting authority. But it's just good practice regardless of requirements.
+
+Testing looks like this:
+
+```julia
+@test model_output = desired_output
+```
+
+If the expression evaluates to `true`, then the test passes. If the expression is anything else (`false`, or produces an error, or `nothing`, etc.) then the test will fail.
+
+Here is an example of modeled behavior being tested. We have a function which will discount the given cashflows at a given annual effective interest rate. The cashflows are assumed to be equally spaced at the end of each period:
+
+```{julia}
+function present_value(discount_rate,cashflows)
+    v = 1.0
+    pv = 0.0
+    for cf in cashflows
+        v = v / (1+discount_rate)
+        pv = pv + v * cf
+    end
+    return pv
+end
+```
+
+We might test the implementation like so:
+
+```{julia}
+using Test
+
+@test present_value(0.05,[10]) ≈ 10 / 1.05
+@test present_value(0.05,[10,20]) ≈ 10 / 1.05 + 20 / 1.05^2
+```
+
+The above test passes becuse the expression is true. However, the following will fail because we have defined the function using a certain assumption about the compounding convention (compounded once per period) as opposed to the testoutcome which presumes a continuous compounding convention. Additionally, the failing test will show the stacktrace of where the error occured.
+
+```{julia}
+#| error: true
+#| output: false
+@test present_value(0.05,[10]) ≈ 10 * exp(-.05*1)
+```
+
+:::callout-tip
+When testing results of floating point math, it's a good idea to use the approximate comparision (`≈`, typed in a Julia editor with by entering `\approx<TAB>`). Recall that floating point math is an discrete, computer representation of continuous. real numbers. As perfect precision is not efficient, very small differences can arise depending on the specific numbers involved or the order in which the operations are applied.
+
+In tests (as in the `isapprox`/`≈` function), you can also further specifiy a relative tolerance and an absolute tolerance:
+
+```{julia}
+@test 1.02 ≈ 1.025 atol = 0.01
+@test 1.02 ≈ 1.025 rtol = 0.005
+```
+:::
+
+#### Test Sets
+
+
+
+### Test Driven Design
+
+**Test Driven Design** (TDD) is a software development approach where tests are written before the actual code. The process typically follows these steps:
+
+1. Write a test that defines a desired function or improvement.
+2. Run the test, which should fail since the feature hasn't been implemented.
+3. Write the minimum amount of code necessary to pass the test.
+4. Run the test again. If it passes, the code meets the test criteria.
+5. Refactor the code for optimization while ensuring the test still passes.
+
+TDD can be particularly useful in financial modeling as it helps clarify requirements and ensures that each component of the model performs as expected.
+
+### Test Coverage
 
 ## Documentation
 
@@ -25,6 +99,18 @@ That is, the majority of a professional finanical modeler's time is often spent 
 ### Collaborative Workflows
 
 ## Distributing the Package
+
+### Registries
+
+#### Local Registry
+
+### Versioning
+
+### Artifacts
+
+## Example Repository
+
+Link to an example repository with documentation, tests, tagged releases, coverage indicator, etc.
 
 
 
