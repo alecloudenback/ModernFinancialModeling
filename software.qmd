@@ -8,15 +8,15 @@ We describe modern software engineering practices such as version control, testi
 
 ## Introduction
 
-In addition to the core concepts from computer science described so far, there's also a similar set of ideas about the *practice* and *experience* of working with a code-based workflow that makes the approach more powerful than what the code itself can do. 
+In addition to the core concepts from computer science described so far, there's also a similar set of ideas about the *practice* and *experience* of working with a code-based workflow that makes the approach more powerful than what the code itself can do.
 
 That is, the majority of a professional finanical modeler's time is often spent *doing things other than building models*, such as testing the model's results, writing documentation, collaborating with others on the design, and figuring out how to share the model with others inside the company. This chapter covers how a code-first workflow makes each one of those responsibilities easier or more effective.
 
 Thre are three essential topics covered in this chapter:
 
-- **Testing** is the practice of implementing automated checks for desired behavior and outputs in the system.
-- **Documentation** is the practice of writing plain English (or your local language) to compliment the computer code for better human understanding.
-- **Version Control** is the systematic practice of tracking changes and facilitating collaborative workflows on projects.
+-   **Testing** is the practice of implementing automated checks for desired behavior and outputs in the system.
+-   **Documentation** is the practice of writing plain English (or your local language) to compliment the computer code for better human understanding.
+-   **Version Control** is the systematic practice of tracking changes and facilitating collaborative workflows on projects.
 
 Additionally, some highly related topics are covered which help bridge some of the conceptual ideas into practical implementations for your own code and models.
 
@@ -26,7 +26,7 @@ Testing is a crucial aspect of software engineering that ensures the reliability
 
 Testing looks like this:
 
-```julia
+``` julia
 @test model_output = desired_output
 ```
 
@@ -63,7 +63,7 @@ The above test passes becuse the expression is true. However, the following will
 @test present_value(0.05,[10]) ≈ 10 * exp(-.05*1)
 ```
 
-:::callout-tip
+::: callout-tip
 When testing results of floating point math, it's a good idea to use the approximate comparision (`≈`, typed in a Julia editor with by entering `\approx<TAB>`). Recall that floating point math is an discrete, computer representation of continuous. real numbers. As perfect precision is not efficient, very small differences can arise depending on the specific numbers involved or the order in which the operations are applied.
 
 In tests (as in the `isapprox`/`≈` function), you can also further specifiy a relative tolerance and an absolute tolerance:
@@ -74,23 +74,115 @@ In tests (as in the `isapprox`/`≈` function), you can also further specifiy a 
 ```
 :::
 
+The testing described in this section is sort of a 'sampling' based approach, wherein the modeler decides on some pre-determined set of outputs to test and determines the desired outcomes for that chosen set of inputs. For example, testing that `2 + 2 == 4` versus testing that a positive number plus a positive number will always equal another positive number. There are some more advanced techniques that cover testing of the second kind described in @sec-formal-verification. In practice, the type of testing discussed in this section is much more common.
+
 #### Test Sets
 
+Test sets are organizational tools to group related tests together, for example:
 
+```{julia}
+@testset "Scalar Discount" begin
+    @test present_value(0.05,10) ≈ 10 / 1.05
+    @test present_value(0.05,20) ≈ 20 / 1.05
+end
+@testset "Vector Discount" begin
+    @test present_value(0.05,[10]) ≈ 10 / 1.05
+    @test present_value(0.05,[10,20]) ≈ 10 / 1.05 + 20 / 1.05^2
+end;
+```
+
+There are many more related testing facilities [described in the Julia Docs](https://docs.julialang.org/en/v1/stdlib/Test/), such as combining `for` loops with test sets.
 
 ### Test Driven Design
 
 **Test Driven Design** (TDD) is a software development approach where tests are written before the actual code. The process typically follows these steps:
 
-1. Write a test that defines a desired function or improvement.
-2. Run the test, which should fail since the feature hasn't been implemented.
-3. Write the minimum amount of code necessary to pass the test.
-4. Run the test again. If it passes, the code meets the test criteria.
-5. Refactor the code for optimization while ensuring the test still passes.
+1.  Write a test that defines a desired function or improvement.
+2.  Run the test, which should fail since the feature hasn't been implemented.
+3.  Write the minimum amount of code necessary to pass the test.
+4.  Run the test again. If it passes, the code meets the test criteria.
+5.  Refactor the code for optimization while ensuring the test still passes.
 
-TDD can be particularly useful in financial modeling as it helps clarify requirements and ensures that each component of the model performs as expected.
+TDD can be particularly useful in financial modeling as it helps clarify (1) intended behavior of the system and (2) how you think the system should work.
+
+For example, if we want to create a new function which calculates an interpolated value between two numbers, we might first define the test like this:
+
+``` julia
+# interpolate between two points (0,5) and (2,10)
+@test interp_linear(0,2,5,10,1) ≈ (10-5)/(2-0) * (1-0) + 5
+```
+
+We've defined how it should work for a value inside the bounding $x$ values, but writing the test has us wondering... should the function error if `x` is outside of the left and right $x$ bounds? Or should the function extrapolate outside the observed interval? The answer to that depends on exactly how we want our system to work. Sometimes the point of such a scheme is to extrapolate, other times extrapolating beyond known values can be dangerous. For now, let's say we would like to have the function extrapolate, so we can define our test targets to work like that:
+
+``` julia
+@test interp_linear(0,2,5,10,-1) ≈ (10-5)/(2-0) * (-1 - 0) + 5
+@test interp_linear(0,2,5,10,3) ≈ (10-5)/(2-0) * (3 - 0) + 5
+```
+
+By thinking through what the correct result for those different functions is, we have forced ourselves to think how the function should work generically:
+
+```{julia}
+function interp_linear(x1,x2,y1,y2,x)
+    # slope times difference from x1 + y1
+    return (y2 - y1) / (x2 - x1) * (x - x1) + y1
+end
+```
+
+And we can see that our tests defined above would pass after writing the function.
+
+```{julia}
+@testset "Linear Interpolation" begin
+    @test interp_linear(0,2,5,10,1) ≈ (10-5)/(2-0) * (1-0) + 5
+    @test interp_linear(0,2,5,10,-1) ≈ (10-5)/(2-0) * (-1 - 0) + 5
+    @test interp_linear(0,2,5,10,3) ≈ (10-5)/(2-0) * (3 - 0) + 5
+end;
+```
 
 ### Test Coverage
+
+Testing is great, but what if some things aren't tested? For example, we might have a function that has a branching condition and only ever test one branch. Then when the other branch is encountered in practice it is more vulnerable to having bugs because its behavior was never double checked. Wouldn't it be great to tell whether or not we have tested all of our code?
+
+The good news is that there is! **Test coverage** is a measurement related to how much of the codebase is covered by at least one associated test case. In the following example, code coverage would flag that the `... other logic` is not covered by tests and therefore encourage the developer to write tests covering that case:
+
+``` julia
+function asset_value(strike,current_price)
+    if current_price > strike
+    # ... some logic
+    else
+    # ... other logic
+    end
+end
+
+@test asset_value(10,11) ≈ 1.5   
+```
+
+From this, it's possible to determine a score, of sorts, for how well a given set of code is tested. 100% coverage means every line of code has at least one test that double checked it's behavior.
+
+::: callout-warning
+Testing is only as good as the tests that are written. You could have 100% code coverage for a codebase with only a single rudimentary test covering each line. Or the test itself could be wrong! Testing is not a cure-all, but does encourage best practices.
+:::
+
+Test coverage is also a great addition when making modification to code. It can be set up such that you recieve reports
+
+### Types of Tests
+
+Different tests can emphasize different aspects of model behavior. You could be testing a small bit of logic, or test that the whole model runs if hooked up to a database. The variety of this kind of testing has given rise to various 'named' types of testing, but it's somewhat arbitrary and the boundaries between the types is sort of fuzzy.
+
+| Test Type | Description |
+|---------------------------------|---------------------------------------|
+| Unit Testing | Verifies the functionality of individual components or functions in isolation. It ensures that each unit of code works as expected. |
+| Integration Testing | Checks if different modules or services work together correctly. It verifies the interaction between various components of the system. |
+| End-to-End Testing | Simulates real user scenarios to test the entire application flow from start to finish. It ensures the system works as a whole. |
+| Functional Testing | Validates that the software meets specified functional requirements and behaves as expected from a user's perspective. |
+| Regression Testing | Ensures that new changes or updates to the code haven't broken existing functionality. It involves re-running previously completed tests. |
+
+There are other types of testing that can be performed on a model, such as performance testing, security testing, acceptance testing, etc., but these types of tests are outside of the scope of what we would evaluate with an `@test` check.
+
+::: callout-tip
+## Financial Modeling Pro-tip
+
+Test reports and test coverage are a wonderful way to demonstrate regular and robust testing for compliance
+:::
 
 ## Documentation
 
@@ -111,7 +203,5 @@ TDD can be particularly useful in financial modeling as it helps clarify require
 ## Example Repository
 
 Link to an example repository with documentation, tests, tagged releases, coverage indicator, etc.
-
-
 
 Note some more advanced testing topics in @sec-related-topics-formal-verification.
