@@ -4,13 +4,13 @@
 
 ## In this section
 
-We describe modern software engineering practices such as version control, testing, documentation, and pipelines which can be utlizied by the financial professional to make their own work more robust and automated. Data practices and workflow advice.
+We describe modern software engineering practices such as version control, testing, documentation, and pipelines which can be utilized by the financial professional to make their own work more robust and automated. Data practices and workflow advice.
 
 ## Introduction
 
 In addition to the core concepts from computer science described so far, there's also a similar set of ideas about the *practice* and *experience* of working with a code-based workflow that makes the approach more powerful than what the code itself can do.
 
-That is, the majority of a professional finanical modeler's time is often spent *doing things other than building models*, such as testing the model's results, writing documentation, collaborating with others on the design, and figuring out how to share the model with others inside the company. This chapter covers how a code-first workflow makes each one of those responsibilities easier or more effective.
+That is, the majority of a professional financial modeler's time is often spent *doing things other than building models*, such as testing the model's results, writing documentation, collaborating with others on the design, and figuring out how to share the model with others inside the company. This chapter covers how a code-first workflow makes each one of those responsibilities easier or more effective.
 
 Thre are three essential topics covered in this chapter:
 
@@ -19,6 +19,8 @@ Thre are three essential topics covered in this chapter:
 -   **Version Control** is the systematic practice of tracking changes and facilitating collaborative workflows on projects.
 
 Additionally, some highly related topics are covered which help bridge some of the conceptual ideas into practical implementations for your own code and models.
+
+This chapter is organized such that the conceptual topics are covered first, and towards the end of the chapter specific tips and setup related to Julia codebases is covered. The code examples in the earlier, conceptual parts have direct analogues in other languages.
 
 ## Testing
 
@@ -55,7 +57,7 @@ using Test
 @test present_value(0.05,[10,20]) ≈ 10 / 1.05 + 20 / 1.05^2
 ```
 
-The above test passes becuse the expression is true. However, the following will fail because we have defined the function using a certain assumption about the compounding convention (compounded once per period) as opposed to the testoutcome which presumes a continuous compounding convention. Additionally, the failing test will show the stacktrace of where the error occured.
+The above test passes because the expression is true. However, the following will fail because we have defined the function using a certain assumption about the compounding convention (compounded once per period) as opposed to the test outcome which presumes a continuous compounding convention. Additionally, the failing test will show the stacktrace of where the error occurred.
 
 ```{julia}
 #| error: true
@@ -64,9 +66,9 @@ The above test passes becuse the expression is true. However, the following will
 ```
 
 ::: callout-tip
-When testing results of floating point math, it's a good idea to use the approximate comparision (`≈`, typed in a Julia editor with by entering `\approx<TAB>`). Recall that floating point math is an discrete, computer representation of continuous. real numbers. As perfect precision is not efficient, very small differences can arise depending on the specific numbers involved or the order in which the operations are applied.
+When testing results of floating point math, it's a good idea to use the approximate comparison (`≈`, typed in a Julia editor with by entering `\approx<TAB>`). Recall that floating point math is an discrete, computer representation of continuous. real numbers. As perfect precision is not efficient, very small differences can arise depending on the specific numbers involved or the order in which the operations are applied.
 
-In tests (as in the `isapprox`/`≈` function), you can also further specifiy a relative tolerance and an absolute tolerance:
+In tests (as in the `isapprox`/`≈` function), you can also further specify a relative tolerance and an absolute tolerance:
 
 ```{julia}
 @test 1.02 ≈ 1.025 atol = 0.01
@@ -162,9 +164,9 @@ From this, it's possible to determine a score, of sorts, for how well a given se
 Testing is only as good as the tests that are written. You could have 100% code coverage for a codebase with only a single rudimentary test covering each line. Or the test itself could be wrong! Testing is not a cure-all, but does encourage best practices.
 :::
 
-Test coverage is also a great addition when making modification to code. It can be set up such that you recieve reports on how the test coverage changes if you were to make a certain modification to a codebase. An example might look like this for a proposed change which added 13 lines of code, of which only 11 of those lines were tested. The coverage percent has therefore gone down because the $11/13 = 84%$, which is lower than the original coverage rate of 90%.
+Test coverage is also a great addition when making modification to code. It can be set up such that you receive reports on how the test coverage changes if you were to make a certain modification to a codebase. An example might look like this for a proposed change which added 13 lines of code, of which only 11 of those lines were tested. The coverage percent has therefore gone down because the proportion of new lines covered by tests is $11/13 = 84\%$, which is lower than the original coverage rate of 90%.
 
-```plaintext
+``` plaintext
 @@            Coverage Diff             @@
 ##         original    modif    +/-   ##
 ==========================================
@@ -198,6 +200,93 @@ Test reports and test coverage are a wonderful way to demonstrate regular and ro
 :::
 
 ## Documentation
+
+The most important part of a code for maintenance is plainly written notes for humans, not the compiler. This includes comments, reference materials, and how-to pages, among other potential forms. Julia includes several ways to facilitate documentation of a project and associated codebase.
+
+### Comments
+
+Comments are meant for the developer to aid in understanding a certain bit of code. A bit of time-tested wisdom is that after several weeks, months, or years away from a piece of code, something that seemed 'obvious' at the time tends to become perplexing at a later time. Writing comments is as much for yourself as it is your colleagues or successors.
+
+Here's an example of documentation with single-line comments (indicated with the preceding `#`) and multi-line comments (enclosed by `#=` and `=#`):
+
+``` julia
+function calculate_bond_price(face_value, coupon_rate, years_to_maturity, market_rate)
+    # Convert annual rates to semi-annual
+    semi_annual_coupon = (coupon_rate / 2) * face_value
+    semi_annual_market_rate = market_rate / 2
+    periods = years_to_maturity * 2
+
+    # Calculate the present value of coupon payments
+    pv_coupons = 0
+    for t in 1:periods
+        pv_coupons += semi_annual_coupon / (1 + semi_annual_market_rate)^t
+    end
+
+    # Calculate the present value of the face value
+    pv_face_value = face_value / (1 + semi_annual_market_rate)^periods
+
+    #=
+    Sum up the components:
+    1. Present value of all coupon payments
+    2. Present value of the face value at maturity
+    This gives us the total bond price
+    =#
+    bond_price = pv_coupons + pv_face_value
+
+    return bond_price
+end
+```
+
+### Docstrings
+
+Docstrings are intended to be a user-facing reference and help text. In Julia, docstrings are just strings placed in front of definitions. Markdown is available (and encouraged) to add formatting within the docstring.
+
+Here's an example with some various features of documentation shown:
+
+```` julia
+"""
+    calculate_bond_price(face_value, coupon_rate, years_to_maturity, market_rate) # <1>
+
+Calculate the price of a bond using discounted cash flow method.
+
+Parameters:
+- `face_value`: The bond's par value
+- `coupon_rate`: Annual coupon rate as a decimal
+- `years_to_maturity`: Number of years until the bond matures
+- `market_rate`: Current market interest rate as a decimal
+
+Returns:
+- The calculated bond price
+
+## Examples: # <2>
+
+```julia-repl
+julia> calculate_bond_price(1000, 0.05, 10, 0.06)
+925.6126256977221
+```
+
+## Extended help: # <3>
+
+This function uses the following steps to calculate the bond price:
+1. Convert annual rates to semi-annual rates
+2. Calculate the present value of all future coupon payments
+3. Calculate the present value of the face value at maturity
+4. Sum these components to get the total bond price
+
+The calculation assumes semi-annual coupon payments, which is standard in many markets.
+"""
+function calculate_bond_price(face_value, coupon_rate, years_to_maturity, market_rate)
+    # ... function defintion as above
+end
+````
+
+1.  The typical docstring on a method includes the signature, indented so it's treated like code in the Markdown docstring.
+2.  It's good practice to include a section that includes examples of appropriate usage of a function and the expected outcomes.
+3.  The *Extended help* section is a place to put additional detail that's available on generated docsites and in help tools like the REPL help mode.
+
+The last point, the *Extended help* section is shown when using help mode in the REPL and including an extra `?`. For example, in the REPL, typing `?calculate_bond_price` will show the docstring up through the examples. Typing `??calculate_bond_price` will show the docstring in its entirety.
+
+### Docsites
 
 ## Version Control
 
