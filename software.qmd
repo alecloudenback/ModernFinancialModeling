@@ -37,11 +37,11 @@ If the expression evaluates to `true`, then the test passes. If the expression i
 Here is an example of modeled behavior being tested. We have a function which will discount the given cashflows at a given annual effective interest rate. The cashflows are assumed to be equally spaced at the end of each period:
 
 ```{julia}
-function present_value(discount_rate,cashflows)
+function present_value(discount_rate, cashflows)
     v = 1.0
     pv = 0.0
     for cf in cashflows
-        v = v / (1+discount_rate)
+        v = v / (1 + discount_rate)
         pv = pv + v * cf
     end
     return pv
@@ -53,8 +53,8 @@ We might test the implementation like so:
 ```{julia}
 using Test
 
-@test present_value(0.05,[10]) ≈ 10 / 1.05
-@test present_value(0.05,[10,20]) ≈ 10 / 1.05 + 20 / 1.05^2
+@test present_value(0.05, [10]) ≈ 10 / 1.05
+@test present_value(0.05, [10, 20]) ≈ 10 / 1.05 + 20 / 1.05^2
 ```
 
 The above test passes because the expression is true. However, the following will fail because we have defined the function using a certain assumption about the compounding convention (compounded once per period) as opposed to the test outcome which presumes a continuous compounding convention. Additionally, the failing test will show the stacktrace of where the error occurred.
@@ -62,7 +62,7 @@ The above test passes because the expression is true. However, the following wil
 ```{julia}
 #| error: true
 #| output: false
-@test present_value(0.05,[10]) ≈ 10 * exp(-.05*1)
+@test present_value(0.05, [10]) ≈ 10 * exp(-0.05 * 1)
 ```
 
 ::: callout-tip
@@ -197,7 +197,7 @@ Different tests can emphasize different aspects of model behavior. You could be 
 | Regression Testing  | Ensures that new changes or updates to the code haven't broken existing functionality. It involves re-running previously completed tests. |
 +---------------------+-------------------------------------------------------------------------------------------------------------------------------------------+
 
-There are other types of testing that can be performed on a model, such as performance testing, security testing, acceptance testing, etc., but these types of tests are outside of the scope of what we would evaluate with an `@test` check.
+There are other types of testing that can be performed on a model, such as performance testing, security testing, acceptance testing, etc., but these types of tests are outside of the scope of what we would evaluate with an `@test` check. It is possible to create more advanced, mathematical-type checks and tests, which is introduced in @sec-related-topics-formal-verification.
 
 ::: callout-tip
 ## Financial Modeling Pro-tip
@@ -337,57 +337,54 @@ A codebase can be **branched**, meaning that two different version of the same c
 
 Here's an example of what a workflow looks like in the case of trying to fix an erroneous function `present_value` which was written as part of a hypothetical `FileXYZ.jl` file. This example is trivial, but in a larger project where a 'fix' or 'enhancement' may span many files and take several days or weeks to implement this type of workflow becomes like a superpower compared to traditional, manual version control approaches. It sure beats an approach where you end up with filenames like `FileXYZ v23 July 2022 Final.jl`!
 
-:::{.column-page}
-
-+------------------------------------------+-------------------------------------------+-------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------+---+
-| Branch `main` , `FileXYZ.jl` file        | Branch `fix_function` , `FileXYZ.jl` file | Action                                                                                                            | Active Branch and Commit ID\                                  |   |
-|                                          |                                           |                                                                                                                   | *Which version you would see on your own computer/filesystem* |   |
-+==========================================+===========================================+===================================================================================================================+===============================================================+===+
-| ``` julia                                | Does not yet exist                        | Write original function which forgets to take into account the `time`.                                            | `main` / `...58b`                                             |   |
-| function present_value(rate,amount,time) |                                           |                                                                                                                   |                                                               |   |
-|     amount / (1+rate)                    |                                           |                                                                                                                   |                                                               |   |
-| end                                      |                                           |                                                                                                                   |                                                               |   |
-| ```                                      |                                           |                                                                                                                   |                                                               |   |
-+------------------------------------------+-------------------------------------------+-------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------+---+
-| \"                                       | ``` julia                                 | Create a new branch `fix_function`.\                                                                              | `main` / `...58b`                                             |   |
-|                                          | function present_value(rate,amount,time)  | \                                                                                                                 |                                                               |   |
-|                                          |     amount / (1+rate)                     | Git command: `git branch fix_function`                                                                            |                                                               |   |
-|                                          | end                                       |                                                                                                                   |                                                               |   |
-|                                          | ```                                       |                                                                                                                   |                                                               |   |
-+------------------------------------------+-------------------------------------------+-------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------+---+
-| \"                                       | \"                                        | Checkout the new branch and make it active for editing.\                                                          | `fix_function` / `...58b`                                     |   |
-|                                          |                                           | \                                                                                                                 |                                                               |   |
-|                                          |                                           | Git command: `git checkout fix_function`                                                                          |                                                               |   |
-+------------------------------------------+-------------------------------------------+-------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------+---+
-| \"                                       | ``` julia                                 | Edit and save the changed file.                                                                                   | `fix_function` / `...58b`                                     |   |
-|                                          | function present_value(rate,amount,time)  |                                                                                                                   |                                                               |   |
-|                                          |     amount / (1+rate)^time                |                                                                                                                   |                                                               |   |
-|                                          | end                                       |                                                                                                                   |                                                               |   |
-|                                          | ```                                       |                                                                                                                   |                                                               |   |
-+------------------------------------------+-------------------------------------------+-------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------+---+
-| \"                                       | \"                                        | "Stage" the modified file, telling git that you are ready to record ("commit") a new snapshot of the project.     | `fix_function` / `...58b`                                     |   |
-|                                          |                                           |                                                                                                                   |                                                               |   |
-|                                          |                                           | Git command: `git add FileXYZ.jl`                                                                                 |                                                               |   |
-+------------------------------------------+-------------------------------------------+-------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------+---+
-| \"                                       | \"                                        | Commit a new snapshot of the project by committing with a note to collaborators saying `fix: present value logic` | `fix_function` / `...6ac`                                     |   |
-|                                          |                                           |                                                                                                                   |                                                               |   |
-|                                          |                                           | Git command: `git commit -m 'fix: present value logic`                                                            |                                                               |   |
-+------------------------------------------+-------------------------------------------+-------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------+---+
-| \"                                       | \"                                        | Switch back to the primary branch                                                                                 | `main` / `...58b`                                             |   |
-|                                          |                                           |                                                                                                                   |                                                               |   |
-|                                          |                                           | Git command: `git checkout main`                                                                                  |                                                               |   |
-+------------------------------------------+-------------------------------------------+-------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------+---+
-| ``` julia                                | \"                                        | Merge changes from other branch into the `main` branch, incorporating the corrected version of the code.          | `main` / `...b90`                                             |   |
-| function present_value(rate,amount,time) |                                           |                                                                                                                   |                                                               |   |
-|     amount / (1+rate)^time               |                                           | Git command: `git merge fix_function`                                                                             |                                                               |   |
-| end                                      |                                           |                                                                                                                   |                                                               |   |
-| ```                                      |                                           |                                                                                                                   |                                                               |   |
-+------------------------------------------+-------------------------------------------+-------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------+---+
+::: column-page
++------------------------------------------+-------------------------------------------+-------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------+----------+
+| Branch `main` , `FileXYZ.jl` file        | Branch `fix_function` , `FileXYZ.jl` file | Action                                                                                                            | Active Branch and Commit ID\                                  |          |
+|                                          |                                           |                                                                                                                   | *Which version you would see on your own computer/filesystem* |          |
++==========================================+===========================================+===================================================================================================================+===============================================================+==========+
+| ``` julia                                | Does not yet exist                        | Write original function which forgets to take into account the `time`.                                            | `main` / `...58b`                                             |          |
+| function present_value(rate,amount,time) |                                           |                                                                                                                   |                                                               |          |
+|     amount / (1+rate)                    |                                           |                                                                                                                   |                                                               |          |
+| end                                      |                                           |                                                                                                                   |                                                               |          |
+| ```                                      |                                           |                                                                                                                   |                                                               |          |
++------------------------------------------+-------------------------------------------+-------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------+----------+
+| "                                        | ``` julia                                 | Create a new branch `fix_function`.\                                                                              | `main` / `...58b`                                             |          |
+|                                          | function present_value(rate,amount,time)  | \                                                                                                                 |                                                               |          |
+|                                          |     amount / (1+rate)                     | Git command: `git branch fix_function`                                                                            |                                                               |          |
+|                                          | end                                       |                                                                                                                   |                                                               |          |
+|                                          | ```                                       |                                                                                                                   |                                                               |          |
++------------------------------------------+-------------------------------------------+-------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------+----------+
+| "                                        | "                                         | Checkout the new branch and make it active for editing.\                                                          | `fix_function` / `...58b`                                     |          |
+|                                          |                                           | \                                                                                                                 |                                                               |          |
+|                                          |                                           | Git command: `git checkout fix_function`                                                                          |                                                               |          |
++------------------------------------------+-------------------------------------------+-------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------+----------+
+| "                                        | ``` julia                                 | Edit and save the changed file.                                                                                   | `fix_function` / `...58b`                                     |          |
+|                                          | function present_value(rate,amount,time)  |                                                                                                                   |                                                               |          |
+|                                          |     amount / (1+rate)^time                |                                                                                                                   |                                                               |          |
+|                                          | end                                       |                                                                                                                   |                                                               |          |
+|                                          | ```                                       |                                                                                                                   |                                                               |          |
++------------------------------------------+-------------------------------------------+-------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------+----------+
+| "                                        | "                                         | "Stage" the modified file, telling git that you are ready to record ("commit") a new snapshot of the project.     | `fix_function` / `...58b`                                     |          |
+|                                          |                                           |                                                                                                                   |                                                               |          |
+|                                          |                                           | Git command: `git add FileXYZ.jl`                                                                                 |                                                               |          |
++------------------------------------------+-------------------------------------------+-------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------+----------+
+| "                                        | "                                         | Commit a new snapshot of the project by committing with a note to collaborators saying `fix: present value logic` | `fix_function` / `...6ac`                                     |          |
+|                                          |                                           |                                                                                                                   |                                                               |          |
+|                                          |                                           | Git command: `git commit -m 'fix: present value logic`                                                            |                                                               |          |
++------------------------------------------+-------------------------------------------+-------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------+----------+
+| "                                        | "                                         | Switch back to the primary branch                                                                                 | `main` / `...58b`                                             |          |
+|                                          |                                           |                                                                                                                   |                                                               |          |
+|                                          |                                           | Git command: `git checkout main`                                                                                  |                                                               |          |
++------------------------------------------+-------------------------------------------+-------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------+----------+
+| ``` julia                                | "                                         | Merge changes from other branch into the `main` branch, incorporating the corrected version of the code.          | `main` / `...b90`                                             |          |
+| function present_value(rate,amount,time) |                                           |                                                                                                                   |                                                               |          |
+|     amount / (1+rate)^time               |                                           | Git command: `git merge fix_function`                                                                             |                                                               |          |
+| end                                      |                                           |                                                                                                                   |                                                               |          |
+| ```                                      |                                           |                                                                                                                   |                                                               |          |
++------------------------------------------+-------------------------------------------+-------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------+----------+
 
 : A workflow demonstrating branching, staging, committing, and merging in order to fix an incorrect function definition. {#tbl-git-workflow}
-
 :::
-
 
 A visual representation of the git repository and commits for the actions described in @tbl-git-workflow might be as follows, where the `...XXX` is the shortened version of the hash associated with that commit.
 
@@ -415,28 +412,254 @@ Some recommend Git tools with a **graphical user interface** (GUI) :
 
 Git is a distributed VCS, meaning that copies of the repository and all it's history and content can live in multiple locations, such as on two colleauge's computer as well as a server. In this distributed model, what happens if you make a change locally?
 
-Git maintains a local repository on each user's machine, containing the full project history. This local repo includes the working directory (current state of files), staging area (changes prepared for commit), and the .git directory (metadata and object database). When collaborating, users push and pull changes to and from remote repositories. Git uses a branching model, allowing multiple lines of development to coexist and merge when ready.
+Git maintains a local repository on each user's machine, containing the full project history. This local repository includes the working directory (current state of files), staging area (changes prepared for commit), and the .git directory (metadata and object database). When collaborating, users push and pull changes to and from remote repositories. Git uses a branching model, allowing multiple lines of development to coexist and merge when ready.
 
 ::: callout-note
 By convention, the primary branch of a project is named the `main` branch. Historically, this was called the `master` branch (after the [Master-Slave technology terms](https://en.wikipedia.org/wiki/Master–slave_(technology))) but due to connotations of human slavery most software will now default to the `main` name. However, many projects continue to use or have never renamed their original `master` branch.
 :::
 
-### Data Version Control
+#### Pull Requests
 
-Git is not well suited for large files that change regularly (images, videos, datasets). Instead, the approach is to combine git with a **data version control** tool. These tool essentially replace the data (often called binary data or a blob) with a content hash in the git snapshots. The actual content referred to by the hash is then located elsewhere (e.g. a hosted server). 
+Layered onto core Git functionality, services like Github provide interfaces which enhance the utility of VCS. A major example of this is **Pull Requests** (or PRs), which is a process of merging git branches in a way that allows for additional automation and governance.
+
+The following is an example of a PR on a repository adding a small bit of documentation to help future users. We'll walk through several elements to describe what's going on:
+
+![A Pull Request on Github, demonstrating several utilities which enhance change management, automation, and governance.](images/Pull%20Request.png){#fig-pull-request}
+
+Referencing @fig-pull-request, several elements are worth highlighting. In this pull request, the user (and author of this change), `alecloudenback`, is proposing to modify the `QuartoNotebookRunner` repository, which is not a repository for which the user `alecloudenback` has any direct rights to modify. After having made a copy of the repository, creating a new branch, making modifications, and committing those changes... a pull request has been made to modify the primary repository.
+
+-   All changes are recorded using Git, keeping track of authorship, timestamps, and history.
+-   At the top of the screenhsot, the title "Note that Quarto..." allows the author to summarize what is changed in the branch to be merged.
+-   The "Conversation" tab allows for additional details about the change to be discussed.
+-   In the top right, a `+1 -1 ■■□□□` is an indication of what's changed. In this case, a single line of code (documenation, really) was removed (`-1`) and replaced with another (`+1`)
+-   Not shown in the @fig-pull-request, the "Files Changed" tab shows a file-by-file and line-by-line comparison of what has changed (see @fig-pr-diff).
+-   The reviewer (user `MichaelHatherly`) is a collaborator with rights to modify the destination repository has been assigned to review this change before merging it into the `main` branch.
+-   "CodeCoverage" was discussed above in testing, and in this case tests were automatically run when the PR was created, and the coverage indicates that there was no added bit of code that was untested.
+-   A section of "9 checks" that pass, which validated that tests within the repository still passed, on different combitations of operating systems and Julia versions. Additionally, the repository was checked to ensure that fomratting conventions were followed.
+-   Additionally, there are a number of project management features not really showcased here. A few to note:
+    -   The cross-referencing to another related issue in a different repository (the reference to issue #156).
+    -   Assignees (assigned doers), labels, milestones, and projects are all functionality to help keep track of codebase development.
+
+The features described here can take modelers many manhours of time - testing, review of changes, sign-off tracking, etc. This is such a powerful paradigm that should be adopted within the financial industry and especially amongst modelers.
+
+![A diff shows a file-by-file and line-by-line comparison of what has changed between commits in a codebase. Red inidicates something was removed or changed, and green shows what replaced it. Note that even within a line, there's extra green highlighting to show the newly added text while the unchanged text remains a lighter shade.](images/Diff.png){#fig-pr-diff}
+
+### Data Version Control {#sec-data-version-control}
+
+Git is not well suited for large files that change regularly (images, videos, datasets). Instead, the approach is to combine git with a **data version control** tool. These tool essentially replace the data (often called binary data or a blob) with a content hash in the git snapshots. The actual content referred to by the hash is then located elsewhere (e.g. a hosted server).
+
+::: {#note-content-hash callout-note} \## Content Hashes
+
+**Content hashes** are the output of a function that transforms arbitrary data into a string of data. Hashes are very common in cryptography and in areas where security/certainty is important. Eliding the details of how they work exactly, what's important to understand for our purposes is that a content hash function will take arbitrary bits and output the same set of data each time the function is called on the original bits.
+
+For example, it might look something like this:
+
+```{julia}
+data = "A data file contents 123"
+Base.hash(data)
+```
+
+If it's run again on the same inputs, you get the same output:
+
+```{julia}
+Base.hash(data)
+```
+
+And if the data is changed even slightly, then the output is markedly different:
+
+```{julia}
+data2 = "A data file contents 124"
+Base.hash(data2)
+```
+
+This is used in content addressed systems like Data Version Control (@sec-data-version-control) and Artifacts (sec @artifacts) to ask for, and confirm the accuracy of, data instead of trying to address the data by it's location. That is, instead of trying to ask to get data from a given URL (e.g. `http://adatasource.com/data.csv`) you can set up a system which keeps track of available locations for the data that matches the content hash. Something like (in Julia-ish psuedocode):
+
+``` julia
+storage_locations = Dict(
+    0x4d7e8e449afd1c48 => [
+        "http://datasets.com/1231234",
+        "http://companyintranet.com/admin.csv",
+        "C:/Users/your_name/Documents/Data/admin.csv"
+    ]
+)
+
+function get_data(hash,locations)
+    for location in locations[hash]
+        if is_available(location)
+            return get(location)
+        end
+    end
+    
+    # if loop didn't return data
+    return nothing
+end
+```
+
+:::
 
 ## Distributing the Package
 
+Ones you have creates something, the next best feeling after having it working is having someone else also use the tool. Julia has a robust way to distribute and manage dependencies. This section will cover essential and related topics to distributing your project publicly or with an internal team.
+
 ### Registries
+
+**Registries** are a way to keep track of packages that are available to install, which is more complex than it might seem at first. The registry needs to keep track of:
+
+-   What dependencies your package has.
+-   What versions of the dependencies your package is compatible with.
+-   Metadata about the package (name, unique identifier, authors).
+-   Versions of your package that your have made available and the Git hash associated with the that version for provenance and tracking
+-   The location where your package's repository lives so that the user can grab the code from there.
+
+The Julia General Registry ("General") is the default registry that comes loaded as the default registry when installing Julia. From a capability standpoint, there's nothing that separates General from other registries, including ones that you can create yourself. At it's core, the registry is can be seen as a Git repository where each new commit just adds information associated with the newly registered package or version of a package.
 
 #### Local Registry
 
+For distributing privately (or publicly if you make the repository public), LocalRegistry.jl provides convenience functions for creating a new registry, adding new packages, and updating versions for the packages. If you want to share packages internally, create and register packages to a repository that's hosted somewhere you and your team can access. If you wanted to make the repository public, you can publish the registry repository somewhere publically accessable (such as a public GitHub repository).
+
+Once established, other users can add a repository as easily as entering package mode and running `registry add`. Say that we have already put a registry we called `FinancePackages` in a repository on the company intranet:
+
+``` julia-repl
+pkg> registry add http://company-intranet.com/git/FinancePackages.git
+```
+
+#### General Registry and other Hosted Registries
+
+At it's core, General is essentially the same as a local registry described in the prior section. However, there's some additional infrastructure supporting General. Registered packages get backed up, cached for speed, and multiple servers across the globe are set up to respond to Pkg requests for redundancy and latency. Nothing would stop you from doing the same for your own hosted registry if it got popular enough!
+
+::: callout-tip
+A local registry is a great way to set up internal sharing of packages within an organization. Services do exist for "managed" package sharing, adding enterprise features like whitelisted dependencies, documentation hosting, a 'hub' of searchable packages.
+:::
+
 ### Versioning
 
-### Artifacts
+Versioning is an important part of managing a complex web of dependencies. Versioning is used to let both users and the computer (e.g. Pkg) understand which bits of code are compatible with others. For this, consider your model/program's **Application Programming Interface** (API). The API is essentially defined by the outputs produced by your code given the same inputs. If the same inputs are provided, then for the same API version the same output should be provided. However, this isn't the only thing that matters. Another is the documentation associated with the functionality. If the documentation said that a function would work a certain way, then your program should follow that (or fix the documentation)!
+
+Another case to consider is what if new functionality was *added*? Old code need not have changed, but if there's new functionality, how to communicate that as an API change? This is where **Semantic Versioning** (SemVer) comes in: *semantic* means that your version something is intended to convey some sort of meaning over and above simply incrementing from `v1` to `v2` to `v3`, etc.
+
+#### Semantic Versioning
+
+Semantic Versioning (SemVer) is one of the most popular approaches to software versioning. It's not perfect but has emerged as one of the most practical ways since it get's a lot about version numbering right. Here's how SemVer is defined[^software-2]:
+
+[^software-2]: You can read more at [SemVer.org](https://semver.org).
+
+```         
+Given a version number MAJOR.MINOR.PATCH, increment the:
+
+- MAJOR version when you make incompatible API changes
+- MINOR version when you add functionality in a backward compatible manner
+- PATCH version when you make backward compatible bug fixes
+```
+
+So here are some examples of SemVer, if our package's functionality for `v1.0.0` is like this:
+
+``` julia
+""" my_add(x,y)
+
+Add the numbers x and y together
+"""
+my_add(x,y) = x - y
+```
+
+**Patch change (v1.0.1):** Fix the bug in the implementation:
+
+``` julia
+""" my_add(x,y)
+Add the numbers x and y together
+"""
+my_add(x,y) = x + y
+```
+
+This is a patch change because it fixes a bug without changing the API. The function still takes two arguments and returns their sum, as originally documented.
+
+**Minor change (v1.1.0):** Add new functionality in a backward-compatible manner:
+
+``` julia
+""" my_add(x,y)
+Add the numbers x and y together
+
+my_add(x,y,z)
+Add the numbers x, y, and z together
+"""
+my_add(x,y) = x + y
+my_add(x,y,z) = x + y + z
+```
+
+This is a minor change because it adds new functionality (the ability to add three numbers) while maintaining backward compatibility with the existing two-argument version.
+
+**Major change (v2.0.0):** Make incompatible API changes:
+
+``` julia
+""" add_numbers(numbers...)
+Add any number of input arguments together
+"""
+add_numbers(numbers...) = sum(numbers)
+```
+
+This is a major change because it fundamentally alters the API. The function name has changed, and it now accepts any number of arguments instead of specifically two or three. This change is not backward compatible with code using the previous versions, so a major version increment is necessary.
+
+::: callout-note
+Numbers need not roll over to the next digit when they hit 10. That is, it's perfectly valid to go from v1.09.0`to`v1.10.0\` in SemVer.
+:::
+
+::: callout-tip
+Sometimes you'll see a package with a version that starts with zero, such as `v0.23.1`. **We recommend that as soon as you register a package, to make it a `v1`**. `v1` need not indicate the package is "complete" (what software is?), so don't hold back on calling it `v1`. You're letting users install it easily, so you might as well call it the first version and move on!
+
+According to SemVer's rules, there are no patch versions when the major version is zero. This means that you have one less meaningful digit to communicate to users what's going on with a change. Most packages put an upper bound on compatibility so that major or minor changes in upstream packages are less likely to cause issues in their own packages. This can be somewhat painful to depend on a package which has a `v0` and is iterating through 'fixes' but is incrementing the minor version. You have to assume it's making backwards incompatible changes and should have skepticism of just upgrading to the new version of the dependency. It takes work on the downstream dependencies to decide if they should upgrade, adding mental and time loads to other authors and users.
+:::
+
+### Artifacts {#sec-artifacts}
+
+Artifacts are a way to distribute content-addressed (@note-content-hash) data and other dependencies. An example use case is if you want to distribute some demonstration datasets with a package. When a package in added or updated, the associated data is pulled and un-archived by Pkg instead of the author of the package needing to manually handle data dependencies. Aside from this convenience, it means that different packages could load the same data without duplicating the data download or storage (since the data is content-addressed). The use-case is not real-time data, as the content-hash can only updated per package version.
+
+For example, the MortalityTable.jl package redistributes various publicly available, industry mortality tables. Inside the repository, there's an `Artifacts.toml` file specified like:
+
+``` toml
+#/Artifacts.toml
+
+["mort.soa.org"]
+git-tree-sha1 = "6164a6026f108fe95828b689fcd3b992acbff7c3" # <1>
+
+    [["mort.soa.org".download]]
+    sha256 = "6f5eb4909564b55a3397ccf4f4c74290e002f7e2e2474cebeb224bb23a9a2606" # <2>
+    url = "https://github.com/JuliaActuary/Artifacts/raw/v2020-02-15/mort.soa.org/2020-02-15.tar.gz"
+```
+
+1.  The sha1 hash of the un-archived data once downloaded.
+2.  The sha256 hash of the archived (compressed) data.
+
+Then, within the package the data artifact can be referenced and handled by the artifact system rather than needing to manually handle it. That is, the data is reference-able like this:
+
+``` julia
+table_dir = artifact"mort.soa.org" # <1>
+```
+
+1.  artifact"..." is a string macro, which is a special syntax for macros that interact with strings. `md"..."` is another example, specifiying that the content of the string is Markdown content.
+
+As opposed to something like this:
+
+``` julia
+# psuedo Julia code
+table_dir = if is_first_package_run
+    
+    data_path = download("url_of_data.tar.gz") # download to a temp location
+    mv(data_path, "/somwhere/to/keep/data.tar.gz") # move to a 'permanent' location
+    extract("/somwhere/to/keep/data.tar.gz") # extract contents
+    "/somwhere/to/keep/data/" # return data path
+else
+    "/somwhere/to/keep/data/" # return pre-processed path
+
+end
+```
+
+::: callout-note
+Utility Packages such as [ArtifactUtils.jl](https://github.com/JuliaPackaging/ArtifactUtils.jl) can assist in creating correct entries for `Artifact.toml` files.
+:::
+
+::: callout-note
+Artifacts support `.tar` (uncompressed) and `.tar.gz` because that compression format enjoys more universal support and features than the `.zip` format most common on Windows systems.
+:::
 
 ## Example Repository
 
-Link to an example repository with documentation, tests, tagged releases, coverage indicator, etc.
-
-Note some more advanced testing topics in @sec-related-topics-formal-verification.
+TODO: Link to an example repository with documentation, tests, tagged releases, coverage indicator, etc.
