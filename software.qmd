@@ -197,7 +197,7 @@ Different tests can emphasize different aspects of model behavior. You could be 
 | Regression Testing  | Ensures that new changes or updates to the code haven't broken existing functionality. It involves re-running previously completed tests. |
 +---------------------+-------------------------------------------------------------------------------------------------------------------------------------------+
 
-There are other types of testing that can be performed on a model, such as performance testing, security testing, acceptance testing, etc., but these types of tests are outside of the scope of what we would evaluate with an `@test` check.
+There are other types of testing that can be performed on a model, such as performance testing, security testing, acceptance testing, etc., but these types of tests are outside of the scope of what we would evaluate with an `@test` check. It is possible to create more advanced, mathematical-type checks and tests, which is introduced in @sec-related-topics-formal-verification.
 
 ::: callout-tip
 ## Financial Modeling Pro-tip
@@ -539,7 +539,7 @@ Another case to consider is what if new functionality was *added*? Old code need
 
 #### Semantic Versioning
 
-Here's how SemVer is defined[^software-2]:
+Semantic Versioning (SemVer) is one of the most popular approaches to software versioning. It's not perfect but has emerged as one of the most practical ways since it get's a lot about version numbering right. Here's how SemVer is defined[^software-2]:
 
 [^software-2]: You can read more at [SemVer.org](https://semver.org).
 
@@ -598,18 +598,68 @@ add_numbers(numbers...) = sum(numbers)
 
 This is a major change because it fundamentally alters the API. The function name has changed, and it now accepts any number of arguments instead of specifically two or three. This change is not backward compatible with code using the previous versions, so a major version increment is necessary.
 
-Also note that the numbers need not roll over to the next digit when they hit 10. `v2.32.7` is a perfectly valid SemVer version.
+::: callout-note
+Numbers need not roll over to the next digit when they hit 10. That is, it's perfectly valid to go from v1.09.0`to`v1.10.0\` in SemVer.
+:::
 
 ::: callout-tip
-Sometimes you'll see a package with a version that starts with zero, such as `v0.23.1`. **We recommend that as soon as you register a package, to make it a `v1`**. `v1` need not inidcate the package is "complete" (what software is?), so don't hold back on calling it `v1`. You're letting users install it easily, so you might as well call it the first version and move on!
+Sometimes you'll see a package with a version that starts with zero, such as `v0.23.1`. **We recommend that as soon as you register a package, to make it a `v1`**. `v1` need not indicate the package is "complete" (what software is?), so don't hold back on calling it `v1`. You're letting users install it easily, so you might as well call it the first version and move on!
 
 According to SemVer's rules, there are no patch versions when the major version is zero. This means that you have one less meaningful digit to communicate to users what's going on with a change. Most packages put an upper bound on compatibility so that major or minor changes in upstream packages are less likely to cause issues in their own packages. This can be somewhat painful to depend on a package which has a `v0` and is iterating through 'fixes' but is incrementing the minor version. You have to assume it's making backwards incompatible changes and should have skepticism of just upgrading to the new version of the dependency. It takes work on the downstream dependencies to decide if they should upgrade, adding mental and time loads to other authors and users.
 :::
 
 ### Artifacts {#sec-artifacts}
 
+Artifacts are a way to distribute content-addressed (@note-content-hash) data and other dependencies. An example use case is if you want to distribute some demonstration datasets with a package. When a package in added or updated, the associated data is pulled and un-archived by Pkg instead of the author of the package needing to manually handle data dependencies. Aside from this convenience, it means that different packages could load the same data without duplicating the data download or storage (since the data is content-addressed). The use-case is not real-time data, as the content-hash can only updated per package version.
+
+For example, the MortalityTable.jl package redistributes various publicly available, industry mortality tables. Inside the repository, there's an `Artifacts.toml` file specified like:
+
+``` toml
+#/Artifacts.toml
+
+["mort.soa.org"]
+git-tree-sha1 = "6164a6026f108fe95828b689fcd3b992acbff7c3" # <1>
+
+    [["mort.soa.org".download]]
+    sha256 = "6f5eb4909564b55a3397ccf4f4c74290e002f7e2e2474cebeb224bb23a9a2606" # <2>
+    url = "https://github.com/JuliaActuary/Artifacts/raw/v2020-02-15/mort.soa.org/2020-02-15.tar.gz"
+```
+
+1.  The sha1 hash of the un-archived data once downloaded.
+2.  The sha256 hash of the archived (compressed) data.
+
+Then, within the package the data artifact can be referenced and handled by the artifact system rather than needing to manually handle it. That is, the data is reference-able like this:
+
+``` julia
+table_dir = artifact"mort.soa.org" # <1>
+```
+
+1.  artifact"..." is a string macro, which is a special syntax for macros that interact with strings. `md"..."` is another example, specifiying that the content of the string is Markdown content.
+
+As opposed to something like this:
+
+``` julia
+# psuedo Julia code
+table_dir = if is_first_package_run
+    
+    data_path = download("url_of_data.tar.gz") # download to a temp location
+    mv(data_path, "/somwhere/to/keep/data.tar.gz") # move to a 'permanent' location
+    extract("/somwhere/to/keep/data.tar.gz") # extract contents
+    "/somwhere/to/keep/data/" # return data path
+else
+    "/somwhere/to/keep/data/" # return pre-processed path
+
+end
+```
+
+::: callout-note
+Utility Packages such as [ArtifactUtils.jl](https://github.com/JuliaPackaging/ArtifactUtils.jl) can assist in creating correct entries for `Artifact.toml` files.
+:::
+
+::: callout-note
+Artifacts support `.tar` (uncompressed) and `.tar.gz` because that compression format enjoys more universal support and features than the `.zip` format most common on Windows systems.
+:::
+
 ## Example Repository
 
-Link to an example repository with documentation, tests, tagged releases, coverage indicator, etc.
-
-Note some more advanced testing topics in @sec-related-topics-formal-verification.
+TODO: Link to an example repository with documentation, tests, tagged releases, coverage indicator, etc.
