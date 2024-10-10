@@ -1,0 +1,219 @@
+# Troubleshooting Julia Code
+
+> “Debugging is twice as hard as writing the code in the first place. Therefore, if you write the code as cleverly as possible, you are, by definition, not smart enough to debug it.” - Brian Kernighan
+
+## In this Chapter
+
+Debugging in Julia involves a mix of strategies, including using print statements, the Debugger package for step-by-step inspection, logging with the Logging module, and interactive debugging with Infiltrator. These tools and techniques can help you identify and fix issues in our code efficiently.
+
+## Error Messages and Stack Traces
+
+Julia’s error messages and stack traces can be quite informative. When an error occurs, Julia provides a traceback that shows the function call stack leading to the error, which helps in identifying where things went wrong.
+
+```{julia}
+#| error: true
+function mysqrt(x)
+    return sqrt(x)
+end
+
+mysqrt(-1)  # This will raise a `DomainError`
+```
+
+The **stacktrace** will show us the sequence of function calls that led to the error. The print out will show the list of functions that were called (the **callstack**) which led to the code that errored. Additionally, help text is often printed, potentially offering some advice for resolving the issue. When you encounter errors in an interactive session, you can click on different parts of the stacktrace and be taken to the associated code in your editor.
+
+### Error Types
+
+Notice that errors are given specific types and not just result in a generic `Error`. This aids in understanding for the user: if a `DomainError` then you know that you passed the right type (e.g. a `Float64` to a function that takes a number), just that the value was not acceptable (as in the example above). Constrast that with a `MethodError` which will tell you that you've passed an invalid kind of thing to the function, not just that it's value was off:
+
+```{julia}
+#| error: true
+mysqrt("a string isn't OK")
+```
+
+
+## Logging
+
+When you encounter a problem in your code or want to track progress, a common reflex is to add `print` statements everywhere.
+
+``` {julia}
+function printing_func(n)
+    for i in 1:n
+        println(i^2)
+    end
+end
+```
+
+```{julia}
+printing_func(3)
+```
+
+A slight improvement is given by the `@show` macro, which displays the variable name:
+
+```{julia}
+function showing_func(n)
+    for i in 1:n
+        @show i^2
+    end
+end
+```
+
+```{julia}
+showing_func(3)
+```
+
+But you can go even further with the macros `@debug`, `@info`, `@warn` and `@error`. They have several advantages over printing:
+
+-   They display variable names and a custom message
+-   They show the line number they were called from
+-   They can be disabled and filtered according to source module and severity level
+-   They work well in multithreaded code
+-   They can write their output to a file
+
+```{julia}
+function warning_func(n)
+    for i in 1:n
+        @warn "This is bad" i^2
+    end
+end
+```
+
+```{julia}
+warning_func(3)
+```
+
+Refer to the logging [documentation](https://docs.julialang.org/en/v1/stdlib/Logging/) for more information.
+
+:::callout-note
+In particular, note that `@debug` messages are suppressed by default.
+You can enable them through the `JULIA_DEBUG` environment variable if you specify the source module name, typically `Main` or your package module.
+:::
+
+Beyond the built-in logging utilities, [ProgressLogging.jl](https://github.com/JuliaLogging/ProgressLogging.jl) has a macro `@progress`, which interfaces nicely with VSCode and Pluto to display progress bars. And [Suppressor.jl](https://github.com/JuliaIO/Suppressor.jl) can sometimes be handy when you need to suppress warnings or other bothersome messages (use at your own risk).
+
+## Debugging
+
+The limitation of printing or logging is that you cannot interact with local variables or save them for further analysis. The following two packages solve this issue (consider adding to your default environment `@v1.X`, like Revise.jl).
+
+### Setting
+
+Assume you want to debug a function checking whether the $n$-th [Fermat number](https://en.wikipedia.org/wiki/Fermat_number) $F_n = 2^{2^n} + 1$ is prime:
+
+```{julia}
+function fermat_prime(n)
+    k = 2^n
+    F = 2^k + 1
+    for d in 2:isqrt(F)  # integer square root
+        if F % d == 0
+            return false
+        end
+    end
+    return true
+end
+```
+
+```{julia}
+fermat_prime(4), fermat_prime(6)
+```
+
+Unfortunately, $F_4 = 65537$ is the largest known Fermat prime, which means $F_6$ is incorrectly classified. Let's investigate why this happens!
+
+### Infiltrator.jl
+
+[Infiltrator.jl](https://github.com/JuliaDebug/Infiltrator.jl) is a lightweight inspection package, which will not slow down your code at all. Its `@infiltrate` macro allows you to directly set breakpoints in your code. Calling a function which hits a breakpoint will activate the Infiltrator REPL-mode and change the prompt to `infil>`. Typing `?` in this mode will summarize available commands. For example, typing `@locals` in Infiltrator-mode will print local variables:
+
+```julia
+using Infiltrator
+
+function fermat_prime_infil(n)
+    k = 2^n
+    F = 2^k + 1
+    @infiltrate
+    for d in 2:isqrt(F)
+        if F % d == 0
+            return false
+        end
+    end
+    return true
+end
+```
+
+What makes Infiltrator.jl even more powerful is the `@exfiltrate` macro, which allows you to move local variables into a global storage called the `safehouse`.
+
+``` julia-repl
+julia> fermat_prime_infil(6)
+Infiltrating fermat_prime_infil(n::Int64)
+  at REPL[2]:4
+
+infil> @exfiltrate k F
+Exfiltrating 2 local variables into the safehouse.
+
+infil> @continue
+
+true
+
+julia> safehouse.k
+64
+
+julia> safehouse.F
+1
+```
+
+The diagnosis is a classic one: [integer overflow](https://docs.julialang.org/en/v1/manual/faq/#faq-integer-arithmetic). Indeed, $2^{64}$ is larger than the maximum integer value in Julia:
+
+``` >typemax
+typemax(Int)
+2^63-1
+```
+
+And the solution is to call our function on "big" integers with an arbitrary number of bits:
+
+``` >fermat-big
+fermat_prime(big(6))
+```
+
+### Debugger.jl
+
+[Debugger.jl](https://github.com/JuliaDebug/Debugger.jl) allows us to interrupt code execution anywhere we want, even in functions we did not write. Using its `@enter` macro, we can enter a function call and walk through the call stack, at the cost of reduced performance.
+
+The REPL prompt changes to `1|debug>`, allowing you to use [custom navigation commands](https://github.com/JuliaDebug/Debugger.jl#debugger-commands) to step into and out of function calls, show local variables and set breakpoints. Typing a backtick `` ` `` will change the prompt to `1|julia>`, indicating evaluation mode. Any expression typed in this mode will be evaluated in the local context. This is useful to show local variables, as demonstrated in the following example:
+
+``` julia-repl
+julia> using Debugger
+
+julia> @enter fermat_prime(6)
+In fermat_prime(n) at REPL[7]:1
+ 1  function fermat_prime(n)
+>2      k = 2^n
+ 3      F = 2^k + 1
+ 4      for d in 2:isqrt(F)  # integer square root
+ 5          if F % d == 0
+ 6              return false
+
+About to run: (^)(2, 6)
+1|debug> n
+In fermat_prime(n) at REPL[7]:1
+ 1  function fermat_prime(n)
+ 2      k = 2^n
+>3      F = 2^k + 1
+ 4      for d in 2:isqrt(F)  # integer square root
+ 5          if F % d == 0
+ 6              return false
+ 7          end
+
+About to run: (^)(2, 64)
+1|julia> k
+64
+```
+
+:::callout-tip
+
+VSCode offers a nice [graphical interface for debugging](https://www.julia-vscode.org/docs/stable/userguide/debugging/).
+Click left of a line number in an editor pane to add a _breakpoint_, which is represented by a red circle.
+In the debugging pane of the Julia extension, click `Run and Debug` to start the debugger.
+The program will automatically halt when it hits a breakpoint.
+Using the toolbar at the top of the editor, you can then _continue_, _step over_, _step into_ and _step out_ of your code.
+The debugger will open a pane showing information about the code such as local variables inside of the current function, their current values and the full call stack.
+
+The debugger can be [sped up](https://www.julia-vscode.org/docs/dev/userguide/debugging/#Settings-to-speed-up-the-debugger) by selectively compiling modules that you will not need to step into via the `+` symbol at the bottom of the debugging pane.
+It is often easiest to start by adding `ALL_MODULES_EXCEPT_MAIN` to the compiled list, and then selectively remove the modules you need to have interpreted.
+:::
