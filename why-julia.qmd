@@ -1,19 +1,26 @@
 # Why use Julia?
 
+> We want a language that's open source, with a liberal license. We want the speed of C with the dynamism of Ruby. We want a language that's homoiconic, with true macros like Lisp, but with obvious, familiar mathematical notation like Matlab. We want something as usable for general programming as Python, as easy for statistics as R, as natural for string processing as Perl, as powerful for linear algebra as Matlab, as good at gluing programs together as the shell. Something that is dirt simple to learn, yet keeps the most serious hackers happy. We want it interactive and we want it compiled. - Bezanson, Karpinski, Shaw, Edelman (the original creators of Julia)
 
+Julia is relatively new[^why-julia-1], and *it shows*. It is evident in its pragmatic, productivity-focused design choices, pleasant syntax, rich ecosystem, thriving communities, and its ability to be both very general purpose and power cutting edge computing.
 
-\[Drafting Note: This chapter is pulled from the article published in 2021 and needs to be adapted for the book's audience.
-\]
-
-Julia is relatively new^[Python first appeared in 1990. R is an implementation of S, which was created in 1976, though depending on when you want to place the start of an independent R project varies (1993, 1995, and 2000 are alternate dates). The history of these languages is long and substantial changes have occurred since these dates.], and *it shows*. It is evident in its pragmatic, productivity-focused design choices, pleasant syntax, rich ecosystem, thriving communities, and its ability to be both very general purpose and power cutting edge computing.
+[^why-julia-1]: Python first appeared in 1990. R is an implementation of S, which was created in 1976, though depending on when you want to place the start of an independent R project varies (1993, 1995, and 2000 are alternate dates). The history of these languages is long and substantial changes have occurred since these dates.
 
 With Julia: math-heavy code looks like math; it's easy to pick up, and quick-to-prototype. Packages are well-integrated, with excellent visualization libraries and pragmatic design choices.
 
 Julia’s popularity continues to grow across many fields and there's a growing body of online references and tutorials, videos, and print media to learn from.
 
-Large financial services organizations have already started realizing gains: BlackRock's Aladdin portfolio modeling, the Federal Reserve's economic simulations, and Aviva's Solvency II-compliant modeling^[[Aviva Case Study](https://juliacomputing.com/case-studies/aviva.html)]. The last of these has a [great talk on YouTube](https://www.youtube.com/watch?v=__gMirBBNXY) by Aviva's Tim Thornham, which showcases an on-the-ground view of what difference the right choice of technology and programming language can make. Moving from their vendor-supplied modeling solution was **1000x faster, took 1/10 the amount of code, and was implemented 10x faster**.
+Large financial services organizations have already started realizing gains: BlackRock's Aladdin portfolio modeling, the Federal Reserve's economic simulations, and Aviva's Solvency II-compliant modeling[^why-julia-2]. The last of these has a [great talk on YouTube](https://www.youtube.com/watch?v=__gMirBBNXY) by Aviva's Tim Thornham, which showcases an on-the-ground view of what difference the right choice of technology and programming language can make. Moving from their vendor-supplied modeling solution was **1000x faster, took 1/10 the amount of code, and was implemented 10x faster**.
 
-The language is not just great for data science — but also modeling, ETL, visualizations, package control/version management, machine learning, string manipulation, web-backends, and many other use cases. Julia is well suited for financial modeling work: easy to read and write and very performant.
+[^why-julia-2]: [Aviva Case Study](https://juliacomputing.com/case-studies/aviva.html)
+
+The language is not just great for data science — but also modeling, ETL, visualizations, package control/version management, machine learning, string manipulation, web-backends, and many other use cases.
+
+Julia is well suited for financial modeling work: easy to read and write and very performant.
+
+## Julia and This Book
+
+Julia is introduced insofar that a basic understanding is necessary to illustrate certain concepts. Julia is ideal in this context, because it is generally straighforward and concise, allowing the presented idea to have the spotlight (as opposed to language boiler plate or obtuse keywords and variables). The point of structuring the book like this is to allow us to introduce a wide variety of computer science concepts to the financial professional, *not* to introduce Julia as a programming language (there are many other resources which do that just fine). This chapter seeks to motivate to the skeptical professional why we choose Julia for teaching and for work. Then, in @sec-elements-programming we provide an introduction to core language concepts and syntax. After this chapter,the content is focused on illustrating a number of key concepts, with Julia taking a secondary role, serving simply as a backdrop. It's not until @sec-julia-writing where Julia regains the spotlight and we discuss particulars which generally matter only to those heavily using Julia more vigorously.
 
 ## Expressiveness and Syntax
 
@@ -28,81 +35,76 @@ In a language with high expressiveness and pleasant syntax, you:
 
 Expressiveness can be hard to explain, but perhaps two short examples will illustrate.
 
-### Example: Retention Analysis
+### Example 1: Retention Analysis
 
-This is a really simple example relating `Cession`s, `Policy`s, and `Live`s to do simple retention analysis.
+This is a really simple example relating `Cession`s, `Policy`s, and `Live`s to do simple retention analysis. Retention is a measure of how much risk an insurance company holds on a policy after it's own reinsurance risk transfer ("ceded amounts").
 
 First, let's define our data:
 
-``` julia:./post/julia-for-the-future/code/ex1
+```{julia}
 
 # Define our data structures
 struct Life
-  policies
+    policies
 end
 
 struct Policy
-  face
-  cessions
- end
+    face
+    cessions
+end
 
 struct Cession
-  ceded
+    ceded
 end
 ```
 
 Now to calculate amounts retained. First, let's say what retention means for a `Policy`:
 
-``` julia:./post/julia-for-the-future/code/ex2
+```{julia}
 # define retention
 function retained(pol::Policy)
-  pol.face - sum(cession.ceded for cession in pol.cessions)
+    pol.face - sum(cession.ceded for cession in pol.cessions)
 end
 ```
 
 And then what retention means for a `Life`:
 
-``` julia:./post/julia-for-the-future/code/ex3
+```{julia}
 function retained(l::Life)
-  sum(retained(policy) for policy in life.policies)
+    sum(retained(policy) for policy in life.policies)
 end
 ```
 
 It's almost exactly how you'd specify it English. No joins, no boilerplate, no fiddling with complicated syntax. You can express ideas and concepts the way that you think of them, not, for example, as a series of dataframe joins or as row/column coordinates on a spreadsheet.
 
-We defined `retained` and adapted it to mean related, but different things depending on the specific context. That is, we didn't have to define `retained_life(...)` and `retained_pol(...)` because Julia can be *dispatch* based on what you give it. This is, as some would call it, [unreasonably effective](https://www.youtube.com/watch?v=kc9HwsxE1OY).
+We defined `retained` and adapted it to mean related, but different things depending on the specific context. That is, we didn't have to define `retained_life(...)` and `retained_pol(...)` because Julia can **dispatch** based on what you give it (this is a more powerful, generalized version of method dispatch commonly used in object-oriented programming, see @sec-data-types for more).
 
 Let's use the above code in practice then.
 
-*The `julia>` syntax indicates that we've moved into Julia's interactive mode (REPL mode):*
-
-``` julia-repl
+```{julia}
 # create two policies with two and one cessions respectively
-julia> pol_1 = Policy( 1000, [ Cession(100), Cession(500)] )
-julia> pol_2 = Policy( 2500, [ Cession(1000) ] )
+pol_1 = Policy(1000, [Cession(100), Cession(500)])
+pol_2 = Policy(2500, [Cession(1000)])
 
 # create a life, which has the two policies
-julia> life = Life([pol_1, pol_2])
+life = Life([pol_1, pol_2])
 ```
 
-``` julia-repl
-julia> retained(pol_1)
-400
+```{julia}
+retained(pol_1)
 ```
 
-``` julia-repl
-julia> retained(life)
-1900
+```{julia}
+retained(life)
 ```
 
 And for the last trick, something called "broadcasting", which automatically vectorizes any function you write, no need to write loops or create `if` statements to handle a single vs repeated case:
 
-``` julia-repl
-julia> retained.(life.policies) # retained amount for each policy
-[400 ,  1500]
+```{julia}
+retained.(life.policies) # retained amount for each policy
 ```
 
-### Example: Random Sampling
+### Example 2: Random Sampling
 
 As another motivating example showcasing multiple dispatch, here's random sampling in Julia, R, and Python.
 
@@ -139,19 +141,114 @@ By understanding the different types of things passed to `rand()`, it maintains 
 
 As the [journal Nature said](https://www.nature.com/articles/d41586-019-02310-3), "Come for the Syntax, Stay for the Speed".
 
-Recall the Solvency II compliance which ran 1000x faster than the prior vendor solution mentioned earlier: what does it mean to be 1000x faster at something? It's the difference between something taking 10 seconds instead of 3 hours — or 1 hour instead of 42 days.
+Earlier we described Aviva's Solvency II compliance modeling, which ran 1000x faster than the prior vendor solution mentioned earlier: what does it mean to be 1000x faster at something? It's the difference between something taking 10 seconds instead of 3 hours — or 1 hour instead of 42 days.
 
-**What analysis would you like to do if it took less time? A stochastic analysis of life-level claims? Machine learning with your experience data? Daily valuation instead of quarterly?**
+With this difference in speed, you would be able to complete existing processes much faster, or extend the analysis further. This speed could allow you to do new things: a stochastic analysis of life-level claims, machine learning with your experience data, or perform much more frequent valuation.
 
-Speaking from experience, speed is not just great for production time improvements. During development, it’s really helpful too. When building something, I can see that I messed something up in a couple of seconds instead of 20 minutes. The build, test, fix, iteration cycle goes faster this way.
+Here's a real example, comparing the runtime to calculate the price of a vanilla european call option using the Black-Scholes-Merton formula, as well as the associated code for each. Here's the mathematical formula we are using:
+
+$$
+\text{Call}(S_t, t) = N(d_1)S_t - N(d_2)Ke^{-r(T - t)} \\
+d_1 = \frac{1}{\sigma\sqrt{T - t}}\left[\ln\left(\frac{S_t}{K}\right) + \left(r + \frac{\sigma^2}{2}\right)(T - t)\right] \\\
+d_2 = d_1 - \sigma\sqrt{T - t}
+$$
+
+``` julia
+using Distributions
+
+function d1(S,K,τ,r,σ)
+    (log(S/K) + (r + σ^2/2) * τ) / (σ * √(τ))
+end
+
+function d2(S,K,τ,r,σ)
+    d1(S,K,τ,r,σ) - σ * √(τ)
+end
+
+function Call(S,K,τ,r,σ)
+    N(x) = cdf(Normal(),x)
+    d₁ = d1(S,K,τ,r,σ)
+    d₂ = d2(S,K,τ,r,σ)
+    return N(d₁)*S - N(d₂) * K * exp(-r*τ)
+end
+
+S,K,τ,σ,r = 300, 250, 1, 0.15, 0.03
+
+Call(S,K,τ,r,σ) # 58.81976813699322
+```
+
+```python
+from scipy import stats
+import math
+
+def d1(S,K,τ,r,σ):
+	return (math.log(S/K) + (r + σ**2/2) * τ) / (σ * math.sqrt(τ))
+
+def d2(S,K,τ,r,σ):
+	return d1(S,K,τ,r,σ) - σ * math.sqrt(τ)
+
+def Call(S,K,τ,r,σ):
+	N = lambda x: stats.norm().cdf(x)
+	d_1 = d1(S,K,τ,r,σ)
+	d_2 = d2(S,K,τ,r,σ)
+	return N(d_1)*S - N(d_2) * K * math.exp(-r*τ)
+
+S = 300
+K = 250
+τ = 1
+σ = 0.15
+r = 0.03
+
+Call(S,K,τ,r,σ) # 58.81976813699322
+```
+
+```r
+d1<- function(S,K,t,r,sig) {
+  ans <- (log(S/K) + (r + sig^2/2)*t) / (sig*sqrt(t))
+  return(ans)
+} 
+
+d2 <- function(S,K,t,r,sig) {
+  return(d1(S,K,t,r,sig) - sig*sqrt(t))
+}
+
+Call <- function(S,K,t,r,sig) {
+  d_1 <- d1(S,K,t,r,sig)
+  d_2 <- d2(S,K,t,r,sig)
+  return(S*pnorm(d_1) - K*exp(-r*t)*pnorm(d_2))
+}
+S <- 300
+K <- 250
+t <- 1
+r <- 0.03
+sig <- 0.15
+
+Call(S,K,t,r,sig) # 58.81977
+```
+
+We find in @tbl-bsm-benchmark that despite the syntatic similarity, Julia is much faster than the other two.
+
+
+| Language | Median *(nanoseconds)* | Mean  *(nanoseconds)*   | Relative Mean |
+|----------|---------|----------|---------------|
+| Python   | *not calculated by benchmarking library* | 817000.0 | 19926.0       |
+| R        | 3649.0  | 3855.2   | 92.7          |
+| Julia    | 41.0    | 41.6     | 1.0           |
+
+: Julia is nearly 20,000 times faster than Python, and two orders of magnitude faster than R. {#tbl-bsm-benchmark}
+
+### Development Speed
+
+Speed is not just great for improvement in production processes. During development, it’s really helpful too. When building something, the faster feedback loop allows for more productive development. The build, test, fix, iteration cycle goes faster this way.
 
 Admittedly, most workflows don't see a 1000x speedup, but 10x to 1000x is a very common range of speed differences vs R or Python or MATLAB.
 
+::: callout-note
 Sometimes you will see less of a speed difference; R and Python have already circumvented this and written much core code in low-level languages. This is an example of what's called the "two-language" problem where the language productive to write in isn't very fast. For example, [more than half of R packages use C/C++/Fortran](https://developer.r-project.org/Blog/public/2019/03/28/use-of-c---in-packages/) and core packages in Python like Pandas, PyTorch, NumPy, SciPy, etc. do this too.
 
-Within the bounds of the optimized R/Python libraries, you can leverage this work. Extending it can be difficult: what if you have a custom retention management system running on millions of policies every night?
+Within the bounds of the optimized R/Python libraries, you can leverage this work. Extending it can be difficult: what if you have a custom retention management system running on millions of policies every night? In technical terms, libraries like NumPy are not able to handle custom data types, and instead limit use to pre-built types within the library. In contrast, all types in Julia are effectively equal, even ones that you might create yourself.
 
 Julia packages you are using are almost always written in pure Julia: you can see what's going on, learn from them, or even contribute a package of your own!
+:::
 
 ## More of Julia's benefits
 
@@ -171,7 +268,7 @@ Julia is easy to write, learn, and be productive in:
     -   First-class support for missing values across the entire language
     -   Literate programming support (like R-Markdown)
 -   Built-in `Dates` package that makes working with dates pleasant
--   Ability to directly call and use R and Python code/packages with the `PyCall` and `RCall` packages
+-   Ability to directly call and use R and Python code/packages with the [`PythonCall.jl`](https://github.com/JuliaPy/PythonCall.jl) and [RCall](https://github.com/JuliaInterop/RCall.jl) packages
 -   Error messages are helpful and tell you *what line* the error came from, not just the type of error
 -   Debugger functionality so you can step through your code line by line
 
@@ -179,7 +276,7 @@ For power-users, advanced features are easily accessible: parallel programming, 
 
 These are some of the things that make Julia one of the world's most loved languages on the [StackOverflow Developer Survey](https://insights.stackoverflow.com/survey/2020#technology-most-loved-dreaded-and-wanted-languages).
 
-For those who are enterprise-minded: in addition to the liberal licensing mentioned above, there are professional products from organizations like [Julia Computing](https://juliacomputing.com/) that provide hands-on support, training, IT governance solutions, behind-the-firewall package management, and deployment/scaling assistance.
+In addition to the liberal licensing mentioned above, there are professional products from organizations like [JuliaHub](https://juliahub.com/) that provide hands-on support, training, IT governance solutions, behind-the-firewall package management, and deployment/scaling assistance.
 
 ## The Tradeoff
 
@@ -208,12 +305,12 @@ For example, packages that operate on data tables work without issue together in
 
 In Julia, packages tend to be more plug-and-play. For example, every time you want to load a CSV you might not want to transform the data into a dataframe (maybe you want a matrix or a plot instead). To load data into a dataframe, in Julia the practice is to use both the CSV and DataFrames packages, which help separate concerns. Some users may prefer the Python/R approach of less modular but more all-inclusive packages.
 
-## Conclusion
+## Tools in Your Toolbox
 
-Looking at other great tools like R and Python, it can be difficult to summarize a single reason to motivate a switch to Julia, but hopefully this article piqued an interest to try it for your next project.
+Looking at other great tools like R and Python, it can be difficult to summarize a single reason to motivate a switch to Julia, but hopefully we have sufficiently piqued your interest and we can turn to introducing important concepts.
 
 That said, Julia shouldn't be the only tool in your tool-kit. SQL will remain an important way to interact with databases. R and Python aren't going anywhere in the short term and will always offer a different perspective on things!
 
-In [an earlier article](/blog/coding-for-the-future/), I talked about becoming a **10x Actuary** which meant being proficient in the language of computers so that you could build and implement great things. In a large way, the choice of tools and paradigms shape your focus. Productivity is one aspect, expressiveness is another, speed one more. There are many reasons to think about what tools you use and trying out different ones is probably the best way to find what works best for you.
+Being a productive finanical profession means being proficient in the language of computers so that you could build and implement great things. In a large way, the choice of tools and paradigms shape your focus. Productivity is one aspect, expressiveness is another, speed one more. There are many reasons to think about what tools you use and trying out different ones is probably the best way to find what works best for you.
 
 It is said that you cannot fully conceptualize something unless your language has a word for it. Similar to spoken language, you may find that breaking out of spreadsheet coordinates (and even a dataframe-centric view of the world) reveals different questions to ask and enables innovated ways to solve problems. In this way, you reward your intellect while building more meaningful and relevant models and analysis.
