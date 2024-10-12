@@ -1,0 +1,1668 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.10">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>20&nbsp; Wrting Julia Code – Computational Thinking for Actuaries and Financial Professionals</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script><script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./julia-debugging.html" rel="next">
+<link href="./julia-development.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-3d3a3f531f1be4526fdd4068b34a2ee6.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-dark-a830fe05c40437511722e23bd7ea26de.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-72d77660d82bf229fd23b34cda9a9670.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark.min.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+<script data-goatcounter="https://julia-fin-book.goatcounter.com/count" async="" src="//gc.zgo.at/count.js"></script>
+
+
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="nav-sidebar floating">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./julia-development.html">Developing In Julia</a></li><li class="breadcrumb-item"><a href="./julia-writing.html"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Wrting Julia Code</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Computational Thinking for Actuaries and Financial Professionals</a> 
+        <div class="sidebar-tools-main">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+</div>
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./intro.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Introduction</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./why-program.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Why Program?</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./why-julia.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Why use Julia?</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./elements-of-financial-modeling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Elements of Financial Modeling</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./conceptual-foundations.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Foundations: Programming and Abstractions</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./foundations-of-programming.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Elements of Programming</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./first-abstractions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Functional Abstractions</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./type-abstractions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Data and Types</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./patterns-abstraction.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Higher Levels of Abstraction</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./conceptual-foundations2.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Foundations: Building Performant Models</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./hardware.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Hardware and Its Implications</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./performance-single.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Writing Performant Single-Threaded Code</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./parallelization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Parallelization</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./computational-thinking.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Interdisciplinary Concepts and Applications</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./software.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Applying Software Engineering Principles</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./elements-of-compsci.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Elements of Computer Science</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./statistics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Statistical Inference and Information Theory</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./autodiff.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Automatic Differentiation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Optimization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./stochastic.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Stochastic Modeling</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./visualization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Visualizations</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./matrices.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Matrices and Their Uses</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./data-learning.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Learning from Data</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./julia-development.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Developing In Julia</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./julia-writing.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Wrting Julia Code</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./julia-debugging.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Troubleshooting Julia Code</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./julia-sharing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Distributing and Sharing Julia Code</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./julia-optimizing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Optimizing Julia Code</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./applications.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Applied Financial Modeling Techniques</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./stochastic-mortality.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Stochastic Mortality Projections</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./scenario-generation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Scenario Generation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./similarity-calculation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Similarity Analysis</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./sensitivity-analysis.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Sensitivity Analysis</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./portfolio-optimization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Portfolio Optimization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./bayesian-mortality.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Bayesian Mortality Modeling</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./other-techniques.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">Other Useful Techniques</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./appendices.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Appendices</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ecosystem.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">31</span>&nbsp; <span class="chapter-title">The Julia Ecosystem Today</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">References</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#in-this-chapter" id="toc-in-this-chapter" class="nav-link active" data-scroll-target="#in-this-chapter"><span class="header-section-number">20.1</span> In this chapter</a></li>
+  <li><a href="#getting-help" id="toc-getting-help" class="nav-link" data-scroll-target="#getting-help"><span class="header-section-number">20.2</span> Getting help</a></li>
+  <li><a href="#installation" id="toc-installation" class="nav-link" data-scroll-target="#installation"><span class="header-section-number">20.3</span> Installation</a></li>
+  <li><a href="#repl" id="toc-repl" class="nav-link" data-scroll-target="#repl"><span class="header-section-number">20.4</span> REPL</a>
+  <ul class="collapse">
+  <li><a href="#help-mode" id="toc-help-mode" class="nav-link" data-scroll-target="#help-mode"><span class="header-section-number">20.4.1</span> Help mode (<code>?</code>)</a></li>
+  <li><a href="#package-mode" id="toc-package-mode" class="nav-link" data-scroll-target="#package-mode"><span class="header-section-number">20.4.2</span> Package mode (<code>]</code>)</a></li>
+  <li><a href="#shell-mode" id="toc-shell-mode" class="nav-link" data-scroll-target="#shell-mode"><span class="header-section-number">20.4.3</span> Shell mode (<code>;</code>)</a></li>
+  </ul></li>
+  <li><a href="#editor" id="toc-editor" class="nav-link" data-scroll-target="#editor"><span class="header-section-number">20.5</span> Editor</a></li>
+  <li><a href="#running-code" id="toc-running-code" class="nav-link" data-scroll-target="#running-code"><span class="header-section-number">20.6</span> Running code</a></li>
+  <li><a href="#notebooks" id="toc-notebooks" class="nav-link" data-scroll-target="#notebooks"><span class="header-section-number">20.7</span> Notebooks</a></li>
+  <li><a href="#markdown" id="toc-markdown" class="nav-link" data-scroll-target="#markdown"><span class="header-section-number">20.8</span> Markdown</a>
+  <ul class="collapse">
+  <li><a href="#plain-text-markdown" id="toc-plain-text-markdown" class="nav-link" data-scroll-target="#plain-text-markdown"><span class="header-section-number">20.8.1</span> Plain Text Markdown</a></li>
+  <li><a href="#quarto" id="toc-quarto" class="nav-link" data-scroll-target="#quarto"><span class="header-section-number">20.8.2</span> Quarto</a></li>
+  </ul></li>
+  <li><a href="#environments-and-dependencies" id="toc-environments-and-dependencies" class="nav-link" data-scroll-target="#environments-and-dependencies"><span class="header-section-number">20.9</span> Environments and Dependencies</a>
+  <ul class="collapse">
+  <li><a href="#project.toml" id="toc-project.toml" class="nav-link" data-scroll-target="#project.toml"><span class="header-section-number">20.9.1</span> Project.toml</a></li>
+  <li><a href="#manifest.toml" id="toc-manifest.toml" class="nav-link" data-scroll-target="#manifest.toml"><span class="header-section-number">20.9.2</span> Manifest.toml</a></li>
+  <li><a href="#reproducibility" id="toc-reproducibility" class="nav-link" data-scroll-target="#reproducibility"><span class="header-section-number">20.9.3</span> Reproducibility</a></li>
+  </ul></li>
+  <li><a href="#creating-local-packages" id="toc-creating-local-packages" class="nav-link" data-scroll-target="#creating-local-packages"><span class="header-section-number">20.10</span> Creating Local packages</a>
+  <ul class="collapse">
+  <li><a href="#sec-pkgtemplates" id="toc-sec-pkgtemplates" class="nav-link" data-scroll-target="#sec-pkgtemplates"><span class="header-section-number">20.10.1</span> PkgTemplates.jl</a></li>
+  </ul></li>
+  <li><a href="#development-workflow" id="toc-development-workflow" class="nav-link" data-scroll-target="#development-workflow"><span class="header-section-number">20.11</span> Development workflow</a></li>
+  <li><a href="#sec-startup-config" id="toc-sec-startup-config" class="nav-link" data-scroll-target="#sec-startup-config"><span class="header-section-number">20.12</span> Configuration</a></li>
+  <li><a href="#interactivity" id="toc-interactivity" class="nav-link" data-scroll-target="#interactivity"><span class="header-section-number">20.13</span> Interactivity</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./julia-development.html">Developing In Julia</a></li><li class="breadcrumb-item"><a href="./julia-writing.html"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Wrting Julia Code</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span id="sec-julia-writing" class="quarto-section-identifier"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Wrting Julia Code</span></span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="in-this-chapter" class="level2" data-number="20.1">
+<h2 data-number="20.1" class="anchored" data-anchor-id="in-this-chapter"><span class="header-section-number">20.1</span> In this chapter</h2>
+<p>Installing and setting up your Julia environment. Text editor and REPL editing environments. Setting up your global environment for development. Creating packages. Logging and debugging code.</p>
+</section>
+<section id="getting-help" class="level2" data-number="20.2">
+<h2 data-number="20.2" class="anchored" data-anchor-id="getting-help"><span class="header-section-number">20.2</span> Getting help</h2>
+<p>Before you write any line of code, it’s good to know where to find help. The official <a href="https://julialang.org/about/help/">help page</a> is a good place to start. In particular, the Julia <a href="https://julialang.org/community/">community</a> is always happy to guide beginners.</p>
+<p>As a rule of thumb, the <a href="https://discourse.julialang.org/">Discourse forum</a> is where you should ask your questions to make the answers discoverable for future users. If you just want to chat with someone, you have a choice between the open source <a href="https://julialang.zulipchat.com/register/">Zulip</a> and the closed source <a href="https://julialang.org/slack/">Slack</a>.</p>
+</section>
+<section id="installation" class="level2" data-number="20.3">
+<h2 data-number="20.3" class="anchored" data-anchor-id="installation"><span class="header-section-number">20.3</span> Installation</h2>
+<p>The most natural starting point to install Julia onto your system is the <a href="https://julialang.org/downloads/">Julia downloads page</a>, which will tell you to use <a href="https://github.com/JuliaLang/juliaup"><code>juliaup</code></a>.</p>
+<ol type="1">
+<li>Windows users can download Julia and <code>juliaup</code> together from the <a href="https://www.microsoft.com/store/apps/9NJNWW8PVKMN">Windows Store</a>.</li>
+<li>OSX or Linux users can execute the following terminal command:</li>
+</ol>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-fsSL</span> https://install.julialang.org <span class="kw">|</span> <span class="fu">sh</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>In both cases, this will make the <code>juliaup</code> and <code>julia</code> commands accessible from the terminal (or Windows Powershell). On Windows this will also create an application launcher. All users can start Julia by running</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">julia</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Meanwhile, <code>juliaup</code> provides <a href="https://github.com/JuliaLang/juliaup#using-juliaup">various utilities</a> to download, update, organize and switch between different Julia versions. As a bonus, you no longer have to manually specify the path to your executable. This all works thanks to adaptive shortcuts called “channels”, which allow you to access specific Julia versions without giving their exact number.</p>
+<p>For instance, the <code>release</code> channel will always point to the <a href="https://julialang.org/downloads/#current_stable_release">current stable version</a>, and the <code>lts</code> channel will always point to the <a href="https://julialang.org/downloads/#long_term_support_release">long-term support version</a>. Upon installation of <code>juliaup</code>, the current stable version of Julia is downloaded and selected as the default.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>To use other channels, add them to <code>juliaup</code> and put a <code>+</code> in front of the channel name when you start Julia:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">juliaup</span> add lts</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">julia</span> +lts</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>You can get an overview of the channels installed on your computer with</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">juliaup</span> status</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>When new versions are tagged, the version associated with a given channel can change, which means a new executable needs to be downloaded. If you want to catch up with the latest developments, just do</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">juliaup</span> update</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</div>
+</section>
+<section id="repl" class="level2" data-number="20.4">
+<h2 data-number="20.4" class="anchored" data-anchor-id="repl"><span class="header-section-number">20.4</span> REPL</h2>
+<p>The Read-Eval-Print Loop (or REPL) is the most basic way to interact with Julia, check out its <a href="https://docs.julialang.org/en/v1/stdlib/REPL/">documentation</a> for details. You can start a REPL by typing <code>julia</code> into a terminal, or by clicking on the Julia application in your computer. It will allow you to play around with arbitrary Julia code:</p>
+<pre class="julia-repl"><code>julia&gt; a, b = 1, 2;
+
+julia&gt; a + b
+3</code></pre>
+<p>This is the standard (Julia) mode of the REPL, but there are three other modes you need to know. Each mode is entered by typing a specific character after the <code>julia&gt;</code> prompt. Once you’re in a non-Julia mode, you stay there for every command you run. To exit it, hit backspace after the prompt and you’ll get the <code>julia&gt;</code> prompt back.</p>
+<section id="help-mode" class="level3" data-number="20.4.1">
+<h3 data-number="20.4.1" class="anchored" data-anchor-id="help-mode"><span class="header-section-number">20.4.1</span> Help mode (<code>?</code>)</h3>
+<p>By pressing <code>?</code> you can obtain information and metadata about Julia objects (functions, types, etc.) or unicode symbols. The query fetches the docstring of the object, which explains how to use it.</p>
+<pre class="julia-repl"><code>help?&gt; println
+search: println print sprint pointer printstyled
+
+  println([io::IO], xs...)
+
+  Print (using print) xs to io followed by a newline. If io is not supplied, prints to the default output stream stdout.
+
+  See also printstyled to add colors etc.
+
+  Examples
+  ≡≡≡≡≡≡≡≡
+
+  julia&gt; println("Hello, world")
+  Hello, world
+
+  julia&gt; io = IOBuffer();
+
+  julia&gt; println(io, "Hello", ',', " world.")
+
+  julia&gt; String(take!(io))
+  "Hello, world.\n"</code></pre>
+<p>If you don’t know the exact name you are looking for, type a word surrounded by quotes to see in which docstrings it pops up.</p>
+</section>
+<section id="package-mode" class="level3" data-number="20.4.2">
+<h3 data-number="20.4.2" class="anchored" data-anchor-id="package-mode"><span class="header-section-number">20.4.2</span> Package mode (<code>]</code>)</h3>
+<p>By pressing <code>]</code> you access <a href="https://github.com/JuliaLang/Pkg.jl">Pkg.jl</a>, Julia’s integrated package manager, whose <a href="https://pkgdocs.julialang.org/v1/getting-started/">documentation</a> is an absolute must-read. Pkg.jl allows you to:</p>
+<ul>
+<li><code>]activate</code> different local, shared or temporary environments;</li>
+<li><code>]instantiate</code> them by downloading the necessary packages;</li>
+<li><code>]add</code>, <code>]update</code> (or <code>]up</code>) and <code>]remove</code> (or <code>]rm</code>) packages;</li>
+<li>get the <code>]status</code> (or <code>]st</code>) of your current environment.</li>
+</ul>
+<p>As an illustration, we download the package Example.jl inside a new environment we call <code>demo</code> (which will create an associated folder if it does not exist):</p>
+<pre class="julia-repl"><code>(demo) pkg&gt; activate demo
+  Activating new project at `~/demo`
+
+(demo) pkg&gt; add Example
+   Resolving package versions...
+    Updating `~/demo/Project.toml`
+  [7876af07] + Example v0.5.5
+    Updating `~/demo/Manifest.toml`
+  [7876af07] + Example v0.5.5</code></pre>
+<pre class="julia-repl"><code>(demo) pkg&gt; status
+Status `~/demo/Project.toml`
+  [7876af07] Example v0.5.5</code></pre>
+<p>Note that the same keywords are also available in Julia mode:</p>
+<pre class="julia-repl"><code>julia&gt; using Pkg
+
+julia&gt; Pkg.rm("Example")
+    Updating `~/demo/Project.toml`
+  [7876af07] - Example v0.5.5
+    Updating `~/demo/Manifest.toml`
+  [7876af07] - Example v0.5.5</code></pre>
+<p>The package mode itself also has a help mode, accessed with <code>?</code>, in case you’re lost among all these new keywords.</p>
+</section>
+<section id="shell-mode" class="level3" data-number="20.4.3">
+<h3 data-number="20.4.3" class="anchored" data-anchor-id="shell-mode"><span class="header-section-number">20.4.3</span> Shell mode (<code>;</code>)</h3>
+<p>By pressing <code>;</code> you enter a terminal, where you can execute any command you want, such as changing the working directory to the folder we just created:</p>
+<pre class="julia-repl"><code>shell&gt; cd demo
+/Users/myself/demo</code></pre>
+</section>
+</section>
+<section id="editor" class="level2" data-number="20.5">
+<h2 data-number="20.5" class="anchored" data-anchor-id="editor"><span class="header-section-number">20.5</span> Editor</h2>
+<p>In theory, any text editor suffices to write and modify Julia code. In practice, an Integrated Development Environment (or IDE) makes the experience much more pleasant, thanks to code-related utilities and language-specific plugins.</p>
+<p>The best IDE for Julia is <a href="https://code.visualstudio.com/">Visual Studio Code</a>, or VSCode, developed by Microsoft. The <a href="https://www.julia-vscode.org/">Julia VSCode extension</a> is the most feature-rich of all Julia IDE plugins. You can download it from the VSCode Marketplace and read its <a href="https://www.julia-vscode.org/docs/stable/">documentation</a>.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>In what follows, we will sometimes mention commands and <a href="https://www.julia-vscode.org/docs/stable/userguide/keybindings/">keyboard shortcuts</a> provided by this extension. But the only shortcut you need to remember is <code>Ctrl + Shift + P</code> (or <code>Cmd + Shift + P</code> on Mac): this opens the VSCode command palette, in which you can search for any command. Type <code>julia</code> in the command palette to see what you can do.</p>
+</div>
+</div>
+</section>
+<section id="running-code" class="level2" data-number="20.6">
+<h2 data-number="20.6" class="anchored" data-anchor-id="running-code"><span class="header-section-number">20.6</span> Running code</h2>
+<p>You can execute a Julia script from your terminal, but in most cases that is not what you want to do.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ex">julia</span> myfile.jl  <span class="co"># avoid this</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Julia has a rather high startup and compilation latency. If you only use scripts, you will pay this cost every time you run a slightly modified version of your code. That is why many Julia developers fire up a REPL at the beginning of the day and run all of their code there, chunk by chunk, in an interactive way. Full files can be run interactively from the REPL with the <code>include</code> function.</p>
+<pre class="julia-repl"><code>julia&gt; include("myfile.jl")</code></pre>
+<p>Alternatively, <code>includet</code> from the <a href="https://timholy.github.io/Revise.jl/stable/user_reference/#Revise.includet">Revise.jl</a> package can be used to “include and track” a file. This will automatically update changes to function definitions in the file in the running REPL session.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><a href="https://www.julia-vscode.org/docs/stable/userguide/runningcode/">Running code</a> is made much easier by the following commands:</p>
+<ul>
+<li><code>Julia: Restart REPL</code> (shortcut <code>Alt + J</code> then <code>Alt + R</code>) - this will open or restart the integrated Julia REPL. It is different from opening a plain VSCode terminal and launching Julia manually from there.</li>
+<li><code>Julia: Execute Code in REPL and Move</code> (shortcut <code>Shift + Enter</code>) - this will execute the selected code in the integrated Julia REPL, like a notebook.</li>
+</ul>
+</div>
+</div>
+<p>When keeping the same REPL open for a long time, it’s common to end up with a “polluted” workspace where the definitions of certain variables or functions have been overwritten in unexpected ways. This, along with other events like <code>struct</code> redefinitions, might force you to restart your REPL now and again, and that’s okay.</p>
+</section>
+<section id="notebooks" class="level2" data-number="20.7">
+<h2 data-number="20.7" class="anchored" data-anchor-id="notebooks"><span class="header-section-number">20.7</span> Notebooks</h2>
+<p>Notebooks are a popular alternative to IDEs when it comes to short and self-contained code, typically in data science. They are also a good fit for literate programming, where lines of code are interspersed with comments and explanations.</p>
+<p>The most well-known notebook ecosystem is <a href="https://jupyter.org/">Jupyter</a>, which supports <strong>Ju</strong>lia, <strong>Py</strong>thon and <strong>R</strong> as its three core languages. To use it with Julia, you will need to install the <a href="https://github.com/JuliaLang/IJulia.jl">IJulia.jl</a> backend. Then, if you have also <a href="https://jupyter.org/install">installed Jupyter</a> with <code>pip install jupyterlab</code>, you can run this command to launch the server:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="ex">jupyter</span> lab</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>If you only have IJulia.jl on your system, you can run this snippet instead:</p>
+<pre class="julia-repl"><code>julia&gt; using IJulia
+
+julia&gt; IJulia.notebook()</code></pre>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Jupyter notebooks can be opened, modified and run directly from VSCode. Thanks to the Julia extension, you don’t even need to install IJulia.jl or Jupyter first.</p>
+</div>
+</div>
+<p><a href="https://plutojl.org/"><code>Pluto.jl</code></a> is a newer, pure-Julia tool, adding reactivity and interactivity. It is also more amenable to version control than Jupyter notebooks because notebooks are saved as plain Julia scripts. Pluto is unique to Julia because of the language’s ability to introspect and analyze dependencies in its own code. Pluto also has built-in package/environment management, meaning that Pluto notebooks contains all the code needed to reproduce results (as long as Julia and Pluto are installed).</p>
+<p>To try out Pluto, install the package and then run</p>
+<pre class="julia-repl"><code>julia&gt; using Pluto
+
+julia&gt; Pluto.run()</code></pre>
+</section>
+<section id="markdown" class="level2" data-number="20.8">
+<h2 data-number="20.8" class="anchored" data-anchor-id="markdown"><span class="header-section-number">20.8</span> Markdown</h2>
+<p><a href="https://www.markdownguide.org/">Markdown</a> is a markup language used to add formatting elements to plain text content, such as Julia docstrings. Additionally, other tools such as Quarto (described below) are built using Markdown notation as the basis for their formatting, so it’s useful to know about Markdown and the most essential</p>
+<section id="plain-text-markdown" class="level3" data-number="20.8.1">
+<h3 data-number="20.8.1" class="anchored" data-anchor-id="plain-text-markdown"><span class="header-section-number">20.8.1</span> Plain Text Markdown</h3>
+<p>Plain text markdown files, which have the <code>.md</code> extension, are not used for interactive programming, meaning one cannot run code written in the file. As a result, plain text markdown files are usually rendered into a final product by other software.</p>
+<p>This is an example of a plain text markdown file, including a code example contained within the `````````` block:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu"># Title</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="fu">## Section Header</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>This is example text.</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="in">```julia</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="in">println("hello world")</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="quarto" class="level3" data-number="20.8.2">
+<h3 data-number="20.8.2" class="anchored" data-anchor-id="quarto"><span class="header-section-number">20.8.2</span> Quarto</h3>
+<p><a href="https://quarto.org/">Quarto</a> “is an open-source scientific and technical publishing system.” Quarto makes a plain text markdown file (<code>.md</code>) alternative called Quarto markdown file (<code>.qmd</code>).</p>
+<p>Quarto markdown files like plain text markdown files also integrate with editors, such as VSCode.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Install the Quarto <a href="https://marketplace.visualstudio.com/items?itemName=quarto.quarto">extension</a> for a streamlined experience.</p>
+</div>
+</div>
+<p>Unlike plain text markdown files, Quarto markdown files have executable code chunks. These code chunks provide a functionality similar to notebooks, thus Quarto markdown files are an alternative to notebooks. Additionally, Quarto markdown files give users additional control over output and styling via the YAML header at the top of the <code>.qmd</code> file.</p>
+<p>As of Quarto version 1.5, users can choose from two Julia engines to execute code - a native Julia engine and IJulia.jl. The primary difference between the native Julia engine and IJulia.jl is that the native Julia engine does not depend on Python and can utilize local environments. For this reason it’s recommended to start with the native Julia engine. Learn more about the native Julia engine in Quarto’s <a href="https://quarto.org/docs/blog/posts/2024-07-11-1.5-release/#native-julia-engine">documentation</a>.</p>
+<p>This book is built using Quarto documents to create the associated typeset book and website.</p>
+</section>
+</section>
+<section id="environments-and-dependencies" class="level2" data-number="20.9">
+<h2 data-number="20.9" class="anchored" data-anchor-id="environments-and-dependencies"><span class="header-section-number">20.9</span> Environments and Dependencies</h2>
+<p>Julia comes bundled with <a href="https://pkgdocs.julialang.org/v1/">Pkg.jl</a>, an environment and package manager. It enables installation of packages from registries, pinning versions for compatibility, and analyzing your dependencies. Environment is meant to mean, in general, the computer you use and software installed in it. When we speak about <strong>environments</strong> in the Julia context, this means the Julia version and packages available to the current Julia code. For example, from the current code is a given package installed and usable?</p>
+<p>If you open a Julia REPL, by default you will be in the <em>global</em> environment. If you hit <code>]</code> to enter Pkg mode, you should see:</p>
+<pre class="julia-repl"><code>(@v1.10) pkg&gt;</code></pre>
+<p>The <code>(@1.10)</code> indicates that you are using the global environment for the current Julia version (there is no global environment which applies across all Julia versions installed). You can activate a new environment with <code>activate [environment name]</code>.</p>
+<pre class="julia-repl"><code>(@v1.10) pkg&gt; activate MyNewEnv
+  Activating new project at `~/MyNewEnv`</code></pre>
+<p>This will… not do anything. Yet! When we add a package to this environment, <em>then</em> it will create a <code>Project.toml</code> and <code>Manifest.toml</code> file in that directory. Now that directory is a full fledged Julia project!</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Activate a temporary environment with <code>activate --temp</code>. This will give you a temporary environment with a random name, which is very useful for testing out things in a clean, simplified environment (the global environment, like <code>@1.10</code> still applies.)</p>
+</div>
+</div>
+<section id="project.toml" class="level3" data-number="20.9.1">
+<h3 data-number="20.9.1" class="anchored" data-anchor-id="project.toml"><span class="header-section-number">20.9.1</span> Project.toml</h3>
+<p>A <code>Project.toml</code> file defines attributes about the current project and its dependencies. Julia uses this to understand how to reference your current project and what dependencies it should look for from registries when instantiating the project.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>TOML (Tom’s Obvious Markup Language) is a modern configuration file format used to store settings and data in a human-readable, plaintext format.</p>
+</div>
+</div>
+<p>This is a bit abstract, so here is a quick, annotated tour of an example Project.toml file:</p>
+<div class="sourceCode" id="annotated-cell-17"><pre class="sourceCode toml code-annotation-code code-with-copy code-annotated"><code class="sourceCode toml"><a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-17-1" class="code-annotation-target"><a href="#annotated-cell-17-1" aria-hidden="true" tabindex="-1"></a><span class="dt">name</span> <span class="op">=</span> <span class="st">"FinanceCore"</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-17-2" class="code-annotation-target"><a href="#annotated-cell-17-2" aria-hidden="true" tabindex="-1"></a><span class="dt">uuid</span> <span class="op">=</span> <span class="st">"b9b1ffdd-6612-4b69-8227-7663be06e089"</span></span>
+<span id="annotated-cell-17-3"><a href="#annotated-cell-17-3" aria-hidden="true" tabindex="-1"></a><span class="dt">authors</span> <span class="op">=</span> <span class="op">[</span><span class="st">"alecloudenback &lt;alecloudenback@users.noreply.github.com&gt; and contributors"</span><span class="op">]</span> </span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-17-4" class="code-annotation-target"><a href="#annotated-cell-17-4" aria-hidden="true" tabindex="-1"></a><span class="dt">version</span> <span class="op">=</span> <span class="st">"2.1.0"</span></span>
+<span id="annotated-cell-17-5"><a href="#annotated-cell-17-5" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-17-6" class="code-annotation-target"><a href="#annotated-cell-17-6" aria-hidden="true" tabindex="-1"></a><span class="kw">[deps]</span></span>
+<span id="annotated-cell-17-7"><a href="#annotated-cell-17-7" aria-hidden="true" tabindex="-1"></a><span class="dt">Dates</span> <span class="op">=</span> <span class="st">"ade2ca70-3891-5945-98fb-dc099432e06a"</span></span>
+<span id="annotated-cell-17-8"><a href="#annotated-cell-17-8" aria-hidden="true" tabindex="-1"></a><span class="dt">LoopVectorization</span> <span class="op">=</span> <span class="st">"bdcacae8-1622-11e9-2a5c-532679323890"</span></span>
+<span id="annotated-cell-17-9"><a href="#annotated-cell-17-9" aria-hidden="true" tabindex="-1"></a><span class="dt">Roots</span> <span class="op">=</span> <span class="st">"f2b01f46-fcfa-551c-844a-d8ac1e96c665"</span></span>
+<span id="annotated-cell-17-10"><a href="#annotated-cell-17-10" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="5" onclick="event.preventDefault();">5</a><span id="annotated-cell-17-11" class="code-annotation-target"><a href="#annotated-cell-17-11" aria-hidden="true" tabindex="-1"></a><span class="kw">[compat]</span></span>
+<span id="annotated-cell-17-12"><a href="#annotated-cell-17-12" aria-hidden="true" tabindex="-1"></a><span class="dt">Dates</span> <span class="op">=</span> <span class="st">"1"</span></span>
+<span id="annotated-cell-17-13"><a href="#annotated-cell-17-13" aria-hidden="true" tabindex="-1"></a><span class="dt">LoopVectorization</span> <span class="op">=</span> <span class="st">"^0.12"</span></span>
+<span id="annotated-cell-17-14"><a href="#annotated-cell-17-14" aria-hidden="true" tabindex="-1"></a><span class="dt">Roots</span> <span class="op">=</span> <span class="st">"^1.0, 2"</span></span>
+<span id="annotated-cell-17-15"><a href="#annotated-cell-17-15" aria-hidden="true" tabindex="-1"></a><span class="dt">julia</span> <span class="op">=</span> <span class="st">"1.6"</span></span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<dl class="code-annotation-container-grid">
+<dt data-target-cell="annotated-cell-17" data-target-annotation="1">1</dt>
+<dd>
+<span data-code-cell="annotated-cell-17" data-code-lines="1" data-code-annotation="1">The <code>name</code> is the name of your current project which only matters if you turn your project into a package.</span>
+</dd>
+<dt data-target-cell="annotated-cell-17" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-17" data-code-lines="2" data-code-annotation="2">A <strong>UUID</strong> is a unique identifier and can be created with Julia’s <code>UUIDs</code> standard library.</span>
+</dd>
+<dt data-target-cell="annotated-cell-17" data-target-annotation="3">3</dt>
+<dd>
+<span data-code-cell="annotated-cell-17" data-code-lines="4" data-code-annotation="3">The version follows Semantic Versioning (“SemVer”) to convey to Pkg (and users!) information that ties a specific version to a specific code commit<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>.</span>
+</dd>
+<dt data-target-cell="annotated-cell-17" data-target-annotation="4">4</dt>
+<dd>
+<span data-code-cell="annotated-cell-17" data-code-lines="6" data-code-annotation="4">The <code>deps</code> section records the name of direct dependencies and their UUIDs so that Julia can know which packages to grab in order to make your project run.</span>
+</dd>
+<dt data-target-cell="annotated-cell-17" data-target-annotation="5">5</dt>
+<dd>
+<span data-code-cell="annotated-cell-17" data-code-lines="11" data-code-annotation="5">The <code>compat</code> section defines compatibility with packages can be enforced (via SemVer) to clarify which versions are allowed to be installed in case incompatibilities arise.</span>
+</dd>
+</dl>
+<p>When you <code>instantiate</code> a project (see <span class="quarto-unresolved-ref">?sec-environment-details</span> for more), Julia will essentially <code>add</code> the packages listed under <code>deps</code>, and will <strong>resolve</strong> the compatible versions, generally picking the highest version number for the packages so long as the <code>compat</code> section rule are note broken.</p>
+<p>When adding the dependencies, those packages themselves likely specify their own set of dependencies and Julia must resolve the entire <strong>dependency graph</strong> or <strong>dependency tree</strong> to allow your current project to work.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Semantic Versioning
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Semantic Versioning (“SemVer”) is a scheme which uses the three-component version code to convey meaning about different versions of a package to both users and computer systems. With the version scheme <code>vMAJOR.MINOR.PATCH</code>, the meaning is roughly as follows:</p>
+<ol type="1">
+<li>MAJOR increments denote changes to the code which make it incompatible with prior versions.</li>
+<li>MINOR increments denote changes which add features that are compatible with the prior versions.</li>
+<li>PATCH increments denote changes which fix issues in prior versions and code written against the prior version is still compatible.</li>
+</ol>
+<p>As an example, say we are currently using <code>v2.10.4</code> of a package, and the following theoretical options are available for us to upgrade to:</p>
+<ul>
+<li><code>v2.10.5</code> - The <code>4</code> to <code>5</code> indicates that something may have been broken in the prior release and so we should upgrade without fear that we need to make changes to our code (unless we relied on the previously broken code!).</li>
+<li><code>v2.11.0</code> - The <code>10</code> to <code>11</code> bump suggests that the new release contains some features which should not require us to change any of our previously written code.</li>
+<li><code>v3.0.0</code> - The <code>2</code> to <code>3</code> indicates that we will potentially have to modify code that we have written that interfaces with this dependency.</li>
+</ul>
+<p>SemVer cannot distill all possible compatibility and upgrade information about a set of packages (e.g.&nbsp;an author may release an update with a MINOR version which also includes fixes).</p>
+</div>
+</div>
+</section>
+<section id="manifest.toml" class="level3" data-number="20.9.2">
+<h3 data-number="20.9.2" class="anchored" data-anchor-id="manifest.toml"><span class="header-section-number">20.9.2</span> Manifest.toml</h3>
+<p>The <code>Manifest.toml</code> file includes a record of all external dependencies used by the project at hand. Unlike <code>Project.toml</code>, this file gets machine generated when Julia instantiates or updates the environment. The contents are basically a long list of your direct dependencies and the dependencies of those direct dependencies and looks something like this:</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode toml code-with-copy"><code class="sourceCode toml"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="dt">julia_version</span> <span class="op">=</span> <span class="st">"1.10.0"</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="dt">manifest_format</span> <span class="op">=</span> <span class="st">"2.0"</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="dt">project_hash</span> <span class="op">=</span> <span class="st">"5fea00df4808d89f9c977d15b8ee992bd408081b"</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="kw">[[deps.AbstractFFTs]]</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="dt">deps</span> <span class="op">=</span> <span class="op">[</span><span class="st">"LinearAlgebra"</span><span class="op">]</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="dt">git-tree-sha1</span> <span class="op">=</span> <span class="st">"d92ad398961a3ed262d8bf04a1a2b8340f915fef"</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="dt">uuid</span> <span class="op">=</span> <span class="st">"621f4979-c628-5d54-868e-fcf4e3e8185c"</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a><span class="dt">version</span> <span class="op">=</span> <span class="st">"1.5.0"</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a><span class="dt">weakdeps</span> <span class="op">=</span> <span class="op">[</span><span class="st">"ChainRulesCore"</span><span class="op">,</span> <span class="st">"Test"</span><span class="op">]</span></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">[deps.AbstractFFTs.extensions]</span></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">AbstractFFTsChainRulesCoreExt</span> <span class="op">=</span> <span class="st">"ChainRulesCore"</span></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>    <span class="dt">AbstractFFTsTestExt</span> <span class="op">=</span> <span class="st">"Test"</span></span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a><span class="dt">...</span> <span class="dt">many</span> <span class="dt">more</span> <span class="dt">lines</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Starting in Julia 1.11, Manifest files will include a version indication, making it nicer to work with multiple Julia versions at one time on a single system.</p>
+</div>
+</div>
+</section>
+<section id="reproducibility" class="level3" data-number="20.9.3">
+<h3 data-number="20.9.3" class="anchored" data-anchor-id="reproducibility"><span class="header-section-number">20.9.3</span> Reproducibility</h3>
+<p>Reproducibility fulfills both practical and principled goals. <em>Practical</em> in that we can record the complex chain of dependencies that is used in modern computing in order to potentially re-create a result or demonstrate an audit trail of the tools used. <em>Principled</em> in that there are circumstances (like science research) in which we want to be able to replicate results. The combination of <code>Project.toml</code> and <code>Manifest.toml</code> go a long way towards accomplishing this, as you can share both and with the same hardware and Julia version should be able to get the exact same set of dependencies and therefore run the same code. In practice, this level of reproducibility isn’t <em>usually</em> needed, as most time a set of code can be run accurately without requiring the exact same set of dependencies.</p>
+<p>Since dependencies can have variation between systems (Windows/Mac) and architectures (x86 vs x64), you may not be able to recreate the Manifest exactly. Nevertheless, it’s a fairly low bar if you are trying to maintain the utmost level of rigor around the toolchain and Julia is one of the most robust languages regarding tools to support open replication of results.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Artifacts
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Julia has a system called <strong>artifacts</strong> which allows specification of a location and hash (a cryptographic key) for data and binaries. The artifact system used to download and verify the contents of a file match the hash. This is designed for more permanent data and less end-user workflows, but we call it out here as another example where Julia takes steps to promote consistency and reproducibility.</p>
+<p>For more on data workflows for the end-user, see <a href="software.html" class="quarto-xref"><span>Chapter 11</span></a>.</p>
+</div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>You can configure the <a href="https://www.julia-vscode.org/docs/stable/userguide/env/">environment</a> in which a VSCode Julia REPL opens. Just click the <code>Julia env: ...</code> button at the bottom. Note however that the Julia version itself will always be the default one from <code>juliaup</code>.</p>
+</div>
+</div>
+</section>
+</section>
+<section id="creating-local-packages" class="level2" data-number="20.10">
+<h2 data-number="20.10" class="anchored" data-anchor-id="creating-local-packages"><span class="header-section-number">20.10</span> Creating Local packages</h2>
+<p>Once your code base grows beyond a few scripts, you will want to <a href="https://pkgdocs.julialang.org/v1/creating-packages/">create a package</a> of your own. The first advantage is that you don’t need to specify the path of every file: <code>using MyPackage</code> is enough to get access to the names you define and export (or <code>using MyPackage: myfunc1, myfunc2</code> to use bring non-exported functions into your environment). Furthermore, by structuring your project as a Pacakge, you can specify versions for your package and its dependencies, making your code easier and safer to reuse.</p>
+<p>To create a new package locally, the easy way is to use <code>]generate</code> (we will discuss a more sophisticated workflow in the next blog post).</p>
+<pre class=">generate-package"><code>Pkg.generate(sitepath("MyPackage"));  # ignore sitepath</code></pre>
+<p>This command initializes a simple folder with a <code>Project.toml</code> and a <code>src</code> subfolder. As we have seen, the <code>Project.toml</code> specifies the dependencies. Meanwhile, the <code>src</code> subfolder contains a file <code>MyPackage.jl</code>, where a <a href="https://docs.julialang.org/en/v1/manual/modules/">module</a> called <code>MyPackage</code> is defined. It is the heart of your package, and will typically look like this when you’re done:</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="kw">module</span> MyPackage</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="co"># imported dependencies</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">OtherPackage1</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">OtherPackage2</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a><span class="co"># files defining functions, types, etc.</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a><span class="fu">include</span>(<span class="st">"file1.jl"</span>)</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a><span class="fu">include</span>(<span class="st">"subfolder/file2.jl"</span>)</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a><span class="co"># names you want to make public</span></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a><span class="kw">export</span> myfunc <span class="co"># e.g. defined in `file1.jl`</span></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a><span class="kw">export</span> MyType</span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="sec-pkgtemplates" class="level3" data-number="20.10.1">
+<h3 data-number="20.10.1" class="anchored" data-anchor-id="sec-pkgtemplates"><span class="header-section-number">20.10.1</span> PkgTemplates.jl</h3>
+<p><a href="https://github.com/JuliaCI/PkgTemplates.jl">PkgTemplates.jl</a> is like <code>]generate</code> from Pkg.jl but provides a number of options to pre-configure the repository for things such as continuous integration, testing, and compatibiltiy. If you are not yet making use of that more advanced functionality, the <code>]generate</code> method will work just fine for you.</p>
+<p>This will walk you through an interactive prompt to create a package in the desired folder. <code>~/.julia/dev</code> is a suggested location, but technically any folder will make do:</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">PkgTemplates</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="fu">cd</span>(<span class="st">"~/.julia/dev"</span>)</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="fu">Template</span>(interactive<span class="op">=</span><span class="cn">true</span>)(<span class="st">"MyPkg"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+</section>
+<section id="development-workflow" class="level2" data-number="20.11">
+<h2 data-number="20.11" class="anchored" data-anchor-id="development-workflow"><span class="header-section-number">20.11</span> Development workflow</h2>
+<p>Once you have created a package, your development routine might look like this:</p>
+<ol type="1">
+<li>Open a REPL in which you import <code>MyPackage</code></li>
+<li>Run some functions interactively, either by writing them directly in the REPL or from a Julia file that you use as a notebook</li>
+<li>Modify some files in <code>MyPackage</code></li>
+<li>Go back to step 2</li>
+</ol>
+<p>For that to work well, you need code modifications to be taken into account automatically. That is why <a href="https://github.com/timholy/Revise.jl">Revise.jl</a> exists. If you start every REPL session by explicitly Revise.jl (<code>using Revise</code>), then all the other packages you import after that will have their code tracked. Whenever you edit a source file and hit save, the REPL will update its state accordingly. To automatically do this for every session, see <a href="#sec-startup-config" class="quarto-xref"><span>Section 20.12</span></a>.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The Julia extension imports Revise.jl by default when it starts a REPL.</p>
+</div>
+</div>
+<p>This is how you get started using your own package once it’s set up:</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Revise</span>, <span class="bu">Pkg</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="bu">Pkg</span>.<span class="fu">activate</span>(<span class="st">"./MyPackage"</span>)</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">MyPackage</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="fu">myfunc</span>() <span class="co"># defined and exported in MyPackage</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>MyPackage.<span class="fu">myfunc2</span>() <span class="co"># defined and *not* exported in MyPackage</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>If you are working on a set of interrelated packages, you may need to tell those packages to use the <em>development</em> version of the package which you are modifying, instead of using the latest available from a registry. For example, say you are working on revisions to PkgA in the following dependency tree:</p>
+<pre class="plaintext"><code>PkgB -- depends on -- &gt; PkgA</code></pre>
+<p>If you are modifying PkgA, then you might need to tell PkgB to use the development version. For this, then you would need to:</p>
+<ol type="1">
+<li>Create an outer environment where you want to run the packages for interactive use while developing (say <code>activate @mydevenv</code>).</li>
+<li><code>]dev PkgB</code> which will download the associated repository into <code>~./julia/dev/PkgB</code></li>
+<li>Go into the environment <code>~/.julia/dev/PkgB</code> and tell that environment to use the development version of PkgA with <code>]dev PkgB</code> (assuming you are modifying PkgA also in the <code>~/.julia/dev/</code> folder)</li>
+</ol>
+<p>Now, in the <code>@mydevenv</code> environemnt, when you load <code>PkgB</code> it will load the version of <code>PkgA</code></p>
+</div>
+</div>
+</section>
+<section id="sec-startup-config" class="level2" data-number="20.12">
+<h2 data-number="20.12" class="anchored" data-anchor-id="sec-startup-config"><span class="header-section-number">20.12</span> Configuration</h2>
+<p>Julia accepts <a href="https://docs.julialang.org/en/v1/manual/command-line-interface/#command-line-interface">startup flags</a> to handle settings such as the number of threads available or the environment in which it launches. In addition, most Julia developers also have a <a href="https://docs.julialang.org/en/v1/manual/command-line-interface/#Startup-file">startup file</a> which is run automatically every time the language is started. It is located at <code>.julia/config/startup.jl</code>.</p>
+<p>The basic component that everyone puts in the startup file is Revise.jl. Users also commonly import packages that affect the REPL experience, as well as esthetic, benchmarking or profiling utilities. A typical example is <a href="https://github.com/KristofferC/OhMyREPL.jl">OhMyREPL.jl</a> which is widely used for syntax highlighting in the REPL. While other packages are often used, we suggest the following as a minimum:</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># save as a file in /.julia/config/startup.jl</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>try</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    <span class="im">using</span> <span class="bu">Revise</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    <span class="im">using</span> <span class="bu">OhMyREPL</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>catch <span class="cn">e</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@warn</span> <span class="st">"Error with startup packages"</span></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>More generally, the startup file allows you to define your own favorite helper functions and have them immediately available in every Julia session. <a href="https://github.com/abraemer/StartupCustomizer.jl">StartupCustomizer.jl</a> can help you set up your startup file.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Here are a few more startup packages that can make your life easier once you know the language better:</p>
+<ul>
+<li><a href="https://github.com/BioTurboNick/AbbreviatedStackTraces.jl">AbbreviatedStackTraces.jl</a> allows you to shorten error stacktraces, which can sometimes get pretty long (beware of its <a href="https://github.com/BioTurboNick/AbbreviatedStackTraces.jl/issues/38">interactions with VSCode</a>)</li>
+<li><a href="https://github.com/FedeClaudi/Term.jl">Term.jl</a> offers a completely new way to display things like types and errors (see the <a href="https://fedeclaudi.github.io/Term.jl/stable/adv/adv/">advanced configuration</a> to enable it by default).</li>
+</ul>
+</div>
+</div>
+</section>
+<section id="interactivity" class="level2" data-number="20.13">
+<h2 data-number="20.13" class="anchored" data-anchor-id="interactivity"><span class="header-section-number">20.13</span> Interactivity</h2>
+<p>The Julia REPL comes bundled with <a href="https://docs.julialang.org/en/v1/stdlib/InteractiveUtils/">InteractiveUtils.jl</a>, a bunch of very useful functions for interacting with source code.</p>
+<p>Here are a few examples:</p>
+<div id="9d220a32" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">InteractiveUtils</span> <span class="co"># not necessary in a REPL session</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="fu">supertypes</span>(<span class="dt">Int64</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="2">
+<pre><code>(Int64, Signed, Integer, Real, Number, Any)</code></pre>
+</div>
+</div>
+<div id="1277f662" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">subtypes</span>(<span class="dt">Integer</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="3">
+<pre><code>4-element Vector{Any}:
+ Bool
+ GeometryBasics.OffsetInteger
+ Signed
+ Unsigned</code></pre>
+</div>
+</div>
+<div id="730ef8da" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">methodswith</span>(<span class="dt">Integer</span>)[<span class="fl">1</span><span class="op">:</span><span class="fl">5</span>] <span class="co"># first five methods that take an integer argument</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="4">
+5-element Vector{Method}:<ul><li> Array(s::<b>LinearAlgebra.UniformScaling</b>, m::<b>Integer</b>, n::<b>Integer</b>) in LinearAlgebra at <a href="file:///Users/julia/.julia/scratchspaces/a66863c6-20e8-4ff4-8a62-49f30b1f605e/agent-cache/default-honeycrisp-R17H3W25T9.0/build/default-honeycrisp-R17H3W25T9-0/julialang/julia-release-1-dot-10/usr/share/julia/stdlib/v1.10/LinearAlgebra/src/uniformscaling.jl" target="_blank">/Users/alec/.julia/juliaup/julia-1.10.5+0.aarch64.apple.darwin14/share/julia/stdlib/v1.10/LinearAlgebra/src/uniformscaling.jl:419</a></li><li> Float16(x::<b>Integer</b>) in Base at <a href="https://github.com/JuliaLang/julia/tree/6f3fdf7b36250fb95f512a2b927ad2518c07d2b5/base/float.jl#L154" target="_blank">float.jl:154</a></li><li> Integer(x::<b>Integer</b>) in Core at <a href="file:///Users/alec/.julia/juliaup/julia-1.10.5+0.aarch64.apple.darwin14/share/julia/base/boot.jl" target="_blank">boot.jl:817</a></li><li> Ref(x::<b>Ptr{T}</b>, i::<b>Integer</b>)<i> where T</i> in Base at <a href="https://github.com/JuliaLang/julia/tree/6f3fdf7b36250fb95f512a2b927ad2518c07d2b5/base/refpointer.jl#L142" target="_blank">refpointer.jl:142</a></li><li> Ref(x::<b>Ref</b>, i::<b>Integer</b>) in Base at <a href="https://github.com/JuliaLang/julia/tree/6f3fdf7b36250fb95f512a2b927ad2518c07d2b5/base/refpointer.jl#L141" target="_blank">refpointer.jl:141</a></li></ul>
+</div>
+</div>
+<div id="9421bc24" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@which</span> <span class="fu">exp</span>(<span class="fl">1</span>) <span class="co"># where the currently used function is defined</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="5">
+exp(x::<b>Real</b>) in Base.Math at <a href="https://github.com/JuliaLang/julia/tree/6f3fdf7b36250fb95f512a2b927ad2518c07d2b5/base/math.jl#L1575" target="_blank">math.jl:1575</a>
+</div>
+</div>
+<div id="b9f5706e" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">apropos</span>(<span class="st">"matrix exponential"</span>) <span class="co"># search docstrings</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Base.:^
+Base.exp</code></pre>
+</div>
+</div>
+<p>When you ask for help on a Julia forum, you might want to include your local Julia information:</p>
+<div id="fcc0bfeb" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">versioninfo</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Julia Version 1.10.5
+Commit 6f3fdf7b362 (2024-08-27 14:19 UTC)
+Build Info:
+  Official https://julialang.org/ release
+Platform Info:
+  OS: macOS (arm64-apple-darwin22.4.0)
+  CPU: 8 × Apple M3
+  WORD_SIZE: 64
+  LIBM: libopenlibm
+  LLVM: libLLVM-15.0.7 (ORCJIT, apple-m1)
+Threads: 4 default, 0 interactive, 2 GC (on 4 virtual cores)
+Environment:
+  JULIA_NUM_THREADS = auto</code></pre>
+</div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The following packages can give you even more interactive power:</p>
+<ul>
+<li><a href="https://github.com/tkf/InteractiveCodeSearch.jl">InteractiveCodeSearch.jl</a> to look for a precise implementation of a function.</li>
+<li><a href="https://github.com/MichaelHatherly/InteractiveErrors.jl">InteractiveErrors.jl</a> to navigate through stacktraces.</li>
+<li><a href="https://github.com/timholy/CodeTracking.jl">CodeTracking.jl</a> to extend InteractiveUtils.jl</li>
+</ul>
+</div>
+</div>
+
+
+</section>
+<section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn1"><p>When registering a package to a repository, the repository will record the version indicated in the <code>Project.toml</code> file to the git commit id of the package when it is registered.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const disableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'prefetch';
+    }
+  }
+  const enableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'stylesheet';
+    }
+  }
+  const manageTransitions = (selector, allowTransitions) => {
+    const els = window.document.querySelectorAll(selector);
+    for (let i=0; i < els.length; i++) {
+      const el = els[i];
+      if (allowTransitions) {
+        el.classList.remove('notransition');
+      } else {
+        el.classList.add('notransition');
+      }
+    }
+  }
+  const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+    const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+    const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+    let newTheme = '';
+    if(darkModeDefault) {
+      newTheme = isAlternate ? baseTheme : alternateTheme;
+    } else {
+      newTheme = isAlternate ? alternateTheme : baseTheme;
+    }
+    const changeGiscusTheme = () => {
+      // From: https://github.com/giscus/giscus/issues/336
+      const sendMessage = (message) => {
+        const iframe = document.querySelector('iframe.giscus-frame');
+        if (!iframe) return;
+        iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+      }
+      sendMessage({
+        setConfig: {
+          theme: newTheme
+        }
+      });
+    }
+    const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+    if (isGiscussLoaded) {
+      changeGiscusTheme();
+    }
+  }
+  const toggleColorMode = (alternate) => {
+    // Switch the stylesheets
+    const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+    manageTransitions('#quarto-margin-sidebar .nav-link', false);
+    if (alternate) {
+      enableStylesheet(alternateStylesheets);
+      for (const sheetNode of alternateStylesheets) {
+        if (sheetNode.id === "quarto-bootstrap") {
+          toggleBodyColorMode(sheetNode);
+        }
+      }
+    } else {
+      disableStylesheet(alternateStylesheets);
+      toggleBodyColorPrimary();
+    }
+    manageTransitions('#quarto-margin-sidebar .nav-link', true);
+    // Switch the toggles
+    const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+    for (let i=0; i < toggles.length; i++) {
+      const toggle = toggles[i];
+      if (toggle) {
+        if (alternate) {
+          toggle.classList.add("alternate");     
+        } else {
+          toggle.classList.remove("alternate");
+        }
+      }
+    }
+    // Hack to workaround the fact that safari doesn't
+    // properly recolor the scrollbar when toggling (#1455)
+    if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+      manageTransitions("body", false);
+      window.scrollTo(0, 1);
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        manageTransitions("body", true);
+      }, 40);  
+    }
+  }
+  const isFileUrl = () => { 
+    return window.location.protocol === 'file:';
+  }
+  const hasAlternateSentinel = () => {  
+    let styleSentinel = getColorSchemeSentinel();
+    if (styleSentinel !== null) {
+      return styleSentinel === "alternate";
+    } else {
+      return false;
+    }
+  }
+  const setStyleSentinel = (alternate) => {
+    const value = alternate ? "alternate" : "default";
+    if (!isFileUrl()) {
+      window.localStorage.setItem("quarto-color-scheme", value);
+    } else {
+      localAlternateSentinel = value;
+    }
+  }
+  const getColorSchemeSentinel = () => {
+    if (!isFileUrl()) {
+      const storageValue = window.localStorage.getItem("quarto-color-scheme");
+      return storageValue != null ? storageValue : localAlternateSentinel;
+    } else {
+      return localAlternateSentinel;
+    }
+  }
+  const darkModeDefault = false;
+  let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+  // Dark / light mode switch
+  window.quartoToggleColorScheme = () => {
+    // Read the current dark / light value 
+    let toAlternate = !hasAlternateSentinel();
+    toggleColorMode(toAlternate);
+    setStyleSentinel(toAlternate);
+    toggleGiscusIfUsed(toAlternate, darkModeDefault);
+  };
+  // Ensure there is a toggle, if there isn't float one in the top right
+  if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+    const a = window.document.createElement('a');
+    a.classList.add('top-right');
+    a.classList.add('quarto-color-scheme-toggle');
+    a.href = "";
+    a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+    const i = window.document.createElement("i");
+    i.classList.add('bi');
+    a.appendChild(i);
+    window.document.body.appendChild(a);
+  }
+  // Switch to dark mode if need be
+  if (hasAlternateSentinel()) {
+    toggleColorMode(true);
+  } else {
+    toggleColorMode(false);
+  }
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./julia-development.html" class="pagination-link" aria-label="Developing In Julia">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Developing In Julia</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./julia-debugging.html" class="pagination-link" aria-label="Troubleshooting Julia Code">
+        <span class="nav-page-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Troubleshooting Julia Code</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
