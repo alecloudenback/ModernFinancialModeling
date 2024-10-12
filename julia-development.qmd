@@ -1,94 +1,11 @@
-# Julia Development Tips {#sec-julia-development}
+# Developing In Julia
 
-## In this section
+Aside from the essentials necessary to convey the topics, the prior chapters have provided relatively limited insight into the *workflow* of developing in Julia. An analogy is that we have, up to this point, talked about using hammers and saws to create widgets. And some advanced topics like how to make a widget run faster and smoother in different machines. This section of the book talks about the *process* of building and designing widgets, helping you to make your widget making factory run smoothly.
 
-Package-oriented development and project set up. Julia's trade-off between runtime speed and compile time. Common pitfalls. Revise and code re-loading. Introspection and lowering. Precompilation of packages, package extensions, creating sysimages, and other techniques to improve deveper and user experience.
+This chapter is heavy with Julia-specific tips and advice. We have deliberately delayed this content until well into the book, focusing on the concepts instead of getting bogged down on language-specific details. In this section, we dive into the 'messy' business of building bigger, integrated things and tools to make that easier. Readers taking the concepts to other languages need not burden themselves with the details of Julia workflows and therefore can jump to the section beginning with @sec-stochastic-mortality.
 
-## Compiletime vs Runtime
+::: callout-note
+The chapters in this section are adapted from [Modern Julia Workflows](https://modernjuliaworkflows.org), originally written by G. Dalle, J. Smit, A. Hill. These chapters are a derivative of that work, and is also licensed CC BY-SA 4.0. 
 
-Compile time refers to the amount of time that the computer takes turning computer code like Julia into machine executable code (compilation was discussed in @tip-compilers). There is a trade-off involved: to some extent run time can be improved by allowing the compiler to take more time to do advanced analysis on the code you've written, generating more efficient machine code. By default, Julia will use a fairly aggressive compiler pass, but it is possible to choose, a less advanced compile routine with the trade-off that your program will generally run a little bit slower. This can be controlled by passing an `--optimize` flag when starting Julia (e.g. `julia --optimize 1` for a setting that would improve compile time at the expense of runtime in some cases).
-
-::: .callout-tip
-Julia has [a section in the manual](https://docs.julialang.org/en/v1/manual/command-line-interface/#command-line-interface) describing various command line options, including how many threads to use, specifying degbug printing verbosity, tracking allocations, and more.
+The content was modified to fit the other content of this book (adding cross-references, removing duplicated content) and to add/subtract elements that the authors of this book deemed more approrpriate for the financial modeler.
 :::
-
-### Precompilation
-
-Precompilation refers to the time that Julia compiled code that package library authors have asked Julia to be able to run quickly for the first time for users. By precompiling many common workloads and code paths, when you open the same environment, you don't need to have Julia compile the code the first time and encounters it. The alternative to pre-compilation is each time you open a project but the first time you run a piece of code will require compilation of that code, because aside from precompiled code, Julia does not save them machine generated code between sessions. When developing your own code, it is generally advised to consider what your users will be doing and potentially putting together a pre-compilation workload. Details on how to do this can be found in the [PrecompileTools.jl package](https://github.com/JuliaLang/PrecompileTools.jl). As a developer, the main thing that you have to do is just provide a sample workload, which is generally fairly straightforward, especially if you have developed tests for your package.
-
-#### Invalidations
-
-Invalidation referred to when Julia encounters a new piece of code or a data type that, once accounted for, would change how prior code should be compiled. An example of this would be if you define a function that always returns the same value given any input. If you were to define a new method which returns something different for a different argument type, Then Julia may need to re-compile the original function to account for this new option. 
-
-Here's an example, where we are saying no matter the value used as an argument, we want the `parvalue` to return `100.0`:
-
-```julia
-parvalue(::Any) = 100.
-```
-
-Julia will essentially discard any effort to analyze the arguments type or value, because it knows that the result of this will *always* be `100.` There are no alternative code pass to consider so Julia does not keep track of potential alternatives. Julia is dynamic and able to extend this going forward which is what we want for an interactive and extensible language. But then say someone else on our team comes in for a different asset class (i.e. asset type), They want the par value to be 1 million (`1e6`). When they have to Julia compile the following bit of code, Julia will actually have to recompile the previous compiled `parvalue`, as it not longer operates on any and all types. This process is called invalidating code and is an example of an invalidation.
-
-```julia
-parvalue(::MegaBond) = 1e6
-```
-
-Julia invalidate code because if it didn't then new code Within a session may not actually be called. Therefore, it is correct for Julia to do this, if annoying you have to have things recompile. 
-
-You can avoid creating invalidations by... TODO
-
-#### Type Piracy
-
-### Common Pitfalls
-
-As with any sufficiently advanced tool, it is quite possible, even likely, that you might find yourself in a situation where you were using that tool and a sub optimal way without realizing it, this can be especially true when coming from other languages that have different paradigms, idions, and more limited functionality. The section describes some miscellaneous issues that the authors have observed are relatively common amongst Julia users.
-
-#### Type Unstable Code
-
-Probably the biggest one is writing type unstable code. This means code that the compiler cannot infer the types of data at compile time, and instead needs to determine which part of the code to use at runtime. This is disadvantageous because instead of the compiler being able to direct the code to move to the next step of execution, it must essentially check a giant table to see which code path is most appropriate every time it hits that un-inferrable piece of data.
-
-
-##### `@codewarntype`
-
-
-#### Generic Containers
-
-#### Global Variables
-
-## Useful Patterns
-
-### Multiple Dispatch
-
-#### Traits
-
-#### Base Packages
-
-Base packages, not to be confused with Julia's Base library, are lightweight ecosystem packages which define a core set of types or functions that can be extended by other packages. 
-
-### Working with Arrays
-
-#### Fused operations
-
-#### Views
-
-#### Pre-allocating Memory  
-
-## Codebases
-
-### Reivse
-
-### Packages versus Projects
-
-### PkgTemplates.jl
-
-[PkgTemplates.jl](https://github.com/JuliaCI/PkgTemplates.jl) Provides tools to generate packages with the appropriate structure, plus many bells and whistles, like customizable test environments, continuous integration preconfigured, and code coverage utilities.
-
-### Basic Package Structure
-
-### Extension Packages
-
-### Sysimages
-
-## Additional Resouces
-
-- [Performance Tips section in the Julia Manual](https://docs.julialang.org/en/v1/manual/performance-tips/#More-dots:-Fuse-vectorized-operations)
-- [Modern Julia Workflows](https://modernjuliaworkflows.org)
