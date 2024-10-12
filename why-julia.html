@@ -106,6 +106,35 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 }</script>
 <script data-goatcounter="https://julia-fin-book.goatcounter.com/count" async="" src="//gc.zgo.at/count.js"></script>
 
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
 
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -335,7 +364,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./julia-sharing.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Distributing and Sharing Julia Code</span></span></a>
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Distributing and Sharing Julia Code (#sec-julia-sharing)</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -432,16 +461,20 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">Table of contents</h2>
    
   <ul>
-  <li><a href="#expressiveness-and-syntax" id="toc-expressiveness-and-syntax" class="nav-link active" data-scroll-target="#expressiveness-and-syntax"><span class="header-section-number">2.1</span> Expressiveness and Syntax</a>
+  <li><a href="#julia-and-this-book" id="toc-julia-and-this-book" class="nav-link active" data-scroll-target="#julia-and-this-book"><span class="header-section-number">2.1</span> Julia and This Book</a></li>
+  <li><a href="#expressiveness-and-syntax" id="toc-expressiveness-and-syntax" class="nav-link" data-scroll-target="#expressiveness-and-syntax"><span class="header-section-number">2.2</span> Expressiveness and Syntax</a>
   <ul class="collapse">
-  <li><a href="#example-retention-analysis" id="toc-example-retention-analysis" class="nav-link" data-scroll-target="#example-retention-analysis"><span class="header-section-number">2.1.1</span> Example: Retention Analysis</a></li>
-  <li><a href="#example-random-sampling" id="toc-example-random-sampling" class="nav-link" data-scroll-target="#example-random-sampling"><span class="header-section-number">2.1.2</span> Example: Random Sampling</a></li>
+  <li><a href="#example-1-retention-analysis" id="toc-example-1-retention-analysis" class="nav-link" data-scroll-target="#example-1-retention-analysis"><span class="header-section-number">2.2.1</span> Example 1: Retention Analysis</a></li>
+  <li><a href="#example-2-random-sampling" id="toc-example-2-random-sampling" class="nav-link" data-scroll-target="#example-2-random-sampling"><span class="header-section-number">2.2.2</span> Example 2: Random Sampling</a></li>
   </ul></li>
-  <li><a href="#the-speed" id="toc-the-speed" class="nav-link" data-scroll-target="#the-speed"><span class="header-section-number">2.2</span> The Speed</a></li>
-  <li><a href="#more-of-julias-benefits" id="toc-more-of-julias-benefits" class="nav-link" data-scroll-target="#more-of-julias-benefits"><span class="header-section-number">2.3</span> More of Julia’s benefits</a></li>
-  <li><a href="#the-tradeoff" id="toc-the-tradeoff" class="nav-link" data-scroll-target="#the-tradeoff"><span class="header-section-number">2.4</span> The Tradeoff</a></li>
-  <li><a href="#package-ecosystem" id="toc-package-ecosystem" class="nav-link" data-scroll-target="#package-ecosystem"><span class="header-section-number">2.5</span> Package Ecosystem</a></li>
-  <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion"><span class="header-section-number">2.6</span> Conclusion</a></li>
+  <li><a href="#the-speed" id="toc-the-speed" class="nav-link" data-scroll-target="#the-speed"><span class="header-section-number">2.3</span> The Speed</a>
+  <ul class="collapse">
+  <li><a href="#development-speed" id="toc-development-speed" class="nav-link" data-scroll-target="#development-speed"><span class="header-section-number">2.3.1</span> Development Speed</a></li>
+  </ul></li>
+  <li><a href="#more-of-julias-benefits" id="toc-more-of-julias-benefits" class="nav-link" data-scroll-target="#more-of-julias-benefits"><span class="header-section-number">2.4</span> More of Julia’s benefits</a></li>
+  <li><a href="#the-tradeoff" id="toc-the-tradeoff" class="nav-link" data-scroll-target="#the-tradeoff"><span class="header-section-number">2.5</span> The Tradeoff</a></li>
+  <li><a href="#package-ecosystem" id="toc-package-ecosystem" class="nav-link" data-scroll-target="#package-ecosystem"><span class="header-section-number">2.6</span> Package Ecosystem</a></li>
+  <li><a href="#tools-in-your-toolbox" id="toc-tools-in-your-toolbox" class="nav-link" data-scroll-target="#tools-in-your-toolbox"><span class="header-section-number">2.7</span> Tools in Your Toolbox</a></li>
   </ul>
 </nav>
     </div>
@@ -467,14 +500,21 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>[Drafting Note: This chapter is pulled from the article published in 2021 and needs to be adapted for the book’s audience. ]</p>
+<blockquote class="blockquote">
+<p>We want a language that’s open source, with a liberal license. We want the speed of C with the dynamism of Ruby. We want a language that’s homoiconic, with true macros like Lisp, but with obvious, familiar mathematical notation like Matlab. We want something as usable for general programming as Python, as easy for statistics as R, as natural for string processing as Perl, as powerful for linear algebra as Matlab, as good at gluing programs together as the shell. Something that is dirt simple to learn, yet keeps the most serious hackers happy. We want it interactive and we want it compiled. - Bezanson, Karpinski, Shaw, Edelman (the original creators of Julia)</p>
+</blockquote>
 <p>Julia is relatively new<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>, and <em>it shows</em>. It is evident in its pragmatic, productivity-focused design choices, pleasant syntax, rich ecosystem, thriving communities, and its ability to be both very general purpose and power cutting edge computing.</p>
 <p>With Julia: math-heavy code looks like math; it’s easy to pick up, and quick-to-prototype. Packages are well-integrated, with excellent visualization libraries and pragmatic design choices.</p>
 <p>Julia’s popularity continues to grow across many fields and there’s a growing body of online references and tutorials, videos, and print media to learn from.</p>
 <p>Large financial services organizations have already started realizing gains: BlackRock’s Aladdin portfolio modeling, the Federal Reserve’s economic simulations, and Aviva’s Solvency II-compliant modeling<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>. The last of these has a <a href="https://www.youtube.com/watch?v=__gMirBBNXY">great talk on YouTube</a> by Aviva’s Tim Thornham, which showcases an on-the-ground view of what difference the right choice of technology and programming language can make. Moving from their vendor-supplied modeling solution was <strong>1000x faster, took 1/10 the amount of code, and was implemented 10x faster</strong>.</p>
-<p>The language is not just great for data science — but also modeling, ETL, visualizations, package control/version management, machine learning, string manipulation, web-backends, and many other use cases. Julia is well suited for financial modeling work: easy to read and write and very performant.</p>
-<section id="expressiveness-and-syntax" class="level2 page-columns page-full" data-number="2.1">
-<h2 data-number="2.1" class="anchored" data-anchor-id="expressiveness-and-syntax"><span class="header-section-number">2.1</span> Expressiveness and Syntax</h2>
+<p>The language is not just great for data science — but also modeling, ETL, visualizations, package control/version management, machine learning, string manipulation, web-backends, and many other use cases.</p>
+<p>Julia is well suited for financial modeling work: easy to read and write and very performant.</p>
+<section id="julia-and-this-book" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="julia-and-this-book"><span class="header-section-number">2.1</span> Julia and This Book</h2>
+<p>Julia is introduced insofar that a basic understanding is necessary to illustrate certain concepts. Julia is ideal in this context, because it is generally straighforward and concise, allowing the presented idea to have the spotlight (as opposed to language boiler plate or obtuse keywords and variables). The point of structuring the book like this is to allow us to introduce a wide variety of computer science concepts to the financial professional, <em>not</em> to introduce Julia as a programming language (there are many other resources which do that just fine). This chapter seeks to motivate to the skeptical professional why we choose Julia for teaching and for work. Then, in <a href="foundations-of-programming.html" class="quarto-xref"><span>Chapter 4</span></a> we provide an introduction to core language concepts and syntax. After this chapter,the content is focused on illustrating a number of key concepts, with Julia taking a secondary role, serving simply as a backdrop. It’s not until <a href="julia-writing.html" class="quarto-xref"><span>Chapter 20</span></a> where Julia regains the spotlight and we discuss particulars which generally matter only to those heavily using Julia more vigorously.</p>
+</section>
+<section id="expressiveness-and-syntax" class="level2 page-columns page-full" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="expressiveness-and-syntax"><span class="header-section-number">2.2</span> Expressiveness and Syntax</h2>
 <p><strong>Expressiveness</strong> is the <em>manner in which</em> and <em>scope of</em> ideas and concepts that can be represented in a programming language. <strong>Syntax</strong> refers to how the code <em>looks</em> on the screen and its readability.</p>
 <p>In a language with high expressiveness and pleasant syntax, you:</p>
 <ul>
@@ -484,53 +524,82 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>Focus on the end-goal instead of fighting the tools.</li>
 </ul>
 <p>Expressiveness can be hard to explain, but perhaps two short examples will illustrate.</p>
-<section id="example-retention-analysis" class="level3" data-number="2.1.1">
-<h3 data-number="2.1.1" class="anchored" data-anchor-id="example-retention-analysis"><span class="header-section-number">2.1.1</span> Example: Retention Analysis</h3>
-<p>This is a really simple example relating <code>Cession</code>s, <code>Policy</code>s, and <code>Live</code>s to do simple retention analysis.</p>
+<section id="example-1-retention-analysis" class="level3" data-number="2.2.1">
+<h3 data-number="2.2.1" class="anchored" data-anchor-id="example-1-retention-analysis"><span class="header-section-number">2.2.1</span> Example 1: Retention Analysis</h3>
+<p>This is a really simple example relating <code>Cession</code>s, <code>Policy</code>s, and <code>Live</code>s to do simple retention analysis. Retention is a measure of how much risk an insurance company holds on a policy after it’s own reinsurance risk transfer (“ceded amounts”).</p>
 <p>First, let’s define our data:</p>
-<pre class="julia:./post/julia-for-the-future/code/ex1"><code>
-# Define our data structures
-struct Life
-  policies
-end
-
-struct Policy
-  face
-  cessions
- end
-
-struct Cession
-  ceded
-end</code></pre>
+<div id="10e4fa1e" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define our data structures</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> Life</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    policies</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> Policy</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    face</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    cessions</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> Cession</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    ceded</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 <p>Now to calculate amounts retained. First, let’s say what retention means for a <code>Policy</code>:</p>
-<pre class="julia:./post/julia-for-the-future/code/ex2"><code># define retention
-function retained(pol::Policy)
-  pol.face - sum(cession.ceded for cession in pol.cessions)
-end</code></pre>
+<div id="54b87195" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># define retention</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">retained</span>(pol<span class="op">::</span><span class="dt">Policy</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    pol.face <span class="op">-</span> <span class="fu">sum</span>(cession.ceded <span class="cf">for</span> cession <span class="kw">in</span> pol.cessions)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="3">
+<pre><code>retained (generic function with 1 method)</code></pre>
+</div>
+</div>
 <p>And then what retention means for a <code>Life</code>:</p>
-<pre class="julia:./post/julia-for-the-future/code/ex3"><code>function retained(l::Life)
-  sum(retained(policy) for policy in life.policies)
-end</code></pre>
+<div id="5842af9b" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">retained</span>(l<span class="op">::</span><span class="dt">Life</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sum</span>(<span class="fu">retained</span>(policy) <span class="cf">for</span> policy <span class="kw">in</span> life.policies)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="4">
+<pre><code>retained (generic function with 2 methods)</code></pre>
+</div>
+</div>
 <p>It’s almost exactly how you’d specify it English. No joins, no boilerplate, no fiddling with complicated syntax. You can express ideas and concepts the way that you think of them, not, for example, as a series of dataframe joins or as row/column coordinates on a spreadsheet.</p>
-<p>We defined <code>retained</code> and adapted it to mean related, but different things depending on the specific context. That is, we didn’t have to define <code>retained_life(...)</code> and <code>retained_pol(...)</code> because Julia can be <em>dispatch</em> based on what you give it. This is, as some would call it, <a href="https://www.youtube.com/watch?v=kc9HwsxE1OY">unreasonably effective</a>.</p>
+<p>We defined <code>retained</code> and adapted it to mean related, but different things depending on the specific context. That is, we didn’t have to define <code>retained_life(...)</code> and <code>retained_pol(...)</code> because Julia can <strong>dispatch</strong> based on what you give it (this is a more powerful, generalized version of method dispatch commonly used in object-oriented programming, see <a href="type-abstractions.html" class="quarto-xref"><span>Chapter 6</span></a> for more).</p>
 <p>Let’s use the above code in practice then.</p>
-<p><em>The <code>julia&gt;</code> syntax indicates that we’ve moved into Julia’s interactive mode (REPL mode):</em></p>
-<pre class="julia-repl"><code># create two policies with two and one cessions respectively
-julia&gt; pol_1 = Policy( 1000, [ Cession(100), Cession(500)] )
-julia&gt; pol_2 = Policy( 2500, [ Cession(1000) ] )
-
-# create a life, which has the two policies
-julia&gt; life = Life([pol_1, pol_2])</code></pre>
-<pre class="julia-repl"><code>julia&gt; retained(pol_1)
-400</code></pre>
-<pre class="julia-repl"><code>julia&gt; retained(life)
-1900</code></pre>
+<div id="6fd45f84" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># create two policies with two and one cessions respectively</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>pol_1 <span class="op">=</span> <span class="fu">Policy</span>(<span class="fl">1000</span>, [<span class="fu">Cession</span>(<span class="fl">100</span>), <span class="fu">Cession</span>(<span class="fl">500</span>)])</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>pol_2 <span class="op">=</span> <span class="fu">Policy</span>(<span class="fl">2500</span>, [<span class="fu">Cession</span>(<span class="fl">1000</span>)])</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co"># create a life, which has the two policies</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>life <span class="op">=</span> <span class="fu">Life</span>([pol_1, pol_2])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="5">
+<pre><code>Life(Policy[Policy(1000, Cession[Cession(100), Cession(500)]), Policy(2500, Cession[Cession(1000)])])</code></pre>
+</div>
+</div>
+<div id="1d3931dc" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">retained</span>(pol_1)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="6">
+<pre><code>400</code></pre>
+</div>
+</div>
+<div id="24e5276b" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">retained</span>(life)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="7">
+<pre><code>1900</code></pre>
+</div>
+</div>
 <p>And for the last trick, something called “broadcasting”, which automatically vectorizes any function you write, no need to write loops or create <code>if</code> statements to handle a single vs repeated case:</p>
-<pre class="julia-repl"><code>julia&gt; retained.(life.policies) # retained amount for each policy
-[400 ,  1500]</code></pre>
+<div id="b396e4a8" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">retained</span>.(life.policies) <span class="co"># retained amount for each policy</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="8">
+<pre><code>2-element Vector{Int64}:
+  400
+ 1500</code></pre>
+</div>
+</div>
 </section>
-<section id="example-random-sampling" class="level3 page-columns page-full" data-number="2.1.2">
-<h3 data-number="2.1.2" class="anchored" data-anchor-id="example-random-sampling"><span class="header-section-number">2.1.2</span> Example: Random Sampling</h3>
+<section id="example-2-random-sampling" class="level3 page-columns page-full" data-number="2.2.2">
+<h3 data-number="2.2.2" class="anchored" data-anchor-id="example-2-random-sampling"><span class="header-section-number">2.2.2</span> Example 2: Random Sampling</h3>
 <p>As another motivating example showcasing multiple dispatch, here’s random sampling in Julia, R, and Python.</p>
 <p>We generate 100:</p>
 <ul>
@@ -561,27 +630,27 @@ Table&nbsp;2.1: A comparison of random outcome generation in Julia, R, and Pytho
 </thead>
 <tbody>
 <tr class="odd">
-<td><div class="sourceCode" id="cb8"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Distributions</span></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="fu">rand</span>(<span class="fl">100</span>)</span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="fu">rand</span>(<span class="fu">Normal</span>(), <span class="fl">100</span>)</span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="fu">rand</span>(<span class="fu">Bernoulli</span>(<span class="fl">0.5</span>), <span class="fl">100</span>)</span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="fu">rand</span>([<span class="st">"Preferred"</span>,<span class="st">"Standard"</span>], <span class="fl">100</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div></td>
-<td><div class="sourceCode" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">runif</span>(<span class="dv">100</span>)</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="fu">rnorm</span>(<span class="dv">100</span>)</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="fu">rbern</span>(<span class="dv">100</span>, <span class="fl">0.5</span>)</span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="fu">sample</span>(<span class="fu">c</span>(<span class="st">"Preferred"</span>,<span class="st">"Standard"</span>),</span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="dv">100</span>, <span class="at">replace=</span><span class="cn">TRUE</span>)</span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div></td>
-<td><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> scipy.stats <span class="im">as</span> sps</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>sps.uniform.rvs(size<span class="op">=</span><span class="dv">100</span>)</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>sps.norm.rvs(size<span class="op">=</span><span class="dv">100</span>)</span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>sps.bernoulli.rvs(p<span class="op">=</span><span class="fl">0.5</span>,size<span class="op">=</span><span class="dv">100</span>)</span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>np.random.choice([<span class="st">"Preferred"</span>,<span class="st">"Standard"</span>],</span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>size<span class="op">=</span><span class="dv">100</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div></td>
+<td><div class="sourceCode" id="cb14"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Distributions</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="fu">rand</span>(<span class="fl">100</span>)</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="fu">rand</span>(<span class="fu">Normal</span>(), <span class="fl">100</span>)</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="fu">rand</span>(<span class="fu">Bernoulli</span>(<span class="fl">0.5</span>), <span class="fl">100</span>)</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="fu">rand</span>([<span class="st">"Preferred"</span>,<span class="st">"Standard"</span>], <span class="fl">100</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div></td>
+<td><div class="sourceCode" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">runif</span>(<span class="dv">100</span>)</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="fu">rnorm</span>(<span class="dv">100</span>)</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="fu">rbern</span>(<span class="dv">100</span>, <span class="fl">0.5</span>)</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="fu">sample</span>(<span class="fu">c</span>(<span class="st">"Preferred"</span>,<span class="st">"Standard"</span>),</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="dv">100</span>, <span class="at">replace=</span><span class="cn">TRUE</span>)</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div></td>
+<td><div class="sourceCode" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> scipy.stats <span class="im">as</span> sps</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>sps.uniform.rvs(size<span class="op">=</span><span class="dv">100</span>)</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>sps.norm.rvs(size<span class="op">=</span><span class="dv">100</span>)</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>sps.bernoulli.rvs(p<span class="op">=</span><span class="fl">0.5</span>,size<span class="op">=</span><span class="dv">100</span>)</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>np.random.choice([<span class="st">"Preferred"</span>,<span class="st">"Standard"</span>],</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>size<span class="op">=</span><span class="dv">100</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div></td>
 </tr>
 </tbody>
 </table>
@@ -592,19 +661,149 @@ Table&nbsp;2.1: A comparison of random outcome generation in Julia, R, and Pytho
 <p>By understanding the different types of things passed to <code>rand()</code>, it maintains the same syntax across a variety of different scenarios. We could define <code>rand(Cession)</code> and have it generate a random <code>Cession</code> like we used above.</p>
 </section>
 </section>
-<section id="the-speed" class="level2" data-number="2.2">
-<h2 data-number="2.2" class="anchored" data-anchor-id="the-speed"><span class="header-section-number">2.2</span> The Speed</h2>
+<section id="the-speed" class="level2" data-number="2.3">
+<h2 data-number="2.3" class="anchored" data-anchor-id="the-speed"><span class="header-section-number">2.3</span> The Speed</h2>
 <p>As the <a href="https://www.nature.com/articles/d41586-019-02310-3">journal Nature said</a>, “Come for the Syntax, Stay for the Speed”.</p>
-<p>Recall the Solvency II compliance which ran 1000x faster than the prior vendor solution mentioned earlier: what does it mean to be 1000x faster at something? It’s the difference between something taking 10 seconds instead of 3 hours — or 1 hour instead of 42 days.</p>
-<p><strong>What analysis would you like to do if it took less time? A stochastic analysis of life-level claims? Machine learning with your experience data? Daily valuation instead of quarterly?</strong></p>
-<p>Speaking from experience, speed is not just great for production time improvements. During development, it’s really helpful too. When building something, I can see that I messed something up in a couple of seconds instead of 20 minutes. The build, test, fix, iteration cycle goes faster this way.</p>
+<p>Earlier we described Aviva’s Solvency II compliance modeling, which ran 1000x faster than the prior vendor solution mentioned earlier: what does it mean to be 1000x faster at something? It’s the difference between something taking 10 seconds instead of 3 hours — or 1 hour instead of 42 days.</p>
+<p>With this difference in speed, you would be able to complete existing processes much faster, or extend the analysis further. This speed could allow you to do new things: a stochastic analysis of life-level claims, machine learning with your experience data, or perform much more frequent valuation.</p>
+<p>Here’s a real example, comparing the runtime to calculate the price of a vanilla european call option using the Black-Scholes-Merton formula, as well as the associated code for each. Here’s the mathematical formula we are using:</p>
+<p><span class="math display">\[
+\text{Call}(S_t, t) = N(d_1)S_t - N(d_2)Ke^{-r(T - t)} \\
+d_1 = \frac{1}{\sigma\sqrt{T - t}}\left[\ln\left(\frac{S_t}{K}\right) + \left(r + \frac{\sigma^2}{2}\right)(T - t)\right] \\\
+d_2 = d_1 - \sigma\sqrt{T - t}
+\]</span></p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Distributions</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">d1</span>(S,K,τ,r,σ)</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    (<span class="fu">log</span>(S<span class="op">/</span>K) <span class="op">+</span> (r <span class="op">+</span> σ<span class="op">^</span><span class="fl">2</span><span class="op">/</span><span class="fl">2</span>) <span class="op">*</span> τ) <span class="op">/</span> (σ <span class="op">*</span> <span class="fu">√</span>(τ))</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">d2</span>(S,K,τ,r,σ)</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">d1</span>(S,K,τ,r,σ) <span class="op">-</span> σ <span class="op">*</span> <span class="fu">√</span>(τ)</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">Call</span>(S,K,τ,r,σ)</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">N</span>(x) <span class="op">=</span> <span class="fu">cdf</span>(<span class="fu">Normal</span>(),x)</span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>    d₁ <span class="op">=</span> <span class="fu">d1</span>(S,K,τ,r,σ)</span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>    d₂ <span class="op">=</span> <span class="fu">d2</span>(S,K,τ,r,σ)</span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fu">N</span>(d₁)<span class="op">*</span>S <span class="op">-</span> <span class="fu">N</span>(d₂) <span class="op">*</span> K <span class="op">*</span> <span class="fu">exp</span>(<span class="op">-</span>r<span class="op">*</span>τ)</span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>S,K,τ,σ,r <span class="op">=</span> <span class="fl">300</span>, <span class="fl">250</span>, <span class="fl">1</span>, <span class="fl">0.15</span>, <span class="fl">0.03</span></span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a><span class="fu">Call</span>(S,K,τ,r,σ) <span class="co"># 58.81976813699322</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy <span class="im">import</span> stats</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> math</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> d1(S,K,τ,r,σ):</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (math.log(S<span class="op">/</span>K) <span class="op">+</span> (r <span class="op">+</span> σ<span class="op">**</span><span class="dv">2</span><span class="op">/</span><span class="dv">2</span>) <span class="op">*</span> τ) <span class="op">/</span> (σ <span class="op">*</span> math.sqrt(τ))</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> d2(S,K,τ,r,σ):</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> d1(S,K,τ,r,σ) <span class="op">-</span> σ <span class="op">*</span> math.sqrt(τ)</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> Call(S,K,τ,r,σ):</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>    N <span class="op">=</span> <span class="kw">lambda</span> x: stats.norm().cdf(x)</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>    d_1 <span class="op">=</span> d1(S,K,τ,r,σ)</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>    d_2 <span class="op">=</span> d2(S,K,τ,r,σ)</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> N(d_1)<span class="op">*</span>S <span class="op">-</span> N(d_2) <span class="op">*</span> K <span class="op">*</span> math.exp(<span class="op">-</span>r<span class="op">*</span>τ)</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>S <span class="op">=</span> <span class="dv">300</span></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>K <span class="op">=</span> <span class="dv">250</span></span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>τ <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>σ <span class="op">=</span> <span class="fl">0.15</span></span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>r <span class="op">=</span> <span class="fl">0.03</span></span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>Call(S,K,τ,r,σ) <span class="co"># 58.81976813699322</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>d1<span class="ot">&lt;-</span> <span class="cf">function</span>(S,K,t,r,sig) {</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  ans <span class="ot">&lt;-</span> (<span class="fu">log</span>(S<span class="sc">/</span>K) <span class="sc">+</span> (r <span class="sc">+</span> sig<span class="sc">^</span><span class="dv">2</span><span class="sc">/</span><span class="dv">2</span>)<span class="sc">*</span>t) <span class="sc">/</span> (sig<span class="sc">*</span><span class="fu">sqrt</span>(t))</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(ans)</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>} </span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>d2 <span class="ot">&lt;-</span> <span class="cf">function</span>(S,K,t,r,sig) {</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(<span class="fu">d1</span>(S,K,t,r,sig) <span class="sc">-</span> sig<span class="sc">*</span><span class="fu">sqrt</span>(t))</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>Call <span class="ot">&lt;-</span> <span class="cf">function</span>(S,K,t,r,sig) {</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>  d_1 <span class="ot">&lt;-</span> <span class="fu">d1</span>(S,K,t,r,sig)</span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>  d_2 <span class="ot">&lt;-</span> <span class="fu">d2</span>(S,K,t,r,sig)</span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span>(S<span class="sc">*</span><span class="fu">pnorm</span>(d_1) <span class="sc">-</span> K<span class="sc">*</span><span class="fu">exp</span>(<span class="sc">-</span>r<span class="sc">*</span>t)<span class="sc">*</span><span class="fu">pnorm</span>(d_2))</span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>S <span class="ot">&lt;-</span> <span class="dv">300</span></span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>K <span class="ot">&lt;-</span> <span class="dv">250</span></span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>t <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>r <span class="ot">&lt;-</span> <span class="fl">0.03</span></span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>sig <span class="ot">&lt;-</span> <span class="fl">0.15</span></span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a><span class="fu">Call</span>(S,K,t,r,sig) <span class="co"># 58.81977</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>We find in <a href="#tbl-bsm-benchmark" class="quarto-xref">Table&nbsp;<span>2.2</span></a> that despite the syntatic similarity, Julia is much faster than the other two.</p>
+<div id="tbl-bsm-benchmark" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-bsm-benchmark-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;2.2: Julia is nearly 20,000 times faster than Python, and two orders of magnitude faster than R.
+</figcaption>
+<div aria-describedby="tbl-bsm-benchmark-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 22%">
+<col style="width: 20%">
+<col style="width: 22%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Language</th>
+<th>Median <em>(nanoseconds)</em></th>
+<th>Mean <em>(nanoseconds)</em></th>
+<th>Relative Mean</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Python</td>
+<td><em>not calculated by benchmarking library</em></td>
+<td>817000.0</td>
+<td>19926.0</td>
+</tr>
+<tr class="even">
+<td>R</td>
+<td>3649.0</td>
+<td>3855.2</td>
+<td>92.7</td>
+</tr>
+<tr class="odd">
+<td>Julia</td>
+<td>41.0</td>
+<td>41.6</td>
+<td>1.0</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<section id="development-speed" class="level3" data-number="2.3.1">
+<h3 data-number="2.3.1" class="anchored" data-anchor-id="development-speed"><span class="header-section-number">2.3.1</span> Development Speed</h3>
+<p>Speed is not just great for improvement in production processes. During development, it’s really helpful too. When building something, the faster feedback loop allows for more productive development. The build, test, fix, iteration cycle goes faster this way.</p>
 <p>Admittedly, most workflows don’t see a 1000x speedup, but 10x to 1000x is a very common range of speed differences vs R or Python or MATLAB.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
 <p>Sometimes you will see less of a speed difference; R and Python have already circumvented this and written much core code in low-level languages. This is an example of what’s called the “two-language” problem where the language productive to write in isn’t very fast. For example, <a href="https://developer.r-project.org/Blog/public/2019/03/28/use-of-c---in-packages/">more than half of R packages use C/C++/Fortran</a> and core packages in Python like Pandas, PyTorch, NumPy, SciPy, etc. do this too.</p>
-<p>Within the bounds of the optimized R/Python libraries, you can leverage this work. Extending it can be difficult: what if you have a custom retention management system running on millions of policies every night?</p>
+<p>Within the bounds of the optimized R/Python libraries, you can leverage this work. Extending it can be difficult: what if you have a custom retention management system running on millions of policies every night? In technical terms, libraries like NumPy are not able to handle custom data types, and instead limit use to pre-built types within the library. In contrast, all types in Julia are effectively equal, even ones that you might create yourself.</p>
 <p>Julia packages you are using are almost always written in pure Julia: you can see what’s going on, learn from them, or even contribute a package of your own!</p>
+</div>
+</div>
 </section>
-<section id="more-of-julias-benefits" class="level2" data-number="2.3">
-<h2 data-number="2.3" class="anchored" data-anchor-id="more-of-julias-benefits"><span class="header-section-number">2.3</span> More of Julia’s benefits</h2>
+</section>
+<section id="more-of-julias-benefits" class="level2" data-number="2.4">
+<h2 data-number="2.4" class="anchored" data-anchor-id="more-of-julias-benefits"><span class="header-section-number">2.4</span> More of Julia’s benefits</h2>
 <p>Julia is easy to write, learn, and be productive in:</p>
 <ul>
 <li>It’s free and open-source
@@ -625,16 +824,16 @@ Table&nbsp;2.1: A comparison of random outcome generation in Julia, R, and Pytho
 <li>Literate programming support (like R-Markdown)</li>
 </ul></li>
 <li>Built-in <code>Dates</code> package that makes working with dates pleasant</li>
-<li>Ability to directly call and use R and Python code/packages with the <code>PyCall</code> and <code>RCall</code> packages</li>
+<li>Ability to directly call and use R and Python code/packages with the <a href="https://github.com/JuliaPy/PythonCall.jl"><code>PythonCall.jl</code></a> and <a href="https://github.com/JuliaInterop/RCall.jl">RCall</a> packages</li>
 <li>Error messages are helpful and tell you <em>what line</em> the error came from, not just the type of error</li>
 <li>Debugger functionality so you can step through your code line by line</li>
 </ul>
 <p>For power-users, advanced features are easily accessible: parallel programming, broadcasting, types, interfaces, metaprogramming, and more.</p>
 <p>These are some of the things that make Julia one of the world’s most loved languages on the <a href="https://insights.stackoverflow.com/survey/2020#technology-most-loved-dreaded-and-wanted-languages">StackOverflow Developer Survey</a>.</p>
-<p>For those who are enterprise-minded: in addition to the liberal licensing mentioned above, there are professional products from organizations like <a href="https://juliacomputing.com/">Julia Computing</a> that provide hands-on support, training, IT governance solutions, behind-the-firewall package management, and deployment/scaling assistance.</p>
+<p>In addition to the liberal licensing mentioned above, there are professional products from organizations like <a href="https://juliahub.com/">JuliaHub</a> that provide hands-on support, training, IT governance solutions, behind-the-firewall package management, and deployment/scaling assistance.</p>
 </section>
-<section id="the-tradeoff" class="level2" data-number="2.4">
-<h2 data-number="2.4" class="anchored" data-anchor-id="the-tradeoff"><span class="header-section-number">2.4</span> The Tradeoff</h2>
+<section id="the-tradeoff" class="level2" data-number="2.5">
+<h2 data-number="2.5" class="anchored" data-anchor-id="the-tradeoff"><span class="header-section-number">2.5</span> The Tradeoff</h2>
 <p>Julia is fast because it’s compiled, unlike R and Python where (loosely speaking) the computer just reads one line at a time. Julia compiles code “just-in-time”: right before you use a function for the first time, it will take a moment to pre-process the code section for the machine. Subsequent calls don’t need to be re-compiled and are very fast.</p>
 <p>A hypothetical example: running 10,000 stochastic projections where Julia needs to precompile but then runs each 10x faster:</p>
 <ul>
@@ -644,8 +843,8 @@ Table&nbsp;2.1: A comparison of random outcome generation in Julia, R, and Pytho
 <p>Typically, the compilation is very fast (milliseconds), but in the most complicated cases it can be several seconds. One of these is the “time-to-first-plot” issue because it’s the most common one users encounter: super-flexible plotting libraries have a lot of things to pre-compile. So in the case of plotting, it can take several seconds to display the first plot after starting Julia, but then it’s remarkably quick and easy to create an animation of your model results. The time-to-first plot is a solvable problem that’s receiving a lot of attention from the core developers and will get better with future Julia releases.</p>
 <p>For users working with a lot of data or complex calculations (like actuaries!), the runtime speedup is worth a few seconds at the start.</p>
 </section>
-<section id="package-ecosystem" class="level2" data-number="2.5">
-<h2 data-number="2.5" class="anchored" data-anchor-id="package-ecosystem"><span class="header-section-number">2.5</span> Package Ecosystem</h2>
+<section id="package-ecosystem" class="level2" data-number="2.6">
+<h2 data-number="2.6" class="anchored" data-anchor-id="package-ecosystem"><span class="header-section-number">2.6</span> Package Ecosystem</h2>
 <p>Using packages as dependencies in your project is assisted by Julia’ bundled package manager.</p>
 <p>For each project, you can track the exact set of dependencies and replicate the code/process on another machine or another time. In R or Python, dependency management is notoriously difficult and it’s one of the things that the Julia creators wanted to fix from the start.</p>
 <p>Packages can be one of the thousands of publicly available, or private packages hosted internally behind a firewall.</p>
@@ -653,11 +852,11 @@ Table&nbsp;2.1: A comparison of random outcome generation in Julia, R, and Pytho
 <p>For example, packages that operate on data tables work without issue together in Julia. In R/Python, many features tend to come bundled in a giant singular package like Python’s Pandas which has Input/Output, Date manipulation, plotting, resampling, and more. There’s a new Consortium for Python Data API Standards which seeks to harmonize the different packages in Python to make them more consistent (R’s Tidyverse plays a similar role in coordinating their subset of the package ecosystem).</p>
 <p>In Julia, packages tend to be more plug-and-play. For example, every time you want to load a CSV you might not want to transform the data into a dataframe (maybe you want a matrix or a plot instead). To load data into a dataframe, in Julia the practice is to use both the CSV and DataFrames packages, which help separate concerns. Some users may prefer the Python/R approach of less modular but more all-inclusive packages.</p>
 </section>
-<section id="conclusion" class="level2" data-number="2.6">
-<h2 data-number="2.6" class="anchored" data-anchor-id="conclusion"><span class="header-section-number">2.6</span> Conclusion</h2>
-<p>Looking at other great tools like R and Python, it can be difficult to summarize a single reason to motivate a switch to Julia, but hopefully this article piqued an interest to try it for your next project.</p>
+<section id="tools-in-your-toolbox" class="level2" data-number="2.7">
+<h2 data-number="2.7" class="anchored" data-anchor-id="tools-in-your-toolbox"><span class="header-section-number">2.7</span> Tools in Your Toolbox</h2>
+<p>Looking at other great tools like R and Python, it can be difficult to summarize a single reason to motivate a switch to Julia, but hopefully we have sufficiently piqued your interest and we can turn to introducing important concepts.</p>
 <p>That said, Julia shouldn’t be the only tool in your tool-kit. SQL will remain an important way to interact with databases. R and Python aren’t going anywhere in the short term and will always offer a different perspective on things!</p>
-<p>In <a href="./blog/coding-for-the-future/">an earlier article</a>, I talked about becoming a <strong>10x Actuary</strong> which meant being proficient in the language of computers so that you could build and implement great things. In a large way, the choice of tools and paradigms shape your focus. Productivity is one aspect, expressiveness is another, speed one more. There are many reasons to think about what tools you use and trying out different ones is probably the best way to find what works best for you.</p>
+<p>Being a productive finanical profession means being proficient in the language of computers so that you could build and implement great things. In a large way, the choice of tools and paradigms shape your focus. Productivity is one aspect, expressiveness is another, speed one more. There are many reasons to think about what tools you use and trying out different ones is probably the best way to find what works best for you.</p>
 <p>It is said that you cannot fully conceptualize something unless your language has a word for it. Similar to spoken language, you may find that breaking out of spreadsheet coordinates (and even a dataframe-centric view of the world) reveals different questions to ask and enables innovated ways to solve problems. In this way, you reward your intellect while building more meaningful and relevant models and analysis.</p>
 
 
