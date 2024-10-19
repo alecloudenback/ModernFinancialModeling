@@ -15,11 +15,11 @@ Harnessing the chain rule to compute derivatives not just of simple functions, b
 
 ## Motivation for (Automatic) Derivatives
 
-Derivatives are one of the most useful analytical tools we have. Determining the rate of change with respect to an input is effectively sensitivity testing. Knowing the derivative let's you optimize things faster (see @sec-optimizaiton). You can test properties and implications (monotonicy, maxima/minima).
+Derivatives are one of the most useful analytical tools we have. Determining the rate of change with respect to an input is effectively sensitivity testing. Knowing the derivative lets you optimize things faster (see @sec-optimizaiton). You can test properties and implications (monotonicy, maxima/minima).
 
 ## Finite Differentiation
 
-Finite differentiation is evaluating a function $f(x)$ at a value $x$ and then at a nearby value $x+\epsilon$. The line drawn through these two point effectively estimates the line that is tangent to the function $f$ at $x$: effectively the derivative has been found by approximation. That is, we are looking to approximate the derivative using the property:
+Finite differentiation is evaluating a function $f(x)$ at a value $x$ and then at a nearby value $x+\epsilon$. The line drawn through these two points effectively estimates the line that is tangent to the function $f$ at $x$ - effectively the derivative has been found by approximation. That is, we are looking to approximate the derivative using the property:
 
 $$
 f'(x) = \lim_{{\epsilon \to 0}} \frac{{f(x_0 + \epsilon) - f(x_0)}}{{\epsilon}}
@@ -68,11 +68,15 @@ end
 
 One benefit of the central difference method is that is often more accurate than forward or reverse. However it comes at the cost of needing to evaluate the function an additional time in many circumstances. Take, for example, the process of optimizing a function to find a maxima or minima. The process usually involves guessing an initial point, evaluating the function at that point, and determining what the derivative of the function is at that point. Both items are used to update the guess to one that's closer to the solution. This approach is used in many optimization algorithms such as Newton's Method.
 
-At each step you need to evaluate the function three times: for $x$, $x+\epsilon$, and $x-\epsilon$. With forward or reverse finite differences, you can reuse the prior function evaluation of the prior guess $x$ As one of the components in the estimation of the derivative, thereby saving an evaluation of the function for each iteration.
+At each step you need to evaluate the function three times: for $x$, $x+\epsilon$, and $x-\epsilon$. With forward or reverse finite differences, you can reuse the prior function evaluation of the prior guess $x$. As one of the components in the estimation of the derivative, thereby saving an evaluation of the function for each iteration.
 
-There are additional challenges with the finite differences method. In practice, we are often interested in much more complex functions than $x^2$. For example, we may actually be interested in the sum of a series that is many elements long or contains more complex operations than basic algebra. In the prior example, the $\epsilon$ is set unusually wide for demonstration purposes. As $\epsilon$ grow smaller generally, the accuracy of all three finite different methods increases. However, that's not always the case due to both the complexity of the function that you may be trying to differentiate or due to numerical inaccuracies of floating point math.
+There are additional challenges with the finite differentiation method. In practice, we are often interested in much more complex functions than $x^2$. For example, we may actually be interested in the sum of a series that is many elements long or contains more complex operations than basic algebra. In the prior example, the $\epsilon$ is set unusually wide for demonstration purposes. As $\epsilon$ grow smaller generally, the accuracy of all three finite different methods increases. However, that's not always the case due to both the complexity of the function that you may be trying to differentiate or due to numerical inaccuracies of floating point math.
 
 To demonstrate, here is a more complex example using an arbitrary function
+
+$$
+f(x) = exp(x)
+$$
 
 for this example we'll show the results of the three methods calculated at different values of $\epsilon$:
 
@@ -105,9 +109,9 @@ A few observations:
 1.  At virtually every value of `ϵ` we observe some error from the true derivative.
 2.  That error is the sum of two parts: **truncation error** is inherent in that we are using a given value for `ϵ` and not determining the limiting analytic value as $\epsilon \to 0$. The other component is **roundoff error** which arises due to the limited precision of floating point math.
 
-The implications of this are that we need to often be careful about the choice of `ϵ`, as the optimal choice will vary depending on the function and the point we are attempting to evaluate. This presents a number of practical diffuclties in various algorithms.
+The implications of this are that we need to often be careful about the choice of `ϵ`, as the optimal choice will vary depending on the function and the point we are attempting to evaluate. This presents a number of practical difficulties in various algorithms.
 
-Additionally,when computing the finite difference we must evaluate the function multiple times to determine a single estimate of the derivative. When performing something like optimization the process typically involves iteratively making many guesses — plus the number of guesses required to find the right answer can depends on the ability to accurate determine the derivative at a point!
+Additionally,when computing the finite difference we must evaluate the function multiple times to determine a single estimate of the derivative. When performing something like optimization the process typically involves iteratively making many guesses — plus the number of guesses required to find the right answer can depend on the ability to accurately determine the derivative at a point!
 
 Admittedly, despite the accuracy and computational overhead, finite differences can be very useful in many circumstances. However, a more appealing alternative approach will be covered next.
 
@@ -168,7 +172,7 @@ $$
 (a+\epsilon b)+(c+\epsilon d)=(a+c)+(b+d)\epsilon
 $$
 
-We then need to define how it works for the combinations of numbers that we might receive as arguments to our function (this is an example where multiple dispatch greatly simplifies the code compare to object oriented single dispatch!):
+We then need to define how it works for the combinations of numbers that we might receive as arguments to our function (this is an example where multiple dispatch greatly simplifies the code compared to object oriented single dispatch!):
 
 ```{julia}
 Base.:+(d::DualNumber, e::DualNumber) = DualNumber(d.a + e.a, d.b + e.b)
@@ -193,7 +197,7 @@ $$
 $$
 
 ```{julia}
-Base.:*(d::DualNumber, e::DualNumber) = DualNumber(d.a * g.a, d.b * g.a + d.a * g.b)
+Base.:*(d::DualNumber, e::DualNumber) = DualNumber(d.a * e.a, d.b * e.a + d.a * e.b)
 Base.:*(x, d::DualNumber) = DualNumber(d.a * x, d.b * x)
 Base.:*(d::DualNumber, x) = x * d
 ```
@@ -245,7 +249,7 @@ let
 end
 ```
 
-We have demonstrated that through the clever use of dual numbers and the chain rule that complex expressions can be automatically differentiated by the computer to an exact level, limited only by the same machine precision that applies to our primary function of interst as well.
+We have demonstrated that through the clever use of dual numbers and the chain rule that complex expressions can be automatically differentiated by a computer to an exact level, limited only by the same machine precision that applies to our primary function of interst as well.
 
 ## Performance of Automatic Differentiation
 
@@ -260,7 +264,7 @@ using BenchmarkTools
 @btime f2(DualNumber(rand(), 1))
 ```
 
-In performing this computation, the compiler has been able to optimize it such that we effectively are able to compute the function and its derivative at effetcitly the same speed as just the evaluating the function itself! As the function gets more complex, the overhead does increase but is still a *much* preferred option versus finite differentiation. This advantage becomes more pronouced as we contemplate derivatives with respect to many variables at once or for higher-order derivatives.
+In performing this computation, the compiler has been able to optimize it such that we effectively are able to compute the function and its derivative at effectively the same speed as just the evaluating the function itself! As the function gets more complex, the overhead does increase but is still a *much* preferred option versus finite differentiation. This advantage becomes more pronouced as we contemplate derivatives with respect to many variables at once or for higher-order derivatives.
 
 ::: callout-note
 In fact, it's largely due to the advances in applications of automatic differentiation that has led to the explosion of machine learning and artificial intelligence techniques in the 2010s/2020s. The "learning" process relies on solving parameter weights and would be too computationally expensive if using finite differences.
@@ -386,7 +390,7 @@ Custom rules for new or unusal functions can be defined, but this is an area tha
 -   [**Zygote.jl**](https://github.com/FluxML/Zygote.jl) is a reverse-mode package with the innovations of being able to differentiate `structs` in addition to arrays and scalars.
 -   [**Enzyme.jl**](https://github.com/EnzymeAD/Enzyme.jl) is a newer package which allows for both forward and reverse mode, but has the advantage of supporting array mutation. Additionally, Enzyme works at the level of LLVM code (an intermediate level between high level Julia code and machine code) which allows for different, sometimes better, optimizations.
 
-In the authors experience, they would probably recommend ForwardDiff.jl first and then Enzyme.jl if reaching for more advanced functionality or looking for reverse mode.
+In the authors' experience, they would probably recommend ForwardDiff.jl first and then Enzyme.jl if reaching for more advanced functionality or looking for reverse mode.
 
 ## References
 
