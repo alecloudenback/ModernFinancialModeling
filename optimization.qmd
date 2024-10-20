@@ -14,20 +14,6 @@ Pkg.activate("env/optimization")
 Pkg.instantiate()
 ```
 
-## Setup
-
-```{julia}
-using Flux
-using LsqFit
-using CairoMakie
-using JuMP
-using GLPK
-using Optim
-using Distributions
-using Random
-using LinearAlgebra
-```
-
 ## Differentiable programming
 
 Differentiable programming is an approach to programming where functions are defined using differentiable operations, allowing automatic differentiation to be applied to them. Automatic differentiation is a technique used to efficiently compute derivatives of functions, and it is crucial in many machine learning algorithms, optimization techniques, and scientific computing applications.
@@ -36,7 +22,7 @@ Elements in differentiable programming
 
 - Differentiable functions: Functions are defined using operations that are differentiable. These operations include basic arithmetic operations (addition, subtraction, multiplication, division), as well as more complex operations like exponentials, logarithms, trigonometric functions, etc.
 
-- Automatic differentiation (AD): Automatic differentiation is used to compute derivatives of functions with respect to their inputs or parameters. AD exploits the fact that every computer program, no matter how complex, executes a sequence of elementary arithmetic operations (addition, subtraction, multiplication, division), and elementary functions (exponentials, logarithms, trigonometric functions). By applying the chain rule repeatedly to these operations, derivatives of arbitrary order can be computed automatically, accurately to working precision, and using at most a small constant factor more arithmetic operations than the original program. Refer to chapter on automatic differentiation.
+- Automatic differentiation (AD): Automatic differentiation is used to compute derivatives of functions with respect to their inputs or parameters. AD exploits the fact that every computer program, no matter how complex, executes a sequence of elementary arithmetic operations (addition, subtraction, multiplication, division), and elementary functions (exponentials, logarithms, trigonometric functions). By applying the chain rule repeatedly to these operations, derivatives of arbitrary order can be computed automatically, accurately to working precision, and using at most a small constant factor more arithmetic operations than the original program. Refer to @sec-autodiff on automatic differentiation.
 
 - Optimization and machine learning: Differentiable programming is particularly useful in optimization problems, where gradients or higher-order derivatives are required to find the minimum or maximum of a function. It's also widely used in machine learning, where optimization algorithms like gradient descent are used to train models by adjusting their parameters to minimize a loss function.
 
@@ -44,14 +30,18 @@ Elements in differentiable programming
 
 - Local and global optimization: A local optimal value refers to a solution where the objective function (or cost function) has the best possible value in a neighborhood surrounding that solution. A global optimal value, on the other hand, is the best possible value of the objective function across the entire feasible domain. For smooth and convex functions, the gradient points towards the global minimum (or maximum), making it extremely efficient for finding the optimal solution. Even for non-convex functions, the gradient provides valuable information about the direction to move towards improving the objective function value locally.
 
+Here shows the value and the derivative of a simple function at a certain point:
+
 ```{julia}
+using Zygote
+
 # Define a differentiable function
 f(x) = 3x^2 + 2x + 1
 # Define an input value
 x = 2.0
 
-@show "Value of f(x) at x=$x: ", f(x)
-@show "Gradient of f(x) at x=$x: ", gradient(x -> f(x), x)
+println("Value of f(x) at x=", f(x))
+println("Gradient of f(x) at x=", gradient(x -> f(x), x))
 ```
 
 ## Gradient-Free Optimization
@@ -62,7 +52,24 @@ This category includes algorithms that do not rely on gradients or derivative in
 
 Linear optimization, also known as linear programming (LP), is a mathematical method for finding the best outcome in a mathematical model with linear relationships. It involves optimizing a linear objective function subject to a set of linear equality and inequality constraints. Linear programming has a wide range of applications across various fields, including operations research, economics, engineering, and logistics.
 
+We will use linear optimization to solve the following problem, with $n$ the number of elements in $b$:
+
+$$
+\begin{aligned}
+    \max_{x} \quad c \cdot x
+\end{aligned}
+$$
+
+$$
+\begin{aligned}
+    s.t. x \geq 0 \\
+    A_i \cdot x \leq b_i \quad \forall i \in n
+\end{aligned}
+$$
+
 ```{julia}
+using JuMP, GLPK, LinearAlgebra
+
 # Define the objective coefficients
 c = [1.0, 2.0, 3.0]
 # Define the constraint matrix (A) and right-hand side (b)
@@ -91,6 +98,8 @@ end
 ### Evolutionary algorithm
 
 An evolutionary algorithm (EA) is a family of optimization algorithms inspired by the principles of biological evolution. They are particularly useful for solving complex optimization problems where traditional gradient-based methods may struggle due to non-linearity, multimodality, or high dimensionality of the search space.
+
+The following shows an example to maximize population fitness in terms of an objective function, with common crossover and mutation processes throughout all generations.
 
 ```{julia}
 # Define the objective function to maximize
@@ -250,7 +259,11 @@ println("Best x found: $best_x, Best value: $best_value")
 
 The Broyden-Fletcher-Goldfarb-Shanno (BFGS) method is a popular iterative optimization algorithm used for unconstrained optimization problems. It belongs to the family of quasi-Newton methods, which are designed to find the local minimum of a differentiable objective function without needing its Hessian matrix directly. Instead, BFGS iteratively constructs an approximation to the inverse Hessian matrix using gradients of the objective function.
 
+The following example uses the `Optim` package available in Julia to do the BFGS optimization.
+
 ```{julia}
+using Optim
+
 # Define the objective function to minimize
 function objective_function(x)
     return sum(x .* x)
@@ -277,6 +290,8 @@ Root finding, also known as root approximation or root isolation, is the process
 
 There are various algorithms for root finding, each with its own advantages and disadvantages depending on the characteristics of the function and the requirements of the problem. One notable approach is Newton's method, an iterative method that uses the derivative of the function to approximate the root with increasing accuracy in each iteration.
 
+We will again use a simple function to illustrate the process:
+
 ```{julia}
 # Define a differentiable function
 f(x) = 3x^2 + 2x + 1
@@ -292,11 +307,11 @@ while abs(f(x)) > tol && iter < max_iter
     iter += 1
 end
 if iter == max_iter
-    @show "Warning: Maximum number of iterations reached."
+    println("Warning: Maximum number of iterations reached.")
 else
-    @show "Root found after", iter, " iterations."
+    println("Root found after", iter, " iterations.")
 end
-@show "Approximate root: ", x
+print("Approximate root: ", x)
 ```
 
 ### Bracketed search algorithm
@@ -379,9 +394,9 @@ The process of finding the best fitting curve typically involves:
 x_data = 0:0.1:10
 y_data = 2 .* sin.(x_data) .+ 0.5 .* randn(length(x_data))
 # Define the model function
-curve_model(x, p) = p[1] * x .^ 2 + p[2] * x .+ p[3]
+curve_model(x, p) = p[1] * x .^ 3 + p[2] * x .^ 2 .+ p[3] * x + p[4]
 # Initial parameter guess
-p₀ = [1.0, 1.0, 1.0]
+p₀ = [1.0, 1.0, 1.0, 1.0]
 # Fit the model to the data
 fit_result = curve_fit(curve_model, x_data, y_data, p₀)
 # Extract the fitted parameters
@@ -390,7 +405,7 @@ params = coef(fit_result)
 y_fit = curve_model(x_data, params)
 # Plot the data and the fitted curve
 fig = Figure()
-Axis(fig[1, 1], title="Curve Fitting")
+Axis(fig[1, 1], title="Curve Fitting - a polynomial guess-fitting a sinusoidal function")
 scatter!(x_data, y_data, label="Data")
 lines!(x_data, y_fit, label="Fitted Curve", linestyle=:dash, color=:red)
 fig
