@@ -322,36 +322,32 @@ f
 Simulating data using copulas involves generating multivariate samples with specified marginal distributions and a copula structure.
 
 ```{julia}
+using BivariateCopulas
+using Plots
+
 # Set seed for reproducibility
 Random.seed!(1234)
 
-# Marginal distributions (e.g., normal)
-marginal1 = Normal(0, 1)
-marginal2 = Normal(0, 1)
+# Generate a Gaussian copula
+gaussian_copula = Gaussian(0.8)
 
-# Clayton copula parameters
-theta = 0.5
+# Show simulated copula
+scatter(rand(gaussian_copula, 10^4))
+```
 
-# Number of data points
-num_points = 1000
+Copulas can also be used to infer combined distributions from data samples.
 
-# Generate independent samples from marginals
-u1 = rand(marginal1, num_points)
-u2 = rand(marginal2, num_points)
+```{julia}
+using Copulas, Distributions, Random
 
-# Clayton copula simulation
-function clayton_copula_simulation(u1, u2, theta)
-    v1 = u1
-    v2 = u2 .* ((theta .* u1) .^ (-1 / theta - 1))
-    return v1, v2
-end
+X₁ = Gamma(2,3)
+X₂ = Pareto()
+X₃ = LogNormal(0,1)
+C = ClaytonCopula(3,0.7) # A 3-variate Clayton Copula with θ = 0.7
+D = SklarDist(C,(X₁,X₂,X₃)) # The final distribution
 
-# Simulate Clayton copula
-v1, v2 = clayton_copula_simulation(u1, u2, theta)
-
-# Plot the simulated bivariate data
-f = Figure()
-Axis(f[1, 1])
-scatter!(v1, v2)
-f
+# Generate a dataset
+simu = rand(D,1000)
+# We may estimate a copula, or get parameters of underlying distributions, using the `fit` function:
+D̂ = fit(SklarDist{ClaytonCopula,Tuple{Gamma,Normal,LogNormal}}, simu)
 ```
