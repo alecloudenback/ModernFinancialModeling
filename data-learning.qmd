@@ -54,11 +54,11 @@ Feature selection and engineering help improve model performance by focusing on 
 Depending on our problem type, choose appropriate algorithms for learning from the data:
 
 - Supervised Learning (with labeled data):
--- Classification: Logistic regression, SVM, decision trees, random forests, or neural networks.
--- Regression: Linear regression, ridge regression, or gradient boosting.
+    + Classification: Logistic regression, SVM, decision trees, random forests, or neural networks.
+    + Regression: Linear regression, ridge regression, or gradient boosting.
 - Unsupervised Learning (without labeled data):
--- Clustering: K-means, DBSCAN, hierarchical clustering.
--- Dimensionality Reduction: PCA, t-SNE, or UMAP.
+    + Clustering: K-means, DBSCAN, hierarchical clustering.
+    + Dimensionality Reduction: PCA, t-SNE, or UMAP.
 - Reinforcement Learning: Learn from interactions with an environment (e.g., Q-learning, Deep Q-Networks).
 
 ### Train and evaluate the model
@@ -113,33 +113,20 @@ Forecasting is the process of making predictions about future events or outcomes
 Here is an example how to do time series forecasting in Julia:
 
 ```{julia}
-using TimeSeries  # For working with time series data
-using StateSpaceModels  # For ARIMA model fitting and forecasting
-using Plots  # For visualization
+using CSV
+using DataFrames
+using Plots
+using StateSpaceModels
 
-# Step 1: Create a simple TimeArray (e.g., monthly sales data)
-dates = Date(2023, 1):Month(1):Date(2023, 12)  # Generate monthly dates for 2023
-sales = [100, 105, 110, 108, 115, 120, 125, 130, 128, 140, 135, 145]  # Sample sales data
+airp = CSV.File(StateSpaceModels.AIR_PASSENGERS) |> DataFrame
+log_air_passengers = log.(airp.passengers)
+steps_ahead = 30
 
-# Convert to TimeArray (the core data structure in TimeSeries.jl)
-sales_ts = TimeArray((dates = dates, sales = sales); timestamp=:dates)
-
-# Step 2: Visualize the time series
-plot(sales_ts, title="Monthly Sales", xlabel="Month", ylabel="Sales", legend=false, color=:blue)
-
-# Step 3: Fit an ARIMA(1, 1, 1) model on the sales data
-model = fit(ARIMA(1, 1, 1), sales_ts[:, 1])  # Use the first (and only) column of sales_ts
-
-# Step 4: Forecast the next 5 months
-forecast_steps = 5
-forecast_values, forecast_std_errors = forecast(model, forecast_steps)
-
-# Generate future dates for the forecast
-forecast_dates = maximum(dates) + Month(1):Month(1):maximum(dates) + Month(forecast_steps)
-
-# Step 5: Combine the original and forecasted data into one plot
-plot(sales_ts, label="Original Sales", color=:blue, marker=:circle)
-plot!(forecast_dates, forecast_values, ribbon=forecast_std_errors, label="Forecast", color=:red, marker=:star)
+# SARIMA
+model_sarima = SARIMA(log_air_passengers; order = (0, 1, 1), seasonal_order = (0, 1, 1, 12))
+fit!(model_sarima)
+forec_sarima = forecast(model_sarima, steps_ahead)
+plot(model_sarima, forec_sarima; title = "SARIMA", label = "")
 ```
 
 ### Static and dynamic validation
