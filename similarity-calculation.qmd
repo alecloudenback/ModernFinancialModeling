@@ -16,17 +16,6 @@ Pkg.activate("env/similarity")
 Pkg.instantiate()
 ```
 
-## Setup
-
-```{julia}
-#| output: false
-using CSV, DataFrames
-using LinearAlgebra
-using StatsBase, TableTransforms
-using CairoMakie
-using NearestNeighbors
-```
-
 ## The Data
 
 Stored data can generally be categorized into two formats: tabular (structured) and non-tabular (unstructured). Structured data format is a structured way of organizing and presenting data in rows and columns, resembling a table. This format is widely used for storing and representing structured datasets, making it easy to read, analyze, and manipulate data. The most common example of structured data is a spreadsheet, where data is organized into rows and columns. Structured data can also be stored in relational databases for easier lookups and matching. On the other hand, unstructured data refers to data that lacks a predefined data model or structure. Unlike structured data, which fits neatly into tables or databases, unstructured data does not have a predefined schema. It can include text documents, images, audio files, video files, social media posts, and more.
@@ -133,26 +122,41 @@ d₁₃ = sum(arr_cat[1, :] .⊻ arr_cat[3, :])
 kNN is primarily known as a classification algorithm, but it can also be used for clustering, particularly in the context of density-based clustering. Density-based clustering identifies regions in the data space where the density of data points is higher, and it groups points in these high-density regions. The core idea of kNN clustering is to assign each data point to a cluster based on the density of its neighbors. A data point becomes a core point if it has at least a specified number of neighbors within a certain distance.
 
 ```{julia}
-# Create a kNN model
+using NearestNeighbors
+using Random
+using Plots
+
+# Step 1: Generate synthetic data
+Random.seed!(1234)  # For reproducibility
+data = rand(10, 2)  # 10 points with 2 dimensions
+println("Dataset:\n", data)
+
+# Step 2: Create a KD-tree for efficient nearest neighbor search
+kdtree = KDTree(data)
+
+# Step 3: Define a query point (for which we want to find nearest neighbors)
+query_point = [0.5, 0.5]
+
+# Step 4: Find the nearest neighbors
+# Specify how many neighbors to find
 k = 1
-knn_model = KDTree(Array(df_num))
+indices, distances = knn(kdtree, query_point, k)
 
-# Query point for prediction
-query_point = rand(2)
+# Step 5: Display the results
+println("\nQuery Point: ", query_point)
+println("Indices of Nearest Neighbors: ", indices)
+println("Distances to Nearest Neighbors: ", distances)
 
-# Find k nearest neighbors
-indices, distances = knn(knn_model, query_point, k)
+# Step 6: Visualize the points and the query
+scatter(data[:, 1], data[:, 2], label="Data Points", color=:blue)
+scatter!([query_point[1]], [query_point[2]], label="Query Point", color=:red, marker=:cross, markersize=10)
 
-# Display results
-println("Query Point: $query_point")
-println("Nearest Neighbors Indices: $indices")
-println("Distances to Neighbors: $distances")
+# Highlight nearest neighbors
+for idx in indices
+    plot!([query_point[1], data[idx, 1]], [query_point[2], data[idx, 2]], color=:black, lw=1, label="")
+end
 
-f = Figure()
-Axis(f[1, 1])
-scatter!(df_num[:, 1], df_num[:, 2])
-scatter!(query_point[1], query_point[2])
-f
+title!("Nearest Neighbors Search")
+xlabel!("X-axis")
+ylabel!("Y-axis")
 ```
-
-## Benchmarking
