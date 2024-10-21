@@ -1,8 +1,5 @@
 # Matrices and Their Uses
 
-
-
-
 ## In This Chapter
 
 Matrices and their myriad uses: reframing problems through the eyes of linear algebra, an intuitive refreshing on applicable maths, and recurring patterns of matrix operations in financial modeling.
@@ -15,20 +12,13 @@ Pkg.activate("env/matrices")
 Pkg.instantiate()
 ```
 
-## Setup
-
-```{julia}
-using LinearAlgebra
-using Recommendation
-using SparseArrays
-using MLDataUtils
-using Statistics
-using MultivariateStats
-```
-
 ## Matrix manipulation
 
-### Multiplication
+We first review basic matrix manipulation routines before going into more advanced topics.
+
+### Addition and subtraction
+
+This is how matrices are added and subtracted (element-wise) in Julia.
 
 ```{julia}
 # Define two matrices
@@ -38,14 +28,162 @@ A = [1 2 3;
 B = [9 8 7;
     6 5 4;
     3 2 1]
-# Perform matrix multiplication
+# Perform element-wise matrix addition and subtraction
+C = A .+ B
+D = A .- B
+# Display the result
+println("Result of matrix addition:")
+println(C)
+println("Result of matrix subtraction:")
+println(D)
+```
+
+### Transpose
+
+The transpose of a matrix swaps its rows and columns. This is how matrices can be transposed in Julia.
+
+```{julia}
+# Define a matrix
+A = [1 2 3;
+    4 5 6;
+    7 8 9]
+# Perform matrix transpose
+B = A'
+# Display the result
+println("Result of matrix transpose:")
+println(B)
+```
+
+### Determinant
+
+The determinant provides useful properties about a matrix, such as whether it is invertible.
+
+Given a matrix A
+$$
+\mathbf{A} =
+\begin{pmatrix}
+a_{11} & a_{12} & \cdots & a_{1n} \\
+a_{21} & a_{22} & \cdots & a_{2n} \\
+\vdots & \vdots & \ddots & \vdots \\
+a_{n1} & a_{n2} & \cdots & a_{nn}
+\end{pmatrix}
+$$
+
+the determinant of matrix A can be calculated as
+$$
+\det(\mathbf{A}) = \sum_{j=1}^{n} (-1)^{1+j} a_{1j} \det(\mathbf{A}_{1j})
+$$
+
+This is how determinant of matrices can be calculated in Julia.
+
+```{julia}
+using LinearAlgebra
+
+# Define a matrix
+A = [1 2 3;
+    5 10 20;
+    7 8 9]
+# Perform matrix determinant calculation
+B = det(A)
+# Display the result
+println("Result of matrix determinant:")
+println(B)
+```
+
+### Trace
+
+The trace of a square matrix is the sum of its diagonal elements. This is how trace of matrices can be calculated in Julia.
+
+```{julia}
+using LinearAlgebra
+
+# Define a matrix
+A = [1 2 3;
+    5 10 20;
+    7 8 9]
+# Perform matrix determinant calculation
+B = tr(A)
+# Display the result
+println("Result of matrix trace:")
+println(B)
+```
+
+### Norm
+
+A matrix norm provides a way to measure the size or "magnitude" of a matrix. Common usages of norms include error analysis, regularization in machine learning and measuring similarity and distance.
+
+The Frobenius norm of a matrix is defined as:
+$$
+\|\mathbf{A}\|_F = \sqrt{\sum_{i=1}^{m} \sum_{j=1}^{n} |A_{ij}|^2}
+$$
+
+This is how the norm can be calculated in Julia.
+
+```{julia}
+using LinearAlgebra
+
+# Define a matrix
+A = [1 2 3;
+    4 5 6;
+    7 8 9]
+# Perform matrix determinant calculation
+B = norm(A)
+# Display the result
+println("Result of matrix norm:")
+println(B)
+```
+
+### Multiplication
+
+Matrix multiplication (non-element-wise) plays a critical role in various fields, such as mathematics, physics, computer science, economics, and machine learning. Some key areas include:
+
+- Linear transformation. A matrix represents a linear transformation (e.g., rotation, scaling, translation) in vector spaces. When we multiply a matrix by a vector, essentially we apply the corresponding transformation to the vector.
+
+- Computer graphics and image processing. Images are represented as matrices of pixels, and matrix operations such as convolutions are used for filtering and feature extraction.
+
+- Neural network construction. Matrix multiplication is fundamental for training and using neural networks.
+
+- Systems of linear equations. Many real-world problems reduce to solving systems of linear equations.
+
+This is how matrices are multiplied non-element-wise in Julia.
+
+```{julia}
+# Define two matrices
+A = [1 2 3;
+    4 5 6;
+    7 8 9]
+B = [9 8 7;
+    6 5 4;
+    3 2 1]
+# Perform non-element-wise matrix multiplication
 C = A * B
 # Display the result
 println("Result of matrix multiplication:")
 println(C)
 ```
 
+On the other hand, this is how matrices are multiplied element-wise in Julia.
+
+```{julia}
+# Define two matrices
+A = [1 2 3;
+    4 5 6;
+    7 8 9]
+B = [9 8 7;
+    6 5 4;
+    3 2 1]
+# Perform element-wise matrix multiplication
+C = A .* B
+# Display the result
+println("Result of matrix multiplication:")
+println(C)
+```
+
 ### Inversion
+
+Matrix inversion also plays a critical role in various fields mentioned above, to solve systems of equations or to reverse transformations.
+
+This is how matrices can be inversed in Julia.
 
 ```{julia}
 # Define a matrix
@@ -57,13 +195,29 @@ println("Inverse of matrix A:")
 println(A_inv)
 ```
 
+::: callout-note
+For a matrix to be inversed, it must meet several important criteria.
+- Square Matrix. The matrix must be square, meaning it has the same number of rows and columns.
+- The determinant of the matrix must be non-zero.
+:::
+
 ## Matrix decomposition
 
 ### Eigenvalues
 
-Eigenvalue decomposition, also known as eigendecomposition, is a matrix factorization that decomposes a matrix into its eigenvectors and eigenvalues.
+Eigenvalue decomposition, also known as eigendecomposition, is a matrix factorization that decomposes a matrix into its eigenvectors and eigenvalues. Eigenvalues and eigenvectors are fundamental concepts in linear algebra and play key roles include:
+
+- Eigenvalues help in analyzing how linear transformations affect vectors in a vector space.
+- Eigenvalues facilitate the diagonalization of matrices and simplify the calculations.
+- In systems of differential equations, eigenvalues help determine the stability of equilibrium points.
+- In mechanical systems, eigenvalues represent natural frequencies of vibration. Each eigenvalue corresponds to a mode of vibration, which is critical for understanding dynamic behavior and preventing resonance.
+- In quantum mechanics, eigenvalues represent measurable quantities (observables) associated with quantum states.
+- In graph theory, eigenvalues of the adjacency matrix provide insights into the properties of the graph, such as connectivity, stability, and clustering.
+- Many algorithms in data science, like clustering and factorization methods, rely on eigenvalues to identify patterns and reduce dimensionality, which enhances computational efficiency and interpretability.
 
 ```{julia}
+using LinearAlgebra
+
 # Create a square matrix
 A = [1 2 3;
     4 5 6;
@@ -85,9 +239,19 @@ println(V)
 
 ### Singular values
 
-Singular value decomposition breaks a matrix into three matrices U, Σ, and V, representing the left singular vectors, the singular values (diagonal matrix), and the right singular vectors, respectively.
+Singular value decomposition (SVD) breaks a matrix into three matrices U, Σ, and V, representing the left singular vectors, the singular values (diagonal matrix), and the right singular vectors, respectively. Sigular values are key to:
+
+- Matrix factorization, which simplifies many matrix operations, making it easier to analyze and manipulate data.
+- Dimensionality reduction. This is particularly useful in high-dimensional data scenarios, where reducing dimensions helps eliminate noise and improve computational efficiency.
+- SVD can be used for data compression, particularly in image processing.
+- SVD helps filter out noise in data analysis.
+- SVD provides a robust method for solving linear equations, particularly when the matrix is ill-conditioned or singular.
+- In machine learning, SVD helps extract important features from datasets.
+- SVD provides insights into the relationships within data. The singular values indicate the strength of the relationship, while the singular vectors offer a way to visualize and interpret those relationships.
 
 ```{julia}
+using LinearAlgebra
+
 # Create a random matrix
 A = rand(4, 3)
 # Perform Singular Value Decomposition (SVD)
@@ -117,7 +281,11 @@ Matrix factorization is a popular technique in recommendation systems for modeli
 
 Factorization Machines (FM) are a type of supervised machine learning model designed for tasks such as regression and classification, especially in the context of recommendation systems and predictive modeling with sparse data. FM models extend traditional linear models by incorporating interactions between features, allowing them to capture complex relationships within the data.
 
+The following shows an example how to use matrix factorization to do recommendations.
+
 ```{julia}
+using Recommendation
+
 # Generate synthetic user-item interaction data
 num_users = 100
 num_items = 50
@@ -160,6 +328,8 @@ println("Root Mean Squared Error (RMSE): ", rmse)
 Principal Component Analysis (PCA) is a widely used technique in various fields for dimensionality reduction, data visualization, feature extraction, and noise reduction. PCA can also be applied to detect anomalies or outliers in the data by identifying data points that deviate significantly from the normal patterns captured by the principal components. Anomalies may appear as data points with large reconstruction errors or as outliers in the low-dimensional space spanned by the principal components.
 
 ```{julia}
+using MultivariateStats
+
 # Generate some synthetic data
 data = randn(100, 5)  # 100 samples, 5 features
 # Perform PCA
