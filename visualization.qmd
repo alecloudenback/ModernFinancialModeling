@@ -57,10 +57,134 @@ Visualization helps to bridge communication gaps between different teams (techni
 ## Types of visualization tools
 
 - Basic Charts and Graphs: Bar charts, line graphs, scatter plots, histograms, pie charts.
+    + Bar charts are best for comparing categorical data or discrete values across different categories. Sometimes categories can be grouped for a stacked bar chart to show for example how each category changes over time.
+    + Line graphs are best for showing trends over time or when we want to highlight the rate of change. It is very intuitive to use line graphs to track trends or patterns.
+    + Scatter plots are best for showing relationships or correlations between two variables. It is used a lot when one looks for patterns, clusters or outliers, or would like to explore the distribution of data points across different dimensions.
+    + Histograms are best for showing the distribution of a single continuous variable, or visualizing the distribution of data points across different ranges or intervals.
+    + Pie charts are best for showing parts of a whole or proportional data. It is often used when one has fewer categories (typically 3-5) that sum to 100%.
+
+```{julia}
+using Plots
+
+# Data for the plots
+categories = ["Product A", "Product B", "Product C", "Product D"]
+sales = [150, 250, 200, 300]  # For bar chart
+
+months = 1:12
+sales_growth = [120, 150, 170, 180, 200, 220, 210, 230, 250, 270, 290, 310]  # For line graph
+
+x = rand(100)  # For scatter plot
+y = rand(100)
+
+pie_categories = ["Category A", "Category B", "Category C", "Category D"]
+proportions = [30, 25, 15, 30]  # For pie chart
+
+# Create individual plots
+bar_chart = bar(categories, sales, title="Bar Chart", xlabel="Product", ylabel="Sales", legend=false)
+line_graph = plot(months, sales_growth, title="Line Graph", xlabel="Months", ylabel="Sales", legend=false, linewidth=2, color=:blue, marker=:circle)
+scatter_plot = scatter(x, y, title="Scatter Plot", xlabel="X Axis", ylabel="Y Axis", color=:blue, marker=:circle)
+pie_chart = pie(pie_categories, proportions, title="Pie Chart", color=[:red, :blue, :green, :orange])
+
+# Combine the plots into a 2x2 layout
+plot(bar_chart, line_graph, scatter_plot, pie_chart, layout=(2, 2))
+```
+
 - Multivariate Visualizations: Heatmaps, parallel coordinates plots, radar charts, bubble charts.
-- Dimensionality Reduction: PCA plots, t-SNE, and UMAP for visualizing high-dimensional data.
-- Time Series Visualization: Line charts, area charts, time-series decomposition plots.
-- Geospatial Visualization: Maps, choropleth maps for visualizing spatial data.
+    + Heatmaps are best for visualizing the intensity, interactions or relationships of values across two dimensions.
+    + Bubble charts which are variants of scatter plots are best for showing relationships between three variables. One can easily highlight relative importance or magnitude using the size of bubbles (e.g., revenue, population).
+    + Parallel coordinates plots are best for comparing multiple variables across different observations. They are often used for detecting patterns, correlations or relationships across multiple dimensions.
+    + Radar charts are best for comparing multiple variables for a single or few observations, especially when one needs to show comparisons of several quantitative variables for one or more items, with each variable represented on an axis.
+
+```{julia}
+using PlotlyJS, Dates, Distributions
+
+programmers = ["Alex","Nicole","Sara","Etienne","Chelsea","Jody","Marianne"]
+
+base = Dates.now()
+# Get last 180 days
+dates = Dates.now() .- Dates.Day.(0:179)
+
+z = rand(Poisson(), size(dates)[1], size(programmers)[1])
+
+h = plot(heatmap(z=z, x=dates, y=programmers, colorscale="Viridis"))
+
+df = dataset(DataFrame, "gapminder")
+df07 = df[df.year .== 2007, :]
+
+b = plot(df07, x=:gdpPercap, y=:lifeExp, color=:continent , mode="markers",
+    marker=attr(size=:pop, sizeref=maximum(df07.pop) / (60^2), sizemode="area"),
+    Layout(xaxis_type="log")
+)
+
+[h b]
+
+p = plot(parcoords(;line = attr(color=df.group, colorscale=[(0,"red"), (0.5,"green"),(1,"blue")]),
+        dimensions = [
+            attr(range = [0,1], label = "response1", values = df.response1),
+            attr(range = [0,1], label = "response2", values = df.response2),
+            attr(range = [0,1], label = "response3", values = df.response3),
+            attr(range = [0,1], label = "response4", values = df.response4)
+        ]))
+
+categories = String["processing cost","mechanical properties", "chemical stability", "thermal stability", "device integration"]
+
+r = plot([scatterpolar(r=[1, 5, 2, 2, 3], theta=categories, fill="toself", name="Product A"),
+          scatterpolar(r=[4, 3, 2.5, 1, 2], theta=categories, fill="toself", name="Product B")])
+```
+
+- Dimensionality Reduction: PCA plots, t-SNE, and UMAP for visualizing high-dimensional data. Here we show an example how high-dimensional data can be shown on a t-SNE plot.
+
+```{julia}
+using TSne, Statistics, MLDatasets, Plots
+
+alldata, allabels = MNIST.traindata(Float64);
+data = reshape(permutedims(alldata[:, :, 1:2500], (3, 1, 2)), 2500, size(alldata, 1)*size(alldata, 2));
+
+# Normalize the data, this should be done if there are large scale differences in the dataset
+rescale(A; dims=1) = (A .- mean(A, dims=dims)) ./ max.(std(A, dims=dims), eps())
+
+X = rescale(data, dims=1);
+
+Y = tsne(X, 2, 50, 1000, 20.0);
+
+theplot = scatter(Y[:,1], Y[:,2], marker=(2,2,:auto,stroke(0)), color=Int.(allabels[1:size(Y,1)]))
+```
+
+- Time Series Visualization: Line charts, area charts, time-series decomposition plots. Refer to @sec-datalearning for a time series plot.
+
+- Geospatial Visualization: Maps, choropleth maps for visualizing spatial data. Here we show how spatial data can be visualized using a choropleth map.
+
+```{julia}
+using VegaLite, VegaDatasets
+
+us10m = dataset("us-10m")
+unemployment = dataset("unemployment")
+
+@vlplot(
+    :geoshape,
+    width=500, height=300,
+    data={
+        values=us10m,
+        format={
+            type=:topojson,
+            feature=:counties
+        }
+    },
+    transform=[{
+        lookup=:id,
+        from={
+            data=unemployment,
+            key=:id,
+            fields=["rate"]
+        }
+    }],
+    projection={
+        type=:albersUsa
+    },
+    color="rate:q"
+)
+```
+
 - Interactive Dashboards: Tools like Tableau, Power BI, Pluto for interactive and dynamic data exploration.
 
 ## Julia packages
