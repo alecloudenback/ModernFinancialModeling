@@ -1,7 +1,129 @@
-# Stochastic Modeling
-
-
+# Stochastic Modeling {#sec-stochmodel}
 
 > The Monte Carlo Method: (i) A last resort when doing numerical integration, and (ii) a way of wastefully using computer time. - Malvin H. Kalos[^stochastic-1] (c. 1960)
+
+Stochastic modeling is a mathematical approach used to model systems or processes that exhibit randomness or uncertainty. It is widely applied in fields like finance, engineering, biology, and operations research. We will start by taking a look at key elements of stochastic modeling.
+
+## Key elements
+
+### Random variables
+
+A random variable represents a quantity whose value is determined by the outcome of a random event. It can be discrete or continuous. It is essentially a mapping from event space to numerical values. Examples include stock prices, waiting time in queues and number of claims in insurance, etc. Random variables form the basis of stochastic models by introducing uncertainty into the model.
+
+### Probability distributions
+
+A probability distribution describes the likelihood of different outcomes for a random variable. Examples include normal distribution, Poisson distribution and exponential distribution, etc. Probability distributions help in modeling the behavior of random variables and in defining how likely different events or outcomes are.
+
+### State space
+
+The state space represents all possible states or values that a stochastic process can take. For example, in a Markov process, the state space might be the set of all possible values that the system can occupy at any given time. The state space helps in defining the scope of the model by specifying possible outcomes.
+
+### Stochastic processes
+
+A stochastic process is a collection of random variables indexed by time (or some other variable) that evolve in a probabilistic manner. Examples include Brownian motion, Markov chains and Poisson processes. Stochastic processes model how random variables change over time, which is essential for understanding dynamic systems influenced by randomness.
+
+### Transition probabilities
+
+These represent the probabilities of transitioning from one state to another in a stochastic process. For example, in a Markov chain, the transition matrix contains the probabilities of moving from one state to another. Transition probabilities determine how the system evolves from one time step to the next, reflecting the underlying randomness.
+
+### Time horizon
+
+The time horizon refers to the period over which the stochastic process is observed. It can be discrete (e.g., steps in a Markov chain) or continuous (e.g., continuous-time models like Brownian motion). The time horizon helps in determining how the process behaves over short or long periods.
+
+### Initial conditions
+
+These are the starting points or initial values of the random variables or the system at time zero. They may be initial price of a stock, initial number of customers in a queue, etc. The starting condition influences the future evolution of the process, and different initial conditions can lead to different outcomes.
+
+### Expectation and variance
+
+The expected value (mean) represents the average or mean outcome of a random variable over many trials or realizations. The variance measures the spread or variability of outcomes around the expected value. These statistical measures provide insights into the central tendency and the uncertainty or risk in a stochastic model.
+
+### Covariance and correlation
+
+Covariance measures how two random variables change together. Positive covariance indicates that the variables tend to increase together. On the other hand correlation is the standardized version of covariance that measures the strength of the linear relationship between two variables. Understanding how different random variables interact helps in building more complex models, especially in multivariate stochastic processes.
+
+### Stationarity
+
+A stochastic process is stationary if its statistical properties, such as mean and variance, do not change over time. Strict stationarity means all moments of the process are invariant over time, while weak Stationarity means only the mean and variance are invariant over time. Stationarity simplifies the analysis and modeling of stochastic processes, especially for time series data.
+
+### Martingales
+
+A martingale is a stochastic process where the expected future value, given all prior information, is equal to the current value. Examples include fair gambling games or financial asset prices in efficient markets. Martingales are important in financial modeling and risk-neutral pricing, especially for derivatives.
+
+### Noise (random shocks)
+
+Random noise represents unpredictable random fluctuations that can affect the outcome of a stochastic process. This can be market volatility, measurement errors or environmental variations. Noise is a critical element in stochastic models as it introduces randomness and uncertainty into otherwise deterministic systems.
+
+### Markov property
+
+A stochastic process has the Markov property if the future state depends only on the current state and not on the past states (memorylessness). Markov chains and hidden Markov models contain this property. The Markov property simplifies modeling and computation by reducing dependencies on past states.
+
+### Brownian motion (Wiener process)
+
+A continuous-time stochastic process where changes over time are independent and normally distributed. This is extensively used in financial models for asset price movements (e.g., the Black-Scholes model). In addition to financial markets, Brownian motion is also widely used in modeling physical systems (diffusion).
+
+### Stochastic differential equations (SDEs)
+
+These are differential equations that incorporate stochastic terms (typically driven by Brownian motion or other noise sources). The well-known Black-Scholes equation for option pricing is one example of how SDE can be applied in real world. SDEs are essential for modeling systems where both deterministic and random factors drive behavior over time.
+
+## Applications
+
+Due to technology advancements in recent years, stochastic analyses can be found in a plethora of fields. Refer to @sec-portop for portfolio optimization applications. Refer to @sec-optimization for the usage of gene algorithms for certain optimization problems.
+
+Here we show still another stochastic process in macroeconomic analysis. Stochastic macroeconomic analysis often involves modeling random shocks and their effects on macroeconomic variables such as output, consumption, inflation, and employment. One common approach is through Dynamic Stochastic General Equilibrium (DSGE) models, which are widely used in macroeconomic analysis. These models incorporate randomness (stochastic elements) to capture real-world uncertainty in economic systems.
+
+```{julia}
+using Random, Plots, Distributions
+
+# Parameters
+α = 0.33                # Capital share of output
+δ = 0.05                # Depreciation rate
+s = 0.2                 # Savings rate
+n = 0.01                # Population growth rate
+g = 0.02                # Technology growth rate
+σ = 0.01                # Standard deviation of productivity shocks
+T = 100                 # Number of periods to simulate
+K0 = 1.0                # Initial capital stock
+A0 = 1.0                # Initial productivity
+
+# Shock distribution (normal distribution for productivity shocks)
+shock_distribution = Normal(0, σ)
+
+# Function to simulate the model
+function simulate_stochastic_solow(T, α, δ, s, n, g, σ, K0, A0)
+    K = zeros(T)        # Capital over time
+    Y = zeros(T)        # Output over time
+    A = zeros(T)        # Productivity shocks over time
+    A[1] = A0           # Initial productivity
+    K[1] = K0           # Initial capital
+
+    for t in 1:T-1
+        # Apply random productivity shock
+        ε_t = rand(shock_distribution) 
+        A[t+1] = A[t] * exp(ε_t)  # Productivity evolves stochastically
+
+        # Output based on Cobb-Douglas production function
+        Y[t] = A[t] * K[t]^α
+
+        # Capital accumulation equation
+        K[t+1] = s * Y[t] + (1 - δ) * K[t]
+
+        # Population and technology growth
+        K[t+1] *= (1 + n) * (1 + g)
+    end
+
+    Y[T] = A[T] * K[T]^α  # Final output
+    return K, Y, A
+end
+
+# Simulate the model
+K, Y, A = simulate_stochastic_solow(T, α, δ, s, n, g, σ, K0, A0)
+
+# Plot the results
+plot(1:T, Y, label="Output (Y)", xlabel="Time", ylabel="Output", title="Stochastic Solow Growth Model", legend=:topright)
+```
+
+## Conclusion
+Stochastic modeling involves the study of systems influenced by random factors and uncertainty. By combining random variables, probability distributions, and processes like Markov chains or Brownian motion, stochastic models provide insights into systems that cannot be described purely deterministically.
 
 [^stochastic-1]: Kalos was a pioneer in Monte Carlo techniques, quoted via <https://doi.org/10.1007/978-3-540-74686-7_3>
