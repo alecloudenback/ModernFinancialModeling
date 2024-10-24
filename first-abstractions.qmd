@@ -1,7 +1,5 @@
 # Functional Abstractions {#sec-first-abstractions}
 
-
-
 > The purpose of abstraction is not to be vague, but to create a new semantic level in which one can be absolutely precise. - Edsger Dijkstra (1972)
 
 ## In this section
@@ -11,15 +9,6 @@ Demonstrate different approaches to a problem which gradually introduce more re-
 ## Introduction
 
 This chapter will center around a simple task: calculate the present value of a portfolio of a single fixed, risk-free, coupon-paying bonds under two different interest rate environments. The focus will be on describing different approaches to this problem, not be adding complexity to the problem (e.g. no getting into credit spreads, settlement timing, etc.).
-
-```{julia}
-cf_bond = [10, 10, 10, 10, 110];
-rate = [0.05, 0.06, 0.05, 0.04, 0.05]; # <1>
-```
-
-1.  The rates given are the one year rate for time zero, time one, etc.
-
-The other bond and set of rates is described later in the chapter.
 
 Mathematically, the problem is to determine the $\text{Present Value}$, where:
 
@@ -33,11 +22,20 @@ $$
 \text{Discount Factor}_t = \prod^t{\frac{1}{1+\text{Discount Rate}_i}}
 $$
 
+```{julia}
+cf_bond = [10, 10, 10, 10, 110];
+rate = [0.05, 0.06, 0.05, 0.04, 0.05]; # <1>
+```
+
+1.  The rates are the one year forward rates for time 0, 1, 2, etc.
+
+We will focus on this first discount vector, and introduce more scenarios later in the chapter.
+
 We will repeatedly solve the same problem before extending it to more examples. It may feel repetitive but the focus here is not the problem, but rather the variations between the different approaches.
 
 ## Imperative Style
 
-One of the most familiar styles of programming is called **imperative** (or **procedural**), where we provide step-by-step commands are provided to the computer. The programmer defines the data involved and how that data moves through the program one step at a time. It commonly uses loops to perform tasks repeatedly or across a set of data. The program's **state** (assigment and logic of the program's variables) is defined and managed by the programmer explicitly.
+One of the most familiar styles of programming is called **imperative** (or **procedural**), where we provide explicit, step-by-step instructions to the computer. The programmer defines the data involved and how that data moves through the program one step at a time. It commonly uses loops to perform tasks repeatedly or across a set of data. The program's **state** (assigment and logic of the program's variables) is defined and managed by the programmer explicitly.
 
 Here's an imperative style of calculating the present value of the bond.
 
@@ -55,8 +53,8 @@ let
 end
 ```
 
-1.  Declare variables to keep track of the discount rate and running total for value
-2.  Loop the length of the cashflow vector.
+1.  Declare variables to keep track of the discount rate and running total for the present value `pv`
+2.  Loop over the length of the cashflow vector.
 3.  At each step of the loop, look up (via index `i`) update the discount factor to account for the prevailing rate and add the discounted cashflow to the running total present value.
 
 This style is simple, digestible, and clear. If we were performing the calculation by hand, it would likely follow a pattern very similar to this. Look up the first cashflow and discount rate, compute a discount factor, and subtotal the value. Repeat for the next set of values.
@@ -588,6 +586,8 @@ The other part of the "curse" is that because is that it's relatively easy to im
 
 ## Array-Oriented Styles {#sec-array-oriented-styles}
 
+Another paradigm is **array-oriented,** which is a style that relies heavily on putting similar data into arrays and operating on the entire array at the same time (as opposed to going element-by-element).
+
 Array-oriented programming is one that is practiced in two main contexts:
 
 1.  GPU programming
@@ -607,13 +607,13 @@ Array-oriented programming is not always natural for financial and actuarial app
 | rate = [0.05, 0.06, 0.05, 0.04, 0.05]        |                                                 |
 |                                              | cf_bond = np.array([10, 10, 10, 10, 110])       |
 | discount_factors = cumprod(1 ./ (1 .+ rate)) | rate = np.array([0.05, 0.06, 0.05, 0.04, 0.05]) |
-| sum(cf_bond .* discount_factors)             |                                                 |
+| result = sum(cf_bond .* discount_factors)    |                                                 |
 | ```                                          | discount_factors = np.cumprod(1 / (1 + rate))   |
 |                                              | result = np.sum(cf_bond * discount_factors)     |
 |                                              | ```                                             |
 +----------------------------------------------+-------------------------------------------------+
 
-: Julia's broadcasting makes for an array-oriented style, similar to the approach that would be used with Python's NumPy. {#tbl-array-oriented-example}
+: The two code examples demonstrate the same logic using Julia and Numpy (Python's most popular array package). Julia's broadcasting facilitate an array-oriented style, similar to the approach that would be used with Python's NumPy. {#tbl-array-oriented-example}
 
 The downsides to this style are:
 
@@ -622,7 +622,9 @@ The downsides to this style are:
 
 ## Recursion
 
-The Fibbonaci sequence is a classic example of a recursive algorithm:
+A **recursive function** which is a pattern where current steps are defined in a way that depends on previous steps. Typically, an explicit starting condition is also required to be specified.
+
+The Fibbonaci sequence is a classic example of a recursive algorithm, with the starting conditions of $n$ specified for the first two steps:
 
 $$F(n) = \begin{cases}
 0, & \text{if } n = 0\\
@@ -644,19 +646,31 @@ function fibonacci(n)
 end
 ```
 
-One could imagine a possible pattern where the value of a stream of cashflows is defined as the sum of the value of the discounted next period plus the cashflows that occur this period.
+How could a recursive pattern be defined for valuing our bond? A possible pattern is defining the present value to be the discounted value of:
+
+-   the current period's cashflow, *plus*
+
+-   the accumulated cashflows up to that point in time
+
+Here's how that might be defined:
 
 ```{julia}
-function pv_recursive(rate,cashflows,accumulated_value=0.0)
-  if isempty(cashflows)
+function pv_recursive(rate,cashflows,accumulated_value=0.0,discount_factor=1.0)
+  if isempty(cashflows) #<1>
     return accumulated_value
   else
-    v = (accumulated_value + cashflows[end]) / (1 + rate)
-    return pv_recursive(rate,cashflows[begin:end-1], v)
+    discount_factor = discount_factor / (1+rate) # <2>
+    av = (accumulated_value + first(cashflows)) * discount_factor # <3>
+    return pv_recursive(rate,cashflows[begin+1:end], av,discount_factor) # <4>
   end
 end
 
 ```
+
+1.  Add a terminating condition, that if we have no more cashflows then return the accumulated value.
+2.  Decrement the discount factor as we step forward in time.
+3.  Take the prior accumulated value and add the first value in the given cashflows.
+4.  Pass the remaining subset of the cashflow vector, the running total, and the current discount factor to the next call of the recursive function.
 
 And an example of its use:
 
@@ -664,4 +678,8 @@ And an example of its use:
 pv_recursive(0.05,[10,10,10])
 ```
 
-Generally, the recursive pattern includes defining a 'base case' where you stop the recursive behavior and return the result that has been accumulated up to that point.
+The recursive pattern often works very nicely for simpler examples. However, more complex logic and conditionals can make this approach unwieldy. Nonetheless, attempting to distill the desired functionality into a single function can be a beneficial thought exercise.
+
+## Conclusion
+
+TBD
