@@ -35,7 +35,7 @@ This involves data cleaning and preparation to ensure the dataset is suitable fo
 - Deal with outliers: Use statistical techniques (e.g., z-scores) to detect and remove or cap extreme values.
 - Feature scaling: Apply normalization or standardization to ensure features are on comparable scales (important for algorithms like SVM, K-means, etc.).
 - Encode categorical data: Use techniques such as: one-hot encoding for nominal data, or label encoding or ordinal encoding for ordered categories.
-- Data visualization: Use tools like `Plots.jl` to visualize distributions, correlations, and missing values.
+- Data visualization: Use tools like `Makie.jl` to visualize distributions, correlations, and missing values.
 
 ### Exploratory data analysis (EDA)
 
@@ -110,23 +110,26 @@ Refer to @sec-optimization on Optimization for more details.
 
 Forecasting is the process of making predictions about future events or outcomes based on historical data, patterns, and trends. It involves the use of statistical methods, machine learning models, or expert judgment to estimate future values in a time series or predict the likelihood of specific events. Forecasting is widely used in fields like economics, finance, meteorology, supply chain management, and business planning.
 
-Here is an example how to do time series forecasting in Julia:
+Here is an example how to do time series forecasting in Julia, where point sizes show covariance of predictions:
 
 ```{julia}
-using CSV
-using DataFrames
-using Plots
-using StateSpaceModels
+using CSV, DataFrames, CairoMakie, StateSpaceModels
 
 airp = CSV.File(StateSpaceModels.AIR_PASSENGERS) |> DataFrame
 log_air_passengers = log.(airp.passengers)
+steps_existing = length(log_air_passengers)
 steps_ahead = 30
 
 # SARIMA
 model_sarima = SARIMA(log_air_passengers; order = (0, 1, 1), seasonal_order = (0, 1, 1, 12))
 fit!(model_sarima)
 forec_sarima = forecast(model_sarima, steps_ahead)
-plot(model_sarima, forec_sarima; title = "SARIMA", label = "")
+
+f = Figure()
+axis = Axis(f[1, 1], title="SARIMA")
+scatter!(1:steps_existing, log_air_passengers)
+scatter!(steps_existing+1:steps_existing+steps_ahead, map(x -> x[1], forec_sarima.expected_value), color = :red, markersize = map(x -> x[1] * 1000, forec_sarima.covariance))
+f
 ```
 
 ### Static and dynamic validation
