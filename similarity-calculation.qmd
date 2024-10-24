@@ -32,11 +32,15 @@ sample_csv_data =
 ```
 
 ```{julia}
+using CSV, DataFrames, TableTransforms
+
 df = CSV.read(sample_csv_data, DataFrame)
 df_num = apply(MinMax(), df[:, [:benefit_base, :issue_age]])[1]
 ```
 
 ```{julia}
+using StatsBase
+
 arr_cat = hcat(indicatormat(df.sex)', indicatormat(df.education)', indicatormat(df.occupation)')
 ```
 
@@ -55,6 +59,8 @@ $$
 The distance is usually meaningful when applied to numerical data. The following Julia code shows the Euclidean distance for the first two rows in df_num.
 
 ```{julia}
+using LinearAlgebra
+
 #d₁₂ = √(∑((Array(df_num[1, :]) .- Array(df_num[2, :])) .* (Array(df_num[1, :]) .- Array(df_num[2, :]))))
 d₁₂ = LinearAlgebra.norm(Array(df_num[1, :]) .- Array(df_num[2, :]))
 ```
@@ -68,6 +74,8 @@ $$
 The distance is also usually meaningful when applied to numerical data. The following Julia code shows the Euclidean distance for the first two rows in df_num.
 
 ```{julia}
+using LinearAlgebra
+
 #d₁₂ = ∑(abs.(Array(df_num[1, :]) .- Array(df_num[2, :])))
 d₁₂ = LinearAlgebra.norm1(Array(df_num[1, :]) .- Array(df_num[2, :]))
 ```
@@ -83,12 +91,16 @@ The distance would be meaningful when applied to both numerical and categorical 
 The following Julia code shows the cosine similarity for the first two rows in df_num.
 
 ```{julia}
+using LinearAlgebra
+
 d₁₂ = (Array(df_num[1, :]) ⋅ Array(df_num[2, :])) / norm(df_num[1, :]) / norm(df_num[2, :])
 ```
 
 The following Julia code shows the cosine similarity for the first and the third rows in arr_cat.
 
 ```{julia}
+using LinearAlgebra
+
 d₁₃ = (arr_cat[1, :] ⋅ arr_cat[3, :]) / norm(arr_cat[1, :]) / norm(arr_cat[3, :])
 ```
 
@@ -119,9 +131,7 @@ d₁₃ = sum(arr_cat[1, :] .⊻ arr_cat[3, :])
 kNN is primarily known as a classification algorithm, but it can also be used for clustering, particularly in the context of density-based clustering. Density-based clustering identifies regions in the data space where the density of data points is higher, and it groups points in these high-density regions. The core idea of kNN clustering is to assign each data point to a cluster based on the density of its neighbors. A data point becomes a core point if it has at least a specified number of neighbors within a certain distance.
 
 ```{julia}
-using NearestNeighbors
-using Random
-using Plots
+using Random, NearestNeighbors, CairoMakie
 
 # Step 1: Generate synthetic data
 Random.seed!(1234)  # For reproducibility
@@ -145,15 +155,14 @@ println("Indices of Nearest Neighbors: ", indices)
 println("Distances to Nearest Neighbors: ", distances)
 
 # Step 6: Visualize the points and the query
-scatter(data[:, 1], data[:, 2], label="Data Points", color=:blue)
+f = Figure()
+axis = Axis(f[1, 1], title="Nearest Neighbors Search")
+scatter!(data[:, 1], data[:, 2], label="Data Points", color=:blue)
 scatter!([query_point[1]], [query_point[2]], label="Query Point", color=:red, marker=:cross, markersize=10)
 
 # Highlight nearest neighbors
 for idx in indices
-    plot!([query_point[1], data[idx, 1]], [query_point[2], data[idx, 2]], color=:black, lw=1, label="")
+    lines!([query_point[1], data[idx, 1]], [query_point[2], data[idx, 2]], color=:black)
 end
-
-title!("Nearest Neighbors Search")
-xlabel!("X-axis")
-ylabel!("Y-axis")
+f
 ```
