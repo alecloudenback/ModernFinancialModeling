@@ -17,6 +17,8 @@ Pkg.instantiate()
 Let's assume there are certain insurance policies throughout the chapter.
 
 ```{julia}
+using Dates
+
 @enum Sex Female = 1 Male = 2
 @enum Risk Standard = 1 Preferred = 2
 
@@ -51,6 +53,8 @@ mort = Dict(
 ```
 
 ```{julia}
+using CSV, DataFrames
+
 policies = let
 
     # read CSV directly into a dataframe
@@ -139,6 +143,8 @@ res_wrt_r_fd(2, policies[1], 0.03) # changes in reserve at year 2 when the inter
 ### Regression Analyses
 
 ```{julia}
+using GlobalSensitivity
+
 function r1_wrt_r(r)
     p = deepcopy(policies[1])
     p.COLA = r[2]
@@ -168,6 +174,8 @@ $$
 The Sobol Indices are "ordered", the first order indices given by $S_i = \dfrac{V_i}{Var(Y)}$, the contribution to the output variance of the main effect of $X_i$. Therefore, it measures the effect of varying $X_i$ alone, but averaged over variations in other input parameters. It is standardized by the total variance to provide a fractional contribution. Higher-order interaction indices $S_{ij}, S_{ijk}$ and so on can be formed by dividing other terms in the variance decomposition by $Var(Y)$.
 
 ```{julia}
+using QuasiMonteCarlo, GlobalSensitivity
+
 # reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1
 L, U = QuasiMonteCarlo.generate_design_matrices(1000, [1, 0.029, 999.9], [2, 0.031, 1000.1], SobolSample())
 s = gsa(r1_wrt_r, Sobol(), L, U)
@@ -190,6 +198,8 @@ We calculate local sensitivity measures known as "elementary effects", which are
 These are evaluated at various points in the input chosen such that a wide "spread" of the parameter space is explored and considered in the analysis, to provide an approximate global importance measure. The mean and variance of these elementary effects is computed. A high value of the mean implies that a parameter is important, a high variance implies that its effects are non-linear or the result of interactions with other inputs. This method does not evaluate separately the contribution from the interaction and the contribution of the parameters individually and gives the effects for each parameter which takes into consideration all the interactions and its individual contribution.
 
 ```{julia}
+using GlobalSensitivity
+
 # reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1
 m = gsa(r1_wrt_r, Morris(), [[1, 2], [0.029, 0.031], [999.9, 1000.1]])
 @show m.means
@@ -209,6 +219,8 @@ $$
 where $s$ is a scalar variable varying over the range $−∞ < s < +∞$, $G_i$ are transformation functions and $w_i, ∀i=1,2,…,N$ is a set of different (angular) frequencies, to be properly selected, associated with each factor for all $N$ (samples) number of parameter sets.
 
 ```{julia}
+using GlobalSensitivity
+
 # reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1
 fast = gsa(r1_wrt_r, eFAST(), [[1, 2], [0.029, 0.031], [999.9, 1000.1]], samples=1000)
 @show fast.S1
