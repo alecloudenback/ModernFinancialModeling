@@ -64,7 +64,7 @@ Visualization helps to bridge communication gaps between different teams (techni
     + Pie charts are best for showing parts of a whole or proportional data. It is often used when one has fewer categories (typically 3-5) that sum to 100%.
 
 ```{julia}
-using Plots
+using CairoMakie
 
 # Data for the plots
 categories = ["Product A", "Product B", "Product C", "Product D"]
@@ -74,19 +74,19 @@ months = 1:12
 sales_growth = [120, 150, 170, 180, 200, 220, 210, 230, 250, 270, 290, 310]  # For line graph
 
 x = rand(100)  # For scatter plot
-y = rand(100)
 
-pie_categories = ["Category A", "Category B", "Category C", "Category D"]
 proportions = [30, 25, 15, 30]  # For pie chart
 
-# Create individual plots
-bar_chart = bar(categories, sales, title="Bar Chart", xlabel="Product", ylabel="Sales", legend=false)
-line_graph = plot(months, sales_growth, title="Line Graph", xlabel="Months", ylabel="Sales", legend=false, linewidth=2, color=:blue, marker=:circle)
-scatter_plot = scatter(x, y, title="Scatter Plot", xlabel="X Axis", ylabel="Y Axis", color=:blue, marker=:circle)
-pie_chart = pie(pie_categories, proportions, title="Pie Chart", color=[:red, :blue, :green, :orange])
-
-# Combine the plots into a 2x2 layout
-plot(bar_chart, line_graph, scatter_plot, pie_chart, layout=(2, 2))
+# Combine individual plots into a 2x2 layout
+f = Figure()
+barplot(f[1, 1], 1:4, sales, axis = (xticks = (1:4, categories), title = "bar"))
+axis = Axis(f[1, 2], title = "line")
+lines!(f[1, 2], months, sales_growth)
+axis = Axis(f[2, 1], title = "scatter")
+scatter!(axis, x)
+axis = Axis(f[2, 2], title = "pie")
+pie!(axis, proportions, color = [:yellow, :orange, :red, :blue])
+f
 ```
 
 - Multivariate Visualizations: Heatmaps, parallel coordinates plots, radar charts, bubble charts.
@@ -96,46 +96,58 @@ plot(bar_chart, line_graph, scatter_plot, pie_chart, layout=(2, 2))
     + Radar charts are best for comparing multiple variables for a single or few observations, especially when one needs to show comparisons of several quantitative variables for one or more items, with each variable represented on an axis.
 
 ```{julia}
-using PlotlyJS, Dates, Distributions
+using CairoMakie
 
-programmers = ["Alex","Nicole","Sara","Etienne","Chelsea","Jody","Marianne"]
+# Data for plots
+z = rand(10, 10) # For heatmap
+bubble_x = rand(10) * 10
+bubble_y = rand(10) * 10
+bubble_size = rand(10) * 100
 
-base = Dates.now()
-# Get last 180 days
-dates = Dates.now() .- Dates.Day.(0:179)
+# Dummy data for radar chart
+radar_data = [0.7, 0.9, 0.4, 0.6, 0.8]
+radar_labels = ["A", "B", "C", "D", "E"]
 
-z = rand(Poisson(), size(dates)[1], size(programmers)[1])
+# Dummy data for parallel coordinates plot
+parallel_data = rand(10, 5)
+parallel_color = [:green, :orange, :red, :blue, :purple]
 
-h = plot(heatmap(z=z, x=dates, y=programmers, colorscale="Viridis"))
+f = Figure()
 
-df = dataset(DataFrame, "gapminder")
-df07 = df[df.year .== 2007, :]
+# Heatmap (1,1)
+ax1 = Axis(f[1, 1], title = "Heatmap")
+heatmap!(ax1, z)
 
-b = plot(df07, x=:gdpPercap, y=:lifeExp, color=:continent , mode="markers",
-    marker=attr(size=:pop, sizeref=maximum(df07.pop) / (60^2), sizemode="area"),
-    Layout(xaxis_type="log")
-)
+# Parallel coordinates (1,2)
+ax2 = Axis(f[1, 2], title = "Parallel Coordinates")
+for i in 1:size(parallel_data, 2)
+    lines!(ax2, 1:size(parallel_data, 2), parallel_data[i, :], color = parallel_color[i])
+end
+ax2.xticks = (1:5, radar_labels)
 
-[h b]
+# Radar Chart (2,1)
+ax3 = Axis(f[2, 1], title = "Radar Chart", aspect = 1)
+angles = range(0, 2π, length = length(radar_data) + 1)
+r = [radar_data; radar_data[1]]
+arc!(ax3, Point2f(0), 0.5, -π, π, color = :orange)
+arc!(ax3, Point2f(0), 1, -π, π, color = :orange)
+lines!(ax3, [-1, 1], [1, -1], color = :orange)
+lines!(ax3, [-1, 1], [-1, 1], color = :orange)
+lines!(ax3, cos.(angles) .* r, sin.(angles) .* r, color = :green)
+poly!(ax3, cos.(angles) .* r, sin.(angles) .* r, color = (:blue, 0.2))
+scatter!(ax3, cos.(angles) .* r, sin.(angles) .* r, color = :red)
 
-p = plot(parcoords(;line = attr(color=df.group, colorscale=[(0,"red"), (0.5,"green"),(1,"blue")]),
-        dimensions = [
-            attr(range = [0,1], label = "response1", values = df.response1),
-            attr(range = [0,1], label = "response2", values = df.response2),
-            attr(range = [0,1], label = "response3", values = df.response3),
-            attr(range = [0,1], label = "response4", values = df.response4)
-        ]))
+# Bubble Plot (2,2)
+ax4 = Axis(f[2, 2], title = "Bubble Plot")
+scatter!(ax4, bubble_x, bubble_y, markersize = bubble_size, color = :orange)
 
-categories = String["processing cost","mechanical properties", "chemical stability", "thermal stability", "device integration"]
-
-r = plot([scatterpolar(r=[1, 5, 2, 2, 3], theta=categories, fill="toself", name="Product A"),
-          scatterpolar(r=[4, 3, 2.5, 1, 2], theta=categories, fill="toself", name="Product B")])
+f
 ```
 
 - Dimensionality Reduction: PCA plots, t-SNE, and UMAP for visualizing high-dimensional data. Here we show an example how high-dimensional data can be shown on a t-SNE plot.
 
 ```{julia}
-using TSne, Statistics, MLDatasets, Plots
+using TSne, Statistics, MLDatasets, CairoMakie
 
 alldata, allabels = MNIST.traindata(Float64);
 data = reshape(permutedims(alldata[:, :, 1:2500], (3, 1, 2)), 2500, size(alldata, 1)*size(alldata, 2));
@@ -147,7 +159,10 @@ X = rescale(data, dims=1);
 
 Y = tsne(X, 2, 50, 1000, 20.0);
 
-theplot = scatter(Y[:,1], Y[:,2], marker=(2,2,:auto,stroke(0)), color=Int.(allabels[1:size(Y,1)]))
+f = Figure()
+axis = Axis(f[1, 1])
+scatter!(axis, Y[:,1], Y[:,2], color=Int.(allabels[1:size(Y,1)]))
+f
 ```
 
 - Time Series Visualization: Line charts, area charts, time-series decomposition plots. Refer to @sec-datalearning for a time series plot.
@@ -191,13 +206,13 @@ unemployment = dataset("unemployment")
 
 Julia has several powerful packages for data visualization, each with different strengths depending on your needs (e.g., interactive vs. static plots, ease of use vs. customization). Below are some of the most common visualization packages in Julia:
 
-### Plots.jl
-
-`Plots` is one of the most versatile and popular Julia plotting libraries. It provides a high-level interface for different plotting backends (e.g., GR, Plotly, PyPlot, PGFPlotsX, etc.). It uses a high-level syntax, easy to use. It supports multiple backends for both static and interactive plots with extensive customization options.
-
 ### Makie.jl
 
 `Makie` is designed for high-performance, interactive, and 3D visualization. It supports real-time interaction and is highly customizable. It supports 2D and 3D plotting and real-time interactivity. It is also extremely fast with GPU acceleration for certain operations.
+
+### Plots.jl
+
+`Plots` is one of the most versatile and popular Julia plotting libraries. It provides a high-level interface for different plotting backends (e.g., GR, Plotly, PyPlot, PGFPlotsX, etc.). It uses a high-level syntax, easy to use. It supports multiple backends for both static and interactive plots with extensive customization options.
 
 ### Gadfly.jl
 
@@ -212,6 +227,7 @@ Julia has several powerful packages for data visualization, each with different 
 `VegaLite` is a wrapper for the Vega-Lite visualization grammar, which focuses on interactive, declarative visualizations. It works well for complex, layered visualizations. It is grammar-of-graphics based which easily produces interactive charts. It is built for declarative specification of visualizations.
 
 ### PyPlot.jl
+
 `PyPlot` is a Julia wrapper for the popular Python `matplotlib` library. It's suitable for users familiar with Python who want the same plotting capabilities in Julia. It leverages the full capabilities of matplotlib and it can produce high-quality, publication-ready plots. It is great for scientific visualization.
 
 ### StatsPlots.jl
