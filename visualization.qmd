@@ -87,13 +87,13 @@ proportions = [30, 25, 15, 30]  # For pie chart
 
 # Combine individual plots into a 2x2 layout
 f = Figure()
-barplot(f[1, 1], 1:4, sales, axis = (xticks = (1:4, categories), title = "bar"))
-axis = Axis(f[1, 2], title = "line")
+barplot(f[1, 1], 1:4, sales, axis=(xticks=(1:4, categories), title="bar"))
+axis = Axis(f[1, 2], title="line")
 lines!(f[1, 2], months, sales_growth)
-axis = Axis(f[2, 1], title = "scatter")
+axis = Axis(f[2, 1], title="scatter")
 scatter!(axis, x)
-axis = Axis(f[2, 2], title = "pie")
-pie!(axis, proportions, color = [:yellow, :orange, :red, :blue])
+axis = Axis(f[2, 2], title="pie")
+pie!(axis, proportions, color=[:yellow, :orange, :red, :blue])
 f
 ```
 
@@ -123,31 +123,31 @@ parallel_color = [:green, :orange, :red, :blue, :purple]
 f = Figure()
 
 # Heatmap (1,1)
-ax1 = Axis(f[1, 1], title = "Heatmap")
+ax1 = Axis(f[1, 1], title="Heatmap")
 heatmap!(ax1, z)
 
 # Parallel coordinates (1,2)
-ax2 = Axis(f[1, 2], title = "Parallel Coordinates")
+ax2 = Axis(f[1, 2], title="Parallel Coordinates")
 for i in 1:size(parallel_data, 2)
-    lines!(ax2, 1:size(parallel_data, 2), parallel_data[i, :], color = parallel_color[i])
+    lines!(ax2, 1:size(parallel_data, 2), parallel_data[i, :], color=parallel_color[i])
 end
 ax2.xticks = (1:5, radar_labels)
 
 # Radar Chart (2,1)
-ax3 = Axis(f[2, 1], title = "Radar Chart", aspect = 1)
-angles = range(0, 2π, length = length(radar_data) + 1)
+ax3 = Axis(f[2, 1], title="Radar Chart", aspect=1)
+angles = range(0, 2π, length=length(radar_data) + 1)
 r = [radar_data; radar_data[1]]
-arc!(ax3, Point2f(0), 0.5, -π, π, color = :orange)
-arc!(ax3, Point2f(0), 1, -π, π, color = :orange)
-lines!(ax3, [-1, 1], [1, -1], color = :orange)
-lines!(ax3, [-1, 1], [-1, 1], color = :orange)
-lines!(ax3, cos.(angles) .* r, sin.(angles) .* r, color = :green)
-poly!(ax3, cos.(angles) .* r, sin.(angles) .* r, color = (:blue, 0.2))
-scatter!(ax3, cos.(angles) .* r, sin.(angles) .* r, color = :red)
+arc!(ax3, Point2f(0), 0.5, -π, π, color=:orange)
+arc!(ax3, Point2f(0), 1, -π, π, color=:orange)
+lines!(ax3, [-1, 1], [1, -1], color=:orange)
+lines!(ax3, [-1, 1], [-1, 1], color=:orange)
+lines!(ax3, cos.(angles) .* r, sin.(angles) .* r, color=:green)
+poly!(ax3, cos.(angles) .* r, sin.(angles) .* r, color=(:blue, 0.2))
+scatter!(ax3, cos.(angles) .* r, sin.(angles) .* r, color=:red)
 
 # Bubble Plot (2,2)
-ax4 = Axis(f[2, 2], title = "Bubble Plot")
-scatter!(ax4, bubble_x, bubble_y, markersize = bubble_size, color = :orange)
+ax4 = Axis(f[2, 2], title="Bubble Plot")
+scatter!(ax4, bubble_x, bubble_y, markersize=bubble_size, color=:orange)
 
 f
 ```
@@ -157,8 +157,8 @@ f
 ```{julia}
 using TSne, Statistics, MLDatasets, CairoMakie
 
-alldata, allabels = MNIST.traindata(Float64);
-data = reshape(permutedims(alldata[:, :, 1:2500], (3, 1, 2)), 2500, size(alldata, 1)*size(alldata, 2));
+alldata, allabels = MNIST(split=:train)[:];
+data = reshape(permutedims(alldata[:, :, 1:2500], (3, 1, 2)), 2500, size(alldata, 1) * size(alldata, 2));
 
 # Normalize the data, this should be done if there are large scale differences in the dataset
 rescale(A; dims=1) = (A .- mean(A, dims=dims)) ./ max.(std(A, dims=dims), eps())
@@ -169,7 +169,7 @@ Y = tsne(X, 2, 50, 1000, 20.0);
 
 f = Figure()
 axis = Axis(f[1, 1])
-scatter!(axis, Y[:,1], Y[:,2], color=Int.(allabels[1:size(Y,1)]))
+scatter!(axis, Y[:, 1], Y[:, 2], color=Int.(allabels[1:size(Y, 1)]))
 f
 ```
 
@@ -185,26 +185,26 @@ unemployment = dataset("unemployment")
 
 @vlplot(
     :geoshape,
-    width=500, height=300,
-    data={
-        values=us10m,
-        format={
-            type=:topojson,
-            feature=:counties
+    width = 500, height = 300,
+    data = {
+        values = us10m,
+        format = {
+            type = :topojson,
+            feature = :counties
         }
     },
-    transform=[{
-        lookup=:id,
-        from={
-            data=unemployment,
-            key=:id,
-            fields=["rate"]
+    transform = [{
+        lookup = :id,
+        from = {
+            data = unemployment,
+            key = :id,
+            fields = ["rate"]
         }
     }],
-    projection={
-        type=:albersUsa
+    projection = {
+        type = :albersUsa
     },
-    color="rate:q"
+    color = "rate:q"
 )
 ```
 
