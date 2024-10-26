@@ -547,7 +547,7 @@ Tip
 <h3 data-number="2.2.1" class="anchored" data-anchor-id="example-1-retention-analysis"><span class="header-section-number">2.2.1</span> Example 1: Retention Analysis</h3>
 <p>This is a really simple example relating <code>Cession</code>s, <code>Policy</code>s, and <code>Live</code>s to do simple retention analysis. Retention is a measure of how much risk an insurance company holds on a policy after it’s own reinsurance risk transfer (ceded amount of coverage are called “cessions”).</p>
 <p>First, let’s define our data:</p>
-<div id="192e7847" class="cell" data-execution_count="1">
+<div id="57ed35f0" class="cell" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Define our data structures</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> Life</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    policies</span>
@@ -563,7 +563,7 @@ Tip
 <span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Now to calculate amounts retained. First, let’s say what retention means for a <code>Policy</code>:</p>
-<div id="164ae605" class="cell" data-execution_count="2">
+<div id="dcd3cfd7" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># define retention</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">retained</span>(pol<span class="op">::</span><span class="dt">Policy</span>)</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    pol.face <span class="op">-</span> <span class="fu">sum</span>(cession.ceded <span class="cf">for</span> cession <span class="kw">in</span> pol.cessions)</span>
@@ -573,7 +573,7 @@ Tip
 </div>
 </div>
 <p>And then what retention means for a <code>Life</code>:</p>
-<div id="e2e81ab2" class="cell" data-execution_count="3">
+<div id="ae51120b" class="cell" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">retained</span>(l<span class="op">::</span><span class="dt">Life</span>)</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sum</span>(<span class="fu">retained</span>(policy) <span class="cf">for</span> policy <span class="kw">in</span> life.policies)</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -584,7 +584,7 @@ Tip
 <p>It’s almost exactly how you’d specify it English. No joins, no boilerplate, no fiddling with complicated syntax. You can express ideas and concepts the way that you think of them, not, for example, as a series of dataframe joins or as row/column coordinates on a spreadsheet.</p>
 <p>We defined <code>retained</code> and adapted it to mean related, but different things depending on the specific context. That is, we didn’t have to define <code>retained_life(...)</code> and <code>retained_pol(...)</code> because Julia can <strong>dispatch</strong> based on what you give it (this is a more powerful, generalized version of method dispatch commonly used in object-oriented programming, see <a href="type-abstractions.html" class="quarto-xref"><span>Chapter 6</span></a> for more).</p>
 <p>Let’s use the above code in practice then.</p>
-<div id="4aab515e" class="cell" data-execution_count="4">
+<div id="6f98e1b7" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># create two policies with two and one cessions respectively</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>pol_1 <span class="op">=</span> <span class="fu">Policy</span>(<span class="fl">1000</span>, [<span class="fu">Cession</span>(<span class="fl">100</span>), <span class="fu">Cession</span>(<span class="fl">500</span>)])</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>pol_2 <span class="op">=</span> <span class="fu">Policy</span>(<span class="fl">2500</span>, [<span class="fu">Cession</span>(<span class="fl">1000</span>)])</span>
@@ -595,20 +595,20 @@ Tip
 <pre><code>Life(Policy[Policy(1000, Cession[Cession(100), Cession(500)]), Policy(2500, Cession[Cession(1000)])])</code></pre>
 </div>
 </div>
-<div id="42518237" class="cell" data-execution_count="5">
+<div id="4719da3e" class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">retained</span>(pol_1)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="6">
 <pre><code>400</code></pre>
 </div>
 </div>
-<div id="d8c0ed16" class="cell" data-execution_count="6">
+<div id="1e3e95eb" class="cell" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">retained</span>(life)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="7">
 <pre><code>1900</code></pre>
 </div>
 </div>
 <p>And for the last trick, something called “broadcasting”, which automatically vectorizes any function you write, no need to write loops or create <code>if</code> statements to handle a single vs repeated case:</p>
-<div id="c189a97d" class="cell" data-execution_count="7">
+<div id="b3cd338e" class="cell" data-execution_count="7">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">retained</span>.(life.policies) <span class="co"># retained amount for each policy</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="8">
 <pre><code>2-element Vector{Int64}:
