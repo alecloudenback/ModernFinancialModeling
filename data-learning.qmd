@@ -115,7 +115,7 @@ Here is an example how to do time series forecasting in Julia, where point sizes
 ```{julia}
 using CSV, DataFrames, CairoMakie, StateSpaceModels
 
-airp = CSV.File(StateSpaceModels.AIR_PASSENGERS) |> DataFrame
+airp = CSV.read(StateSpaceModels.AIR_PASSENGERS), DataFrame)
 log_air_passengers = log.(airp.passengers)
 steps_existing = length(log_air_passengers)
 steps_ahead = 30
@@ -199,15 +199,17 @@ using Zygote
 
 # Define the bond cash flows and prices
 cash_flows = [100, 100, 100, 100, 1000]  # Coupons and principal
-prices = [95, 96, 97, 98, 1050]           # Market prices
+prices = [950, 960, 1010, 1020, 1050]  # Market prices
+
 # Define a function to calculate the present value of cash flows given a rate
 function present_value(rate, cash_flows)
     pv = 0
     for (i, cf) in enumerate(cash_flows)
-        pv += cf / (1 + rate)^i
+        pv += cf / (1 + rate) ^ i
     end
     return pv
 end
+
 # Define a function to calculate the implied rate using bisection method
 function implied_rate(cash_flows, price)
     f(rate) = present_value(rate, cash_flows) - price
@@ -215,14 +217,14 @@ function implied_rate(cash_flows, price)
 end
 function rootassign(f, l, u)
     # Define an initial value
-    x = 1.0
+    x = 0.05
     # tolerance of difference in value
     tol = 1e-6
     # maximum number of iteration of the algorithm
     max_iter = 100
     iter = 0
     while abs(f(x)) > tol && iter < max_iter
-        x -= f(x) / gradient(x -> f(x), x)[1]
+        x -= f(x) / gradient(f, x)[1]
         iter += 1
     end
     if iter < max_iter && l < x < u
@@ -231,6 +233,7 @@ function rootassign(f, l, u)
         return -1.0
     end
 end
+
 # Calculate implied rates for each bond
 implied_rates = [implied_rate(cash_flows, price) for price in prices]
 # Print the results
