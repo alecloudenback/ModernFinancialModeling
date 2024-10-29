@@ -41,7 +41,7 @@ f(x) = 3x^2 + 2x + 1
 x = 2.0
 
 println("Value of f(x) at x=", f(x))
-println("Gradient of f(x) at x=", gradient(x -> f(x), x))
+println("Gradient of f(x) at x=", gradient(f, x))
 ```
 
 ## Gradient-Free Optimization
@@ -55,14 +55,9 @@ Linear optimization, also known as linear programming (LP), is a mathematical me
 We will use linear optimization to solve the following problem, with $n$ the number of elements in $b$:
 
 $$
-\begin{aligned}
+\begin{align*}
     \max_{x} \quad c \cdot x
-\end{aligned}
-$$
-
-$$
-\begin{aligned}
-    s.t. x \geq 0 \\
+    \text{Subject to} x \geq 0 \\
     A_i \cdot x \leq b_i \quad \forall i \in n
 \end{aligned}
 $$
@@ -102,71 +97,110 @@ An evolutionary algorithm (EA) is a family of optimization algorithms inspired b
 The following shows an example to maximize population fitness in terms of an objective function, with common crossover and mutation processes throughout all generations.
 
 ```{julia}
-# Define the objective function to maximize
-function objective_function(x)
-    return sum(x .^ 2)  # Example function: sum of squares
+using Random
+
+Random.seed!(1234)
+
+# Parameters
+population_size = 50          # Number of individuals in the population
+chromosome_length = 5          # Number of genes in each individual (dimensionality)
+generations = 100              # Number of generations
+mutation_rate = 0.1            # Probability of mutation
+crossover_rate = 0.7           # Probability of crossover
+bounds = (-5.12, 5.12)         # Boundaries for each gene
+
+# Target function: Rastrigin function (a common benchmark for optimization)
+function rastrigin(x)
+    A = 10
+    n = length(x)
+    return A * n + sum(xi^2 - A * cos(2 * π * xi) for xi in x)
 end
-# Define the evolutionary algorithm function
-function evolutionary_algorithm(dim::Int, pop_size::Int, max_gen::Int)
-    # Initialization
-    population = rand(Bool, dim, pop_size)  # Random binary population
-    best_solution = population[:, argmax([objective_function(sol) for sol in eachcol(population)])]
-    best_fitness = objective_function(best_solution)
-    # Evolution loop
-    for gen in 1:max_gen
-        # Selection: Binary tournament selection
-        parents = zeros(Bool, dim, pop_size)
-        for i in 1:pop_size
-            idx1, idx2 = rand(1:pop_size, 2)
-            parents[:, i] = if objective_function(population[:, idx1]) > objective_function(population[:, idx2])
-                population[:, idx1]
-            else
-                population[:, idx2]
-            end
-        end
-        # Crossover: Single-point crossover
-        offspring = zeros(Bool, dim, pop_size)
-        for i in 1:2:pop_size
-            point = rand(1:dim-1)
-            offspring[1:point, i] = parents[1:point, i]
-            offspring[1:point, i+1] = parents[1:point, i+1]
-            offspring[point+1:end, i] = parents[point+1:end, i+1]
-            offspring[point+1:end, i+1] = parents[point+1:end, i]
-        end
-        # Mutation: Uniform mutation
-        mutation_rate = 0.05
-        for i in 1:pop_size
-            for j in 1:dim
-                if rand() < mutation_rate
-                    offspring[j, i] = !offspring[j, i]  # Flip the bit
-                end
-            end
-        end
-        # Replace population with offspring
-        population = offspring
-        # Update best solution found so far
-        current_best = population[:, argmax([objective_function(sol) for sol in eachcol(population)])]
-        current_best_fitness = objective_function(current_best)
-        if current_best_fitness > best_fitness
-            best_solution = current_best
-            best_fitness = current_best_fitness
-        end
-        # Print best fitness in each generation (optional)
-        println("Generation $gen: Best fitness = $best_fitness")
+
+# Initialize population randomly within bounds
+function initialize_population()
+    return [rand(bounds[1]:0.01:bounds[2], chromosome_length) for _ in 1:population_size]
+end
+
+# Fitness function (negative because we are minimizing)
+function fitness(individual)
+    return -rastrigin(individual)
+end
+
+# Selection: Tournament selection
+function tournament_selection(population, fitnesses)
+    candidates = rand(1:population_size, 2)
+    return ifelse(fitnesses[candidates[1]] > fitnesses[candidates[2]],
+                  population[candidates[1]], population[candidates[2]])
+end
+
+# Crossover: Single-point crossover
+function crossover(parent1, parent2)
+    if rand() < crossover_rate
+        point = rand(1:chromosome_length)
+        child1 = vcat(parent1[1:point], parent2[point+1:end])
+        child2 = vcat(parent2[1:point], parent1[point+1:end])
+        return child1, child2
+    else
+        return parent1, parent2
     end
-    return best_solution, best_fitness
 end
 
-dim = 10         # Dimension of the problem (e.g., number of variables)
-pop_size = 50    # Population size
-max_gen = 10    # Maximum number of generations
-# Run the evolutionary algorithm
-best_solution, best_fitness = evolutionary_algorithm(dim, pop_size, max_gen)
+# Mutation: Randomly change genes with some probability
+function mutate(individual)
+    for i in 1:chromosome_length
+        if rand() < mutation_rate
+            individual[i] = rand(bounds[1]:0.01:bounds[2])
+        end
+    end
+    return individual
+end
 
-# Print the best solution found
-println("\nBest solution found:")
-println("Solution = ", best_solution)
-println("Fitness = ", best_fitness)
+# Main Genetic Algorithm loop
+function genetic_algorithm()
+    population = initialize_population()
+    best_individual = nothing
+    best_fitness = -Inf
+
+    for gen in 1:generations
+        # Evaluate fitness
+        fitnesses = [fitness(ind) for ind in population]
+        
+        # Find best individual in current population
+        current_best = argmax(fitnesses)
+        if fitnesses[current_best] > best_fitness
+            best_fitness = fitnesses[current_best]
+            best_individual = population[current_best]
+        end
+
+        # Generate new population
+        new_population = []
+        while length(new_population) < population_size
+            # Selection
+            parent1 = tournament_selection(population, fitnesses)
+            parent2 = tournament_selection(population, fitnesses)
+
+            # Crossover
+            child1, child2 = crossover(parent1, parent2)
+
+            # Mutation
+            child1 = mutate(child1)
+            child2 = mutate(child2)
+
+            # Add children to new population
+            push!(new_population, child1, child2)
+        end
+        population = new_population[1:population_size]
+        
+        println("Generation $gen: Best Fitness = ", best_fitness)
+    end
+
+    return best_individual, -best_fitness
+end
+
+# Run the genetic algorithm
+best_solution, best_value = genetic_algorithm()
+println("Best Solution: ", best_solution)
+println("Best Value (Minimum): ", best_value)
 ```
 
 ### Simulated annealing
@@ -174,45 +208,78 @@ println("Fitness = ", best_fitness)
 Simulated Annealing (SA) is a probabilistic optimization technique inspired by the annealing process in metallurgy. It is used to find near-optimal solutions to optimization problems, particularly in cases where traditional gradient-based methods may get stuck in local minima/maxima. SA accepts worse solutions with a certain probability, allowing it to explore the search space more broadly initially and then gradually narrow down towards better solutions as it progresses.
 
 ```{julia}
-# Objective function to minimize
-function objective_function(x)
-    return x^2
+using Random
+
+Random.seed!(1234)
+
+# Parameters
+max_iterations = 1000            # Number of iterations
+initial_temperature = 100.0      # Starting temperature
+cooling_rate = 0.99              # Cooling rate (temperature multiplier)
+bounds = (-5.12, 5.12)           # Bounds for the search space
+dimension = 5                    # Number of dimensions in the search space
+
+# Objective function: Rastrigin function
+function rastrigin(x)
+    A = 10
+    n = length(x)
+    return A * n + sum(xi^2 - A * cos(2 * π * xi) for xi in x)
 end
-# Simulated Annealing function
-function simulated_annealing(initial_solution, initial_temperature, cooling_rate, num_iterations)
-    current_solution = initial_solution
-    best_solution = initial_solution
-    current_temperature = initial_temperature
-    for iteration in 1:num_iterations
-        # Generate a new solution near the current solution
-        new_solution = current_solution + randn()  # Example: small random change
-        # Calculate objective function values
-        current_value = objective_function(current_solution)
-        new_value = objective_function(new_solution)
-        # Decide whether to accept the new solution
-        if new_value < current_value || rand() < exp(-(new_value - current_value) / current_temperature)
-            current_solution = new_solution
+
+# Random initialization within bounds
+function initialize_solution()
+    return rand(bounds[1]:0.01:bounds[2], dimension)
+end
+
+# Random perturbation within bounds
+function perturb_solution(solution)
+    perturbed = copy(solution)
+    index = rand(1:dimension)
+    perturb_amount = rand(-0.1:0.01:0.1)  # Small random change
+    perturbed[index] += perturb_amount
+    # Ensure perturbed solution is within bounds
+    perturbed[index] = clamp(perturbed[index], bounds[1], bounds[2])
+    return perturbed
+end
+
+# Simulated Annealing main function
+function simulated_annealing()
+    current_solution = initialize_solution()
+    current_value = rastrigin(current_solution)
+    best_solution = copy(current_solution)
+    best_value = current_value
+    temperature = initial_temperature
+
+    for iteration in 1:max_iterations
+        # Generate new candidate solution by perturbation
+        candidate_solution = perturb_solution(current_solution)
+        candidate_value = rastrigin(candidate_solution)
+
+        # Acceptance probability (Metropolis criterion)
+        ΔE = candidate_value - current_value
+        if ΔE < 0 || rand() < exp(-ΔE / temperature)
+            current_solution = candidate_solution
+            current_value = candidate_value
         end
-        # Update the best solution found so far
-        if objective_function(current_solution) < objective_function(best_solution)
-            best_solution = current_solution
+
+        # Update best solution found so far
+        if current_value < best_value
+            best_solution = copy(current_solution)
+            best_value = current_value
         end
-        # Cool down the temperature
-        current_temperature *= cooling_rate
+
+        # Decrease temperature
+        temperature *= cooling_rate
+        println("Iteration $iteration: Best Value = $best_value, Temperature = $temperature")
     end
-    return best_solution, objective_function(best_solution)
+
+    return best_solution, best_value
 end
 
-initial_solution = 5.0       # Initial solution guess
-initial_temperature = 10.0   # Initial temperature
-cooling_rate = 0.95          # Cooling rate
-num_iterations = 1000        # Number of iterations
-# Run simulated annealing
-best_solution, best_value = simulated_annealing(initial_solution, initial_temperature, cooling_rate, num_iterations)
-
-# Print results
-println("Best solution found: x = ", best_solution)
-println("Objective function value at best solution: ", best_value)
+# Run the simulated annealing algorithm
+best_solution, best_value = simulated_annealing()
+println("Best Solution: ", best_solution)
+println("Best Value (Minimum): ", best_value)
 ```
 
 ### Bayesian optimization
@@ -307,7 +374,7 @@ tol = 1e-6
 max_iter = 100
 iter = 0
 while abs(f(x)) > tol && iter < max_iter
-    x -= f(x) / gradient(x -> f(x), x)[1]
+    x -= f(x) / gradient(f, x)[1]
     iter += 1
 end
 if iter == max_iter
