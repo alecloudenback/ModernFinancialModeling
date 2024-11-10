@@ -1,5 +1,6 @@
 # Bayesian Mortality Modeling {#sec-bayesian-mortality}
 
+> “After a year of intense mental struggle, however, \[Arthur Bailey\] realized to his consternation that actuarial sledgehammering worked. He even preferred \[the Bayesian underpinnings of credibility theory\] to the elegance of frequentism. He positively liked formulae that described 'actual data. . . . I realized that the hard-shelled underwriters were recognizing certain facts of life neglected by the statistical theorists.' He wanted to give more weight to a large volume of data than to the frequentists’ small sample; doing so felt surprisingly 'logical and reasonable.' He concluded that only a 'suicidal' actuary would use Fisher’s method of maximum likelihood, which assigned a zero probability to nonevents.” - Excerpt From The Theory That Would Not Die Sharon Bertsch McGrayne
 
 ```{julia}
 #| echo: false
@@ -11,17 +12,19 @@ using Logging;
 Logging.disable_logging(Logging.Warn);
 ```
 
-:::callout-important
+::: callout-important
 ## Drafting Notes
 
-Ideas: 
-- First plot graph of outcomes and discuss some key features:
-  - More variance when the subset are smaller
+Ideas: - First plot graph of outcomes and discuss some key features: - More variance when the subset are smaller
 
-- Just plot the data first, with the group colors, to explain what we are looking at and for consistency in subsequent plots
+-   Just plot the data first, with the group colors, to explain what we are looking at and for consistency in subsequent plots
 
-- Generate sample data using parameters sampled from chain and show the bands on the associated outcomes.
+-   Generate sample data using parameters sampled from chain and show the bands on the associated outcomes.
 :::
+
+## In This Chapter
+
+An example of using a Bayesian MCMC approach to fitting a mortality curve to sample data, with multi-level models and censored data.
 
 ## Generating fake data
 
@@ -31,18 +34,16 @@ We'll grab some example rates from an insurance table, which has a "selection" c
 
 Addtionally, there may be additional groups of interest, such as:
 
-- high/medium/low risk classification
-- sex
-- group (e.g. company, data source, etc.)
-- type of insurance product offered
+-   high/medium/low risk classification
+-   sex
+-   group (e.g. company, data source, etc.)
+-   type of insurance product offered
 
 The example data will start with only the risk classification above.
-"""
 
 ```{julia}
 using MortalityTables
 using Turing
-using UUIDs
 using DataFramesMeta
 using MCMCChains
 using LinearAlgebra
@@ -55,7 +56,6 @@ using OffsetArrays
 n = 10_000
 inforce = map(1:n) do i
     (
-        id=uuid1(),
         issue_age=rand(30:70),
         risk_level=rand(1:3),
     )
@@ -77,7 +77,6 @@ function tabular_mortality(params, issue_age, att_age, risk_level)
     end
 end
 ```
-
 
 ```{julia}
 function model_outcomes(inforce, assumption, assumption_params; n_years=5)
@@ -133,14 +132,13 @@ data2 = combine(groupby(exposures, [:issue_age, :att_age, :risk_level])) do subd
 end
 ```
 
-
 ## 1: A single binomial parameter model
 
 Estiamte $q$, the average mortality rate, not accounting for any variation within the population/sample. Our model is defines as:
 
 $$
 q ~ Beta(1,1)
-p(death) ~ Binomial(q)
+p(\text{death}) ~ \text{Binomial}(q)
 $$
 
 ```{julia}
@@ -154,18 +152,16 @@ end
 m1 = mortality(data, data.deaths)
 ```
 
-
-
 ### Sampling from the posterior
 
-We use a No-U-Turn-Sampler (NUTS) technique to sample multile chains at once:
+We use a No-U-Turn-Sampler (NUTS) technique to sample multiple chains at once:
 
 ```{julia}
 num_chains = 4
 chain = sample(m1, NUTS(), MCMCThreads(), 400, num_chains)
 ```
 
-Here, we have asked for the outcomes to be modeled via a single parameter for the population. We see that the posterior distirbution of $q$ is very close to the overall population mortality rate:
+Here, we have asked for the outcomes to be modeled via a single parameter for the population. We see that the posterior distribution of $q$ is very close to the overall population mortality rate:
 
 ```{julia}
 sum(data.deaths) / sum(data.exposures)
@@ -177,14 +173,13 @@ This is saying that for the observed data, if there really is just a single prob
 
 ```{julia}
 let
-    data_weight = log.(data.exposures)
-    #data_weight = .√(data_weight ./ maximum(data_weight) .* 20)
+    data_weight = sqrt.(data.exposures) /  2
     f = Figure(title="Parametric Bayseian Mortality"
     )
     ax = Axis(f[1, 1],
         xlabel="age",
         ylabel="mortality rate",
-        # ylims=(0.0, 0.25),
+        limits=(nothing, nothing, -0.02, 0.25),
     )
     scatter!(ax,
         data.att_age,
@@ -235,16 +230,13 @@ let
 end
 ```
 
-
-
 ## 2. Parametric model
 
-In this example, we utilize a [MakehamBeard](https://juliaactuary.github.io/MortalityTables.jl/stable/ParametricMortalityModels/#MortalityTables.MakehamBeard) parameterization because it's already very similar in form to a [logistic function](https://en.wikipedia.org/wiki/Logistic_function). This is important because our desired output is a probability (ie the probablity of a death at a given age), so the value must be constrained to be in the interval between zero and one.
+In this example, we utilize a [MakehamBeard](https://juliaactuary.github.io/MortalityTables.jl/stable/ParametricMortalityModels/#MortalityTables.MakehamBeard) parameterization because it's already very similar in form to a [logistic function](https://en.wikipedia.org/wiki/Logistic_function). This is important because our desired output is a probability (ie the probability of a death at a given age), so the value must be constrained to be in the interval between zero and one.
 
-The **prior** values for `a`,`b`,`c`, and `k` are chosen to constrain the hazard (mortality) rate to be between zero and one. 
+The **prior** values for `a`,`b`,`c`, and `k` are chosen to constrain the hazard (mortality) rate to be between zero and one.
 
-This isn't an ideal parameterization (e.g. we aren't including information about the select underwriting period), but is an example of utilizing Bayesian techniques on life experience data.
-"
+This isn't an ideal parameterization (e.g. we aren't including information about the select underwriting period), but is an example of utilizing Bayesian techniques on life experience data. "
 
 ```{julia}
 @model function mortality2(data, deaths)
@@ -268,16 +260,11 @@ end
 
 We combine the model with the data and sample from the posterior using a similar call as before:
 
-
 ```{julia}
 m2 = mortality2(data, data.deaths)
 
 chain2 = sample(m2, NUTS(), MCMCThreads(), 400, num_chains)
 ```
-
-summarize(chain2)
-
-plot(chain2)
 
 ### Plotting samples from the posterior
 
@@ -285,8 +272,7 @@ We can see that the sampling of possible posterior parameters fits the data well
 
 ```{julia}
 let
-    data_weight = data.exposures ./ sum(data.exposures)
-    data_weight = .√(data_weight ./ maximum(data_weight) .* 20)
+    data_weight = sqrt.(data.exposures) / 2
 
     p = scatter(
         data.att_age,
@@ -296,7 +282,7 @@ let
         label="Experience data point (size indicates relative exposure quantity)",
         axis=(
             xlabel="age",
-            limits=(nothing, nothing, 0.0, 0.25),
+            limits=(nothing, nothing, -0.02, 0.25),
             ylabel="mortality rate",
             title="Parametric Bayseian Mortality"
         )
@@ -322,14 +308,13 @@ end
 
 ```{julia}
 let
-    data_weight = log.(data.exposures)
-    #data_weight = .√(data_weight ./ maximum(data_weight) .* 20)
+    data_weight = sqrt.(data.exposures) / 2
     f = Figure(title="Parametric Bayseian Mortality"
     )
     ax = Axis(f[1, 1],
         xlabel="age",
         ylabel="mortality rate",
-        # ylims=(0.0, 0.25),
+        limits=(nothing, nothing, -0.02, 0.25),
     )
     scatter!(ax,
         data.att_age,
@@ -358,7 +343,7 @@ end
 
 ## 3. Parametric model
 
-This model extends the prior to create a multi-level model. Each risk class (`risk_level`) gets its own $a$ paramater in the `MakhamBeard` model. The prior for $a_i$ is determined by the hyperparameter $\bar{a}$.
+This model extends the prior to create a multi-level model. Each risk class (`risk_level`) gets its own $a$ paramater in the `MakhamBeard` model. The prior for $a_i$ is determined by the hyper-parameter $\bar{a}$.
 
 ```{julia}
 @model function mortality3(data, deaths)
@@ -390,12 +375,10 @@ chain3 = sample(m3, NUTS(), 1000)
 summarize(chain3)
 ```
 
-
 ```{julia}
 let data = data2
 
-    data_weight = data.exposures ./ sum(data.exposures)
-    data_weight = .√(data_weight ./ maximum(data_weight) .* 20)
+    data_weight = sqrt.(data.exposures) / 2
     color_i = data.risk_level
 
     p = scatter(
@@ -407,7 +390,7 @@ let data = data2
         label="Experience data point (size indicates relative exposure quantity)",
         axis=(
             xlabel="age",
-            limits=(nothing, nothing, 0.0, 0.25),
+            limits=(nothing, nothing, -0.02, 0.25),
             ylabel="mortality rate",
             title="Parametric Bayseian Mortality"
         )
@@ -469,7 +452,6 @@ m4 = mortality4(data2, data2.deaths)
 chain4 = sample(m4, NUTS(), 1000)
 ```
 
-
 ```{julia}
 risk_factors4 = [mean(chain4[Symbol("a[$f]")]) for f in 1:3]
 
@@ -477,8 +459,7 @@ risk_factors4 ./ risk_factors4[2]
 
 let data = data2
 
-    data_weight = data.exposures ./ sum(data.exposures)
-    data_weight = .√(data_weight ./ maximum(data_weight) .* 20)
+     data_weight = sqrt.(data.exposures) / 2
     color_i = data.risk_level
 
     p = scatter(
@@ -489,7 +470,7 @@ let data = data2
         color=color_i,
         label="Experience data point (size indicates relative exposure quantity)",
         axis=(xlabel="age",
-            limits=(nothing, nothing, 0.0, 0.25),
+            limits=(nothing, nothing, -0.02, 0.25),
             ylabel="mortality rate",
             title="Parametric Bayseian Mortality"
         )
@@ -519,9 +500,9 @@ let data = data2
 end
 ```
 
-## Predictions
+## Model Predictions
 
-We can generate predictive estimates by passing a vector of `missing` in place of the outcome variables and then calling `predict`. 
+We can generate predictive estimates by passing a vector of `missing` in place of the outcome variables and then calling `predict`.
 
 We get a table of values where each row is the the prediction implied by the corresponding chain sample, and the columns are the predicted value for each of the outcomes in our original dataset.
 
