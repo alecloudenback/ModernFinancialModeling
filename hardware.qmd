@@ -1,5 +1,3 @@
-
-
 # Hardware and Its Implications {#sec-hardware}
 
 > a CPU is literally a rock that we tricked into thinking.
@@ -10,21 +8,23 @@
 
 ## In this section
 
-A discussion of why a cursory understanding of modern computing hardware and architecture is important for making the right design decisions within a modeling context. Stack vs heap allocations, pointers, and bit types.
+In this chapter, we’ll explore why a basic understanding of computing hardware is essential for optimizing financial models and working efficiently with data. Understanding how data is stored and processed can help you make better design decisions, improve performance, and avoid common pitfalls. We’ll cover topics like memory architecture, data storage, and the impact of hardware on computational speed.
 
-## Computer Architecture
+## Introduction
 
-We can think of a computer as handling data at rest (in memory) or being acted upon (processed).
+The quote that opens the chatper is a silly way of describing that most modern computers are made with silicone, a common mineral found in rocks. However, we will not concern ourselves with the raw materials of computers and instead will focus on the key architectural aspect.
 
-### Memory and Moving Data Around
+A computer handles data at rest (in memory) or data being acted upon (processed). This chapter will try to explain both of those processes in a way that reveals key reasons why different approaches to programming can yield different results in terms of processing speed, memory usage, and compiled outputs.
 
-The core of modeling on computers is to perform computations on data, but unfortunately the speed at which data can be *accessed* has grown much slower than the rate the actual computations can be performed. Further, the size of the available persistent data storage (HDDs/SSDs) has ballooned, exacerbating the problem, making the speed and volume of memory the typical constraint in most workflows. Solution have been developed to create a pipeline intended to most efficiently shuttle data to and from the processor and the persistent storage. This extends further to data between different data stores and computers.
+## Memory and Moving Data Around
+
+The core of modeling on computers is to perform computations on data, but unfortunately the speed at which data can be *accessed* has grown much slower than the rate the actual computations can be performed. Further, the size of the available persistent data storage (HDDs/SSDs) has ballooned, exacerbating the problem: the overall throughput of memory is the typical workflow constraint. To try to address the bottleneck (memory throughput), solutions have been developed to create a pipeline to efficiently shuttle data to and from the processor and the persistent storage. This memory and processing architecture applies at both the single computer level as well as extending to workflows between different data stores and computers.
 
 We will focus primarily on the architecture of a single computer, as even laptop computers today contain enough power for most modeling tasks, *if the computer is used effectively*. Further, learning how to optimize a program for a single computer/processesor is almost always a precursor step to effective parallelization as well.
 
-#### Memory Types and Location
+### Memory Types and Location
 
-Memory has an inverse relationship between size and proximity to the processor units. The closer the data is to the processor units, the smaller the storage and the less likely the data will persist at that location for very long.
+Memory has an inverse relationship between size and proximity to the central processor unit (CPU). The closer the data is to the processor units, the smaller the storage and the less likely the data will persist at that location for very long.
 
 +-------------------------------------------------+----------------------------+-------------------------------------------------+
 | Kind                                            | Rough Size                 | Lifecycle                                       |
@@ -37,10 +37,29 @@ Memory has an inverse relationship between size and proximity to the processor u
 +-------------------------------------------------+----------------------------+-------------------------------------------------+
 | CPU Cache - L2                                  | 2 MB to 16 MB              | Nanoseconds to Microseconds                     |
 +-------------------------------------------------+----------------------------+-------------------------------------------------+
-| CPU Cache - L1                                  | \~16 kB                    | Nanoseconds                                     |
+| CPU Cache - L1                                  | \~16 KB                    | Nanoseconds                                     |
 +-------------------------------------------------+----------------------------+-------------------------------------------------+
 
-After requesting data from a persistent location like a Solid State Drive (SSD), the memory is read into Random Access Memory (RAM). The advantage of RAM over a persistent location is speed, typically that memory can be accessed and modified many times faster than the persistent data location. The tradeoff is that RAM is not persistent: when the computer is powered down, the RAM loses the information stored within. When data is needed by the CPU for data is read from RAM into a small hierarchy of caches. The **CPU Caches** are small (physically and in capacity), but very fast. The caches are also phyiscally colocated with the CPU for efficiency. Data is organized and funneled through the caches as an intermediary between the CPU and RAM and is fed from Level 3 (L3) cache in steps down to L1 cache as the data gets closer to the processor.
+After requesting data from a persistent location like a Solid State Drive (SSD), the memory is read into Random Access Memory (RAM). The advantage of RAM over a persistent location is speed - typically that memory can be accessed and modified many times faster than the persistent data location. The tradeoff is that RAM is not persistent: when the computer is powered down, the RAM loses the information stored within.
+
+When data is needed by the CPU, data is read from RAM into a small hierarchy of caches before being accessed by the CPU. The **CPU Caches** are small (physically and in capacity), but very fast. The caches are also phyiscally colocated with the CPU for efficiency. Data is organized and funneled through the caches as an intermediary between the CPU and RAM and is fed from Level 3 (L3) cache in steps down to L1 cache as the data gets closer to the processor.
+
+::: callout-note
+For reference, memory units are:
+
+-   1 bit is a single binary digit (`0` or `1`)
+-   8 bits = 1 byte
+-   8 bytes = 1 word
+-   1024 bytes = 1 Kilobyte (KB)
+-   1024 KB = 1 Megabyte (MB)
+-   1024 MB = 1 Gigabyte (GB)
+-   1024 GB = 1 Terabyte (TB)
+-   1024 TB = 1 Petabyte (PB)
+
+Sometimes, you might see Kb, which is Kilo*bits*, or 1024 bits. Therefore 1 KB is 8 times larger than a Kb.
+
+The increments are 1024 and not the usual 1000, because 1024 is $2^{10}$. The even binary multiple of 1024 is more convienient than 1000 when working with bits.
+:::
 
 ### Stack vs Heap
 
@@ -50,26 +69,30 @@ The **stack** stores small, fixed-size (known bit length), data and program comp
 
 #### Garbage Collector
 
-The **garbage collector** is a program that gets run to free up previously requested/allocated memory. It accomplishes this by keeping track of references to data in memory by section of your code. If a section of code is no longer reachable (e.g. inside a function that will never get called again, or a loop that ran earlier in the program but is now complete) then periodically the garbage collector will pause execution of the primary program in order to "sweep" the memory and mark it as now able to be used by your program or the operating system.
+The **garbage collector** is a program that gets run to free up previously requested/allocated memory. It accomplishes this by keeping track of references to data in memory by section of your code. If a section of code is no longer reachable (e.g. inside a function that will never get called again, or a loop that ran earlier in the program but is now complete), then, periodically, the garbage collector will pause execution of the primary program in order to "sweep" the memory. This step marks the space as able to be reused by your program or the operating system.
 
-### Processor
+## Processor
 
-The processor reads lines from the cache into registers and then executes instructions (e.g. take the bytes from register 10 and add the bytes from register 11 to them). This is really all a processor does at the lowest level: combine the electrical status of bits using logical circuits. Logical circuits (**transistors**) are an arrangement of wires that output a new electrical signal that varies depending on the input. From a collection of smaller building block gates (e.g. AND, OR, NOR, XOR) more complex operations can be built up[^hardware-1], into operations like addition, multiplication, division, etc. These electrical signals move the state of the program forward once time per CPU cycle. CPU cycles are what's quoted as cycles per second, e.g. when a chip is advertised as as 3.0 GHz (or 3 billion cycles per second).
+The processor reads lines (groups of bits) from the cache into registers and then executes instructions. An example would be to take the bytes from register 10 and add the bytes from register 11 to them. This is really all a processor does at the lowest level: combining bits of data using logical circuits.
 
-[^hardware-1]: In fact, only a single logical gate is needed to reproduce all boolean logical gates: NAND (Not AND) and NOR gates can be composed to create AND, OR, NOR, etc. gates.
+Logical circuits (**transistors**) are an arrangement of wires that output a new electrical signal that varies depending on the input. From a collection of smaller building block gates (e.g. AND, OR, NOR, XOR) more complex operations can be built up[^hardware-1], into operations like addition, multiplication, division, etc. Electric impulses move the state of the program forward once time per CPU cycle (controlled by a master "clock" ticking billions of times per second). CPU cycle speed i what's quoted for chip performance, e.g. when a CPU is advertised as as 3.0 GHz (or 3 billion cycles per second).
 
-The programmer (or compiler, if we are working in a higher level language like Julia) tells the CPU which instruction to run. The set of instructions that are valid for a given processor are called the Instruction Set Architecture, or ISA. In computer Assembly language (roughly one-level above directly manipulating the bits), the instructions are given names like `ADD`, `SUB`, `MUL`, `DIV`, `MOV`, etc. These are not all created equal, however, as some instructions take many CPU cycles to complete (floating point `DIV` takes 10-20 CPU cycles while `ADD` only takes a single CPU cycle).
+[^hardware-1]: In fact, only two logical gates are needed to reproduce all boolean logical gates: NAND (Not AND) and NOR gates can be composed to create AND, OR, NOR, etc. gates.
+
+The programmer (or compiler, if we are working in a higher level language like Julia) tells the CPU which instruction to run. The set of instructions that are valid for a given processor are called the Instruction Set Architecture, or ISA. In computer Assembly language (roughly one-level above directly manipulating the bits), the instructions are given names like `ADD`, `SUB`, `MUL`, `DIV`, and `MOV`. These instructions mirror the raw instruction that is part of the ISA.
+
+All instructions are not all created equal, however. Some instructions take many CPU cycles to complete. For example, floating point `DIV` (division) takes 10-20 CPU cycles while `ADD` only takes a single CPU cycle.
 
 Some architecture examples that may be familiar:
 
--   Intel x86-64 (a.k.a. AMD64) are common computer processors that use registers that are 64 bits wide (the prior generation was 32 bits wide) and use the **x86** instruction set.
+-   Intel x86-64 (a.k.a. AMD64) are common computer processors that use registers that are 64 bits wide (the prior generation was 32 bits wide) and use the **x86** instruction set developed by Intel.
 
 -   ARM chips, including the Apple M-Series processors are characterized by the use of the **ARM** instruction set and recent processors of this kind are also 64 bit.
 
-The ARM is known as a **reduced instruction set chip** (RISC), which means that it has fewer available instructions compared to, e.g. the x86 architecture. The benefit of the reduced instruction set is that it is generally much more power efficient, but comes at the cost of sacrificing specialized instructions such as string manipulation, or in lower-end chips, even the division operation (which have to be implemented via software routines instead of CPU operations). However, for specialized workloads, the availability of a key instruction can make a program run on the CPU 10-100x faster at times. An example of this is that at the time of writing, AVX512 processors are becoming available (see @sec-parallelization for a discussion of vectorization) which can benefit some workloads greatly.
+The ARM architecture is known as a **reduced instruction set chip** (RISC), which means that it has fewer available instructions compared to, e.g. the x86 architecture. The benefit of the reduced instruction set is that it is generally much more power efficient, but comes at the cost of sacrificing specialized instructions such as string manipulation, or in lower-end chips, even the division operation (which have to be implemented via software routines instead of CPU operations). However, for specialized workloads, the availability of a key instruction can make a program run on the CPU 10-100x faster at times. An example of this is that at the time of writing, AVX512 processors are becoming available (see @sec-parallelization for a discussion of vectorization) which can benefit some workloads greatly.
 
 ::: callout-tip
-Trying to optimize your program via selecting specialized chips should be one of the *last* ways that you seek to optimize runtime, as generally a similar order of magnitude speedup can be achieved through more efficient algorithm design or general parallelization techniques - in this way the performance is *portable* and can be used on other systems and not just special architectures.
+Trying to optimize your program via selecting specialized chips should be one of the *last* ways that you seek to optimize runtime, as generally a similar order of magnitude speedup can be achieved through more efficient algorithm design or general parallelization techniques. Developing programs in this way makes the performance *portable*, able to be used on other systems and not just special architectures.
 :::
 
 When writing in Julia, you need not be concerned with the low-level instructions as the compiler will optimize the execution for you. However, should it be useful, it is easy to inspect the compiled code. For example, if we create a function to add three numbers, we can see that the `ADD` instruction is called twice: first adding the first and second arguments, and then adding the third argument to that intermediate sum.
@@ -79,8 +102,7 @@ myadd(x, y, z) = x + y + z
 @code_native myadd(1, 2, 3)
 ```
 
-::: {#tip-compilers callout-tip}
-Compilers are complex, hyper-optimized programs which turn your source code into the raw bits executed by the computer. Key milestones in the Julia to binary compilation pipeline include the following items. Note the `@code_...` macros which Julia has and allow the programmer to inspect the intermediate representations.
+Compilers are complex, hyper-optimized programs which turn your source code into the raw bits executed by the computer. Key steps in the process of converting Julia code you write all the way to binary machine instructions include the items in @tbl-compiler-steps. Note the Julia `@code_...` macros allow the programmer to inspect the intermediate representations.
 
 +------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------+
 | Step                               | Description                                                                                                                                                                                         | Example                                                                              |
@@ -95,9 +117,9 @@ Compilers are complex, hyper-optimized programs which turn your source code into
 |                                    |                                                                                                                                                                                                     | )                                                                                    |
 |                                    |                                                                                                                                                                                                     | ```                                                                                  |
 +------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------+
-| LLVM                               | Low-Level Virtual Machine language, which is a massively popular compiler used by languages like Julia and Rust.                                                                                    | ``` julia-repl                                                                       |
+| LLVM                               | Low-Level Virtual Machine language, which is a massively popular compiler used by languages like Julia and Rust. The core logic are the three lines with `add`, `add`, and `ret`.                   | ``` julia-repl                                                                       |
 |                                    |                                                                                                                                                                                                     | julia> @code_llvm myadd(1,2,3)                                                       |
-|                                    |                                                                                                                                                                                                     | ;  @ REPL[7]:1 within `myadd`                                                        |
+|                                    | Note that the the `add` instruction is `add i64` which means an addition operation of 64 bit integers.                                                                                              | ;  @ REPL[7]:1 within `myadd`                                                        |
 |                                    |                                                                                                                                                                                                     | define i64 @julia_myadd_2022(i64 signext %0, i64 signext %1, i64 signext %2) #0 {    |
 |                                    |                                                                                                                                                                                                     | top:                                                                                 |
 |                                    |                                                                                                                                                                                                     | ; ┌ @ operators.jl:587 within `+` @ int.jl:87                                        |
@@ -108,9 +130,9 @@ Compilers are complex, hyper-optimized programs which turn your source code into
 |                                    |                                                                                                                                                                                                     | }                                                                                    |
 |                                    |                                                                                                                                                                                                     | ```                                                                                  |
 +------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------+
-| Native                             | The final machine code output, specific to the target CPU architecture. This is at the same level as Assembly language.                                                                             | ``` julia-repl                                                                       |
+| Native                             | The final machine code output, specific to the target CPU architecture. This is at the same level as Assembly language. The core logic are the three lines beginning with `add`, `add`, and `ret`.  | ``` julia-repl                                                                       |
 |                                    |                                                                                                                                                                                                     | julia> @code_native myadd(1,2,3)                                                     |
-|                                    |                                                                                                                                                                                                     |         .section        __TEXT,__text,regular,pure_instructions                      |
+|                                    | If we used floating point addition instead, the CPU instruction would be `fadd` instead of `add`.                                                                                                   |         .section        __TEXT,__text,regular,pure_instructions                      |
 |                                    |                                                                                                                                                                                                     |         .build_version macos, 14, 0                                                  |
 |                                    |                                                                                                                                                                                                     |         .globl  _julia_myadd_1851               ; -- Begin function julia_myadd_1851 |
 |                                    |                                                                                                                                                                                                     |         .p2align        2                                                            |
@@ -124,7 +146,8 @@ Compilers are complex, hyper-optimized programs which turn your source code into
 |                                    |                                                                                                                                                                                                     | ; └└                                                                                 |
 |                                    |                                                                                                                                                                                                     | ```                                                                                  |
 +------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------+
-:::
+
+: Part the key to Julia's speed is to be able to compile down to a different, specialized version of the machine code depending on the types given to a function. As described in the table above, the instructions for adding floating point together or integer numbers together are different. Julia code can reflect that distinction by compiling a different method for each combination of input types. {#tbl-compiler-steps}
 
 #### Increasing Complexity in Search of Performance
 
@@ -140,7 +163,7 @@ To obtain increasing performance, two main strategies have been employed in lieu
 
 We will cover techniques to utilize concurrent/parallel processing in @sec-parallelization. As for the second technique, it is capable of very impressive accelerations (on the order 2x to 100x faster than a naive implementation. However, it has sometimes caused issues. There have been some famous security vulnerabilities such as Spectre and Meltdown, which exploited speculative execution – a technique used to optimize CPU performance which will execute code *before being explicitly asked to* because the scheduler *anticipates* the next steps (with very good, but imperfect accuracy).
 
-### Logistics Warehouse Analogy
+## Logistics Warehouse Analogy
 
 The problem is analogous to a logistics warehouse (persistent data) which needs to package up orders (processor instructions). There's a conveyor belt of items being constantly routed to the packaging station. In order to keep the packing station working at full capacity, the intermediate systems (RAM & CPU caches) are funneling items they *think* will be needed to the packager (data that's *expected* to be used in the processor). Most of the time, the necessary item (data) is optimally brought to the packaging station(process), or a nearby holding spot (CPU cache).
 
@@ -154,9 +177,11 @@ There are a lot more optimizations along the way:
 
 -   Different types of packaging stations might be used for specialized items (e.g. vector processing or cryptography instructions in the CPU).
 
-### 
+## Speed of Computer Actions
 
-### Speed of Computer Actions
+In a financial model, even small delays (such as main memory references vs. L1 cache access) can accumulate quickly in high-frequency trading or risk calculation routines. Understanding these timings can guide decisions on structuring data access patterns and deciding what data to cache or load in memory for optimal performance. 
+
+Representative time is given in @tbl-computer-speeds for a variety of common actions perfromed on a computer. It's clear that having memmory access from a local source is better for computer performance!
 
 +-------------------------------------------------------------------+-------------+---------------------------------------------------+
 | Operation                                                         | Time (ns)   | Distance Light Traveled                           |
@@ -182,4 +207,4 @@ There are a lot more optimizations along the way:
 | Send packet CA-\>Netherlands-\>CA                                 | 150,000,000 | 45,000km (circumference of earth)                 |
 +-------------------------------------------------------------------+-------------+---------------------------------------------------+
 
-Source: <https://cs.brown.edu/courses/csci0300/2022/assign/labs/lab4.html>
+: How long different actions take on a computer. As an interesting yardstick, the distance a beam of light travels is also given to provide a sense of scale (this comparison originally comes from Admiral Grace Hopper). Source for the timings comes from: <https://cs.brown.edu/courses/csci0300/2022/assign/labs/lab4.html> {#tbl-computer-speeds}
