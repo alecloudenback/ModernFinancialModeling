@@ -106,6 +106,35 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 }</script>
 <script data-goatcounter="https://julia-fin-book.goatcounter.com/count" async="" src="//gc.zgo.at/count.js"></script>
 
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
 
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -433,15 +462,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
    
   <ul>
   <li><a href="#in-this-section" id="toc-in-this-section" class="nav-link active" data-scroll-target="#in-this-section"><span class="header-section-number">8.1</span> In this section</a></li>
-  <li><a href="#computer-architecture" id="toc-computer-architecture" class="nav-link" data-scroll-target="#computer-architecture"><span class="header-section-number">8.2</span> Computer Architecture</a>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link" data-scroll-target="#introduction"><span class="header-section-number">8.2</span> Introduction</a></li>
+  <li><a href="#memory-and-moving-data-around" id="toc-memory-and-moving-data-around" class="nav-link" data-scroll-target="#memory-and-moving-data-around"><span class="header-section-number">8.3</span> Memory and Moving Data Around</a>
   <ul class="collapse">
-  <li><a href="#memory-and-moving-data-around" id="toc-memory-and-moving-data-around" class="nav-link" data-scroll-target="#memory-and-moving-data-around"><span class="header-section-number">8.2.1</span> Memory and Moving Data Around</a></li>
-  <li><a href="#stack-vs-heap" id="toc-stack-vs-heap" class="nav-link" data-scroll-target="#stack-vs-heap"><span class="header-section-number">8.2.2</span> Stack vs Heap</a></li>
-  <li><a href="#processor" id="toc-processor" class="nav-link" data-scroll-target="#processor"><span class="header-section-number">8.2.3</span> Processor</a></li>
-  <li><a href="#logistics-warehouse-analogy" id="toc-logistics-warehouse-analogy" class="nav-link" data-scroll-target="#logistics-warehouse-analogy"><span class="header-section-number">8.2.4</span> Logistics Warehouse Analogy</a></li>
-  <li><a href="#section" id="toc-section" class="nav-link" data-scroll-target="#section"><span class="header-section-number">8.2.5</span> </a></li>
-  <li><a href="#speed-of-computer-actions" id="toc-speed-of-computer-actions" class="nav-link" data-scroll-target="#speed-of-computer-actions"><span class="header-section-number">8.2.6</span> Speed of Computer Actions</a></li>
+  <li><a href="#memory-types-and-location" id="toc-memory-types-and-location" class="nav-link" data-scroll-target="#memory-types-and-location"><span class="header-section-number">8.3.1</span> Memory Types and Location</a></li>
+  <li><a href="#stack-vs-heap" id="toc-stack-vs-heap" class="nav-link" data-scroll-target="#stack-vs-heap"><span class="header-section-number">8.3.2</span> Stack vs Heap</a></li>
   </ul></li>
+  <li><a href="#processor" id="toc-processor" class="nav-link" data-scroll-target="#processor"><span class="header-section-number">8.4</span> Processor</a></li>
+  <li><a href="#logistics-warehouse-analogy" id="toc-logistics-warehouse-analogy" class="nav-link" data-scroll-target="#logistics-warehouse-analogy"><span class="header-section-number">8.5</span> Logistics Warehouse Analogy</a></li>
+  <li><a href="#speed-of-computer-actions" id="toc-speed-of-computer-actions" class="nav-link" data-scroll-target="#speed-of-computer-actions"><span class="header-section-number">8.6</span> Speed of Computer Actions</a></li>
   </ul>
 </nav>
     </div>
@@ -476,16 +505,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 data-number="8.1" class="anchored" data-anchor-id="in-this-section"><span class="header-section-number">8.1</span> In this section</h2>
 <p>In this chapter, we’ll explore why a basic understanding of computing hardware is essential for optimizing financial models and working efficiently with data. Understanding how data is stored and processed can help you make better design decisions, improve performance, and avoid common pitfalls. We’ll cover topics like memory architecture, data storage, and the impact of hardware on computational speed.</p>
 </section>
-<section id="computer-architecture" class="level2" data-number="8.2">
-<h2 data-number="8.2" class="anchored" data-anchor-id="computer-architecture"><span class="header-section-number">8.2</span> Computer Architecture</h2>
-<p>We can think of a computer as handling data at rest (in memory) or being acted upon (processed).</p>
-<section id="memory-and-moving-data-around" class="level3" data-number="8.2.1">
-<h3 data-number="8.2.1" class="anchored" data-anchor-id="memory-and-moving-data-around"><span class="header-section-number">8.2.1</span> Memory and Moving Data Around</h3>
-<p>The core of modeling on computers is to perform computations on data, but unfortunately the speed at which data can be <em>accessed</em> has grown much slower than the rate the actual computations can be performed. Further, the size of the available persistent data storage (HDDs/SSDs) has ballooned, exacerbating the problem, making the speed and volume of memory the typical constraint in most workflows. Solution have been developed to create a pipeline intended to most efficiently shuttle data to and from the processor and the persistent storage. This extends further to data between different data stores and computers.</p>
+<section id="introduction" class="level2" data-number="8.2">
+<h2 data-number="8.2" class="anchored" data-anchor-id="introduction"><span class="header-section-number">8.2</span> Introduction</h2>
+<p>The quote that opens the chatper is a silly way of describing that most modern computers are made with silicone, a common mineral found in rocks. However, we will not concern ourselves with the raw materials of computers and instead will focus on the key architectural aspect.</p>
+<p>A computer handles data at rest (in memory) or data being acted upon (processed). This chapter will try to explain both of those processes in a way that reveals key reasons why different approaches to programming can yield different results in terms of processing speed, memory usage, and compiled outputs.</p>
+</section>
+<section id="memory-and-moving-data-around" class="level2" data-number="8.3">
+<h2 data-number="8.3" class="anchored" data-anchor-id="memory-and-moving-data-around"><span class="header-section-number">8.3</span> Memory and Moving Data Around</h2>
+<p>The core of modeling on computers is to perform computations on data, but unfortunately the speed at which data can be <em>accessed</em> has grown much slower than the rate the actual computations can be performed. Further, the size of the available persistent data storage (HDDs/SSDs) has ballooned, exacerbating the problem: the overall throughput of memory is the typical workflow constraint. To try to address the bottleneck (memory throughput), solutions have been developed to create a pipeline to efficiently shuttle data to and from the processor and the persistent storage. This memory and processing architecture applies at both the single computer level as well as extending to workflows between different data stores and computers.</p>
 <p>We will focus primarily on the architecture of a single computer, as even laptop computers today contain enough power for most modeling tasks, <em>if the computer is used effectively</em>. Further, learning how to optimize a program for a single computer/processesor is almost always a precursor step to effective parallelization as well.</p>
-<section id="memory-types-and-location" class="level4" data-number="8.2.1.1">
-<h4 data-number="8.2.1.1" class="anchored" data-anchor-id="memory-types-and-location"><span class="header-section-number">8.2.1.1</span> Memory Types and Location</h4>
-<p>Memory has an inverse relationship between size and proximity to the processor units. The closer the data is to the processor units, the smaller the storage and the less likely the data will persist at that location for very long.</p>
+<section id="memory-types-and-location" class="level3" data-number="8.3.1">
+<h3 data-number="8.3.1" class="anchored" data-anchor-id="memory-types-and-location"><span class="header-section-number">8.3.1</span> Memory Types and Location</h3>
+<p>Memory has an inverse relationship between size and proximity to the central processor unit (CPU). The closer the data is to the processor units, the smaller the storage and the less likely the data will persist at that location for very long.</p>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 38%">
@@ -522,33 +553,61 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tr>
 <tr class="odd">
 <td>CPU Cache - L1</td>
-<td>~16 kB</td>
+<td>~16 KB</td>
 <td>Nanoseconds</td>
 </tr>
 </tbody>
 </table>
-<p>After requesting data from a persistent location like a Solid State Drive (SSD), the memory is read into Random Access Memory (RAM). The advantage of RAM over a persistent location is speed, typically that memory can be accessed and modified many times faster than the persistent data location. The tradeoff is that RAM is not persistent: when the computer is powered down, the RAM loses the information stored within. When data is needed by the CPU for data is read from RAM into a small hierarchy of caches. The <strong>CPU Caches</strong> are small (physically and in capacity), but very fast. The caches are also phyiscally colocated with the CPU for efficiency. Data is organized and funneled through the caches as an intermediary between the CPU and RAM and is fed from Level 3 (L3) cache in steps down to L1 cache as the data gets closer to the processor.</p>
+<p>After requesting data from a persistent location like a Solid State Drive (SSD), the memory is read into Random Access Memory (RAM). The advantage of RAM over a persistent location is speed - typically that memory can be accessed and modified many times faster than the persistent data location. The tradeoff is that RAM is not persistent: when the computer is powered down, the RAM loses the information stored within.</p>
+<p>When data is needed by the CPU, data is read from RAM into a small hierarchy of caches before being accessed by the CPU. The <strong>CPU Caches</strong> are small (physically and in capacity), but very fast. The caches are also phyiscally colocated with the CPU for efficiency. Data is organized and funneled through the caches as an intermediary between the CPU and RAM and is fed from Level 3 (L3) cache in steps down to L1 cache as the data gets closer to the processor.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>For reference, memory units are:</p>
+<ul>
+<li>1 bit is a single binary digit (<code>0</code> or <code>1</code>)</li>
+<li>8 bits = 1 byte</li>
+<li>8 bytes = 1 word</li>
+<li>1024 bytes = 1 Kilobyte (KB)</li>
+<li>1024 KB = 1 Megabyte (MB)</li>
+<li>1024 MB = 1 Gigabyte (GB)</li>
+<li>1024 GB = 1 Terabyte (TB)</li>
+<li>1024 TB = 1 Petabyte (PB)</li>
+</ul>
+<p>Sometimes, you might see Kb, which is Kilo<em>bits</em>, or 1024 bits. Therefore 1 KB is 8 times larger than a Kb.</p>
+<p>The increments are 1024 and not the usual 1000, because 1024 is <span class="math inline">\(2^{10}\)</span>. The even binary multiple of 1024 is more convienient than 1000 when working with bits.</p>
+</div>
+</div>
 </section>
-</section>
-<section id="stack-vs-heap" class="level3" data-number="8.2.2">
-<h3 data-number="8.2.2" class="anchored" data-anchor-id="stack-vs-heap"><span class="header-section-number">8.2.2</span> Stack vs Heap</h3>
+<section id="stack-vs-heap" class="level3" data-number="8.3.2">
+<h3 data-number="8.3.2" class="anchored" data-anchor-id="stack-vs-heap"><span class="header-section-number">8.3.2</span> Stack vs Heap</h3>
 <p>Sitting within the RAM region of memory are two sections called Stack and Heap. These are places where variables created from our program’s code can be stored. In both cases, the program will request memory space but they have some differences to be aware of.</p>
 <p>The <strong>stack</strong> stores small, fixed-size (known bit length), data and program components. The stack is a last-in-first-out queue of data that is able to be written to and read from very quickly. The <strong>heap</strong> is a region which can be dynamically sized and has random read/write (you need not access the data in a particular order). The heap is much slower but more flexible.</p>
-<section id="garbage-collector" class="level4" data-number="8.2.2.1">
-<h4 data-number="8.2.2.1" class="anchored" data-anchor-id="garbage-collector"><span class="header-section-number">8.2.2.1</span> Garbage Collector</h4>
-<p>The <strong>garbage collector</strong> is a program that gets run to free up previously requested/allocated memory. It accomplishes this by keeping track of references to data in memory by section of your code. If a section of code is no longer reachable (e.g.&nbsp;inside a function that will never get called again, or a loop that ran earlier in the program but is now complete) then periodically the garbage collector will pause execution of the primary program in order to “sweep” the memory and mark it as now able to be used by your program or the operating system.</p>
+<section id="garbage-collector" class="level4" data-number="8.3.2.1">
+<h4 data-number="8.3.2.1" class="anchored" data-anchor-id="garbage-collector"><span class="header-section-number">8.3.2.1</span> Garbage Collector</h4>
+<p>The <strong>garbage collector</strong> is a program that gets run to free up previously requested/allocated memory. It accomplishes this by keeping track of references to data in memory by section of your code. If a section of code is no longer reachable (e.g.&nbsp;inside a function that will never get called again, or a loop that ran earlier in the program but is now complete), then, periodically, the garbage collector will pause execution of the primary program in order to “sweep” the memory. This step marks the space as able to be reused by your program or the operating system.</p>
 </section>
 </section>
-<section id="processor" class="level3" data-number="8.2.3">
-<h3 data-number="8.2.3" class="anchored" data-anchor-id="processor"><span class="header-section-number">8.2.3</span> Processor</h3>
-<p>The processor reads lines from the cache into registers and then executes instructions (e.g.&nbsp;take the bytes from register 10 and add the bytes from register 11 to them). This is really all a processor does at the lowest level: combine the electrical status of bits using logical circuits. Logical circuits (<strong>transistors</strong>) are an arrangement of wires that output a new electrical signal that varies depending on the input. From a collection of smaller building block gates (e.g.&nbsp;AND, OR, NOR, XOR) more complex operations can be built up<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>, into operations like addition, multiplication, division, etc. These electrical signals move the state of the program forward once time per CPU cycle. CPU cycles are what’s quoted as cycles per second, e.g.&nbsp;when a chip is advertised as as 3.0 GHz (or 3 billion cycles per second).</p>
-<p>The programmer (or compiler, if we are working in a higher level language like Julia) tells the CPU which instruction to run. The set of instructions that are valid for a given processor are called the Instruction Set Architecture, or ISA. In computer Assembly language (roughly one-level above directly manipulating the bits), the instructions are given names like <code>ADD</code>, <code>SUB</code>, <code>MUL</code>, <code>DIV</code>, <code>MOV</code>, etc. These are not all created equal, however, as some instructions take many CPU cycles to complete (floating point <code>DIV</code> takes 10-20 CPU cycles while <code>ADD</code> only takes a single CPU cycle).</p>
+</section>
+<section id="processor" class="level2" data-number="8.4">
+<h2 data-number="8.4" class="anchored" data-anchor-id="processor"><span class="header-section-number">8.4</span> Processor</h2>
+<p>The processor reads lines (groups of bits) from the cache into registers and then executes instructions. An example would be to take the bytes from register 10 and add the bytes from register 11 to them. This is really all a processor does at the lowest level: combining bits of data using logical circuits.</p>
+<p>Logical circuits (<strong>transistors</strong>) are an arrangement of wires that output a new electrical signal that varies depending on the input. From a collection of smaller building block gates (e.g.&nbsp;AND, OR, NOR, XOR) more complex operations can be built up<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>, into operations like addition, multiplication, division, etc. Electric impulses move the state of the program forward once time per CPU cycle (controlled by a master “clock” ticking billions of times per second). CPU cycle speed i what’s quoted for chip performance, e.g.&nbsp;when a CPU is advertised as as 3.0 GHz (or 3 billion cycles per second).</p>
+<p>The programmer (or compiler, if we are working in a higher level language like Julia) tells the CPU which instruction to run. The set of instructions that are valid for a given processor are called the Instruction Set Architecture, or ISA. In computer Assembly language (roughly one-level above directly manipulating the bits), the instructions are given names like <code>ADD</code>, <code>SUB</code>, <code>MUL</code>, <code>DIV</code>, and <code>MOV</code>. These instructions mirror the raw instruction that is part of the ISA.</p>
+<p>All instructions are not all created equal, however. Some instructions take many CPU cycles to complete. For example, floating point <code>DIV</code> (division) takes 10-20 CPU cycles while <code>ADD</code> only takes a single CPU cycle.</p>
 <p>Some architecture examples that may be familiar:</p>
 <ul>
-<li><p>Intel x86-64 (a.k.a. AMD64) are common computer processors that use registers that are 64 bits wide (the prior generation was 32 bits wide) and use the <strong>x86</strong> instruction set.</p></li>
+<li><p>Intel x86-64 (a.k.a. AMD64) are common computer processors that use registers that are 64 bits wide (the prior generation was 32 bits wide) and use the <strong>x86</strong> instruction set developed by Intel.</p></li>
 <li><p>ARM chips, including the Apple M-Series processors are characterized by the use of the <strong>ARM</strong> instruction set and recent processors of this kind are also 64 bit.</p></li>
 </ul>
-<p>The ARM is known as a <strong>reduced instruction set chip</strong> (RISC), which means that it has fewer available instructions compared to, e.g.&nbsp;the x86 architecture. The benefit of the reduced instruction set is that it is generally much more power efficient, but comes at the cost of sacrificing specialized instructions such as string manipulation, or in lower-end chips, even the division operation (which have to be implemented via software routines instead of CPU operations). However, for specialized workloads, the availability of a key instruction can make a program run on the CPU 10-100x faster at times. An example of this is that at the time of writing, AVX512 processors are becoming available (see <a href="parallelization.html" class="quarto-xref"><span>Chapter 10</span></a> for a discussion of vectorization) which can benefit some workloads greatly.</p>
+<p>The ARM architecture is known as a <strong>reduced instruction set chip</strong> (RISC), which means that it has fewer available instructions compared to, e.g.&nbsp;the x86 architecture. The benefit of the reduced instruction set is that it is generally much more power efficient, but comes at the cost of sacrificing specialized instructions such as string manipulation, or in lower-end chips, even the division operation (which have to be implemented via software routines instead of CPU operations). However, for specialized workloads, the availability of a key instruction can make a program run on the CPU 10-100x faster at times. An example of this is that at the time of writing, AVX512 processors are becoming available (see <a href="parallelization.html" class="quarto-xref"><span>Chapter 10</span></a> for a discussion of vectorization) which can benefit some workloads greatly.</p>
 <div class="callout callout-style-default callout-tip callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -559,11 +618,11 @@ Tip
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Trying to optimize your program via selecting specialized chips should be one of the <em>last</em> ways that you seek to optimize runtime, as generally a similar order of magnitude speedup can be achieved through more efficient algorithm design or general parallelization techniques - in this way the performance is <em>portable</em> and can be used on other systems and not just special architectures.</p>
+<p>Trying to optimize your program via selecting specialized chips should be one of the <em>last</em> ways that you seek to optimize runtime, as generally a similar order of magnitude speedup can be achieved through more efficient algorithm design or general parallelization techniques. Developing programs in this way makes the performance <em>portable</em>, able to be used on other systems and not just special architectures.</p>
 </div>
 </div>
 <p>When writing in Julia, you need not be concerned with the low-level instructions as the compiler will optimize the execution for you. However, should it be useful, it is easy to inspect the compiled code. For example, if we create a function to add three numbers, we can see that the <code>ADD</code> instruction is called twice: first adding the first and second arguments, and then adding the third argument to that intermediate sum.</p>
-<div id="8aaff645" class="cell" data-execution_count="1">
+<div id="057b03f6" class="cell" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">myadd</span>(x, y, z) <span class="op">=</span> x <span class="op">+</span> y <span class="op">+</span> z</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@code_native</span> <span class="fu">myadd</span>(<span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -592,7 +651,13 @@ _julia_myadd_5690:                      ; @julia_myadd_5690
 .subsections_via_symbols</code></pre>
 </div>
 </div>
-<p>::: {#tip-compilers callout-tip} Compilers are complex, hyper-optimized programs which turn your source code into the raw bits executed by the computer. Key milestones in the Julia to binary compilation pipeline include the following items. Note the <code>@code_...</code> macros which Julia has and allow the programmer to inspect the intermediate representations.</p>
+<p>Compilers are complex, hyper-optimized programs which turn your source code into the raw bits executed by the computer. Key steps in the process of converting Julia code you write all the way to binary machine instructions include the items in <a href="#tbl-compiler-steps" class="quarto-xref">Table&nbsp;<span>8.1</span></a>. Note the Julia <code>@code_...</code> macros allow the programmer to inspect the intermediate representations.</p>
+<div id="tbl-compiler-steps" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-compiler-steps-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;8.1: Part the key to Julia’s speed is to be able to compile down to a different, specialized version of the machine code depending on the types given to a function. As described in the table above, the instructions for adding floating point together or integer numbers together are different. Julia code can reflect that distinction by compiling a different method for each combination of input types.
+</figcaption>
+<div aria-describedby="tbl-compiler-steps-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <table class="caption-top table">
 <colgroup>
 <col style="width: 11%">
@@ -623,7 +688,8 @@ CodeInfo(
 </tr>
 <tr class="odd">
 <td>LLVM</td>
-<td>Low-Level Virtual Machine language, which is a massively popular compiler used by languages like Julia and Rust.</td>
+<td><p>Low-Level Virtual Machine language, which is a massively popular compiler used by languages like Julia and Rust. The core logic are the three lines with <code>add</code>, <code>add</code>, and <code>ret</code>.</p>
+<p>Note that the the <code>add</code> instruction is <code>add i64</code> which means an addition operation of 64 bit integers.</p></td>
 <td><pre class="julia-repl"><code>julia&gt; @code_llvm myadd(1,2,3)
 ;  @ REPL[7]:1 within `myadd`
 define i64 @julia_myadd_2022(i64 signext %0, i64 signext %1, i64 signext %2) #0 {
@@ -637,7 +703,8 @@ top:
 </tr>
 <tr class="even">
 <td>Native</td>
-<td>The final machine code output, specific to the target CPU architecture. This is at the same level as Assembly language.</td>
+<td><p>The final machine code output, specific to the target CPU architecture. This is at the same level as Assembly language. The core logic are the three lines beginning with <code>add</code>, <code>add</code>, and <code>ret</code>.</p>
+<p>If we used floating point addition instead, the CPU instruction would be <code>fadd</code> instead of <code>add</code>.</p></td>
 <td><pre class="julia-repl"><code>julia&gt; @code_native myadd(1,2,3)
         .section        __TEXT,__text,regular,pure_instructions
         .build_version macos, 14, 0
@@ -654,9 +721,11 @@ _julia_myadd_1851:                      ; @julia_myadd_1851
 </tr>
 </tbody>
 </table>
-<p>:::</p>
-<section id="increasing-complexity-in-search-of-performance" class="level4" data-number="8.2.3.1">
-<h4 data-number="8.2.3.1" class="anchored" data-anchor-id="increasing-complexity-in-search-of-performance"><span class="header-section-number">8.2.3.1</span> Increasing Complexity in Search of Performance</h4>
+</div>
+</figure>
+</div>
+<section id="increasing-complexity-in-search-of-performance" class="level4" data-number="8.4.0.1">
+<h4 data-number="8.4.0.1" class="anchored" data-anchor-id="increasing-complexity-in-search-of-performance"><span class="header-section-number">8.4.0.1</span> Increasing Complexity in Search of Performance</h4>
 <p>Transistors are the building-block that creates the CPU and enables the physical process which governs the computations. For a very long time, the major source of improved computer performance was simply to make smaller transistors, allowing more of them to be packed together to create computer chips. This worked for many years and the propensity for the transistor count to double about every two years. In this way, software performance improvements came as side effect of the phenomenal scaling in hardware capability. However, raw single core performance and clock frequency (CPU cycle speed) dramatically flattened out starting a bit before the year 2010. This was due to the fact that transistor density has been starting to be limited by:</p>
 <ol type="1">
 <li>Pure physical constraints (transistors can be measured in width of atoms) where we have limited ability to manufacture something so small.</li>
@@ -670,8 +739,8 @@ _julia_myadd_1851:                      ; @julia_myadd_1851
 <p>We will cover techniques to utilize concurrent/parallel processing in <a href="parallelization.html" class="quarto-xref"><span>Chapter 10</span></a>. As for the second technique, it is capable of very impressive accelerations (on the order 2x to 100x faster than a naive implementation. However, it has sometimes caused issues. There have been some famous security vulnerabilities such as Spectre and Meltdown, which exploited speculative execution – a technique used to optimize CPU performance which will execute code <em>before being explicitly asked to</em> because the scheduler <em>anticipates</em> the next steps (with very good, but imperfect accuracy).</p>
 </section>
 </section>
-<section id="logistics-warehouse-analogy" class="level3" data-number="8.2.4">
-<h3 data-number="8.2.4" class="anchored" data-anchor-id="logistics-warehouse-analogy"><span class="header-section-number">8.2.4</span> Logistics Warehouse Analogy</h3>
+<section id="logistics-warehouse-analogy" class="level2" data-number="8.5">
+<h2 data-number="8.5" class="anchored" data-anchor-id="logistics-warehouse-analogy"><span class="header-section-number">8.5</span> Logistics Warehouse Analogy</h2>
 <p>The problem is analogous to a logistics warehouse (persistent data) which needs to package up orders (processor instructions). There’s a conveyor belt of items being constantly routed to the packaging station. In order to keep the packing station working at full capacity, the intermediate systems (RAM &amp; CPU caches) are funneling items they <em>think</em> will be needed to the packager (data that’s <em>expected</em> to be used in the processor). Most of the time, the necessary item (data) is optimally brought to the packaging station(process), or a nearby holding spot (CPU cache).</p>
 <p>This system has grown very efficient, but sometimes the predictions miss or a never-before-ordered item needs to be picked from the far side of the warehouse and this causes significant delays to the system. Sometimes a package will start to be assembled before the packager has even gotten to that order (branch prediction) which can make the system faster most of the time, but if the predicted package isn’t actually what the customer ordered, then the work is lost and has to be redone (branch mispredict).</p>
 <p>There are a lot more optimizations along the way:</p>
@@ -681,13 +750,22 @@ _julia_myadd_1851:                      ; @julia_myadd_1851
 <li><p>Different types of packaging stations might be used for specialized items (e.g.&nbsp;vector processing or cryptography instructions in the CPU).</p></li>
 </ul>
 </section>
-<section id="section" class="level3" data-number="8.2.5">
-<h3 data-number="8.2.5" class="anchored" data-anchor-id="section"><span class="header-section-number">8.2.5</span> </h3>
-</section>
-<section id="speed-of-computer-actions" class="level3" data-number="8.2.6">
-<h3 data-number="8.2.6" class="anchored" data-anchor-id="speed-of-computer-actions"><span class="header-section-number">8.2.6</span> Speed of Computer Actions</h3>
+<section id="speed-of-computer-actions" class="level2" data-number="8.6">
+<h2 data-number="8.6" class="anchored" data-anchor-id="speed-of-computer-actions"><span class="header-section-number">8.6</span> Speed of Computer Actions</h2>
+<p>In a financial model, even small delays (such as main memory references vs.&nbsp;L1 cache access) can accumulate quickly in high-frequency trading or risk calculation routines. Understanding these timings can guide decisions on structuring data access patterns and deciding what data to cache or load in memory for optimal performance.</p>
+<p>Representative time is given in <a href="#tbl-computer-speeds" class="quarto-xref">Table&nbsp;<span>8.2</span></a> for a variety of common actions perfromed on a computer. It’s clear that having memmory access from a local source is better for computer performance!</p>
+<div id="tbl-computer-speeds" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-computer-speeds-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;8.2: How long different actions take on a computer. As an interesting yardstick, the distance a beam of light travels is also given to provide a sense of scale (this comparison originally comes from Admiral Grace Hopper). Source for the timings comes from: <a href="https://cs.brown.edu/courses/csci0300/2022/assign/labs/lab4.html" class="uri">https://cs.brown.edu/courses/csci0300/2022/assign/labs/lab4.html</a>
+</figcaption>
+<div aria-describedby="tbl-computer-speeds-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <table class="caption-top table">
-<caption>Source: <a href="https://cs.brown.edu/courses/csci0300/2022/assign/labs/lab4.html" class="uri">https://cs.brown.edu/courses/csci0300/2022/assign/labs/lab4.html</a></caption>
+<colgroup>
+<col style="width: 50%">
+<col style="width: 10%">
+<col style="width: 38%">
+</colgroup>
 <thead>
 <tr class="header">
 <th>Operation</th>
@@ -748,15 +826,16 @@ _julia_myadd_1851:                      ; @julia_myadd_1851
 </tr>
 </tbody>
 </table>
-<p>In a financial model, even small delays (such as main memory references vs.&nbsp;L1 cache access) can accumulate quickly in high-frequency trading or risk calculation routines. Understanding these timings can guide decisions on structuring data access patterns and deciding what data to cache or load in memory for optimal performance.</p>
+</div>
+</figure>
+</div>
 
 
-</section>
 </section>
 <section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes">
 <hr>
 <ol>
-<li id="fn1"><p>In fact, only a single logical gate is needed to reproduce all boolean logical gates: NAND (Not AND) and NOR gates can be composed to create AND, OR, NOR, etc. gates.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn1"><p>In fact, only two logical gates are needed to reproduce all boolean logical gates: NAND (Not AND) and NOR gates can be composed to create AND, OR, NOR, etc. gates.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section>
 
