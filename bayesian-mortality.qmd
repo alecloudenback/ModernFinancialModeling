@@ -39,7 +39,6 @@ using MCMCChains
 using LinearAlgebra
 using CairoMakie
 using StatsBase
-using OffsetArrays
 ```
 
 ```{julia}
@@ -331,7 +330,7 @@ let
 end
 ```
 
-## 3. Parametric model
+## 3. Multi-level model
 
 This model extends the prior to create a multi-level model. Each risk class (`risk_level`) gets its own $a$ paramater in the `MakhamBeard` model. The prior for $a_i$ is determined by the hyper-parameter $\bar{a}$.
 
@@ -368,19 +367,21 @@ summarize(chain3)
 ```{julia}
 let data = data2
 
-    data_weight = sqrt.(data.exposures) / 2
+    data_weight = sqrt.(data.exposures)
     color_i = data.risk_level
+    cm = CairoMakie.Makie.wong_colors()
 
     p = scatter(
         data.att_age,
         data.fraction,
         markersize=data_weight,
         alpha=0.5,
-        color=color_i,
+        color=[(CairoMakie.Makie.wong_colors()[c],0.7) for c in color_i],
+        colormap=CairoMakie.Makie.wong_colors(),
         label="Experience data point (size indicates relative exposure quantity)",
         axis=(
             xlabel="age",
-            limits=(nothing, nothing, -0.02, 0.25),
+            limits=(nothing, nothing, -0.01, 0.10),
             ylabel="mortality rate",
             title="Parametric Bayseian Mortality"
         )
@@ -490,6 +491,12 @@ let data = data2
 end
 ```
 
+
+```{julia}
+let m = mean(chain3)
+    m.nt.mean[3:5] ./ m.nt.mean[3] ./ 1.4
+end
+```
 ## Model Predictions
 
 We can generate predictive estimates by passing a vector of `missing` in place of the outcome variables and then calling `predict`.
