@@ -88,6 +88,236 @@ for i in 1:3
 end
 ```
 
+### Integer programming
+
+Integer Programming (IP) is a type of optimization problem where some or all of the variables are restricted to be integers. Although the problem definition seems similar to an LP, the complexity of solving an IP hugely increases as the solution space is not continuous but discrete.
+
+Let us use IP to solve this problem. A factory produces two types of products x₁ and x₂ with the following details:
+
+\begin{align*}
+    \max_{x} 40 \cdot x_1 + 50 \cdot x_2
+    \text{Subject to} x_1 and x_2 are integers \\
+    4 \cdot x_1 + 3 \cdot x_2 \le 200 (labor)
+    x_1 + 2 \cdot x_2 \le 40 (material)
+\end{align*}
+
+```{julia}
+# Import necessary packages
+using JuMP, GLPK
+
+# Create a model with the GLPK solver
+model = Model(GLPK.Optimizer)
+
+# Define decision variables (x₁ and x₂ are integers)
+@variable(model, x₁ >= 0, Int)
+@variable(model, x₂ >= 0, Int)
+
+# Define the objective function (maximize profit)
+@objective(model, Max, 40 * x₁ + 50 * x₂)
+
+# Add constraints
+@constraint(model, 4x₁ + 3x₂ <= 200)  # Labor constraint
+@constraint(model, x₁ + 4x₂ <= 40)   # Material constraint
+
+# Solve the model
+optimize!(model)
+
+# Check the solution status
+if termination_status(model) == MOI.OPTIMAL
+    println("Optimal solution found!")
+    println("x₁ (Product x₁ units): ", value(x₁))
+    println("x₂ (Product x₂ units): ", value(x₂))
+    println("Maximum Profit: ", objective_value(model))
+else
+    println("No optimal solution found.")
+end
+```
+
+### Nelder-Mead simplex method
+
+The Nelder-Mead simplex method is a popular optimization algorithm used for minimizing (or maximizing) nonlinear functions that are not necessarily differentiable. It’s particularly useful when gradient-based methods cannot be applied. It is often used in low-dimensional problems due to its simplicity and robustness.
+
+```{julia}
+using Optim, Plots
+
+# Define the Rosenbrock function
+function rosenbrock(v)
+    x, y = v[1], v[2]
+    return (1 - x)^2 + 100 * (y - x^2)^2
+end
+
+# Initial guess for (x, y)
+initial_guess = [-1.5, 2.0]
+
+# Perform optimization using the Nelder-Mead method
+result = optimize(rosenbrock, initial_guess, NelderMead())
+
+# Extract results
+optimal_point = Optim.minimizer(result)
+minimum_value = Optim.minimum(result)
+
+println("Optimal Point: ", optimal_point)
+println("Minimum Value: ", minimum_value)
+```
+
+### Simulated annealing
+
+Simulated Annealing (SA) is a probabilistic optimization technique inspired by the annealing process in metallurgy. It is used to find near-optimal solutions to optimization problems, particularly in cases where traditional gradient-based methods may get stuck in local minima/maxima. SA accepts worse solutions with a certain probability, allowing it to explore the search space more broadly initially and then gradually narrow down towards better solutions as it progresses.
+
+```{julia}
+using Random
+
+Random.seed!(1234)
+
+# Parameters
+max_iterations = 1000            # Number of iterations
+initial_temperature = 100.0      # Starting temperature
+cooling_rate = 0.99              # Cooling rate (temperature multiplier)
+bounds = (-5.12, 5.12)           # Bounds for the search space
+dimension = 5                    # Number of dimensions in the search space
+
+# Objective function: Rastrigin function
+function rastrigin(x)
+    A = 10
+    n = length(x)
+    return A * n + sum(xi^2 - A * cos(2 * π * xi) for xi in x)
+end
+
+# Random initialization within bounds
+function initialize_solution()
+    return rand(bounds[1]:0.01:bounds[2], dimension)
+end
+
+# Random perturbation within bounds
+function perturb_solution(solution)
+    perturbed = copy(solution)
+    index = rand(1:dimension)
+    perturb_amount = rand(-0.1:0.01:0.1)  # Small random change
+    perturbed[index] += perturb_amount
+    # Ensure perturbed solution is within bounds
+    perturbed[index] = clamp(perturbed[index], bounds[1], bounds[2])
+    return perturbed
+end
+
+# Simulated Annealing main function
+function simulated_annealing()
+    current_solution = initialize_solution()
+    current_value = rastrigin(current_solution)
+    best_solution = copy(current_solution)
+    best_value = current_value
+    temperature = initial_temperature
+
+    for iteration in 1:max_iterations
+        # Generate new candidate solution by perturbation
+        candidate_solution = perturb_solution(current_solution)
+        candidate_value = rastrigin(candidate_solution)
+
+        # Acceptance probability (Metropolis criterion)
+        ΔE = candidate_value - current_value
+        if ΔE < 0 || rand() < exp(-ΔE / temperature)
+            current_solution = candidate_solution
+            current_value = candidate_value
+        end
+
+        # Update best solution found so far
+        if current_value < best_value
+            best_solution = copy(current_solution)
+            best_value = current_value
+        end
+
+        # Decrease temperature
+        temperature *= cooling_rate
+        println("Iteration $iteration: Best Value = $best_value, Temperature = $temperature")
+    end
+
+    return best_solution, best_value
+end
+
+# Run the simulated annealing algorithm
+best_solution, best_value = simulated_annealing()
+println("Best Solution: ", best_solution)
+println("Best Value (Minimum): ", best_value)
+```
+
+### Particle swarm optimization (PSO)
+
+Particle swarm optimization is a metaheuristic optimization algorithm inspired by the social behavior of birds flocking or fish schooling. It is used to solve optimization problems by iteratively improving a candidate solution based on the velocity and position of particles (potential solutions) in the search space. The PSO algorithm differs from other methods in a key way, that instead of updating a single candidate solution at each iteration, we update a population (set) of candidate solutions, called a swarm. Each candidate solution is the swarm is called a particle. We think of a swarm as an apparently disorganized population of moving individuals that tend to cluster together while each individual seems to be moving in a random direction. The POS algorithm aims to mimic the social behavior of animals and insects.
+
+```{julia}
+using Random, Plots
+
+# Define the Rosenbrock function
+function rosenbrock(x)
+    return (1 - x[1])^2 + 100 * (x[2] - x[1]^2)^2
+end
+
+# PSO Implementation
+function particle_swarm_optimization(objective, n_particles, n_iterations, bounds, dim)
+    # Initialize particles
+    positions = [rand(bounds[1]:0.1:bounds[2], dim) for _ in 1:n_particles]
+    velocities = [rand(-1.0:0.1:1.0, dim) for _ in 1:n_particles]
+    personal_best_positions = deepcopy(positions)
+    personal_best_scores = [objective(p) for p in positions]
+    global_best_position = personal_best_positions[argmin(personal_best_scores)]
+    global_best_score = minimum(personal_best_scores)
+
+    # PSO parameters
+    ω = 0.5         # Inertia weight
+    c1, c2 = 2.0, 2.0  # Cognitive and social learning factors
+
+    # Optimization loop
+    for iter in 1:n_iterations
+        for i in 1:n_particles
+            # Update velocity
+            r1, r2 = rand(), rand()
+            velocities[i] .= ω .* velocities[i] +
+                             c1 * r1 .* (personal_best_positions[i] - positions[i]) +
+                             c2 * r2 .* (global_best_position - positions[i])
+
+            # Update position
+            positions[i] .= positions[i] .+ velocities[i]
+
+            # Clamp positions within bounds
+            positions[i] .= clamp.(positions[i], bounds[1], bounds[2])
+
+            # Evaluate fitness
+            score = objective(positions[i])
+            if score < personal_best_scores[i]
+                personal_best_positions[i] = deepcopy(positions[i])
+                personal_best_scores[i] = score
+            end
+
+            if score < global_best_score
+                global_best_position = deepcopy(positions[i])
+                global_best_score = score
+            end
+        end
+        println("Iteration $iter: Best Score = $global_best_score")
+    end
+    return global_best_position, global_best_score
+end
+
+# Parameters
+n_particles = 30
+n_iterations = 100
+bounds = (-2.0, 2.0)
+dim = 2
+
+# Run PSO
+best_position, best_score = particle_swarm_optimization(rosenbrock, n_particles, n_iterations, bounds, dim)
+
+println("Best Position: $best_position")
+println("Best Score: $best_score")
+
+# Visualization
+x = -2.0:0.05:2.0
+y = -1.0:0.05:3.0
+Z = [(1 - xi)^2 + 100 * (yi - xi^2)^2 for yi in y, xi in x]
+
+heatmap(x, y, Z, color=:viridis, title="PSO Optimization of Rosenbrock", xlabel="x", ylabel="y")
+scatter!([best_position[1]], [best_position[2]], color=:red, label="Optimal Solution")
+```
+
 ### Evolutionary algorithm
 
 An evolutionary algorithm (EA) is a family of optimization algorithms inspired by the principles of biological evolution. They are particularly useful for solving complex optimization problems where traditional gradient-based methods may struggle due to non-linearity, multimodality, or high dimensionality of the search space.
@@ -197,85 +427,6 @@ end
 
 # Run the genetic algorithm
 best_solution, best_value = genetic_algorithm()
-println("Best Solution: ", best_solution)
-println("Best Value (Minimum): ", best_value)
-```
-
-### Simulated annealing
-
-Simulated Annealing (SA) is a probabilistic optimization technique inspired by the annealing process in metallurgy. It is used to find near-optimal solutions to optimization problems, particularly in cases where traditional gradient-based methods may get stuck in local minima/maxima. SA accepts worse solutions with a certain probability, allowing it to explore the search space more broadly initially and then gradually narrow down towards better solutions as it progresses.
-
-```{julia}
-using Random
-
-Random.seed!(1234)
-
-# Parameters
-max_iterations = 1000            # Number of iterations
-initial_temperature = 100.0      # Starting temperature
-cooling_rate = 0.99              # Cooling rate (temperature multiplier)
-bounds = (-5.12, 5.12)           # Bounds for the search space
-dimension = 5                    # Number of dimensions in the search space
-
-# Objective function: Rastrigin function
-function rastrigin(x)
-    A = 10
-    n = length(x)
-    return A * n + sum(xi^2 - A * cos(2 * π * xi) for xi in x)
-end
-
-# Random initialization within bounds
-function initialize_solution()
-    return rand(bounds[1]:0.01:bounds[2], dimension)
-end
-
-# Random perturbation within bounds
-function perturb_solution(solution)
-    perturbed = copy(solution)
-    index = rand(1:dimension)
-    perturb_amount = rand(-0.1:0.01:0.1)  # Small random change
-    perturbed[index] += perturb_amount
-    # Ensure perturbed solution is within bounds
-    perturbed[index] = clamp(perturbed[index], bounds[1], bounds[2])
-    return perturbed
-end
-
-# Simulated Annealing main function
-function simulated_annealing()
-    current_solution = initialize_solution()
-    current_value = rastrigin(current_solution)
-    best_solution = copy(current_solution)
-    best_value = current_value
-    temperature = initial_temperature
-
-    for iteration in 1:max_iterations
-        # Generate new candidate solution by perturbation
-        candidate_solution = perturb_solution(current_solution)
-        candidate_value = rastrigin(candidate_solution)
-
-        # Acceptance probability (Metropolis criterion)
-        ΔE = candidate_value - current_value
-        if ΔE < 0 || rand() < exp(-ΔE / temperature)
-            current_solution = candidate_solution
-            current_value = candidate_value
-        end
-
-        # Update best solution found so far
-        if current_value < best_value
-            best_solution = copy(current_solution)
-            best_value = current_value
-        end
-
-        # Decrease temperature
-        temperature *= cooling_rate
-        println("Iteration $iteration: Best Value = $best_value, Temperature = $temperature")
-    end
-
-    return best_solution, best_value
-end
-
-# Run the simulated annealing algorithm
-best_solution, best_value = simulated_annealing()
 println("Best Solution: ", best_solution)
 println("Best Value (Minimum): ", best_value)
 ```
