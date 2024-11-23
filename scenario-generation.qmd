@@ -266,6 +266,50 @@ end
 f
 ```
 
+The above can be restructured to use GPU instead.
+
+```{julia}
+using Random, CairoMakie
+
+# Set seed for reproducibility
+Random.seed!(1234)
+
+# GBM parameters
+μ = 0.05       # Drift (expected return)
+σ = 0.2        # Volatility
+
+# Initial stock price
+S₀ = 100
+
+# Number of time steps and simulations
+num_steps = 252
+num_simulations = 1_000
+
+# Time increment
+Δt = 1 / 252
+
+# Function to simulate GBM in gpu
+function gbm_simulation_gpu(μ, σ, S₀, Δt, num_steps, num_simulations)
+    stock_price_paths = cu(zeros(num_steps, num_simulations))
+    stock_price_paths .= S₀
+    dW = cu(randn(num_steps - 1, num_simulations) .* sqrt(Δt))
+    dS = μ * S₀ * Δt .+ σ .* S₀ .* dW
+    stock_price_paths[2:end, :] .+= cumsum(dS, dims=1)
+    return stock_price_paths
+end
+
+# Run GBM simulation
+gbm_paths = gbm_simulation_gpu(μ, σ, S₀, Δt, num_steps, num_simulations)
+
+# Plot the simulated stock price paths
+f = Figure()
+Axis(f[1, 1])
+for i in 1:num_simulations
+    lines!(1:num_steps, gbm_paths[:, i])
+end
+f
+```
+
 #### Generalized Autoregressive Conditional Heteroskedasticity (GARCH)
 
 GARCH models capture time-varying volatility. They are often used in conjunction with other models to forecast volatility. It is defined as
