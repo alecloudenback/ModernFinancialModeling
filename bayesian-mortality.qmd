@@ -12,16 +12,6 @@ using Logging;
 Logging.disable_logging(Logging.Warn);
 ```
 
-::: callout-important
-## Drafting Notes
-
-Ideas: - First plot graph of outcomes and discuss some key features: - More variance when the subset are smaller
-
--   Just plot the data first, with the group colors, to explain what we are looking at and for consistency in subsequent plots
-
--   Generate sample data using parameters sampled from chain and show the bands on the associated outcomes.
-:::
-
 ## In This Chapter
 
 An example of using a Bayesian MCMC approach to fitting a mortality curve to sample data, with multi-level models and censored data.
@@ -49,7 +39,6 @@ using MCMCChains
 using LinearAlgebra
 using CairoMakie
 using StatsBase
-using OffsetArrays
 ```
 
 ```{julia}
@@ -173,13 +162,13 @@ This is saying that for the observed data, if there really is just a single prob
 
 ```{julia}
 let
-    data_weight = sqrt.(data.exposures) /  2
+    data_weight = sqrt.(data.exposures) / 2
     f = Figure(title="Parametric Bayseian Mortality"
     )
     ax = Axis(f[1, 1],
         xlabel="age",
         ylabel="mortality rate",
-        limits=(nothing, nothing, -0.02, 0.25),
+        limits=(nothing, nothing, -0.01, 0.10),
     )
     scatter!(ax,
         data.att_age,
@@ -282,7 +271,7 @@ let
         label="Experience data point (size indicates relative exposure quantity)",
         axis=(
             xlabel="age",
-            limits=(nothing, nothing, -0.02, 0.25),
+            limits=(nothing, nothing, -0.01, 0.10),
             ylabel="mortality rate",
             title="Parametric Bayseian Mortality"
         )
@@ -314,7 +303,7 @@ let
     ax = Axis(f[1, 1],
         xlabel="age",
         ylabel="mortality rate",
-        limits=(nothing, nothing, -0.02, 0.25),
+        limits=(nothing, nothing, -0.01, 0.10),
     )
     scatter!(ax,
         data.att_age,
@@ -341,7 +330,9 @@ let
 end
 ```
 
-## 3. Parametric model
+Recall that the lines are not plotting the possible outcomes of the claims rates, but the *mean* claims rate for the given age. 
+
+## 3. Multi-level model
 
 This model extends the prior to create a multi-level model. Each risk class (`risk_level`) gets its own $a$ paramater in the `MakhamBeard` model. The prior for $a_i$ is determined by the hyper-parameter $\bar{a}$.
 
@@ -378,19 +369,21 @@ summarize(chain3)
 ```{julia}
 let data = data2
 
-    data_weight = sqrt.(data.exposures) / 2
+    data_weight = sqrt.(data.exposures)
     color_i = data.risk_level
+    cm = CairoMakie.Makie.wong_colors()
 
-    p = scatter(
+    p, ax, _ = scatter(
         data.att_age,
         data.fraction,
         markersize=data_weight,
         alpha=0.5,
-        color=color_i,
+        color=[(CairoMakie.Makie.wong_colors()[c], 0.7) for c in color_i],
+        colormap=CairoMakie.Makie.wong_colors(),
         label="Experience data point (size indicates relative exposure quantity)",
         axis=(
             xlabel="age",
-            limits=(nothing, nothing, -0.02, 0.25),
+            limits=(nothing, nothing, -0.01, 0.10),
             ylabel="mortality rate",
             title="Parametric Bayseian Mortality"
         )
@@ -409,16 +402,15 @@ let data = data2
             k = only(s[:k])
             c = 0
             m = MortalityTables.MakehamBeard(; a, b, c, k)
-            if i == 1
-                lines!(ages, age -> MortalityTables.hazard(m, age), label="risk level $r", alpha=0.2, color=(CairoMakie.Makie.wong_colors()[r], 0.2))
-            else
-                lines!(ages, age -> MortalityTables.hazard(m, age), label="", alpha=0.2, color=(CairoMakie.Makie.wong_colors()[r], 0.2))
-            end
+            lines!(ages, age -> MortalityTables.hazard(m, age), label="risk level $r", alpha=0.2, color=(CairoMakie.Makie.wong_colors()[r], 0.2))
         end
     end
+    axislegend(ax, merge=true)
     p
 end
 ```
+
+Again, the lines are not plotting the possible outcomes of the claims rates, but the *mean* claims rate for the given age and risk class.
 
 ## Handling non-unit exposures
 
@@ -459,10 +451,10 @@ risk_factors4 ./ risk_factors4[2]
 
 let data = data2
 
-     data_weight = sqrt.(data.exposures) / 2
+    data_weight = sqrt.(data.exposures) / 2
     color_i = data.risk_level
 
-    p = scatter(
+    p, ax, _ = scatter(
         data.att_age,
         data.fraction,
         markersize=data_weight,
@@ -470,7 +462,7 @@ let data = data2
         color=color_i,
         label="Experience data point (size indicates relative exposure quantity)",
         axis=(xlabel="age",
-            limits=(nothing, nothing, -0.02, 0.25),
+            limits=(nothing, nothing, -0.01, 0.10),
             ylabel="mortality rate",
             title="Parametric Bayseian Mortality"
         )
@@ -489,13 +481,10 @@ let data = data2
             k = only(s[:k])
             c = 0
             m = MortalityTables.MakehamBeard(; a, b, c, k)
-            if i == 1
-                lines!(ages, age -> MortalityTables.hazard(m, age), label="risk level $r", alpha=0.2, color=(CairoMakie.Makie.wong_colors()[r], 0.2))
-            else
-                lines!(ages, age -> MortalityTables.hazard(m, age), label="", alpha=0.2, color=(CairoMakie.Makie.wong_colors()[r], 0.2))
-            end
+            lines!(ages, age -> MortalityTables.hazard(m, age), label="risk level $r", alpha=0.2, color=(CairoMakie.Makie.wong_colors()[r], 0.2))
         end
     end
+    axislegend(ax, merge=true)
     p
 end
 ```
