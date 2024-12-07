@@ -168,7 +168,7 @@ let
     ax = Axis(f[1, 1],
         xlabel="age",
         ylabel="mortality rate",
-        limits=(nothing, nothing, -0.02, 0.25),
+        limits=(nothing, nothing, -0.01, 0.10),
     )
     scatter!(ax,
         data.att_age,
@@ -271,7 +271,7 @@ let
         label="Experience data point (size indicates relative exposure quantity)",
         axis=(
             xlabel="age",
-            limits=(nothing, nothing, -0.02, 0.25),
+            limits=(nothing, nothing, -0.01, 0.10),
             ylabel="mortality rate",
             title="Parametric Bayseian Mortality"
         )
@@ -303,7 +303,7 @@ let
     ax = Axis(f[1, 1],
         xlabel="age",
         ylabel="mortality rate",
-        limits=(nothing, nothing, -0.02, 0.25),
+        limits=(nothing, nothing, -0.01, 0.10),
     )
     scatter!(ax,
         data.att_age,
@@ -329,6 +329,8 @@ let
     f
 end
 ```
+
+Recall that the lines are not plotting the possible outcomes of the claims rates, but the *mean* claims rate for the given age. 
 
 ## 3. Multi-level model
 
@@ -371,12 +373,12 @@ let data = data2
     color_i = data.risk_level
     cm = CairoMakie.Makie.wong_colors()
 
-    p = scatter(
+    p, ax, _ = scatter(
         data.att_age,
         data.fraction,
         markersize=data_weight,
         alpha=0.5,
-        color=[(CairoMakie.Makie.wong_colors()[c],0.7) for c in color_i],
+        color=[(CairoMakie.Makie.wong_colors()[c], 0.7) for c in color_i],
         colormap=CairoMakie.Makie.wong_colors(),
         label="Experience data point (size indicates relative exposure quantity)",
         axis=(
@@ -400,16 +402,15 @@ let data = data2
             k = only(s[:k])
             c = 0
             m = MortalityTables.MakehamBeard(; a, b, c, k)
-            if i == 1
-                lines!(ages, age -> MortalityTables.hazard(m, age), label="risk level $r", alpha=0.2, color=(CairoMakie.Makie.wong_colors()[r], 0.2))
-            else
-                lines!(ages, age -> MortalityTables.hazard(m, age), label="", alpha=0.2, color=(CairoMakie.Makie.wong_colors()[r], 0.2))
-            end
+            lines!(ages, age -> MortalityTables.hazard(m, age), label="risk level $r", alpha=0.2, color=(CairoMakie.Makie.wong_colors()[r], 0.2))
         end
     end
+    axislegend(ax, merge=true)
     p
 end
 ```
+
+Again, the lines are not plotting the possible outcomes of the claims rates, but the *mean* claims rate for the given age and risk class.
 
 ## Handling non-unit exposures
 
@@ -453,7 +454,7 @@ let data = data2
     data_weight = sqrt.(data.exposures) / 2
     color_i = data.risk_level
 
-    p = scatter(
+    p, ax, _ = scatter(
         data.att_age,
         data.fraction,
         markersize=data_weight,
@@ -461,7 +462,7 @@ let data = data2
         color=color_i,
         label="Experience data point (size indicates relative exposure quantity)",
         axis=(xlabel="age",
-            limits=(nothing, nothing, -0.02, 0.25),
+            limits=(nothing, nothing, -0.01, 0.10),
             ylabel="mortality rate",
             title="Parametric Bayseian Mortality"
         )
@@ -480,23 +481,14 @@ let data = data2
             k = only(s[:k])
             c = 0
             m = MortalityTables.MakehamBeard(; a, b, c, k)
-            if i == 1
-                lines!(ages, age -> MortalityTables.hazard(m, age), label="risk level $r", alpha=0.2, color=(CairoMakie.Makie.wong_colors()[r], 0.2))
-            else
-                lines!(ages, age -> MortalityTables.hazard(m, age), label="", alpha=0.2, color=(CairoMakie.Makie.wong_colors()[r], 0.2))
-            end
+            lines!(ages, age -> MortalityTables.hazard(m, age), label="risk level $r", alpha=0.2, color=(CairoMakie.Makie.wong_colors()[r], 0.2))
         end
     end
+    axislegend(ax, merge=true)
     p
 end
 ```
 
-
-```{julia}
-let m = mean(chain3)
-    m.nt.mean[3:5] ./ m.nt.mean[3] ./ 1.4
-end
-```
 ## Model Predictions
 
 We can generate predictive estimates by passing a vector of `missing` in place of the outcome variables and then calling `predict`.
