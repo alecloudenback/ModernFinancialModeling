@@ -1,0 +1,1745 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.7.3">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>23&nbsp; Optimizing Julia Code – Computational Thinking for Actuaries and Financial Professionals</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./applications.html" rel="next">
+<link href="./julia-sharing.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-508bcad9dcf2c2e1342fa9dd89cfc9ba.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-dark-0a6edff4a93670cf20f4deac16b0faea.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-a86c5dad075d6406ffba66a39a689f8e.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark-0a9b6a47a7adad8b3f790e8b0b605f7d.min.css" rel="prefetch" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script data-goatcounter="https://julia-fin-book.goatcounter.com/count" async="" src="//gc.zgo.at/count.js"></script>
+
+
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="nav-sidebar floating">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./julia-development.html">Developing In Julia</a></li><li class="breadcrumb-item"><a href="./julia-optimizing.html"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Optimizing Julia Code</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Computational Thinking for Actuaries and Financial Professionals</a> 
+        <div class="sidebar-tools-main">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+</div>
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./intro.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Introduction</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./why-program.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Why Program?</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./why-julia.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Why use Julia?</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./elements-of-financial-modeling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Elements of Financial Modeling</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./conceptual-foundations.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Foundations: Programming and Abstractions</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./foundations-of-programming.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Elements of Programming</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./first-abstractions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Functional Abstractions</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./type-abstractions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Data and Types</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./patterns-abstraction.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Higher Levels of Abstraction</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./conceptual-foundations2.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Foundations: Building Performant Models</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./hardware.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Hardware and Its Implications</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./performance-single.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Writing Performant Single-Threaded Code</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./parallelization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Parallelization</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./computational-thinking.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Interdisciplinary Concepts and Applications</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./software.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Applying Software Engineering Principles</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./elements-of-compsci.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Elements of Computer Science</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./statistics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Statistical Inference and Information Theory</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./autodiff.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Automatic Differentiation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Optimization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./stochastic.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Stochastic Modeling</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./visualization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Visualizations</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./matrices.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Matrices and Their Uses</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./data-learning.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Learning from Data</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./julia-development.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Developing In Julia</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./julia-writing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Wrting Julia Code</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./julia-debugging.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Troubleshooting Julia Code</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./julia-sharing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Distributing and Sharing Julia Code</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./julia-optimizing.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Optimizing Julia Code</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./applications.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Applied Financial Modeling Techniques</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./stochastic-mortality.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Stochastic Mortality Projections</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./scenario-generation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Scenario Generation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./similarity-calculation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Similarity Analysis</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./sensitivity-analysis.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Sensitivity Analysis</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./portfolio-optimization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Portfolio Optimization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./bayesian-mortality.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Bayesian Mortality Modeling</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./other-techniques.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">Other Useful Techniques</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./appendices.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Appendices</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ecosystem.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">31</span>&nbsp; <span class="chapter-title">The Julia Ecosystem Today</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">References</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#type-inference" id="toc-type-inference" class="nav-link active" data-scroll-target="#type-inference"><span class="header-section-number">23.1</span> Type Inference</a></li>
+  <li><a href="#avoiding-heap-allocations" id="toc-avoiding-heap-allocations" class="nav-link" data-scroll-target="#avoiding-heap-allocations"><span class="header-section-number">23.2</span> Avoiding Heap Allocations</a></li>
+  <li><a href="#measuring-performance" id="toc-measuring-performance" class="nav-link" data-scroll-target="#measuring-performance"><span class="header-section-number">23.3</span> Measuring performance</a>
+  <ul class="collapse">
+  <li><a href="#benchmarktools" id="toc-benchmarktools" class="nav-link" data-scroll-target="#benchmarktools"><span class="header-section-number">23.3.1</span> BenchmarkTools</a></li>
+  <li><a href="#other-tools" id="toc-other-tools" class="nav-link" data-scroll-target="#other-tools"><span class="header-section-number">23.3.2</span> Other tools</a></li>
+  </ul></li>
+  <li><a href="#profiling" id="toc-profiling" class="nav-link" data-scroll-target="#profiling"><span class="header-section-number">23.4</span> Profiling</a>
+  <ul class="collapse">
+  <li><a href="#sampling" id="toc-sampling" class="nav-link" data-scroll-target="#sampling"><span class="header-section-number">23.4.1</span> Sampling</a></li>
+  <li><a href="#visualization-profile-results" id="toc-visualization-profile-results" class="nav-link" data-scroll-target="#visualization-profile-results"><span class="header-section-number">23.4.2</span> Visualization Profile Results</a></li>
+  <li><a href="#external-profilers" id="toc-external-profilers" class="nav-link" data-scroll-target="#external-profilers"><span class="header-section-number">23.4.3</span> External profilers</a></li>
+  </ul></li>
+  <li><a href="#type-stability" id="toc-type-stability" class="nav-link" data-scroll-target="#type-stability"><span class="header-section-number">23.5</span> Type stability</a>
+  <ul class="collapse">
+  <li><a href="#detecting-instabilities" id="toc-detecting-instabilities" class="nav-link" data-scroll-target="#detecting-instabilities"><span class="header-section-number">23.5.1</span> Detecting instabilities</a></li>
+  <li><a href="#fixing-instabilities" id="toc-fixing-instabilities" class="nav-link" data-scroll-target="#fixing-instabilities"><span class="header-section-number">23.5.2</span> Fixing instabilities</a></li>
+  </ul></li>
+  <li><a href="#memory-management" id="toc-memory-management" class="nav-link" data-scroll-target="#memory-management"><span class="header-section-number">23.6</span> Memory management</a></li>
+  <li><a href="#compilation" id="toc-compilation" class="nav-link" data-scroll-target="#compilation"><span class="header-section-number">23.7</span> Compilation</a>
+  <ul class="collapse">
+  <li><a href="#precompilation" id="toc-precompilation" class="nav-link" data-scroll-target="#precompilation"><span class="header-section-number">23.7.1</span> Precompilation</a></li>
+  <li><a href="#package-compilation" id="toc-package-compilation" class="nav-link" data-scroll-target="#package-compilation"><span class="header-section-number">23.7.2</span> Package compilation</a></li>
+  <li><a href="#static-compilation" id="toc-static-compilation" class="nav-link" data-scroll-target="#static-compilation"><span class="header-section-number">23.7.3</span> Static compilation</a></li>
+  </ul></li>
+  <li><a href="#parallelism" id="toc-parallelism" class="nav-link" data-scroll-target="#parallelism"><span class="header-section-number">23.8</span> Parallelism</a>
+  <ul class="collapse">
+  <li><a href="#multithreading" id="toc-multithreading" class="nav-link" data-scroll-target="#multithreading"><span class="header-section-number">23.8.1</span> Multithreading</a></li>
+  <li><a href="#distributed-computing" id="toc-distributed-computing" class="nav-link" data-scroll-target="#distributed-computing"><span class="header-section-number">23.8.2</span> Distributed computing</a></li>
+  <li><a href="#gpu-programming" id="toc-gpu-programming" class="nav-link" data-scroll-target="#gpu-programming"><span class="header-section-number">23.8.3</span> GPU programming</a></li>
+  <li><a href="#simd-instructions" id="toc-simd-instructions" class="nav-link" data-scroll-target="#simd-instructions"><span class="header-section-number">23.8.4</span> SIMD instructions</a></li>
+  </ul></li>
+  <li><a href="#efficient-types" id="toc-efficient-types" class="nav-link" data-scroll-target="#efficient-types"><span class="header-section-number">23.9</span> Efficient types</a>
+  <ul class="collapse">
+  <li><a href="#static-arrays" id="toc-static-arrays" class="nav-link" data-scroll-target="#static-arrays"><span class="header-section-number">23.9.1</span> Static arrays</a></li>
+  <li><a href="#classic-data-structures" id="toc-classic-data-structures" class="nav-link" data-scroll-target="#classic-data-structures"><span class="header-section-number">23.9.2</span> Classic data structures</a></li>
+  <li><a href="#bits-types" id="toc-bits-types" class="nav-link" data-scroll-target="#bits-types"><span class="header-section-number">23.9.3</span> Bits types</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./julia-development.html">Developing In Julia</a></li><li class="breadcrumb-item"><a href="./julia-optimizing.html"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Optimizing Julia Code</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span id="sec-julia-optimizing" class="quarto-section-identifier"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Optimizing Julia Code</span></span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>The two fundamental principles for writing fast Julia code:</p>
+<ol type="1">
+<li>Ensure that <strong>the compiler can infer the type</strong> of every variable.</li>
+<li>Avoid <strong>unnecessary (heap) allocations</strong>.</li>
+</ol>
+<section id="type-inference" class="level2" data-number="23.1">
+<h2 data-number="23.1" class="anchored" data-anchor-id="type-inference"><span class="header-section-number">23.1</span> Type Inference</h2>
+<p>The compiler’s job is to optimize and translate Julia code it into runnable <a href="https://en.wikipedia.org/wiki/Machine_code">machine code</a>. If a variable’s type cannot be deduced before the code is run, then the compiler won’t generate efficient code to handle that variable. This phenomenon is called “type instability”. Enabling type inference means making sure that every variable’s type in every function can be deduced from the types of the function inputs alone.</p>
+<p>That is, the compiler will be able to create more optimized code if it can analyze the function you’ve written and determine what type will be returned. In the following function, the compiler can analyze the expressions and determine with certainty that if <code>mysum</code> is given two <code>Int</code>s as arguments, the return value will also be an <code>Int</code>.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">mysum</span>(a,b)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    a <span class="op">+</span> b</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="avoiding-heap-allocations" class="level2" data-number="23.2">
+<h2 data-number="23.2" class="anchored" data-anchor-id="avoiding-heap-allocations"><span class="header-section-number">23.2</span> Avoiding Heap Allocations</h2>
+<p>A “heap allocation” (or simply “allocation”) occurs when we create a new variable without knowing how much space it will require (like a <code>Vector</code> with flexible length). This has two implications:</p>
+<ol type="1">
+<li>Allocating memory on the heap takes substantially more time than stack allocated memory to be created.</li>
+<li>Periodically, a <strong>garbage collector</strong> (GC), needs to run to de-allocate (free up) memory on the heap which is no longer used by the program</li>
+</ol>
+<p>Execution of code is stopped while the garbage collector runs, so minimising its usage is important.</p>
+<p>The vast majority of performance tips come down to these two fundamental ideas.</p>
+<p>Typically, the most common beginner pitfall is the use of <a href="https://docs.julialang.org/en/v1/manual/performance-tips/#Avoid-untyped-global-variables">untyped global variables</a> without passing them as arguments. Why is it bad? Because the type of a global variable can change outside of the body of a function, so it causes type instabilities wherever it is used. Those type instabilities in turn lead to more heap allocations.</p>
+<p>Much more detail on performance considerations is covered in <a href="#sec-performance-single" class="quarto-xref"><span class="quarto-unresolved-ref">sec-performance-single</span></a>.</p>
+</section>
+<section id="measuring-performance" class="level2" data-number="23.3">
+<h2 data-number="23.3" class="anchored" data-anchor-id="measuring-performance"><span class="header-section-number">23.3</span> Measuring performance</h2>
+<p>The simplest way to measure how fast a piece of code runs is to use the <code>@time</code> macro, which returns the result of the code and prints the measured runtime and allocations. Because code needs to be compiled before it can be run, you should first run a function without timing it so it can be compiled, and then time it:</p>
+<div id="8499e21d" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sum_abs</span>(vec) <span class="op">=</span> <span class="fu">sum</span>(<span class="fu">abs</span>(x) <span class="cf">for</span> x <span class="kw">in</span> vec);</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>v <span class="op">=</span> <span class="fu">rand</span>(<span class="fl">100</span>);</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">BenchmarkTools</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="pp">@time</span> <span class="fu">sum_abs</span>(v); <span class="co"># Inaccurate, note the &gt;99% compilation time</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="pp">@time</span> <span class="fu">sum_abs</span>(v); <span class="co"># Accurate</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  0.008968 seconds (43.81 k allocations: 2.896 MiB, 99.92% compilation time)
+  0.000001 seconds (1 allocation: 16 bytes)</code></pre>
+</div>
+</div>
+<p>Using <code>@time</code> is quick but it has flaws, because your function is only measured once. That measurement might have been influenced by other things going on in your computer at the same time. In general, running the same block of code multiple times is a safer measurement method, because it diminishes the probability of only observing an outlier.</p>
+<section id="benchmarktools" class="level3" data-number="23.3.1">
+<h3 data-number="23.3.1" class="anchored" data-anchor-id="benchmarktools"><span class="header-section-number">23.3.1</span> BenchmarkTools</h3>
+<p><a href="https://github.com/JuliaCI/BenchmarkTools.jl">BenchmarkTools.jl</a> is the most popular package for repeated measurements on function executions. Similarly to <code>@time</code>, BenchmarkTools offers <code>@btime</code> which can be used in exactly the same way but will run the code multiple times and provide an average. Additionally, by using <code>$</code> to <a href="https://juliaci.github.io/BenchmarkTools.jl/stable/manual/#Interpolating-values-into-benchmark-expressions">interpolate external values</a>, you remove the overhead caused by global variables.</p>
+<div id="25125750" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">BenchmarkTools</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">sum_abs</span>(v);</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">sum_abs</span>(<span class="op">$</span>v);</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  42.676 ns (1 allocation: 16 bytes)
+  29.438 ns (0 allocations: 0 bytes)</code></pre>
+</div>
+</div>
+<p>In more complex settings, you might need to construct variables in a <a href="https://juliaci.github.io/BenchmarkTools.jl/stable/manual/#Setup-and-teardown-phases">setup phase</a> that is run before each sample. This can be useful to generate a new random input every time, instead of always using the same input.</p>
+<div id="c181f75d" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">my_matmul</span>(A, b) <span class="op">=</span> A <span class="op">*</span> b;</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">my_matmul</span>(A, b) setup <span class="op">=</span> (</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    A <span class="op">=</span> <span class="fu">rand</span>(<span class="fl">1000</span>, <span class="fl">1000</span>); <span class="co"># use semi-colons between setup lines</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    b <span class="op">=</span> <span class="fu">rand</span>(<span class="fl">1000</span>)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>);</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  187.375 μs (1 allocation: 8.00 KiB)</code></pre>
+</div>
+</div>
+<p>For better visualization, the <code>@benchmark</code> macro shows performance histograms:</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Certain computations may be <a href="(https://juliaci.github.io/BenchmarkTools.jl/stable/manual/#Understanding-compiler-optimizations)">optimized away by the compiler</a> before the benchmark takes place. If you observe suspiciously fast performance, especially below the nanosecond scale, this is very likely to have happened.</p>
+</div>
+</div>
+</section>
+<section id="other-tools" class="level3" data-number="23.3.2">
+<h3 data-number="23.3.2" class="anchored" data-anchor-id="other-tools"><span class="header-section-number">23.3.2</span> Other tools</h3>
+<p>BenchmarkTools.jl works fine for relatively short and simple blocks of code (microbenchmarking). To find bottlenecks in a larger program, you should rather use a profiler(see next section) or the package <a href="https://github.com/KristofferC/TimerOutputs.jl">TimerOutputs.jl</a>. It allows you to label different sections of your code, then time them and display a table of grouped by label.</p>
+<p>Finally, if you know a loop is slow and you’ll need to wait for it to be done, you can use <a href="https://github.com/timholy/ProgressMeter.jl">ProgressMeter.jl</a> or <a href="https://github.com/JuliaLogging/ProgressLogging.jl">ProgressLogging.jl</a> to track its progress. This will display a progress bar in VS Code or in a notebook, indicating how far along a loop has progressed.</p>
+</section>
+</section>
+<section id="profiling" class="level2" data-number="23.4">
+<h2 data-number="23.4" class="anchored" data-anchor-id="profiling"><span class="header-section-number">23.4</span> Profiling</h2>
+<p>Profiling can identify performance bottlenecks at function level, and graphical tools such as ProfileView.jl are the best way to use it.</p>
+<section id="sampling" class="level3" data-number="23.4.1">
+<h3 data-number="23.4.1" class="anchored" data-anchor-id="sampling"><span class="header-section-number">23.4.1</span> Sampling</h3>
+<p>Whereas a benchmark measures the overall performance of some code, a profiler breaks it down function by function to identify bottlenecks. Sampling-based profilers periodically ask the program which line it is currently executing, and aggregate results by line or by function. Julia offers two kinds: <a href="https://docs.julialang.org/en/v1/stdlib/Profile/#lib-profiling">one for runtime</a> (in the module <code>Profile</code>) and <a href="https://docs.julialang.org/en/v1/stdlib/Profile/#Memory-profiling">one for memory</a> (in the submodule <code>Profile.Allocs</code>).</p>
+<p>These built-in profilers print textual outputs, but the result of profiling is best visualized as a flame graph. In a flame graph, each horizontal layer corresponds to a specific level in the call stack, and the width of a tile shows how much time was spent in the corresponding function. Here’s an example:</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://github.com/pfitzseb/ProfileCanvas.jl/raw/main/assets/flamegraph.png" class="img-fluid figure-img"></p>
+<figcaption>flamegraph</figcaption>
+</figure>
+</div>
+</section>
+<section id="visualization-profile-results" class="level3" data-number="23.4.2">
+<h3 data-number="23.4.2" class="anchored" data-anchor-id="visualization-profile-results"><span class="header-section-number">23.4.2</span> Visualization Profile Results</h3>
+<p>The packages <a href="https://github.com/timholy/ProfileView.jl">ProfileView.jl</a> and <a href="https://github.com/JuliaPerf/PProf.jl">PProf.jl</a> both allow users to record and interact with flame graphs. ProfileView.jl is simpler to use, but PProf is more featureful and is based on <a href="https://github.com/google/pprof">pprof</a>, an external tool maintained by Google which applies to more than just Julia code. Here we only demonstrate the former:</p>
+<p><code>julia profileview-example using ProfileView @profview do_work(some_input)</code></p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Calling <code>@profview do_work(some_input)</code> in the integrated Julia REPL will open an interactive flame graph, similar to ProfileView.jl but without requiring a separate package.</p>
+</div>
+</div>
+<p>To integrate profile visualisations into environments like Jupyter and Pluto, use <a href="https://github.com/kimikage/ProfileSVG.jl">ProfileSVG.jl</a> or <a href="https://github.com/pfitzseb/ProfileCanvas.jl">ProfileCanvas.jl</a>, whose outputs can be embedded into a notebook.</p>
+<p>No matter which tool you use, if your code is too fast to collect samples, you may need to run it multiple times in a loop.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>To visualize memory allocation profiles, use PProf.jl or VSCode’s <code>@profview_allocs</code>. A known issue with the allocation profiler is that it is not able to determine the type of every object allocated, instead <code>Profile.Allocs.UnknownType</code> is shown instead. Inspecting the call graph can help identify which types are responsible for the allocations.</p>
+</div>
+</div>
+</section>
+<section id="external-profilers" class="level3" data-number="23.4.3">
+<h3 data-number="23.4.3" class="anchored" data-anchor-id="external-profilers"><span class="header-section-number">23.4.3</span> External profilers</h3>
+<p>Apart from the built-in <code>Profile</code> standard library, there are a few external profilers that you can use including <a href="https://www.intel.com/content/www/us/en/developer/tools/oneapi/vtune-profiler.html">Intel VTune</a> (in combination with <a href="https://github.com/JuliaPerf/IntelITT.jl">IntelITT.jl</a>), <a href="https://developer.nvidia.com/nsight-systems">NVIDIA Nsight Systems</a> (in combination with <a href="https://github.com/JuliaGPU/NVTX.jl">NVTX.jl</a>), and <a href="https://docs.julialang.org/en/v1/devdocs/external_profilers/#Tracy-Profiler">Tracy</a>.</p>
+</section>
+</section>
+<section id="type-stability" class="level2" data-number="23.5">
+<h2 data-number="23.5" class="anchored" data-anchor-id="type-stability"><span class="header-section-number">23.5</span> Type stability</h2>
+<p>For a section of code to be considered type stable, the type inferred by the compiler must be “concrete”, which means that the size of memory that needs to be allocated to store its value is known at compile time. Types declared abstract with <code>abstract type</code> are not concrete and neither are <a href="https://docs.julialang.org/en/v1/manual/types/#Parametric-Types">parametric types</a> whose parameters are not specified:</p>
+<div id="9ee3a3c9" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@show</span> <span class="fu">isconcretetype</span>(<span class="dt">Any</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@show</span> <span class="fu">isconcretetype</span>(<span class="dt">AbstractVector</span>)</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="pp">@show</span> <span class="fu">isconcretetype</span>(<span class="dt">Vector</span>) <span class="co"># Shorthand for `Vector{T} where T`</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="pp">@show</span> <span class="fu">isconcretetype</span>(<span class="dt">Vector</span>{<span class="dt">Real</span>})</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="pp">@show</span> <span class="fu">isconcretetype</span>(<span class="fu">eltype</span>(<span class="dt">Vector</span>{<span class="dt">Real</span>}))</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="pp">@show</span> <span class="fu">isconcretetype</span>(<span class="dt">Vector</span>{<span class="dt">Int64</span>})</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>isconcretetype(Any) = false
+isconcretetype(AbstractVector) = false
+isconcretetype(Vector) = false
+isconcretetype(Vector{Real}) = true
+isconcretetype(eltype(Vector{Real})) = false
+isconcretetype(Vector{Int64}) = true</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="6">
+<pre><code>true</code></pre>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><code>Vector{Real}</code> is concrete despite <code>Real</code> being abstract for <a href="https://docs.julialang.org/en/v1/manual/types/#man-parametric-composite-types">subtle typing reasons</a> but it will still be slow in practice because the type of its elements is abstract.</p>
+</div>
+</div>
+<p>While type-stable function calls compile down to fast <code>GOTO</code> statements, type-unstable function calls generate code that must read the list of all methods for a given operation and find the one that matches. This phenomenon called “dynamic dispatch” prevents further optimizations.</p>
+<p>Type-stability is a contagous thing: if a variable’s type cannot be inferred, then the types of variables that depend on it may not be inferrable either. Most code should be type-stable unless it has a good reason not to be.</p>
+<section id="detecting-instabilities" class="level3" data-number="23.5.1">
+<h3 data-number="23.5.1" class="anchored" data-anchor-id="detecting-instabilities"><span class="header-section-number">23.5.1</span> Detecting instabilities</h3>
+<p>The simplest way to detect an instability is with the builtin macro <a href="https://docs.julialang.org/en/v1/manual/performance-tips/#man-code-warntype"><code>@code_warntype</code></a>: The output of <code>@code_warntype</code> is difficult to parse, but the key takeaway is the return type of the function’s <code>Body</code>: if it is an abstract type, like <code>Any</code>, something is wrong. In a normal Julia REPL, such cases would show up colored in red as a warning.</p>
+<div id="eb91a158" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">InteractiveUtils</span> <span class="co"># loaded automatically if using a notebook or REPL</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">put_in_vec_and_sum</span>(x)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    v <span class="op">=</span> []</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">push!</span>(v, x)</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fu">sum</span>(v)</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span>;</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="pp">@code_warntype</span> <span class="fu">put_in_vec_and_sum</span>(<span class="fl">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>MethodInstance for put_in_vec_and_sum(::Int64)
+  from put_in_vec_and_sum(x) @ Main In[7]:2
+Arguments
+  #self#::Core.Const(put_in_vec_and_sum)
+  x::Int64
+Locals
+  v::Vector{Any}
+Body::Any
+1 ─      (v = Base.vect())
+│        Main.push!(v, x)
+│   %3 = Main.sum(v)::Any
+└──      return %3
+</code></pre>
+</div>
+</div>
+<p>Unfortunately, <code>@code_warntype</code> is limited to one function body: calls to other functions are not expanded, which makes deeper type instabilities easy to miss. That is where <a href="https://github.com/aviatesk/JET.jl">JET.jl</a> can help: it provides <a href="https://aviatesk.github.io/JET.jl/stable/optanalysis/">optimization analysis</a> aimed primarily at finding type instabilities. While <a href="https://aviatesk.github.io/JET.jl/stable/optanalysis/#optanalysis-test-integration">test integrations</a> are also provided, the interactive entry point of JET is the <code>@report_opt</code> macro.</p>
+<div id="3bd14145" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">JET</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@report_opt</span> <span class="fu">put_in_vec_and_sum</span>(<span class="fl">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="8">
+<div class="ansi-escaped-output">
+<pre>═════ 6 possible errors found ═════
+<span class="ansi-magenta-fg">┌ </span><span class="ansi-bold">put_in_vec_and_sum</span><span class="ansi-bold">(</span><span class="ansi-bright-black-fg">x</span>::Int64<span class="ansi-bold">)</span> <span class="ansi-magenta-fg">@ </span><span class="ansi-magenta-fg">Main</span><span class="ansi-magenta-fg"> ./In[7]:5</span>
+<span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">┌ </span><span class="ansi-bold">sum</span><span class="ansi-bold">(</span><span class="ansi-bright-black-fg">a</span>::Vector<span class="ansi-bright-black-fg">{Any}</span><span class="ansi-bold">)</span> <span class="ansi-blue-fg">@ </span><span class="ansi-blue-fg">Base</span><span class="ansi-blue-fg"> ./reducedim.jl:1010</span>
+<span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">┌ </span><span class="ansi-bold">sum</span><span class="ansi-bold">(</span><span class="ansi-bright-black-fg">a</span>::Vector<span class="ansi-bright-black-fg">{Any}</span>; <span class="ansi-bright-black-fg">dims</span>::Colon, <span class="ansi-bright-black-fg">kw</span>::@Kwargs<span class="ansi-bright-black-fg">{}</span><span class="ansi-bold">)</span> <span class="ansi-yellow-fg">@ </span><span class="ansi-yellow-fg">Base</span><span class="ansi-yellow-fg"> ./reducedim.jl:1010</span>
+<span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">┌ </span><span class="ansi-bold">_sum</span><span class="ansi-bold">(</span><span class="ansi-bright-black-fg">a</span>::Vector<span class="ansi-bright-black-fg">{Any}</span>, ::Colon<span class="ansi-bold">)</span> <span class="ansi-green-fg">@ </span><span class="ansi-green-fg">Base</span><span class="ansi-green-fg"> ./reducedim.jl:1014</span>
+<span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">┌ </span><span class="ansi-bold">_sum</span><span class="ansi-bold">(</span><span class="ansi-bright-black-fg">a</span>::Vector<span class="ansi-bright-black-fg">{Any}</span>, ::Colon; <span class="ansi-bright-black-fg">kw</span>::@Kwargs<span class="ansi-bright-black-fg">{}</span><span class="ansi-bold">)</span> <span class="ansi-magenta-fg">@ </span><span class="ansi-magenta-fg">Base</span><span class="ansi-magenta-fg"> ./reducedim.jl:1014</span>
+<span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">┌ </span><span class="ansi-bold">_sum</span><span class="ansi-bold">(</span><span class="ansi-bright-black-fg">f</span>::typeof(identity), <span class="ansi-bright-black-fg">a</span>::Vector<span class="ansi-bright-black-fg">{Any}</span>, ::Colon<span class="ansi-bold">)</span> <span class="ansi-blue-fg">@ </span><span class="ansi-blue-fg">Base</span><span class="ansi-blue-fg"> ./reducedim.jl:1015</span>
+<span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">┌ </span><span class="ansi-bold">_sum</span><span class="ansi-bold">(</span><span class="ansi-bright-black-fg">f</span>::typeof(identity), <span class="ansi-bright-black-fg">a</span>::Vector<span class="ansi-bright-black-fg">{Any}</span>, ::Colon; <span class="ansi-bright-black-fg">kw</span>::@Kwargs<span class="ansi-bright-black-fg">{}</span><span class="ansi-bold">)</span> <span class="ansi-yellow-fg">@ </span><span class="ansi-yellow-fg">Base</span><span class="ansi-yellow-fg"> ./reducedim.jl:1015</span>
+<span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">┌ </span><span class="ansi-bold">mapreduce</span><span class="ansi-bold">(</span><span class="ansi-bright-black-fg">f</span>::typeof(identity), <span class="ansi-bright-black-fg">op</span>::typeof(Base.add_sum), <span class="ansi-bright-black-fg">A</span>::Vector<span class="ansi-bright-black-fg">{Any}</span><span class="ansi-bold">)</span> <span class="ansi-green-fg">@ </span><span class="ansi-green-fg">Base</span><span class="ansi-green-fg"> ./reducedim.jl:357</span>
+<span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">┌ </span><span class="ansi-bold">mapreduce</span><span class="ansi-bold">(</span><span class="ansi-bright-black-fg">f</span>::typeof(identity), <span class="ansi-bright-black-fg">op</span>::typeof(Base.add_sum), <span class="ansi-bright-black-fg">A</span>::Vector<span class="ansi-bright-black-fg">{Any}</span>; <span class="ansi-bright-black-fg">dims</span>::Colon, <span class="ansi-bright-black-fg">init</span>::Base._InitialValue<span class="ansi-bold">)</span> <span class="ansi-magenta-fg">@ </span><span class="ansi-magenta-fg">Base</span><span class="ansi-magenta-fg"> ./reducedim.jl:357</span>
+<span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">┌ </span><span class="ansi-bold">_mapreduce_dim</span><span class="ansi-bold">(</span><span class="ansi-bright-black-fg">f</span>::typeof(identity), <span class="ansi-bright-black-fg">op</span>::typeof(Base.add_sum), ::Base._InitialValue, <span class="ansi-bright-black-fg">A</span>::Vector<span class="ansi-bright-black-fg">{Any}</span>, ::Colon<span class="ansi-bold">)</span> <span class="ansi-blue-fg">@ </span><span class="ansi-blue-fg">Base</span><span class="ansi-blue-fg"> ./reducedim.jl:365</span>
+<span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">┌ </span><span class="ansi-bold">_mapreduce</span><span class="ansi-bold">(</span><span class="ansi-bright-black-fg">f</span>::typeof(identity), <span class="ansi-bright-black-fg">op</span>::typeof(Base.add_sum), ::IndexLinear, <span class="ansi-bright-black-fg">A</span>::Vector<span class="ansi-bright-black-fg">{Any}</span><span class="ansi-bold">)</span> <span class="ansi-yellow-fg">@ </span><span class="ansi-yellow-fg">Base</span><span class="ansi-yellow-fg"> ./reduce.jl:447</span>
+<span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">┌ </span><span class="ansi-bold">mapreduce_impl</span><span class="ansi-bold">(</span><span class="ansi-bright-black-fg">f</span>::typeof(identity), <span class="ansi-bright-black-fg">op</span>::typeof(Base.add_sum), <span class="ansi-bright-black-fg">A</span>::Vector<span class="ansi-bright-black-fg">{Any}</span>, <span class="ansi-bright-black-fg">ifirst</span>::Int64, <span class="ansi-bright-black-fg">ilast</span>::Int64<span class="ansi-bold">)</span> <span class="ansi-green-fg">@ </span><span class="ansi-green-fg">Base</span><span class="ansi-green-fg"> ./reduce.jl:277</span>
+<span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-bright-red-fg">┌ </span><span class="ansi-bold">mapreduce_impl</span><span class="ansi-bold">(</span><span class="ansi-bright-black-fg">f</span>::typeof(identity), <span class="ansi-bright-black-fg">op</span>::typeof(Base.add_sum), <span class="ansi-bright-black-fg">A</span>::Vector<span class="ansi-bright-black-fg">{…}</span>, <span class="ansi-bright-black-fg">ifirst</span>::Int64, <span class="ansi-bright-black-fg">ilast</span>::Int64, <span class="ansi-bright-black-fg">blksize</span>::Int64<span class="ansi-bold">)</span> <span class="ansi-bright-red-fg">@ </span><span class="ansi-bright-red-fg">Base</span><span class="ansi-bright-red-fg"> ./reduce.jl:257</span>
+<span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-bright-red-fg">│ </span><span class="ansi-bright-red-fg">runtime dispatch detected</span><span class="ansi-bright-red-fg">: </span><span class="ansi-bold">Base.mapreduce_first</span><span class="ansi-bold">(</span><span class="ansi-bold">f</span><span class="ansi-bright-cyan-fg ansi-bold">::typeof(identity)</span><span class="ansi-bold">, </span><span class="ansi-bold">op</span><span class="ansi-bright-cyan-fg ansi-bold">::typeof(Base.add_sum)</span><span class="ansi-bold">, </span><span class="ansi-bold">%3</span><span class="ansi-bright-cyan-fg ansi-bold">::Any</span><span class="ansi-bold">)</span><span class="ansi-bright-cyan-fg ansi-bold">::Any</span>
+<span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-bright-red-fg">└────────────────────</span>
+<span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-bright-red-fg">┌ </span><span class="ansi-bold">mapreduce_impl</span><span class="ansi-bold">(</span><span class="ansi-bright-black-fg">f</span>::typeof(identity), <span class="ansi-bright-black-fg">op</span>::typeof(Base.add_sum), <span class="ansi-bright-black-fg">A</span>::Vector<span class="ansi-bright-black-fg">{…}</span>, <span class="ansi-bright-black-fg">ifirst</span>::Int64, <span class="ansi-bright-black-fg">ilast</span>::Int64, <span class="ansi-bright-black-fg">blksize</span>::Int64<span class="ansi-bold">)</span> <span class="ansi-bright-red-fg">@ </span><span class="ansi-bright-red-fg">Base</span><span class="ansi-bright-red-fg"> ./reduce.jl:262</span>
+<span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-bright-red-fg">│ </span><span class="ansi-bright-red-fg">runtime dispatch detected</span><span class="ansi-bright-red-fg">: </span><span class="ansi-bold">op</span><span class="ansi-bright-cyan-fg ansi-bold">::typeof(Base.add_sum)</span><span class="ansi-bold">(</span><span class="ansi-bold">%9</span><span class="ansi-bright-cyan-fg ansi-bold">::Any</span><span class="ansi-bold">, </span><span class="ansi-bold">%11</span><span class="ansi-bright-cyan-fg ansi-bold">::Any</span><span class="ansi-bold">)</span><span class="ansi-bright-cyan-fg ansi-bold">::Any</span>
+<span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-bright-red-fg">└────────────────────</span>
+<span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-bright-red-fg">┌ </span><span class="ansi-bold">mapreduce_impl</span><span class="ansi-bold">(</span><span class="ansi-bright-black-fg">f</span>::typeof(identity), <span class="ansi-bright-black-fg">op</span>::typeof(Base.add_sum), <span class="ansi-bright-black-fg">A</span>::Vector<span class="ansi-bright-black-fg">{…}</span>, <span class="ansi-bright-black-fg">ifirst</span>::Int64, <span class="ansi-bright-black-fg">ilast</span>::Int64, <span class="ansi-bright-black-fg">blksize</span>::Int64<span class="ansi-bold">)</span> <span class="ansi-bright-red-fg">@ </span><span class="ansi-bright-red-fg">Base</span><span class="ansi-bright-red-fg"> ./reduce.jl:273</span>
+<span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-bright-red-fg">│ </span><span class="ansi-bright-red-fg">runtime dispatch detected</span><span class="ansi-bright-red-fg">: </span><span class="ansi-bold">op</span><span class="ansi-bright-cyan-fg ansi-bold">::typeof(Base.add_sum)</span><span class="ansi-bold">(</span><span class="ansi-bold">%69</span><span class="ansi-bright-cyan-fg ansi-bold">::Any</span><span class="ansi-bold">, </span><span class="ansi-bold">%71</span><span class="ansi-bright-cyan-fg ansi-bold">::Any</span><span class="ansi-bold">)</span><span class="ansi-bright-cyan-fg ansi-bold">::Any</span>
+<span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-bright-red-fg">└────────────────────</span>
+<span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-bright-red-fg">┌ </span><span class="ansi-bold">_mapreduce</span><span class="ansi-bold">(</span><span class="ansi-bright-black-fg">f</span>::typeof(identity), <span class="ansi-bright-black-fg">op</span>::typeof(Base.add_sum), ::IndexLinear, <span class="ansi-bright-black-fg">A</span>::Vector<span class="ansi-bright-black-fg">{Any}</span><span class="ansi-bold">)</span> <span class="ansi-bright-red-fg">@ </span><span class="ansi-bright-red-fg">Base</span><span class="ansi-bright-red-fg"> ./reduce.jl:435</span>
+<span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-bright-red-fg">│ </span><span class="ansi-bright-red-fg">runtime dispatch detected</span><span class="ansi-bright-red-fg">: </span><span class="ansi-bold">Base.mapreduce_first</span><span class="ansi-bold">(</span><span class="ansi-bold">f</span><span class="ansi-bright-cyan-fg ansi-bold">::typeof(identity)</span><span class="ansi-bold">, </span><span class="ansi-bold">op</span><span class="ansi-bright-cyan-fg ansi-bold">::typeof(Base.add_sum)</span><span class="ansi-bold">, </span><span class="ansi-bold">%10</span><span class="ansi-bright-cyan-fg ansi-bold">::Any</span><span class="ansi-bold">)</span><span class="ansi-bright-cyan-fg ansi-bold">::Any</span>
+<span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-bright-red-fg">└────────────────────</span>
+<span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-bright-red-fg">┌ </span><span class="ansi-bold">_mapreduce</span><span class="ansi-bold">(</span><span class="ansi-bright-black-fg">f</span>::typeof(identity), <span class="ansi-bright-black-fg">op</span>::typeof(Base.add_sum), ::IndexLinear, <span class="ansi-bright-black-fg">A</span>::Vector<span class="ansi-bright-black-fg">{Any}</span><span class="ansi-bold">)</span> <span class="ansi-bright-red-fg">@ </span><span class="ansi-bright-red-fg">Base</span><span class="ansi-bright-red-fg"> ./reduce.jl:440</span>
+<span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-bright-red-fg">│ </span><span class="ansi-bright-red-fg">runtime dispatch detected</span><span class="ansi-bright-red-fg">: </span><span class="ansi-bold">op</span><span class="ansi-bright-cyan-fg ansi-bold">::typeof(Base.add_sum)</span><span class="ansi-bold">(</span><span class="ansi-bold">%15</span><span class="ansi-bright-cyan-fg ansi-bold">::Any</span><span class="ansi-bold">, </span><span class="ansi-bold">%16</span><span class="ansi-bright-cyan-fg ansi-bold">::Any</span><span class="ansi-bold">)</span><span class="ansi-bright-cyan-fg ansi-bold">::Any</span>
+<span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-bright-red-fg">└────────────────────</span>
+<span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-bright-red-fg">┌ </span><span class="ansi-bold">_mapreduce</span><span class="ansi-bold">(</span><span class="ansi-bright-black-fg">f</span>::typeof(identity), <span class="ansi-bright-black-fg">op</span>::typeof(Base.add_sum), ::IndexLinear, <span class="ansi-bright-black-fg">A</span>::Vector<span class="ansi-bright-black-fg">{Any}</span><span class="ansi-bold">)</span> <span class="ansi-bright-red-fg">@ </span><span class="ansi-bright-red-fg">Base</span><span class="ansi-bright-red-fg"> ./reduce.jl:443</span>
+<span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-bright-red-fg">│ </span><span class="ansi-bright-red-fg">runtime dispatch detected</span><span class="ansi-bright-red-fg">: </span><span class="ansi-bold">op</span><span class="ansi-bright-cyan-fg ansi-bold">::typeof(Base.add_sum)</span><span class="ansi-bold">(</span><span class="ansi-bold">%18</span><span class="ansi-bright-cyan-fg ansi-bold">::Any</span><span class="ansi-bold">, </span><span class="ansi-bold">%25</span><span class="ansi-bright-cyan-fg ansi-bold">::Any</span><span class="ansi-bold">)</span><span class="ansi-bright-cyan-fg ansi-bold">::Any</span>
+<span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-bright-red-fg">└────────────────────</span>
+</pre>
+</div>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[ Info: tracking Base</code></pre>
+</div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The Julia extension features a <a href="https://www.julia-vscode.org/docs/stable/userguide/linter/">static linter</a>, and runtime diagnostics with JET can be automated to run periodically on your codebase and show any problems detected.</p>
+</div>
+</div>
+<p><a href="https://github.com/JuliaDebug/Cthulhu.jl">Cthulhu.jl</a> exposes the <code>@descend</code> macro which can be used to interactively “step through” lines of the corresponding typed code, and “descend” into a particular line if needed. This is akin to repeatedly calling <code>@code_warntype</code> deeper and deeper into your functions (“slowly succumbing to the madness…” of type instability).</p>
+</section>
+<section id="fixing-instabilities" class="level3" data-number="23.5.2">
+<h3 data-number="23.5.2" class="anchored" data-anchor-id="fixing-instabilities"><span class="header-section-number">23.5.2</span> Fixing instabilities</h3>
+<p>The Julia manual has a collection of tips to <a href="https://docs.julialang.org/en/v1.12-dev/manual/performance-tips/#Type-inference">improve type inference</a>.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>To be more forceful about ensuring type stabiltiy in your code, one approach is to error whenever a type instability occurs: the macro <code>@stable</code> from <a href="https://github.com/MilesCranmer/DispatchDoctor.jl">DispatchDoctor.jl</a> allows exactly that.</p>
+</div>
+</div>
+</section>
+</section>
+<section id="memory-management" class="level2" data-number="23.6">
+<h2 data-number="23.6" class="anchored" data-anchor-id="memory-management"><span class="header-section-number">23.6</span> Memory management</h2>
+<p>After ensuring type stability, one should try to reduce the number of heap allocations a program makes. Again, the Julia manual has a series of tricks related to <a href="https://docs.julialang.org/en/v1.12-dev/manual/performance-tips/#Memory-management-and-arrays">arrays and allocations</a> which you should take a look at. In particular, try to modify existing arrays instead of allocating new objects and try to access arrays in the right order for Julia, i.e.&nbsp;accessing data down columns instead of across rows.</p>
+<p>Alternatively, to ensure that non-allocating functions never regress in future versions of your code, you can write a test set to check allocations by providing the function and a concrete type-signature.</p>
+<p><code>julia AllocCheck @testset "non-allocating" begin     @test isempty(AllocCheck.check_allocs(my_func, (Float64, Float64))) end</code></p>
+</section>
+<section id="compilation" class="level2" data-number="23.7">
+<h2 data-number="23.7" class="anchored" data-anchor-id="compilation"><span class="header-section-number">23.7</span> Compilation</h2>
+<p>A number of tools allow you to reduce Julia’s latency, also referred to as TTFX (time to first X, where X was historically plotting a graph).</p>
+<section id="precompilation" class="level3" data-number="23.7.1">
+<h3 data-number="23.7.1" class="anchored" data-anchor-id="precompilation"><span class="header-section-number">23.7.1</span> Precompilation</h3>
+<p><a href="https://github.com/JuliaLang/PrecompileTools.jl">PrecompileTools.jl</a> reduces the amount of time taken to run functions loaded from a package or local module that you wrote. It allows module authors to specify methods to precompile when a module is loaded for the first time. The methods chosen should represent those which would be used during typical user workflows. These methods then have the same latency as if they had already been run by the end user. This adds upfront pre-compilation time when installing a package version for the first time, but then subsequent uses will be much quicker.</p>
+<p>Here’s an example of precompilation, adapted from the package’s <a href="https://julialang.github.io/PrecompileTools.jl/stable/#Tutorial:-forcing-precompilation-with-workloads">documentation</a>:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">module</span> MyPackage</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">PrecompileTools</span>: @compile_workload</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> MyType</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    x<span class="op">::</span><span class="dt">Int</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a><span class="fu">myfunction</span>(a<span class="op">::</span><span class="dt">Vector</span>) <span class="op">=</span> a[<span class="fl">1</span>].x</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a><span class="pp">@compile_workload</span> <span class="cf">begin</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>    a <span class="op">=</span> [<span class="fu">MyType</span>(<span class="fl">1</span>)]</span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">myfunction</span>(a)</span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Note that every method that is called will be compiled, no matter how far down the call stack or which module it comes from. To see if the intended calls were compiled correctly or diagnose other problems related to precompilation, use <a href="https://github.com/timholy/SnoopCompile.jl">SnoopCompile.jl</a>. This is especially important for writers of registered Julia packages, as it allows you to diagnose recompilation that happens due to invalidation.</p>
+</section>
+<section id="package-compilation" class="level3" data-number="23.7.2">
+<h3 data-number="23.7.2" class="anchored" data-anchor-id="package-compilation"><span class="header-section-number">23.7.2</span> Package compilation</h3>
+<p>To reduce the time that packages take to load, you can use <a href="https://github.com/JuliaLang/PackageCompiler.jl">PackageCompiler.jl</a> to generate a custom version of Julia, called a <strong>sysimage</strong> (system image), with its own custom standard library. As packages in the standard library are already compiled, any <code>using</code> or <code>import</code> statement involving them is almost instant.</p>
+<p>Once PackageCompiler.jl is added to your global environment, activate a local environment for which you want to generate a sysimage, ensure all of the packages you want to compile are in its <code>Project.toml</code>, and run <code>create_sysimage</code> as in the example below. The filetype of <code>sysimage_path</code> differs by operating system: Linux has <code>.so</code>, MacOS has <code>.dylib</code>, and Windows has <code>.dll</code>.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">PackageCompiler</span> <span class="co"># installed in global environment</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>packages_to_compile <span class="op">=</span> [<span class="st">"Makie"</span>, <span class="st">"DifferentialEquations"</span>]</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="fu">create_sysimage</span>(packages_to_compile; sysimage_path<span class="op">=</span><span class="st">"MySysimage.so"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Once a sysimage is generated, it can be used with the command line flag: <code>julia --sysimage=path/to/sysimage</code>.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The generation and loading of sysimages can be <a href="https://www.julia-vscode.org/docs/stable/userguide/compilesysimage/">streamlined with VSCode</a>. By default, the command sequence <code>Task: Run Build Task</code> followed by <code>Julia: Build custom sysimage for current environment</code> will compile a sysimage containing all packages in the current environment, but additional details can be specified in a <code>/.vscode/JuliaSysimage.toml</code> file. To automatically detect and use a custom sysimage, set <code>useCustomSysimage</code> to <code>true</code> in the application settings.</p>
+</div>
+</div>
+</section>
+<section id="static-compilation" class="level3" data-number="23.7.3">
+<h3 data-number="23.7.3" class="anchored" data-anchor-id="static-compilation"><span class="header-section-number">23.7.3</span> Static compilation</h3>
+<p><a href="https://github.com/JuliaLang/PackageCompiler.jl">PackageCompiler.jl</a> also facilitates the creation of <a href="https://julialang.github.io/PackageCompiler.jl/stable/apps.html">apps</a> and <a href="https://julialang.github.io/PackageCompiler.jl/stable/libs.html">libraries</a> that can be shared to and run on machines that don’t have Julia installed.</p>
+<p>At a basic level, all that’s required to turn a Julia module <code>MyModule</code> into an app is a function <code>julia_main()::Cint</code> that returns <code>0</code> upon successful completion. Then, with PackageCompiler.jl loaded, run <code>create_app("MyModule", "MyAppCompiled")</code>. Command line arguments to the resulting app are assigned to the global variable <code>ARGS::Array{ASCIIString}</code>, the handling of which can be made easier by <a href="https://github.com/carlobaldassi/ArgParse.jl">ArgParse.jl</a>.</p>
+<p>In Julia, a library is just a sysimage with some extras that enable external programs to interact with it. Any functions in a module marked with <code>Base.@ccallable</code>, and whose type signature involves C-conforming types e.g.&nbsp;<code>Cint</code>, <code>Cstring</code>, and <code>Cvoid</code>, can be compiled into an externally callable library with <code>create_library</code>, similarly to <code>create_app</code>. Unfortunately, the process of compiling and sharing a standalone executable or callable library must take <a href="https://julialang.github.io/PackageCompiler.jl/stable/apps.html#relocatability">relocability</a> into account, which is beyond the scope of this blog.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>An alternative way to compile a shareable app or library that doesn’t need to compile a sysimage, and therefore results in smaller binaries, is to use <a href="https://github.com/tshort/StaticCompiler.jl">StaticCompiler.jl</a> and its sister package <a href="https://github.com/brenhinkeller/StaticTools.jl">StaticTools.jl</a>. The biggest tradeoff of not compiling a sysimage, is that Julia’s garbage collector is no longer included, so all heap allocations must be managed manually, and all code compiled <em>must</em> be type-stable. To get around this limitation, you can use static equivalents of dynamic types, such as a <code>StaticArray</code> (<a href="https://github.com/JuliaArrays/StaticArrays.jl">StaticArrays.jl</a>) instead of an <code>Array</code> or a <code>StaticString</code> (StaticTools.jl), use <code>malloc</code> and <code>free</code> from StaticTools.jl directly, or use arena allocators with <a href="https://github.com/MasonProtter/Bumper.jl">Bumper.jl</a>. The README of StaticCompiler.jl contains a more <a href="https://github.com/tshort/StaticCompiler.jl?tab=readme-ov-file#guide-for-package-authors">detailed guide</a> on how to prepare code to be compiled.</p>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Starting with Julia 1.12, it is anticipated that there will be a new way to compile Julia to small, static binaries with a tool called <code>juliac</code>.</p>
+</div>
+</div>
+</section>
+</section>
+<section id="parallelism" class="level2" data-number="23.8">
+<h2 data-number="23.8" class="anchored" data-anchor-id="parallelism"><span class="header-section-number">23.8</span> Parallelism</h2>
+<p>Code can be made to run faster through parallel execution with <a href="https://docs.julialang.org/en/v1/manual/multi-threading/">multithreading</a> (shared-memory parallelism) or <a href="https://docs.julialang.org/en/v1/manual/distributed-computing/">multiprocessing / distributed computing</a>. Parallelism was covered in a whole chapter (<a href="#sec-parallelization" class="quarto-xref"><span class="quarto-unresolved-ref">sec-parallelization</span></a>), but this section provides insight into recommended pacakges and patterns specific to Julia.</p>
+<p>Many common operations such as maps and reductions can be trivially parallelised through either method by using their respective Julia packages (e.g <code>pmap</code> from Distributed.jl and <code>tmap</code> from OhMyThreads.jl). Multithreading is available on almost all modern hardware, whereas distributed computing is most useful to users of high-performance computing clusters.</p>
+<section id="multithreading" class="level3" data-number="23.8.1">
+<h3 data-number="23.8.1" class="anchored" data-anchor-id="multithreading"><span class="header-section-number">23.8.1</span> Multithreading</h3>
+<p>To enable multithreading with the built-in <code>Threads</code> library, use one of the following equivalent command line flags, and give either an integer or <code>auto</code>:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="ex">julia</span> <span class="at">--threads</span> 4</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="ex">julia</span> <span class="at">-t</span> auto</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Once Julia is running, you can check if this was successful by calling <code>Threads.nthreads()</code>.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The default number of threads can be edited by adding <code>"julia.NumThreads": 4,</code> to your settings. This will be applied to the integrated terminal.</p>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Linear algebra code calls the low-level libraries <a href="https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms">BLAS</a> and <a href="https://en.wikipedia.org/wiki/LAPACK">LAPACK</a>. These libraries manage their own pool of threads, so single-threaded Julia processes can still make use of multiple threads, and multi-threaded Julia processes that call these libraries may run into performance issues due to the limited number of threads available in a single core. In this case, once <code>LinearAlgebra</code> is loaded, BLAS can be set to use only one thread by calling <code>BLAS.set_num_threads(1)</code>. For more information see the docs on <a href="https://docs.julialang.org/en/v1/manual/performance-tips/#man-multithreading-linear-algebra">multithreading and linear algebra</a>.</p>
+</div>
+</div>
+<p>Regardless of the number of threads, you can parallelise a for loop with the macro <code>Threads.@threads</code>. The macros <code>@spawn</code> and <code>@async</code> function similarly, but require more manual management of tasks and their results. For this reason <code>@threads</code> is recommended for those who do not wish to use third-party packages.</p>
+<p>When designing multithreaded code, you should generally try to write to shared memory as rarely as possible. Where it cannot be avoided, you need to be careful to avoid “race conditions”, i.e.&nbsp;situations when competing threads try to write different things to the same memory location. It is usually a good idea to separate memory accesses with loop indices, as in the example below:</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> <span class="fu">zeros</span>(<span class="dt">Int</span>, <span class="fl">4</span>)</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="bu">Threads</span>.<span class="pp">@threads</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">4</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    results[i] <span class="op">=</span> i<span class="op">^</span><span class="fl">2</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Almost always, it is <a href="https://julialang.org/blog/2023/07/PSA-dont-use-threadid/"><strong>not</strong> a good idea to use <code>threadid()</code></a>.</p>
+<p>Even if you manage to avoid any race conditions in your multithreaded code, it is very easy to run into subtle performance issues (like <a href="https://en.wikipedia.org/wiki/False_sharing">false sharing</a>). For these reasons, you might want to consider using a high-level package like <a href="https://github.com/JuliaFolds2/OhMyThreads.jl">OhMyThreads.jl</a>, which provides a user-friendly alternative to <code>Threads</code> and makes managing threads and their memory use much easier. The helpful <a href="https://juliafolds2.github.io/OhMyThreads.jl/stable/translation/">translation guide</a> demonstrates how Base multi-threading loops can be translated into the OhMyThreads API.</p>
+<p>If the latency of spinning up new threads becomes a bottleneck, check out <a href="https://github.com/JuliaSIMD/Polyester.jl">Polyester.jl</a> for very lightweight threads that are quicker to start.</p>
+<p>If you’re on Linux, you should consider using <a href="https://github.com/carstenbauer/ThreadPinning.jl">ThreadPinning.jl</a> to pin your Julia threads to CPU cores to obtain stable and optimal performance. The package can also be used to visualize where the Julia threads are running on your system (see <code>threadinfo()</code>).</p>
+</section>
+<section id="distributed-computing" class="level3" data-number="23.8.2">
+<h3 data-number="23.8.2" class="anchored" data-anchor-id="distributed-computing"><span class="header-section-number">23.8.2</span> Distributed computing</h3>
+<p>Julia’s multiprocessing and distributed relies on the standard library <code>Distributed</code>. The main difference with multi-threading is that data isn’t shared between worker processes. Once Julia is started, processes can be added with <code>addprocs</code>, and their can be queried with <code>nworkers</code>.</p>
+<p>The macro <code>Distributed.@distributed</code> is a <em>syntactic</em> equivalent for <code>Threads.@threads</code>. Hence, we can use <code>@distributed</code> to parallelise a for loop as before, but we have to additionally deal with sharing and recombining the <code>results</code> array. We can delegate this responsibility to the standard library <code>SharedArrays</code>. However, in order for all workers to know about a function or module, we have to load it <code>@everywhere</code>:</p>
+<div id="974cfb00" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Distributed</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Add additional workers then load code on the workers</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="fu">addprocs</span>(<span class="fl">3</span>) </span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="pp">@everywhere</span> <span class="im">using</span> <span class="bu">SharedArrays</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a><span class="pp">@everywhere</span> <span class="fu">f</span>(x) <span class="op">=</span> <span class="fl">3</span>x<span class="op">^</span><span class="fl">2</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> <span class="fu">SharedArray</span><span class="dt">{Int}</span>(<span class="fl">4</span>)</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a><span class="pp">@sync</span> <span class="pp">@distributed</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">4</span></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>    results[i] <span class="op">=</span> <span class="fu">f</span>(i)</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>results</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="9">
+<pre><code>4-element SharedVector{Int64}:
+  3
+ 12
+ 27
+ 48</code></pre>
+</div>
+</div>
+<p>Note that <code>@distributed</code> does not force the main process to wait for other workers, so we must use <code>@sync</code> to block execution until all computations are done.</p>
+<p>One feature <code>@distributed</code> has over <code>@threads</code> is the possibility to specify a reduction function (an associative binary operator) which combines the results of each worker. In this case <code>@sync</code> is implied, as the reduction cannot happen unless all of the workers have finished.</p>
+<div id="c99bef47" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Distributed</span>  <span class="co"># hide</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="69915381" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@distributed</span> (<span class="op">+</span>) <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">4</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>    i<span class="op">^</span><span class="fl">2</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="11">
+<pre><code>30</code></pre>
+</div>
+</div>
+<p>Alternately, the convenience function <code>pmap</code> can be used to easily parallelise a <code>map</code>, both in a distributed and multi-threaded way.</p>
+<div id="2ec73316" class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> <span class="fu">pmap</span>(f, <span class="fl">1</span><span class="op">:</span><span class="fl">100</span>; distributed<span class="op">=</span><span class="cn">true</span>, batch_size<span class="op">=</span><span class="fl">25</span>, on_error<span class="op">=</span>ex<span class="op">-&gt;</span><span class="fl">0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="12">
+<pre><code>100-element Vector{Int64}:
+     3
+    12
+    27
+    48
+    75
+   108
+   147
+   192
+   243
+   300
+   363
+   432
+   507
+     ⋮
+ 23763
+ 24300
+ 24843
+ 25392
+ 25947
+ 26508
+ 27075
+ 27648
+ 28227
+ 28812
+ 29403
+ 30000</code></pre>
+</div>
+</div>
+<p>For more functionalities related to higher-order functions, <a href="https://github.com/JuliaFolds2/Transducers.jl">Transducers.jl</a> and <a href="https://github.com/JuliaFolds2/Folds.jl">Folds.jl</a> are the way to go.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><a href="https://github.com/JuliaParallel/MPI.jl">MPI.jl</a> implements the <a href="https://en.wikipedia.org/wiki/Message_Passing_Interface">Message Passing Interface standard</a>, which is heavily used in high-performance computing beyond Julia. The C library that MPI.jl wraps is <em>highly</em> optimized, so Julia code that needs to be scaled up to a large number of cores, such as an HPC cluster, will typically run faster with MPI than with plain <code>Distributed</code>.</p>
+<p><a href="https://github.com/JuliaParallel/Elemental.jl">Elemental.jl</a> is a package for distributed dense and sparse linear algebra which wraps the <a href="https://github.com/LLNL/Elemental">Elemental</a> library written in C++, itself using MPI under the hood.</p>
+</div>
+</div>
+</section>
+<section id="gpu-programming" class="level3" data-number="23.8.3">
+<h3 data-number="23.8.3" class="anchored" data-anchor-id="gpu-programming"><span class="header-section-number">23.8.3</span> GPU programming</h3>
+<p>GPUs are specialised in executing instructions in parallel over a large number of threads. While they were originally designed for accelerating graphics rendering, more recently they have been used to train and evaluate machine learning models.</p>
+<p>Julia’s GPU ecosystem is managed by the <a href="https://juliagpu.org/">JuliaGPU</a> organisation, which provides individual packages for directly working with each GPU vendor’s instruction set. The most popular one is <a href="https://github.com/JuliaGPU/CUDA.jl">CUDA.jl</a>, which also simplifies installation of CUDA drivers for NVIDIA GPUs. Through <a href="https://github.com/JuliaGPU/KernelAbstractions.jl">KernelAbstractions.jl</a>, you can easily write code that is agnostic to the type of GPU where it will run.</p>
+</section>
+<section id="simd-instructions" class="level3" data-number="23.8.4">
+<h3 data-number="23.8.4" class="anchored" data-anchor-id="simd-instructions"><span class="header-section-number">23.8.4</span> SIMD instructions</h3>
+<p>In the Single Instruction, Multiple Data paradigm, several processing units perform the same instruction at the same time, differing only in their inputs. The range of operations that can be parallelised (or “vectorized”) like this is more limited than in the previous sections, and slightly harder to control. Julia can automatically vectorize repeated numerical operations (such as those found in loops) provided a few conditions are met:</p>
+<ol type="1">
+<li>Reordering operations must not change the result of the computation.</li>
+<li>There must be no control flow or branches in the core computation.</li>
+<li>All array accesses must follow some linear pattern.</li>
+</ol>
+<p>While this may seem straightforward, there are a number of important caveats which prevent code from being vectorized. <a href="https://docs.julialang.org/en/v1/manual/performance-tips/#man-performance-annotations">Performance annotations</a> like <code>@simd</code> or <code>@inbounds</code> help enable vectorization in some cases, as does replacing control flow with <code>ifelse</code>.</p>
+<p>If this isn’t enough, <a href="https://github.com/eschnett/SIMD.jl">SIMD.jl</a> allows users to force the use of SIMD instructions and bypass the check for whether this is possible. One particular use-case for this is for vectorising non-contiguous memory reads and writes through <code>SIMD.vgather</code> and <code>SIMD.vscatter</code> respectively.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>You can detect whether the optimizations have occurred by inspecting the output of <code>@code_llvm</code> or <code>@code_native</code> and looking for vectorised registers, types, instructions. Note that the exact things you’re looking for will vary between code and CPU instruction set, an example of what to look for can be seen in this <a href="https://kristofferc.github.io/post/intrinsics/">blog post</a> by Kristoffer Carlsson.</p>
+</div>
+</div>
+</section>
+</section>
+<section id="efficient-types" class="level2" data-number="23.9">
+<h2 data-number="23.9" class="anchored" data-anchor-id="efficient-types"><span class="header-section-number">23.9</span> Efficient types</h2>
+<p>Using an efficient data structure is a tried and true way of improving the performance. While users can write their own efficient implementations through officially documented <a href="https://docs.julialang.org/en/v1/manual/interfaces/">interfaces</a>, a number of packages containing common use cases are more tightly integrated into the Julia ecosystem.</p>
+<section id="static-arrays" class="level3" data-number="23.9.1">
+<h3 data-number="23.9.1" class="anchored" data-anchor-id="static-arrays"><span class="header-section-number">23.9.1</span> Static arrays</h3>
+<p>Using <a href="https://github.com/JuliaArrays/StaticArrays.jl">StaticArrays.jl</a>, you can construct arrays which contain size information in their type. Through multiple dispatch, statically sized arrays give rise to specialised, efficient methods for certain algorithms like linear algebra. In addition, the <code>SArray</code>, <code>SMatrix</code> and <code>SVector</code> types are immutable, so the array does not need to be garbage collected as it can be stack-allocated. Creating a new <code>SArray</code>s comes at almost no extra cost, compared to directly editing the data of a mutable object. With <code>MArray</code>, <code>MMatrix</code>, and <code>MVector</code>, data remains mutable as in normal arrays.</p>
+<p>To handle mutable and immutable data structures with the same syntax, you can use <a href="https://github.com/JuliaObjects/Accessors.jl">Accessors.jl</a>:</p>
+<div id="6982be64" class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">StaticArrays</span>, <span class="bu">Accessors</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>sx <span class="op">=</span> SA[<span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">3</span>] <span class="co"># SA constructs an SArray</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="pp">@set</span> sx[<span class="fl">1</span>] <span class="op">=</span> <span class="fl">3</span> <span class="co"># Returns a copy, does not update the variable</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="pp">@reset</span> sx[<span class="fl">1</span>] <span class="op">=</span> <span class="fl">4</span> <span class="co"># Replaces the original</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[ Info: Precompiling Accessors [7d9f7c33-5ae7-4f3b-8dc6-eff91059b697]
+WARNING: Method definition getfields(LinearAlgebra.Tridiagonal{T, V} where V&lt;:AbstractArray{T, 1} where T) in module ConstructionBase at /Users/alec/.julia/packages/ConstructionBase/m8TfI/src/nonstandard.jl:40 overwritten in module ConstructionBaseLinearAlgebraExt at /Users/alec/.julia/packages/ConstructionBase/lUKuV/ext/ConstructionBaseLinearAlgebraExt.jl:16.
+ERROR: Method overwriting is not permitted during Module precompilation. Use `__precompile__(false)` to opt-out of precompilation.
+┌ Error: Error during loading of extension ConstructionBaseLinearAlgebraExt of ConstructionBase, use `Base.retry_load_extensions()` to retry.
+│   exception =
+│    1-element ExceptionStack:
+│    Declaring __precompile__(false) is not allowed in files that are being precompiled.
+│    Stacktrace:
+│      [1] _require(pkg::Base.PkgId, env::Nothing)
+│        @ Base ./loading.jl:1999
+│      [2] __require_prelocked(uuidkey::Base.PkgId, env::Nothing)
+│        @ Base ./loading.jl:1812
+│      [3] #invoke_in_world#3
+│        @ ./essentials.jl:926 [inlined]
+│      [4] invoke_in_world
+│        @ ./essentials.jl:923 [inlined]
+│      [5] _require_prelocked
+│        @ ./loading.jl:1803 [inlined]
+│      [6] _require_prelocked
+│        @ ./loading.jl:1802 [inlined]
+│      [7] run_extension_callbacks(extid::Base.ExtensionId)
+│        @ Base ./loading.jl:1295
+│      [8] run_extension_callbacks(pkgid::Base.PkgId)
+│        @ Base ./loading.jl:1330
+│      [9] run_package_callbacks(modkey::Base.PkgId)
+│        @ Base ./loading.jl:1164
+│     [10] __require_prelocked(uuidkey::Base.PkgId, env::String)
+│        @ Base ./loading.jl:1819
+│     [11] #invoke_in_world#3
+│        @ ./essentials.jl:926 [inlined]
+│     [12] invoke_in_world
+│        @ ./essentials.jl:923 [inlined]
+│     [13] _require_prelocked(uuidkey::Base.PkgId, env::String)
+│        @ Base ./loading.jl:1803
+│     [14] macro expansion
+│        @ ./loading.jl:1790 [inlined]
+│     [15] macro expansion
+│        @ ./lock.jl:267 [inlined]
+│     [16] __require(into::Module, mod::Symbol)
+│        @ Base ./loading.jl:1753
+│     [17] #invoke_in_world#3
+│        @ ./essentials.jl:926 [inlined]
+│     [18] invoke_in_world
+│        @ ./essentials.jl:923 [inlined]
+│     [19] require(into::Module, mod::Symbol)
+│        @ Base ./loading.jl:1746
+│     [20] include(mod::Module, _path::String)
+│        @ Base ./Base.jl:495
+│     [21] include(x::String)
+│        @ Accessors ~/.julia/packages/Accessors/C574d/src/Accessors.jl:1
+│     [22] top-level scope
+│        @ ~/.julia/packages/Accessors/C574d/src/Accessors.jl:13
+│     [23] include
+│        @ ./Base.jl:495 [inlined]
+│     [24] include_package_for_output(pkg::Base.PkgId, input::String, depot_path::Vector{String}, dl_load_path::Vector{String}, load_path::Vector{String}, concrete_deps::Vector{Pair{Base.PkgId, UInt128}}, source::Nothing)
+│        @ Base ./loading.jl:2222
+│     [25] top-level scope
+│        @ stdin:3
+│     [26] eval
+│        @ ./boot.jl:385 [inlined]
+│     [27] include_string(mapexpr::typeof(identity), mod::Module, code::String, filename::String)
+│        @ Base ./loading.jl:2076
+│     [28] include_string
+│        @ ./loading.jl:2086 [inlined]
+│     [29] exec_options(opts::Base.JLOptions)
+│        @ Base ./client.jl:316
+│     [30] _start()
+│        @ Base ./client.jl:552
+└ @ Base loading.jl:1301
+Precompiling AccessorsDatesExt
+  ✓ Accessors → AccessorsDatesExt
+  ✓ Accessors → AccessorsTestExt
+  ✓ Accessors → AccessorsStaticArraysExt
+  3 dependencies successfully precompiled in 2 seconds. 15 already precompiled.
+[ Info: Precompiling AccessorsDatesExt [308068fd-b978-57fd-b78f-2a52fb63dba4]
+┌ Warning: Module Accessors with build ID fafbfcfd-a7b6-253f-0004-590a4e15f135 is missing from the cache.
+│ This may mean Accessors [7d9f7c33-5ae7-4f3b-8dc6-eff91059b697] does not support precompilation but is imported by a module that does.
+└ @ Base loading.jl:1948
+[ Info: Skipping precompilation since __precompile__(false). Importing AccessorsDatesExt [308068fd-b978-57fd-b78f-2a52fb63dba4].
+[ Info: Precompiling AccessorsIntervalSetsExt [727f68c9-d1d4-5b40-b284-36502e629768]
+┌ Warning: Module Accessors with build ID fafbfcfd-a7b6-253f-0004-590a4e15f135 is missing from the cache.
+│ This may mean Accessors [7d9f7c33-5ae7-4f3b-8dc6-eff91059b697] does not support precompilation but is imported by a module that does.
+└ @ Base loading.jl:1948
+[ Info: Skipping precompilation since __precompile__(false). Importing AccessorsIntervalSetsExt [727f68c9-d1d4-5b40-b284-36502e629768].
+[ Info: Precompiling AccessorsStructArraysExt [deedf894-762e-575a-ad8b-1df4bba63293]
+┌ Warning: Module Accessors with build ID fafbfcfd-a7b6-253f-0004-590a4e15f135 is missing from the cache.
+│ This may mean Accessors [7d9f7c33-5ae7-4f3b-8dc6-eff91059b697] does not support precompilation but is imported by a module that does.
+└ @ Base loading.jl:1948
+[ Info: Skipping precompilation since __precompile__(false). Importing AccessorsStructArraysExt [deedf894-762e-575a-ad8b-1df4bba63293].
+[ Info: Precompiling AccessorsStaticArraysExt [91548973-bbcf-5128-ac3c-c8b871e934a5]
+┌ Warning: Module Accessors with build ID fafbfcfd-a7b6-253f-0004-590a4e15f135 is missing from the cache.
+│ This may mean Accessors [7d9f7c33-5ae7-4f3b-8dc6-eff91059b697] does not support precompilation but is imported by a module that does.
+└ @ Base loading.jl:1948
+[ Info: Skipping precompilation since __precompile__(false). Importing AccessorsStaticArraysExt [91548973-bbcf-5128-ac3c-c8b871e934a5].
+[ Info: Precompiling AccessorsTestExt [3f8c54d2-55ce-559e-9981-66f7a1691a45]
+┌ Warning: Module Accessors with build ID fafbfcfd-a7b6-253f-0004-590a4e15f135 is missing from the cache.
+│ This may mean Accessors [7d9f7c33-5ae7-4f3b-8dc6-eff91059b697] does not support precompilation but is imported by a module that does.
+└ @ Base loading.jl:1948
+[ Info: Skipping precompilation since __precompile__(false). Importing AccessorsTestExt [3f8c54d2-55ce-559e-9981-66f7a1691a45].
+[ Info: Precompiling AccessorsUnitfulExt [0f33c9ce-b40b-5f58-839e-64dee873ac84]
+┌ Warning: Module Accessors with build ID fafbfcfd-a7b6-253f-0004-590a4e15f135 is missing from the cache.
+│ This may mean Accessors [7d9f7c33-5ae7-4f3b-8dc6-eff91059b697] does not support precompilation but is imported by a module that does.
+└ @ Base loading.jl:1948
+[ Info: Skipping precompilation since __precompile__(false). Importing AccessorsUnitfulExt [0f33c9ce-b40b-5f58-839e-64dee873ac84].</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="13">
+<pre><code>3-element SVector{3, Int64} with indices SOneTo(3):
+ 4
+ 2
+ 3</code></pre>
+</div>
+</div>
+</section>
+<section id="classic-data-structures" class="level3" data-number="23.9.2">
+<h3 data-number="23.9.2" class="anchored" data-anchor-id="classic-data-structures"><span class="header-section-number">23.9.2</span> Classic data structures</h3>
+<p>All but the most obscure data structures can be found in the packages from the <a href="https://github.com/JuliaCollections">JuliaCollections</a> organization, especially <a href="https://github.com/JuliaCollections/DataStructures.jl">DataStructures.jl</a> which has all the standards from the computer science courses (stacks, queues, heaps, trees and the like). Iteration and memoization utilities are also provided by packages like <a href="https://github.com/JuliaCollections/IterTools.jl">IterTools.jl</a> and <a href="https://github.com/JuliaCollections/Memoize.jl">Memoize.jl</a>.</p>
+</section>
+<section id="bits-types" class="level3" data-number="23.9.3">
+<h3 data-number="23.9.3" class="anchored" data-anchor-id="bits-types"><span class="header-section-number">23.9.3</span> Bits types</h3>
+<p>When you create custome <code>struct</code>s, keeping the fields as simple, concrete types makes it more likely that the compiler will be able to allocate these objects on the stack instead of hte heap. An example of this was shown in <a href="#sec-struct-bits" class="quarto-xref"><span class="quarto-unresolved-ref">sec-struct-bits</span></a>.</p>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const disableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'prefetch';
+    }
+  }
+  const enableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'stylesheet';
+    }
+  }
+  const manageTransitions = (selector, allowTransitions) => {
+    const els = window.document.querySelectorAll(selector);
+    for (let i=0; i < els.length; i++) {
+      const el = els[i];
+      if (allowTransitions) {
+        el.classList.remove('notransition');
+      } else {
+        el.classList.add('notransition');
+      }
+    }
+  }
+  const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+    const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+    const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+    let newTheme = '';
+    if(darkModeDefault) {
+      newTheme = isAlternate ? baseTheme : alternateTheme;
+    } else {
+      newTheme = isAlternate ? alternateTheme : baseTheme;
+    }
+    const changeGiscusTheme = () => {
+      // From: https://github.com/giscus/giscus/issues/336
+      const sendMessage = (message) => {
+        const iframe = document.querySelector('iframe.giscus-frame');
+        if (!iframe) return;
+        iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+      }
+      sendMessage({
+        setConfig: {
+          theme: newTheme
+        }
+      });
+    }
+    const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+    if (isGiscussLoaded) {
+      changeGiscusTheme();
+    }
+  }
+  const toggleColorMode = (alternate) => {
+    // Switch the stylesheets
+    const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+    manageTransitions('#quarto-margin-sidebar .nav-link', false);
+    if (alternate) {
+      enableStylesheet(alternateStylesheets);
+      for (const sheetNode of alternateStylesheets) {
+        if (sheetNode.id === "quarto-bootstrap") {
+          toggleBodyColorMode(sheetNode);
+        }
+      }
+    } else {
+      disableStylesheet(alternateStylesheets);
+      toggleBodyColorPrimary();
+    }
+    manageTransitions('#quarto-margin-sidebar .nav-link', true);
+    // Switch the toggles
+    const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+    for (let i=0; i < toggles.length; i++) {
+      const toggle = toggles[i];
+      if (toggle) {
+        if (alternate) {
+          toggle.classList.add("alternate");     
+        } else {
+          toggle.classList.remove("alternate");
+        }
+      }
+    }
+    // Hack to workaround the fact that safari doesn't
+    // properly recolor the scrollbar when toggling (#1455)
+    if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+      manageTransitions("body", false);
+      window.scrollTo(0, 1);
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        manageTransitions("body", true);
+      }, 40);  
+    }
+  }
+  const isFileUrl = () => { 
+    return window.location.protocol === 'file:';
+  }
+  const hasAlternateSentinel = () => {  
+    let styleSentinel = getColorSchemeSentinel();
+    if (styleSentinel !== null) {
+      return styleSentinel === "alternate";
+    } else {
+      return false;
+    }
+  }
+  const setStyleSentinel = (alternate) => {
+    const value = alternate ? "alternate" : "default";
+    if (!isFileUrl()) {
+      window.localStorage.setItem("quarto-color-scheme", value);
+    } else {
+      localAlternateSentinel = value;
+    }
+  }
+  const getColorSchemeSentinel = () => {
+    if (!isFileUrl()) {
+      const storageValue = window.localStorage.getItem("quarto-color-scheme");
+      return storageValue != null ? storageValue : localAlternateSentinel;
+    } else {
+      return localAlternateSentinel;
+    }
+  }
+  const darkModeDefault = false;
+  let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+  // Dark / light mode switch
+  window.quartoToggleColorScheme = () => {
+    // Read the current dark / light value 
+    let toAlternate = !hasAlternateSentinel();
+    toggleColorMode(toAlternate);
+    setStyleSentinel(toAlternate);
+    toggleGiscusIfUsed(toAlternate, darkModeDefault);
+  };
+  // Ensure there is a toggle, if there isn't float one in the top right
+  if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+    const a = window.document.createElement('a');
+    a.classList.add('top-right');
+    a.classList.add('quarto-color-scheme-toggle');
+    a.href = "";
+    a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+    const i = window.document.createElement("i");
+    i.classList.add('bi');
+    a.appendChild(i);
+    window.document.body.appendChild(a);
+  }
+  // Switch to dark mode if need be
+  if (hasAlternateSentinel()) {
+    toggleColorMode(true);
+  } else {
+    toggleColorMode(false);
+  }
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./julia-sharing.html" class="pagination-link" aria-label="Distributing and Sharing Julia Code">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Distributing and Sharing Julia Code</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./applications.html" class="pagination-link" aria-label="Applied Financial Modeling Techniques">
+        <span class="nav-page-text">Applied Financial Modeling Techniques</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
