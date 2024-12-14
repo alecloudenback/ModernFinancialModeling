@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.7.3">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>27&nbsp; Sensitivity Analysis – Computational Thinking for Actuaries and Financial Professionals</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./portfolio-optimization.html" rel="next">
+<link href="./similarity-calculation.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-508bcad9dcf2c2e1342fa9dd89cfc9ba.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-dark-0a6edff4a93670cf20f4deac16b0faea.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-a86c5dad075d6406ffba66a39a689f8e.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark-0a9b6a47a7adad8b3f790e8b0b605f7d.min.css" rel="prefetch" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script data-goatcounter="https://julia-fin-book.goatcounter.com/count" async="" src="//gc.zgo.at/count.js"></script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="nav-sidebar floating">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./applications.html">Applied Financial Modeling Techniques</a></li><li class="breadcrumb-item"><a href="./sensitivity-analysis.html"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Sensitivity Analysis</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Computational Thinking for Actuaries and Financial Professionals</a> 
+        <div class="sidebar-tools-main">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+</div>
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Preface</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./intro.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Introduction</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./why-program.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Why Program?</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./why-julia.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Why use Julia?</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./elements-of-financial-modeling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Elements of Financial Modeling</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./conceptual-foundations.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Foundations: Programming and Abstractions</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./foundations-of-programming.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Elements of Programming</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./first-abstractions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Functional Abstractions</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./type-abstractions.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Data and Types</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./patterns-abstraction.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Higher Levels of Abstraction</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./conceptual-foundations2.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Foundations: Building Performant Models</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./hardware.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Hardware and Its Implications</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./performance-single.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Writing Performant Single-Threaded Code</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./parallelization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">10</span>&nbsp; <span class="chapter-title">Parallelization</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./computational-thinking.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Interdisciplinary Concepts and Applications</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./software.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">11</span>&nbsp; <span class="chapter-title">Applying Software Engineering Principles</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./elements-of-compsci.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">12</span>&nbsp; <span class="chapter-title">Elements of Computer Science</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./statistics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">13</span>&nbsp; <span class="chapter-title">Statistical Inference and Information Theory</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./autodiff.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">14</span>&nbsp; <span class="chapter-title">Automatic Differentiation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">15</span>&nbsp; <span class="chapter-title">Optimization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./stochastic.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">16</span>&nbsp; <span class="chapter-title">Stochastic Modeling</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./visualization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">17</span>&nbsp; <span class="chapter-title">Visualizations</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./matrices.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">18</span>&nbsp; <span class="chapter-title">Matrices and Their Uses</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./data-learning.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">19</span>&nbsp; <span class="chapter-title">Learning from Data</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./julia-development.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Developing In Julia</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./julia-writing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">20</span>&nbsp; <span class="chapter-title">Wrting Julia Code</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./julia-debugging.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">21</span>&nbsp; <span class="chapter-title">Troubleshooting Julia Code</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./julia-sharing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">22</span>&nbsp; <span class="chapter-title">Distributing and Sharing Julia Code</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./julia-optimizing.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">23</span>&nbsp; <span class="chapter-title">Optimizing Julia Code</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./applications.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Applied Financial Modeling Techniques</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./stochastic-mortality.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">24</span>&nbsp; <span class="chapter-title">Stochastic Mortality Projections</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./scenario-generation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">25</span>&nbsp; <span class="chapter-title">Scenario Generation</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./similarity-calculation.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Similarity Analysis</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./sensitivity-analysis.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Sensitivity Analysis</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./portfolio-optimization.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Portfolio Optimization</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./bayesian-mortality.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">29</span>&nbsp; <span class="chapter-title">Bayesian Mortality Modeling</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./other-techniques.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">30</span>&nbsp; <span class="chapter-title">Other Useful Techniques</span></span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./appendices.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Appendices</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ecosystem.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">31</span>&nbsp; <span class="chapter-title">The Julia Ecosystem Today</span></span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./references.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">References</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#in-this-chapter" id="toc-in-this-chapter" class="nav-link active" data-scroll-target="#in-this-chapter"><span class="header-section-number">27.1</span> In This Chapter</a></li>
+  <li><a href="#setup" id="toc-setup" class="nav-link" data-scroll-target="#setup"><span class="header-section-number">27.2</span> Setup</a></li>
+  <li><a href="#the-data" id="toc-the-data" class="nav-link" data-scroll-target="#the-data"><span class="header-section-number">27.3</span> The Data</a></li>
+  <li><a href="#common-sensitivity-analysis-methodologies" id="toc-common-sensitivity-analysis-methodologies" class="nav-link" data-scroll-target="#common-sensitivity-analysis-methodologies"><span class="header-section-number">27.4</span> Common Sensitivity Analysis Methodologies</a>
+  <ul class="collapse">
+  <li><a href="#finite-differences" id="toc-finite-differences" class="nav-link" data-scroll-target="#finite-differences"><span class="header-section-number">27.4.1</span> Finite Differences</a></li>
+  <li><a href="#regression-analyses" id="toc-regression-analyses" class="nav-link" data-scroll-target="#regression-analyses"><span class="header-section-number">27.4.2</span> Regression Analyses</a></li>
+  <li><a href="#sobol-indices" id="toc-sobol-indices" class="nav-link" data-scroll-target="#sobol-indices"><span class="header-section-number">27.4.3</span> Sobol Indices</a></li>
+  <li><a href="#morris-method" id="toc-morris-method" class="nav-link" data-scroll-target="#morris-method"><span class="header-section-number">27.4.4</span> Morris Method</a></li>
+  <li><a href="#fourier-amplitude-sensitivity-tests" id="toc-fourier-amplitude-sensitivity-tests" class="nav-link" data-scroll-target="#fourier-amplitude-sensitivity-tests"><span class="header-section-number">27.4.5</span> Fourier Amplitude Sensitivity Tests</a></li>
+  <li><a href="#automatic-differentiation" id="toc-automatic-differentiation" class="nav-link" data-scroll-target="#automatic-differentiation"><span class="header-section-number">27.4.6</span> Automatic Differentiation</a></li>
+  <li><a href="#scenario-analyses" id="toc-scenario-analyses" class="nav-link" data-scroll-target="#scenario-analyses"><span class="header-section-number">27.4.7</span> Scenario Analyses</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./applications.html">Applied Financial Modeling Techniques</a></li><li class="breadcrumb-item"><a href="./sensitivity-analysis.html"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Sensitivity Analysis</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span id="sec-sensitivity" class="quarto-section-identifier"><span class="chapter-number">27</span>&nbsp; <span class="chapter-title">Sensitivity Analysis</span></span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="in-this-chapter" class="level2" data-number="27.1">
+<h2 data-number="27.1" class="anchored" data-anchor-id="in-this-chapter"><span class="header-section-number">27.1</span> In This Chapter</h2>
+<p>Different approaches to understanding the sensitivity of a model to changes in its inputs: derivatives, finite differences, global sensitivity analysis approaches, and statistical approaches.</p>
+</section>
+<section id="setup" class="level2" data-number="27.2">
+<h2 data-number="27.2" class="anchored" data-anchor-id="setup"><span class="header-section-number">27.2</span> Setup</h2>
+<p>Let’s assume there are certain insurance policies throughout the chapter.</p>
+<div id="683e2c5f" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Dates</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="pp">@enum</span> Sex Female <span class="op">=</span> <span class="fl">1</span> Male <span class="op">=</span> <span class="fl">2</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="pp">@enum</span> Risk Standard <span class="op">=</span> <span class="fl">1</span> Preferred <span class="op">=</span> <span class="fl">2</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="kw">mutable struct</span> Policy</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    id<span class="op">::</span><span class="dt">Int</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    sex<span class="op">::</span><span class="dt">Sex</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    benefit_base<span class="op">::</span><span class="dt">Float64</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    COLA<span class="op">::</span><span class="dt">Float64</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    mode<span class="op">::</span><span class="dt">Int</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    prem<span class="op">::</span><span class="dt">Float64</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    pp<span class="op">::</span><span class="dt">Int</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    issue_date<span class="op">::</span><span class="dt">Date</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    issue_age<span class="op">::</span><span class="dt">Int</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    risk<span class="op">::</span><span class="dt">Risk</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="the-data" class="level2" data-number="27.3">
+<h2 data-number="27.3" class="anchored" data-anchor-id="the-data"><span class="header-section-number">27.3</span> The Data</h2>
+<div id="1684987b" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">MortalityTables</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>sample_csv_data <span class="op">=</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">IOBuffer</span>(</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>        <span class="st">raw"id,sex,benefit_base,COLA,mode,prem,pp,issue_date,issue_age,risk</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>         <span class="fl">1</span>,M,<span class="fl">100000.0</span>,<span class="fl">0.03</span>,<span class="fl">1</span>,<span class="fl">1000.0</span>,<span class="fl">3</span>,<span class="fl">1999</span><span class="op">-</span><span class="fl">12</span><span class="op">-</span><span class="fl">05</span>,<span class="fl">30</span>,Std<span class="st">"</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>mort <span class="op">=</span> <span class="fu">Dict</span>(</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    Male <span class="op">=&gt;</span> MortalityTables.<span class="fu">table</span>(<span class="fl">988</span>).ultimate,</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    Female <span class="op">=&gt;</span> MortalityTables.<span class="fu">table</span>(<span class="fl">992</span>).ultimate,</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[ Info: Precompiling MortalityTables [4780e19d-04b9-53dc-86c2-9e9aa59b5a12] (cache misses: wrong dep version loaded (2), incompatible header (16))</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="4">
+<pre><code>Dict{Sex, OffsetArrays.OffsetVector{Float64, Vector{Float64}}} with 2 entries:
+  Male   =&gt; [0.022571, 0.022571, 0.022571, 0.022571, 0.022571, 0.022571, 0.0225…
+  Female =&gt; [0.00745, 0.00745, 0.00745, 0.00745, 0.00745, 0.00745, 0.00745, 0.0…</code></pre>
+</div>
+</div>
+<div id="27dc4c34" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">CSV</span>, <span class="bu">DataFrames</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>policies <span class="op">=</span> <span class="kw">let</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># read CSV directly into a dataframe</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="co"># df = CSV.read("sample_inforce.csv",DataFrame) # use local string for notebook</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> CSV.<span class="fu">read</span>(sample_csv_data, DataFrame)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># map over each row and construct an array of Policy objects</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">map</span>(<span class="fu">eachrow</span>(df)) <span class="cf">do</span> row</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>        <span class="fu">Policy</span>(</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>            row.id,</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>            row.sex <span class="op">==</span> <span class="st">"M"</span> ? Male <span class="op">:</span> Female,</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>            row.benefit_base,</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>            row.COLA,</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>            row.mode,</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>            row.prem,</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>            row.pp,</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>            row.issue_date,</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>            row.issue_age,</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>            row.risk <span class="op">==</span> <span class="st">"Std"</span> ? Standard <span class="op">:</span> Preferred,</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[ Info: Precompiling CSV [336ed68f-0bac-5ca0-87d4-7b16caf5d00b] (cache misses: wrong dep version loaded (4), wrong source (2), incompatible header (14))
+[ Info: Precompiling DataFrames [a93c6f00-e57d-5684-b7b6-d8193f3e46c0] (cache misses: wrong dep version loaded (4), incompatible header (16))</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="5">
+<pre><code>1-element Vector{Policy}:
+ Policy(1, Male, 100000.0, 0.03, 1, 1000.0, 3, Date("1999-12-05"), 30, Standard)</code></pre>
+</div>
+</div>
+<p>Given a basic insurance product, a pure whole of life (WOL) policy with level benefits and level premiums payable within the first 10 years, the reserve at the end of the <span class="math inline">\(y^{th}\)</span> policy year is defined by</p>
+<p><span class="math display">\[
+res(y) = \sum_{t=age+y}^{120} (sur_{t-age-y} * mort_t * B_y * \sqrt{1 + r}) - (P_y * sur_{t-age-y})
+\]</span></p>
+<p>where</p>
+<ul>
+<li><span class="math inline">\(mort_t\)</span> is the mortality at age <span class="math inline">\(t\)</span></li>
+<li><span class="math inline">\(p_y\)</span> is the survival probability adjusted with COLA, with values of
+<ul>
+<li><span class="math inline">\(p_{y-1} = 1\)</span>,</li>
+<li><span class="math inline">\(p_x = p_{x-1} * (1 - mort_{age+y}) / (1 + COLA)\)</span> for <span class="math inline">\(x &gt;= y\)</span>, and</li>
+<li>0 for <span class="math inline">\(x &lt; y - 1\)</span> or <span class="math inline">\(age + x &gt;= 120\)</span>, or ultimate age of the current mortality table</li>
+</ul></li>
+<li><span class="math inline">\(B_y\)</span> is the level benefit throughout the policy</li>
+<li><span class="math inline">\(P_y\)</span> is the level premium within the first 10 policy years which is 0 for policy years after 10</li>
+<li><span class="math inline">\(r\)</span> is the level interest rate throughout the policy</li>
+</ul>
+<div id="02a01068" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">sur</span>(y<span class="op">::</span><span class="dt">Int</span>, pol<span class="op">::</span><span class="dt">Policy</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> y <span class="op">==</span> <span class="fl">0</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>        <span class="fl">1</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elseif</span> y <span class="op">&lt;</span> <span class="fl">0</span> <span class="op">||</span> <span class="fl">120</span> <span class="op">-</span> y <span class="op">&lt;=</span> pol.issue_age</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>        <span class="fl">0</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>        <span class="fu">sur</span>(y <span class="op">-</span> <span class="fl">1</span>, pol) <span class="op">*</span> (<span class="fl">1</span> <span class="op">-</span> mort[pol.sex][pol.issue_age<span class="op">+</span>y]) <span class="op">/</span> (<span class="fl">1</span> <span class="op">+</span> pol.COLA)</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">res</span>(y<span class="op">::</span><span class="dt">Int</span>, pol<span class="op">::</span><span class="dt">Policy</span>)</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    s <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> y <span class="op">&gt;=</span> <span class="fl">1</span> <span class="op">&amp;&amp;</span> y <span class="op">&lt;=</span> <span class="fl">120</span> <span class="op">-</span> pol.issue_age</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> t <span class="kw">in</span> (pol.issue_age<span class="op">+</span>y)<span class="op">:</span><span class="fl">120</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>            prem <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> y <span class="op">&lt;=</span> pol.pp</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>                prem <span class="op">=</span> pol.prem</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>            <span class="cf">end</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>            s <span class="op">+=</span> <span class="fu">sur</span>(t <span class="op">-</span> pol.issue_age <span class="op">-</span> y, pol) <span class="op">*</span> mort[pol.sex][t] <span class="op">*</span> pol.benefit_base <span class="op">-</span> prem <span class="op">*</span> <span class="fu">sur</span>(t <span class="op">-</span> pol.issue_age <span class="op">-</span> y, pol)</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>    s</span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="6">
+<pre><code>res (generic function with 1 method)</code></pre>
+</div>
+</div>
+</section>
+<section id="common-sensitivity-analysis-methodologies" class="level2" data-number="27.4">
+<h2 data-number="27.4" class="anchored" data-anchor-id="common-sensitivity-analysis-methodologies"><span class="header-section-number">27.4</span> Common Sensitivity Analysis Methodologies</h2>
+<section id="finite-differences" class="level3" data-number="27.4.1">
+<h3 data-number="27.4.1" class="anchored" data-anchor-id="finite-differences"><span class="header-section-number">27.4.1</span> Finite Differences</h3>
+<p>Define a customized finite difference function with respect to the COLA, rippled by a small difference.</p>
+<div id="4a506ab4" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">res_wrt_r_fd</span>(y<span class="op">::</span><span class="dt">Int</span>, pol<span class="op">::</span><span class="dt">Policy</span>, r<span class="op">::</span><span class="dt">Float64</span>, h<span class="op">=</span><span class="fl">1e-3</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    p₊, p₋ <span class="op">=</span> <span class="fu">deepcopy</span>(pol), <span class="fu">deepcopy</span>(pol)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    p₊.COLA, p₋.COLA <span class="op">=</span> r <span class="op">+</span> h, r <span class="op">-</span> h</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    (<span class="fu">res</span>(y, p₋) <span class="op">-</span> <span class="fu">res</span>(y, p₊)) <span class="op">/</span> (<span class="fl">2</span><span class="fu">res</span>(y, pol))</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="fu">res_wrt_r_fd</span>(<span class="fl">2</span>, policies[<span class="fl">1</span>], <span class="fl">0.03</span>) <span class="co"># changes in reserve at year 2 when the interest rate at 3% with a perturbation of 0.1%</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="7">
+<pre><code>0.021366520936389077</code></pre>
+</div>
+</div>
+</section>
+<section id="regression-analyses" class="level3" data-number="27.4.2">
+<h3 data-number="27.4.2" class="anchored" data-anchor-id="regression-analyses"><span class="header-section-number">27.4.2</span> Regression Analyses</h3>
+<div id="099f4661" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">GlobalSensitivity</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">r1_wrt_r</span>(r)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    p <span class="op">=</span> <span class="fu">deepcopy</span>(policies[<span class="fl">1</span>])</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    p.COLA <span class="op">=</span> r[<span class="fl">2</span>]</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    p.prem <span class="op">=</span> r[<span class="fl">3</span>]</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">res</span>(<span class="fu">Int</span>(<span class="fu">floor</span>(r[<span class="fl">1</span>])), p)</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="co"># reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>reg_anal <span class="op">=</span> <span class="fu">gsa</span>(r1_wrt_r, <span class="fu">RegressionGSA</span>(), [[<span class="fl">1</span>, <span class="fl">2</span>], [<span class="fl">0.029</span>, <span class="fl">0.031</span>], [<span class="fl">999.9</span>, <span class="fl">1000.1</span>]], samples<span class="op">=</span><span class="fl">1000</span>)</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a><span class="pp">@show</span> reg_anal.pearson</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[ Info: Precompiling GlobalSensitivity [af5da776-676b-467e-8baf-acd8249e4f0f] (cache misses: wrong dep version loaded (2), incompatible header (2))
+[ Info: Precompiling BangBangDataFramesExt [d787bcad-b5c5-56bb-adaa-6bfddb178a59] (cache misses: wrong dep version loaded (2), incompatible header (18))
+[ Info: Precompiling TransducersDataFramesExt [cefb4096-3352-5e5f-8501-71f024082a88] (cache misses: wrong dep version loaded (2), incompatible header (18))</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>reg_anal.pearson = [0.002266826033036182 -0.9999603237826435 -0.003255946696849575]</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="8">
+<pre><code>1×3 Matrix{Float64}:
+ 0.00226683  -0.99996  -0.00325595</code></pre>
+</div>
+</div>
+<p>The Pearson Spearman coefficients show the correlation coefficient matrix between inputs and outputs.</p>
+</section>
+<section id="sobol-indices" class="level3" data-number="27.4.3">
+<h3 data-number="27.4.3" class="anchored" data-anchor-id="sobol-indices"><span class="header-section-number">27.4.3</span> Sobol Indices</h3>
+<p>Sobol is a variance-based method, and it decomposes the variance of the output of the model or system into fractions which can be attributed to inputs or sets of inputs. This helps to get not just the individual parameter’s sensitivities, but also gives a way to quantify the affect and sensitivity from the interaction between the parameters.</p>
+<p><span class="math display">\[
+Y = f_0 + \sum_{i=1}^{d}f_i(X_i) + \sum_{i&lt;j}^{d}f_{ij}(X_i, X_j) + ... + f_{1,2,...,d}(X_1, X_2, ..., X_d)
+\]</span></p>
+<p><span class="math display">\[
+Var(Y) = \sum_{i=1}^{d}V_i + \sum_{i&lt;j}^{d}V_{ij} + ... + V_{1,2,...,d}
+\]</span></p>
+<p>The Sobol Indices are “ordered”, the first order indices given by <span class="math inline">\(S_i = \dfrac{V_i}{Var(Y)}\)</span>, the contribution to the output variance of the main effect of <span class="math inline">\(X_i\)</span>. Therefore, it measures the effect of varying <span class="math inline">\(X_i\)</span> alone, but averaged over variations in other input parameters. It is standardized by the total variance to provide a fractional contribution. Higher-order interaction indices <span class="math inline">\(S_{ij}, S_{ijk}\)</span> and so on can be formed by dividing other terms in the variance decomposition by <span class="math inline">\(Var(Y)\)</span>.</p>
+<div id="09977313" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">QuasiMonteCarlo</span>, <span class="bu">GlobalSensitivity</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co"># reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>L, U <span class="op">=</span> QuasiMonteCarlo.<span class="fu">generate_design_matrices</span>(<span class="fl">1000</span>, [<span class="fl">1</span>, <span class="fl">0.029</span>, <span class="fl">999.9</span>], [<span class="fl">2</span>, <span class="fl">0.031</span>, <span class="fl">1000.1</span>], <span class="fu">SobolSample</span>())</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>s <span class="op">=</span> <span class="fu">gsa</span>(r1_wrt_r, <span class="fu">Sobol</span>(), L, U)</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="pp">@show</span> s.S1</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="pp">@show</span> s.ST</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>┌ Warning: The `generate_design_matrices(n, d, sampler, R = NoRand(), num_mats)` method does not produces true and independent QMC matrices, see [this doc warning](https://docs.sciml.ai/QuasiMonteCarlo/stable/design_matrix/) for more context. 
+│     Prefer using randomization methods such as `R = Shift()`, `R = MatousekScrambling()`, etc., see [documentation](https://docs.sciml.ai/QuasiMonteCarlo/stable/randomization/)
+└ @ QuasiMonteCarlo ~/.julia/packages/QuasiMonteCarlo/KvLfb/src/RandomizedQuasiMonteCarlo/iterators.jl:255</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>s.S1 = [0.0, 1.2308143537488936, -0.00010730838653271882]
+s.ST = [0.0, 1.0014202549551285, 5.83151055643934e-6]</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="9">
+<pre><code>3-element Vector{Float64}:
+ 0.0
+ 1.0014202549551285
+ 5.83151055643934e-6</code></pre>
+</div>
+</div>
+<p>The output shows the first order and total order of variations in different input parameters.</p>
+</section>
+<section id="morris-method" class="level3" data-number="27.4.4">
+<h3 data-number="27.4.4" class="anchored" data-anchor-id="morris-method"><span class="header-section-number">27.4.4</span> Morris Method</h3>
+<p>The Morris method also known as Morris’s OAT method where OAT stands for One At a Time can be described in the following steps:</p>
+<p><span class="math display">\[
+EE_i = \frac{f(x_1, x_2, ...x_i + \Delta, ...x_k) - y}{\Delta}
+\]</span></p>
+<p>We calculate local sensitivity measures known as “elementary effects”, which are calculated by measuring the perturbation in the output of the model on changing one parameter.</p>
+<p>These are evaluated at various points in the input chosen such that a wide “spread” of the parameter space is explored and considered in the analysis, to provide an approximate global importance measure. The mean and variance of these elementary effects is computed. A high value of the mean implies that a parameter is important, a high variance implies that its effects are non-linear or the result of interactions with other inputs. This method does not evaluate separately the contribution from the interaction and the contribution of the parameters individually and gives the effects for each parameter which takes into consideration all the interactions and its individual contribution.</p>
+<div id="bcb8599c" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">GlobalSensitivity</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="co"># reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>m <span class="op">=</span> <span class="fu">gsa</span>(r1_wrt_r, <span class="fu">Morris</span>(), [[<span class="fl">1</span>, <span class="fl">2</span>], [<span class="fl">0.029</span>, <span class="fl">0.031</span>], [<span class="fl">999.9</span>, <span class="fl">1000.1</span>]])</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="pp">@show</span> m.means</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="pp">@show</span> m.variances</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>m.means = [0.0 -711820.7380034957 -17.16592355319793]
+m.variances = [0.0 1.4940541045625702e8 0.01392874055729809]</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="10">
+<pre><code>1×3 Matrix{Float64}:
+ 0.0  1.49405e8  0.0139287</code></pre>
+</div>
+</div>
+<p>From the means it can be observed which variables are more important, and the variances imply higher degree of nonlinearity or interactions with other variables.</p>
+</section>
+<section id="fourier-amplitude-sensitivity-tests" class="level3" data-number="27.4.5">
+<h3 data-number="27.4.5" class="anchored" data-anchor-id="fourier-amplitude-sensitivity-tests"><span class="header-section-number">27.4.5</span> Fourier Amplitude Sensitivity Tests</h3>
+<p>FAST offers a robust, especially at low sample size, and computationally efficient procedure to get the first and total order indices as discussed in Sobol. It utilizes monodimensional Fourier decomposition along a curve, exploring the parameter space. The curve is defined by a set of parametric equations,</p>
+<p><span class="math display">\[
+EE_i = \frac{f(x_1, x_2, ...x_i + \Delta, ...x_k) - y}{\Delta}
+\]</span></p>
+<p>where <span class="math inline">\(s\)</span> is a scalar variable varying over the range <span class="math inline">\(−∞ &lt; s &lt; +∞\)</span>, <span class="math inline">\(G_i\)</span> are transformation functions and <span class="math inline">\(w_i, ∀i=1,2,…,N\)</span> is a set of different (angular) frequencies, to be properly selected, associated with each factor for all <span class="math inline">\(N\)</span> (samples) number of parameter sets.</p>
+<div id="839f5060" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">GlobalSensitivity</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="co"># reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>fast <span class="op">=</span> <span class="fu">gsa</span>(r1_wrt_r, <span class="fu">eFAST</span>(), [[<span class="fl">1</span>, <span class="fl">2</span>], [<span class="fl">0.029</span>, <span class="fl">0.031</span>], [<span class="fl">999.9</span>, <span class="fl">1000.1</span>]], samples<span class="op">=</span><span class="fl">1000</span>)</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="pp">@show</span> fast.S1</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a><span class="pp">@show</span> fast.ST</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>fast.S1 = [4.6218616953123566e-12 0.9976892580855696 5.794969141375738e-6]
+fast.ST = [6.969231252096364e-7 0.9999937053665384 0.0023101379203234185]</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="11">
+<pre><code>1×3 Matrix{Float64}:
+ 6.96923e-7  0.999994  0.00231014</code></pre>
+</div>
+</div>
+<p>The output shows the first order and total order of variations in different input parameters.</p>
+</section>
+<section id="automatic-differentiation" class="level3" data-number="27.4.6">
+<h3 data-number="27.4.6" class="anchored" data-anchor-id="automatic-differentiation"><span class="header-section-number">27.4.6</span> Automatic Differentiation</h3>
+<p>By applying the chain rule repeatedly on elementary operations of computer calculations, automatic differentiation can be applied to measure impacts of small differences. More details in <a href="#sec-autodiff" class="quarto-xref"><span class="quarto-unresolved-ref">sec-autodiff</span></a> on automatic differentiation.</p>
+</section>
+<section id="scenario-analyses" class="level3" data-number="27.4.7">
+<h3 data-number="27.4.7" class="anchored" data-anchor-id="scenario-analyses"><span class="header-section-number">27.4.7</span> Scenario Analyses</h3>
+<p>Scenarios can be generated following scenario generation methodologies to evaluate impacts. More details in <a href="#sec-scegen" class="quarto-xref"><span class="quarto-unresolved-ref">sec-scegen</span></a> on scenario generation.</p>
+<p>When scenarios are generated to evaluate sensitivities, one may need to take the following into consideration.</p>
+<ul>
+<li>Reverse stress testing. Reverse stress testing in scenario analysis involves identifying extreme scenarios that could potentially lead to catastrophic outcomes for a financial institution or a system. Unlike traditional sensitivity testing to simulate the impact of adverse events on the system, reverse stress testing starts with a catastrophic outcome and works backwards to determine the combination of events or circumstances that could lead to such an outcome.</li>
+</ul>
+<p>One typically follows these steps to do reverse stress testing. – Define a critical failure point (e.g., bankruptcy, system outage, regulatory breach). – Analyze the combinations of events or variables that could cause the failure. – Model the path from normal conditions to the adverse outcome.</p>
+<p>Potential benefits that reverse stress testing could bring include: – Focusing on Vulnerabilities: Highlights specific scenarios to avoid at all costs. – Enhancing Resilience: Strengthens systems against extreme risks. – Regulatory Compliance: Often required in highly regulated industries like banking and energy.</p>
+<ul>
+<li><p>Stylistic scenarios. Developing stylistic scenarios in scenario analysis involves creating narratives or storylines that describe plausible future states or situations. These scenarios are crafted to capture key uncertainties, trends, and factors that could significantly impact the organization, industry, or environment under study.</p></li>
+<li><p>Backtesting against historical data. Backtesting in scenario analysis involves an iterative process of using past data to validate the effectiveness and accuracy of scenarios developed for forecasting future outcomes. Scenarios are first defined and applied on selective historical data, and refined after any discrepancies of scenario outcomes versus historical results are identified.</p></li>
+</ul>
+<p>One typically follows these steps to do backtesting against historical data. – Define Scenarios: Establish hypothetical scenarios (e.g., market crashes, changes in interest rates, or operational disruptions), and ensure scenarios cover a range of possibilities, such as best-case, base-case, and worst-case scenarios. – Collect Historical Data: Gather relevant historical data for key variables (e.g., stock prices, interest rates, production metrics), and ensure data spans periods where similar events occurred in the past. – Model Scenario Impacts: Use historical data to simulate the impacts of the scenarios on key metrics or performance indicators. – Compare Results: Compare the modeled results of the scenarios with the actual historical outcomes, and assess how well the scenarios predict or explain the observed data. – Adjust and Refine: If the scenarios do not align with historical outcomes, refine the assumptions or parameters in the scenario models, and incorporate lessons learned from historical patterns to improve future scenario analyses.</p>
+<p>Some considerations in incorporating historical data. – Data Quality: Ensure historical data is accurate, complete, and relevant to the scenarios being tested. – Model Limitations: Scenario models are based on assumptions that might not fully capture real-world complexities. – Overfitting: Avoid fine-tuning scenarios to perfectly match historical outcomes, as this reduces their applicability to future events. – Changing Dynamics: Historical events may not fully represent future possibilities due to changes in market conditions, regulations, or technology.</p>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const disableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'prefetch';
+    }
+  }
+  const enableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'stylesheet';
+    }
+  }
+  const manageTransitions = (selector, allowTransitions) => {
+    const els = window.document.querySelectorAll(selector);
+    for (let i=0; i < els.length; i++) {
+      const el = els[i];
+      if (allowTransitions) {
+        el.classList.remove('notransition');
+      } else {
+        el.classList.add('notransition');
+      }
+    }
+  }
+  const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+    const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+    const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+    let newTheme = '';
+    if(darkModeDefault) {
+      newTheme = isAlternate ? baseTheme : alternateTheme;
+    } else {
+      newTheme = isAlternate ? alternateTheme : baseTheme;
+    }
+    const changeGiscusTheme = () => {
+      // From: https://github.com/giscus/giscus/issues/336
+      const sendMessage = (message) => {
+        const iframe = document.querySelector('iframe.giscus-frame');
+        if (!iframe) return;
+        iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+      }
+      sendMessage({
+        setConfig: {
+          theme: newTheme
+        }
+      });
+    }
+    const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+    if (isGiscussLoaded) {
+      changeGiscusTheme();
+    }
+  }
+  const toggleColorMode = (alternate) => {
+    // Switch the stylesheets
+    const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+    manageTransitions('#quarto-margin-sidebar .nav-link', false);
+    if (alternate) {
+      enableStylesheet(alternateStylesheets);
+      for (const sheetNode of alternateStylesheets) {
+        if (sheetNode.id === "quarto-bootstrap") {
+          toggleBodyColorMode(sheetNode);
+        }
+      }
+    } else {
+      disableStylesheet(alternateStylesheets);
+      toggleBodyColorPrimary();
+    }
+    manageTransitions('#quarto-margin-sidebar .nav-link', true);
+    // Switch the toggles
+    const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+    for (let i=0; i < toggles.length; i++) {
+      const toggle = toggles[i];
+      if (toggle) {
+        if (alternate) {
+          toggle.classList.add("alternate");     
+        } else {
+          toggle.classList.remove("alternate");
+        }
+      }
+    }
+    // Hack to workaround the fact that safari doesn't
+    // properly recolor the scrollbar when toggling (#1455)
+    if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+      manageTransitions("body", false);
+      window.scrollTo(0, 1);
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        manageTransitions("body", true);
+      }, 40);  
+    }
+  }
+  const isFileUrl = () => { 
+    return window.location.protocol === 'file:';
+  }
+  const hasAlternateSentinel = () => {  
+    let styleSentinel = getColorSchemeSentinel();
+    if (styleSentinel !== null) {
+      return styleSentinel === "alternate";
+    } else {
+      return false;
+    }
+  }
+  const setStyleSentinel = (alternate) => {
+    const value = alternate ? "alternate" : "default";
+    if (!isFileUrl()) {
+      window.localStorage.setItem("quarto-color-scheme", value);
+    } else {
+      localAlternateSentinel = value;
+    }
+  }
+  const getColorSchemeSentinel = () => {
+    if (!isFileUrl()) {
+      const storageValue = window.localStorage.getItem("quarto-color-scheme");
+      return storageValue != null ? storageValue : localAlternateSentinel;
+    } else {
+      return localAlternateSentinel;
+    }
+  }
+  const darkModeDefault = false;
+  let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+  // Dark / light mode switch
+  window.quartoToggleColorScheme = () => {
+    // Read the current dark / light value 
+    let toAlternate = !hasAlternateSentinel();
+    toggleColorMode(toAlternate);
+    setStyleSentinel(toAlternate);
+    toggleGiscusIfUsed(toAlternate, darkModeDefault);
+  };
+  // Ensure there is a toggle, if there isn't float one in the top right
+  if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+    const a = window.document.createElement('a');
+    a.classList.add('top-right');
+    a.classList.add('quarto-color-scheme-toggle');
+    a.href = "";
+    a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+    const i = window.document.createElement("i");
+    i.classList.add('bi');
+    a.appendChild(i);
+    window.document.body.appendChild(a);
+  }
+  // Switch to dark mode if need be
+  if (hasAlternateSentinel()) {
+    toggleColorMode(true);
+  } else {
+    toggleColorMode(false);
+  }
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./similarity-calculation.html" class="pagination-link" aria-label="Similarity Analysis">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">26</span>&nbsp; <span class="chapter-title">Similarity Analysis</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./portfolio-optimization.html" class="pagination-link" aria-label="Portfolio Optimization">
+        <span class="nav-page-text"><span class="chapter-number">28</span>&nbsp; <span class="chapter-title">Portfolio Optimization</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
