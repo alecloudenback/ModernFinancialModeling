@@ -268,7 +268,8 @@ f
 
 The above can be restructured to use GPU instead.
 
-```julia
+```{julia}
+using Metal
 using Random, CairoMakie
 
 # Set seed for reproducibility
@@ -290,9 +291,10 @@ num_simulations = 1_000
 
 # Function to simulate GBM in gpu
 function gbm_simulation_gpu(μ, σ, S₀, Δt, num_steps, num_simulations)
-    stock_price_paths = cu(zeros(num_steps, num_simulations))
+    μ, σ, S₀, Δt = Float32.((μ, σ, S₀, Δt))
+    stock_price_paths = MtlArray(zeros(Float32, num_steps, num_simulations))
     stock_price_paths .= S₀
-    dW = cu(randn(num_steps - 1, num_simulations) .* sqrt(Δt))
+    dW = MtlArray(randn(Float32, num_steps - 1, num_simulations) .* sqrt(Δt)) # <1>
     dS = μ * S₀ * Δt .+ σ .* S₀ .* dW
     stock_price_paths[2:end, :] .+= cumsum(dS, dims=1)
     return stock_price_paths
@@ -305,10 +307,12 @@ gbm_paths = gbm_simulation_gpu(μ, σ, S₀, Δt, num_steps, num_simulations)
 f = Figure()
 Axis(f[1, 1])
 for i in 1:num_simulations
-    lines!(1:num_steps, gbm_paths[:, i])
+    lines!(1:num_steps, Array(gbm_paths[:, i]))
 end
 f
 ```
+
+1. If using CUDA.jl, you would replace `using Metal` with `using CUDA` and `MtlArray(...)` with `CuArray(...)`.
 
 #### Generalized Autoregressive Conditional Heteroskedasticity (GARCH)
 
