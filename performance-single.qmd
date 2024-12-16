@@ -20,15 +20,17 @@ Understanding single-threaded performance, strategies for efficient sequential c
 
 With today's hardware, the highest throughput computations utilize GPUs for massive parallelization. However, writing parallel code, let alone performant parallel code, typically relies heavily on understanding patterns of non-parallel code. Secondly, many problems are not "massively parallelizable" and a sequential model architecture is required. For these reasons, it's critical to understand sequential patterns before moving onto parallel code.
 
-For those coming from fundamentally slower languages (such as R or Python), the common advice to speed things up is often to try to parallelize code. With many high level languages the *only* way to achieve reasonable runtime is to utilize parallelism. In contrast, fast languages like Julia can output surprisingly quick single threaded prgrams
+For those coming from fundamentally slower languages (such as R or Python), the common advice to speed things up is often to try to parallelize code. With many high level languages the *only* way to achieve reasonable runtime is to utilize parallelism. In contrast, fast languages like Julia can output surprisingly quick single threaded programs.
 
-Lastly, it may be that a simpler, easier to maintain sequential model is preferable to a more complex parallel version if maximum performance is not required. Like the quote that openend the chapter, you may prefer a simpler sequential version of a model to a more complex parallel one. 
+Lastly, it may be that a simpler, easier to maintain sequential model is preferable to a more complex parallel version if maximum performance is not required. Like the quote that opened the chapter, you may prefer a simpler sequential version of a model to a more complex parallel one. 
 
 ::: .callout-tip
 Developer time (your time) is often more expensive than runtime, so be prepared to accept a good-enough but sub-optimal code instead of spending a lot of time optimizing every last nanosecond out of it!
 :::
 
 ## Patterns of Performant Sequential Code
+
+Sequential code performance depends on five key patterns: efficient memory usage, optimized memory access, appropriate data types, type stability, and branch prediction optimization. Understanding these patterns helps you write faster code by leveraging CPU architecture and Julia's compiler optimizations. We'll look at each of these in turn.
 
 ### Minimize Memory Allocations
 
@@ -147,6 +149,14 @@ let
 end
 ```
 
+:::callout-note
+In contrast to the prior example, a row-major memory layout would have the associated data stored in memory as:
+
+```
+[1,4,6,2,5,8,3,6,9]
+```
+:::
+
 When working with arrays, prefer accessing elements in column-major order (the default in Julia) to maximize spatial locality. This allows the CPU to prefetch data more effectively.
 
 You can see how summing up values across the first (column) dimension is much faster than summing across rows:
@@ -166,7 +176,13 @@ Sometimes this happens at the operating system level - if you load a dataset tha
 
 The right data type can lead to more compact memory representations, better cache utilization, and more efficient CPU instructions. This is another case of where having a smaller memory footprint allows for higher utilization of the CPU since computers tend to be memory-constrained in speed.
 
-On some CPUs, you may find performance if use the smallest data type that can accurately represent your data. For example, prefer Int32 over Int64 if your values will never exceed 32-bit integer range. For floating-point numbers, use Float32 instead of Float64 if the reduced precision is acceptable for your calculations. These smaller types not only save memory but also allow for more efficient vectorized operations (see @sec-parallelism) on modern CPUs. Sometimes using the smaller datatype isn't beneficial: if you have a 64-bit architecture machine then the overhead of converting to/from 64-bit numbers may outweigh any speedup from higher memory throughput.
+On some CPUs, you may find performance if using the smallest data type that can accurately represent your data. For example, prefer Int32 over Int64 if your values will never exceed 32-bit integer range. For floating-point numbers, use Float32 instead of Float64 if the reduced precision is acceptable for your calculations. These smaller types not only save memory but also allow for more efficient vectorized operations (see @sec-parallelism) on modern CPUs. 
+
+:::callout-warning
+When choosing data types, consider that on modern 64-bit architectures, using smaller integer or floating-point types doesn’t always improve performance. In fact, many operations are optimized for 64-bit (or even larger SIMD) registers, and using smaller data types may introduce unnecessary overhead due to conversions or misalignment.
+
+As a rough guideline, if your data naturally fits within 64 bits (e.g. Float64 or Int64), starting there is often the best balance of performance and simplicity. You can experiment with smaller types if you know your values never exceed certain ranges and memory footprint is critical. However, always benchmark to confirm any gains—simply using a smaller type does not guarantee improved throughput on modern CPUs.
+:::
 
 For collections, choose appropriate container types based on your use case. Arrays are efficient for calculations that loop through all or most elements, while Dictionaries are better for sparse look-ups or outside of the "hot loop" portion of a computation.
 
@@ -174,33 +190,37 @@ Consider using StaticArrays for small, fixed-size arrays, as they can be allocat
 
 ### Avoid Type Instabilities
 
-Type instabilities occur when the compiler cannot infer a single concrete type for a variable or function return value. These instabilities can significantly hinder Julia's ability to generate optimized machine code, leading to performance degradation. When the compiler is not able to infer the types at compile-time (**compile time dispatch**), then while the program is running a lookup needs to be perfomed to find the most appropriate functions for the given type (**runtime dispatch**). Preferablly, when the types are known at compile-time, Julia is able to create machine code that will point directly to the desired function instead of needing to perform that lookup.
+Type instabilities occur when the compiler cannot infer a single concrete type for a variable or function return value. These instabilities can significantly hinder Julia's ability to generate optimized machine code, leading to performance degradation. When the compiler is not able to infer the types at compile-time (**compile time dispatch**), then while the program is running a lookup needs to be performed to find the most appropriate functions for the given type (**runtime dispatch**). Preferably, when the types are known at compile-time, Julia is able to create machine code that will point directly to the desired function instead of needing to perform that lookup.
 
 To avoid type instabilities, ensure that functions have consistent return types across all code paths. For example:
 
 ```{julia}
 
-function multiple_return_types()
-    if rand() > 0.5
-        return 1.0 # Float
-    else
-        return 2   # Int
+function unstable_example(array)
+    x = []         # <1>
+    for y in array
+        push!(x, y)
     end
+    sum(x)
 end
 
-function single_return_type()
-    if rand() > 0.5
-        return 1.0 # Float
-    else
-        return 2.0 # Float
+function stable_example(array)
+    x = eltype(array)[]   # <2>
+    for y in array
+        push!(x, y)
     end
+    sum(x)
 end
 
-@btime sum(multiple_return_types() for _ in 1:1000)
-@btime sum(single_return_type() for _ in 1:1000)
+data = rand(1000)
+@btime unstable_example(data)
+@btime stable_example(data)
 ```
 
-Note that having heterogeneous types as above is not the same thing as **type instability**, which is when Julia cannot determine in advance what the data types will be. In the example above, the return type is not unstable: the compiler recongizes that the single parametrice type `Union{Float64,Int64}` will be returned., even though two different sitypes can be returned the When the types cannot be determined by the compiler, it leads to runtime dispatch.
+1. Without a type given, `[]` will create a `Vector{Any}` which can contain elements of `Any` type which is flexible but requires runtime dispatch to determine correct behavior.
+2. `eltype(array)` returns the type contained within the array, which for `data` is `Float64`. Thus `x` is created as a `Vector{Float64}` which is more efficient code.
+
+Note that having heterogeneous types as above is not the same thing as **type instability**, which is when Julia cannot determine in advance what the data types will be. In the example above, the return type is not unstable: the compiler recognizes that the single parametric type `Union{Float64,Int64}` will be returned., even though two different types can be returned the When the types cannot be determined by the compiler, it leads to runtime dispatch.
 
 The following function illustrates a common anti-pattern wherein an `Any` typed array is created and then elements are added to it. Because any type can be added to an `Any` array (we happen to just add floats to it) then Julia's not sure what types to expect inside the container and therefore has to determine it at runtime.
 
@@ -222,7 +242,7 @@ More advanced exploration of type inference can be had via [Cthulhu.jl](https://
 
 [^performance-single-1]: So-named for the "slow descent into madness" when descending into functions to follow the Julia compiler's type inference across many layers of function calls.
 
-When working with parametric types, look to avoid usage of generic type parameters (e.g. `Array{Any}`) whenever possible. For custom types, make use of parametric types to create type-stable abstractions. For example, the latter `struct Bond2` or `struct Bond3`  will allow Julia to create distinct concrete types and methods as opposed to needing generic runtime dispatch due to the unpredicable potential types of the `struct` fields. The difference between `Bond2` and `Bond3` is that the fields in `Bond3` could be any type (such as `Float16` or `String`) as long as both of them equaled the type variable `T`.
+When working with parametric types, look to avoid usage of generic type parameters (e.g. `Array{Any}`) whenever possible. For custom types, make use of parametric types to create type-stable abstractions. For example, the latter `struct Bond2` or `struct Bond3`  will allow Julia to create distinct concrete types and methods as opposed to needing generic runtime dispatch due to the unpredictable potential types of the `struct` fields. The difference between `Bond2` and `Bond3` is that the fields in `Bond3` could be any type (such as `Float16` or `String`) as long as both of them equaled the type variable `T`.
 
 ```julia
 struct Bond1
@@ -243,7 +263,9 @@ end
 
 ### Optimize for Branch Prediction
 
-Modern CPUs use branch prediction to speculatively execute instructions before knowing the outcome of conditional statements. Optimizing your code for branch prediction can significantly improve performance, especially in tight loops or frequently executed code paths.
+Modern CPUs use branch prediction to speculatively execute instructions before knowing the outcome of conditional statements. This was described in the prior chapter in the logistics warehouse analogy as trying to predict where a package will be going before you've inspected the label. CPUs execute one branch of the instructions without seeing the data (either true data, or data in the form of CPU instructions) because the CPU has higher speed/capacity than the memory throughput allows. This is another example of a technique developed for performance in a memory-throughput constrained world.
+
+Optimizing your code for branch prediction can significantly improve performance, especially in tight loops or frequently executed code paths.
 
 To optimize for branch prediction:
 
@@ -255,34 +277,37 @@ To optimize for branch prediction:
 
 4. For performance-critical sections with unpredictable branches, consider using branch-free algorithms or bitwise operations instead of conditional statements. This can help avoid the penalties associated with branch mispredictions.
 
-5. In some cases, it may be beneficial to replace branches with arithmetic operations (e.g., using the ternary operator or multiplication by boolean values) to allow for better vectorization and reduce the impact of branch mispredictions.
+5. In some cases, it may be beneficial to replace branches with arithmetic operations (e.g., using the ternary operator or multiplication by boolean values) to allow for better vectorization and reduce the impact of branch mispredictions. An example of this would be using a statement like `y += max(x,0)` instead of `if x > 0; y += x; end`.
 
 Here's an example demonstrating the impact of branch prediction:
 
 ```{julia}
-function sum_if_positive(arr)
+function process_data(data, threshold)
     sum = 0.0
-    for x in arr
-        if isodd(x)
-            sum += x
+    for x in data
+        if x > threshold
+            sum += log(x)
         else
-            sum -= x
+            sum += x
         end
     end
     sum
 end
 
-# Benchmark
-arr = rand(Int, 1_000_000)
-arr_mostly_odds = fill(3, 999_999)
-push!(arr_mostly_odds, 2) # add one even to get to 1M elements
-@btime sum_if_positive($arr)
-@btime sum_if_positive($arr_mostly_odds);
+# Random data = unpredictable branches
+rand_data = rand(1_000_000)
+
+# Sorted data = predictable branches
+sorted_data = sort(rand(1_000_000))
+
+@btime process_data($rand_data, 0.5)
+@btime process_data($sorted_data, 0.5);
+
 ```
 
-In this example, having consistently seen odd numbers means that the CPU will predict that the branch that will be used is the `sum += x` branch of the `if` statement.
+In this example, having sorted data means that the CPU will predict which branch of the `if` statement is likely to be utilized. By then speculatively executing the code that it thinks will be used, the overall program time is faster when processing `sorted_data`.
 
-Remember that optimizing for branch prediction often involves trade-offs. The benefits can vary depending on the specific hardware and the nature of your data. If performance critical, profile your code to ensure that your optimizations are actually improving performance in your specific use case. Overoptimizing on one set of hardware (e.g. local computer) may not translate the same on another set of hardware (e.g. server deployment). 
+Remember that optimizing for branch prediction often involves trade-offs. The benefits can vary depending on the specific hardware and the nature of your data. If performance critical, profile your code to ensure that your optimizations are actually improving performance in your specific use case. Over-optimizing on one set of hardware (e.g. local computer) may not translate the same on another set of hardware (e.g. server deployment). 
 
 ### Further Reading
 
