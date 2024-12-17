@@ -94,9 +94,7 @@ The requirements for SIMD-able code are that:
 -   The intended section for SIMD is inside the inner-most loop.
 -   There are no branches (if-statements) inside the loop body.
 
-::callout-tip
-Note that indexing an array is actually a branch in the code, as two cases could arise: the index is either inbounds or out-of-bounds. To avoid this, either use `for x in collection`, `for i in eachindex(collection)` or `for i in 1:n; @inbounds collection[i]` though the last of these is discouraged in favor of the prior, safer options.
-:::
+::callout-tip Note that indexing an array is actually a branch in the code, as two cases could arise: the index is either inbounds or out-of-bounds. To avoid this, either use `for x in collection`, `for i in eachindex(collection)` or `for i in 1:n; @inbounds collection[i]` though the last of these is discouraged in favor of the prior, safer options. :::
 
 ```{julia}
 using BenchmarkTools
@@ -129,7 +127,9 @@ end
 
 In testing the above code, the `allow_simd` version should be several times faster than the `prevent_simd` example. The reason is that `prevent_simd` has a branch (`if x > 0`) where the behavior of the code may change depending on the value in `arr`. Conversely, the behavior of `allow_simd` is always the same in each iteration, no matter the value of `x`. This allows the compiler to generate vectorized code automatically.
 
-Note that the compiler is able to identify vectorizable code in many cases, though through some cases may benefit from a more manual hint to the compiler through macro annotations (see `?@simd` for details).
+::: callout-tip
+Note that Julia's the compiler is able to identify vectorizable code in many cases, though through some cases may benefit from a more manual hint to the compiler through macro annotations (see `?@simd` for details). See @sec-optimizing-SIMD for more.
+:::
 
 Other types of parallelism that we will discuss in this chapter have some risk of errors or data corruption if not used correctly. SIMD isn't prone to issues like this because if the code is not SIMD-able then the compiler will not auto-vectorize the code block.
 
@@ -137,23 +137,17 @@ Other types of parallelism that we will discuss in this chapter have some risk o
 
 Vectorization is hardware dependent. If the CPU does not support vectorization you will not see speedups from it. Many consumer and professional chips have AVX2 (Advanced Vector Extensions, with the 2 signifying second-generation 256 bit width, allowing four simultaneous 64-bit operations). The next generation is AVX512, having twice the SIMD capacity as AVX2. However, as of 2025 most consumer chips do not yet have that and commercial chips may not actually be faster than the AVX2 due to thermal restrictions (SIMD uses more power and generates more heat).
 
-### Additional Packages
-
-Some additional packages to be aware of include:
-
--   [LoopVectorization.jl](https://github.com/JuliaSIMD/LoopVectorization.jl) which can enhance the vectorized loops even further, such as handling the "tail" of a vectorized loops more efficiently than the base compiler. The "tail" refers to situations like where you have a vector width of 8, but don't have a collection that's a nice multiple of 8 (say 1001 elements).
--   [Octavian.jl](https://github.com/JuliaLinearAlgebra/Octavian.jl) implements a linear algebra-like library, utilizing parallelism via vectorization to generate efficient code for the system it's running on.
--   [Tulio.jl](https://github.com/mcabbott/Tullio.jl) is an einsum library, a domain-specific language for tensor (a specific subset of vectors) operations, common in machine learning and linear algebra.
-
 ## Multi-Threading {#sec-multithreading}
 
-This section will start with *tasks* — lightweight units of computation that can be scheduled by Julia. Next, we’ll see how tasks can communicate using *channels*, and then how multiple tasks (and channels) can be leveraged to achieve true parallelism through *multi-threading*. Think of it as layers building on one another: tasks define work units, channels allow them to share data, and multi-threading enables tasks to run simultaneously on multiple CPU cores.
+This subsection starts by introducing *tasks* — lightweight units of computation. Next, we’ll see how tasks can communicate using *channels*, and then how multiple tasks (and channels) can be leveraged to achieve true parallelism through *multi-threading*. Think of it as layers building on one another: tasks define work units, channels allow them to share data, and multi-threading enables tasks to run simultaneously on multiple CPU cores. Exact details regarding tasks, channels, and multi-threading vary by language but the general ideas remain the same.
 
 ### Tasks {#sec-tasks}
 
-To understand muli-threading examples, we first need to discuss **Tasks**, which are chunks of computation that get performed together, but after which the computer is free to switch to a new task. Technically, there are some instructions within a task that will let the computer pause and come back to that task later (such as `sleep`). Tasks are do not, by themselves, allow for multiple computations to be performed in parallel. For example, one task might be loading a data file from persistent storage into RAM. After that task is complete, the computer continues on with another task in the queue (rendering a web page, playing a song, etc.). In this way even with a single processor and core, a computer could be "doing multiple things at once" (or "multi-tasking") even though nothing is running in parallel. The scheduling of the tasks is handled automatically by Julia and the operating system.
+To understand multi-threading examples, we first need to discuss **Tasks**, which are chunks of computation that get performed together, but after which the computer is free to switch to a new task. Technically, there are some instructions within a task that will let the computer pause and come back to that task later (such as `sleep`).
 
-Here's an example of a couple of tasks where we write to an array. The second task actually writes to the array first, since we asked the first task to sleep (which allows the computer to yield to other tasks in the queue)[^parallelization-1].
+Tasks do not, by themselves, allow for multiple computations to be performed in parallel. For example, one task might be loading a data file from persistent storage into RAM. After that task is complete, the computer continues on with another task in the queue (rendering a web page, playing a song, etc.). In this way even a single processor computer could be "doing multiple things at once" (or "multi-tasking") even though nothing is running in parallel. The scheduling of the tasks is handled automatically by the program's compiler or the operating system.
+
+Here's an example of a couple of tasks where we write to an array. Despite being called last, the second task should actually write to the array before the first task. This is because we asked the first task to `sleep` (pause, while allowing the computer to yield to other tasks in the queue)[^parallelization-1].
 
 [^parallelization-1]: Technically, it's possible that the second task doesn't write to the array first. This could happen if there's enough tasks (from our program or others on the computer) that saturate the CPU during the first task's `sleep` period such that the first task gets picked up again before the second one does.
 
@@ -183,20 +177,22 @@ end
 
 #### Channels {#sec-channels}
 
-**Channels** are a way to communicate data in an ordered way between tasks. You specify a type of data that the buffer will contain and how many elements it can hold. It then stores items (via `put!`) in a first-in-first-out (FIFO) queue, which can be popped off the queue (via \`take!) by other tasks.
+**Channels** are a way to communicate data in a managed way between tasks. You specify a type of data that the buffer (a chunk of assigned memory) will contain and how many elements it can hold. It then stores items (via `put!`) in a first-in-first-out (FIFO) queue, which can be popped off the queue (via `take!`) by other tasks.
 
 Here's an example of a system which generates trades in the financial markets at random time intervals, and a monitoring tasks takes the results and tabulates running statistics:
 
 ```{julia}
 let
 
+    # simulate random trades and the associated profits 
     function trade_producer(channel,i)
             sleep(rand())  # <1> 
             profit = randn()   #<2>
             put!(channel, profit)
             println("Producer: Trade Result #$i $(round(profit, digits=3))")
     end
-    
+
+    # intake trades via the communication channel
     function portfolio_monitor(channel,n)
         sum = 0.0
         for _ in 1:n # <3>
@@ -221,8 +217,8 @@ end
 
 ```
 
-1.  Random sleep between 0 and 1 seconds
-2.  Generate a random number from standard normal distribution to simulate profit or loss from a trade
+1.  Random sleep between 0 and 1 seconds to simulate real trading activity and latency.
+2.  Generate a random number from standard normal distribution to simulate profit or loss from a trade.
 3.  In this teaching example, we've limited the system to produce just five "trades". In practice, this could be kept running indefinitely via, e.g., `while true`.
 4.  Create a channel with a buffer size of 32 floats (in this limited example, we could have gotten away with just 5 since that's how many the demonstration produces). In practice, you want this to be long enough that the consumer of the channel never gets so far behind that the channel fills up. The channel is created outside of the `@sync` block so that `channel` is in scope when we `close` it.
 5.  `@sync` waits (like `wait(task)`) for all of the scheduled tasks within the block to complete before proceeding with the rest of the program.
@@ -230,9 +226,11 @@ end
 
 This is really useful for handling events that are "external" to our program. If we were just doing a modeling exercise using static data, then we could control the order of processing and not need to worry about monitoring a volatile source of data. Nonetheless, tasks can still be useful in some cases even if a model is not using "live" data: for example if one of the steps in a model is to load a very large dataset, it may be possible to perform some computations while chunked task requests are queued to load more data from the disk.
 
-while Julia's garbage collector will eventually clean up unclosed channels, it's a good practice to explicitly `close` them to ensure proper resource management, clear signaling of completion, and to avoid potential blocking or termination issues in your programs.
+A garbage collector will usually clean up unused channels that are still open. However, it's a good practice to explicitly `close` them to ensure proper resource management, clear signaling of completion, and to avoid potential blocking or termination issues in your programs.
 
-An additional thing to be aware of: if the task never finishes properly inside the `@sync`, then your program may get stuck in an infinite loop and hang. Such as if one of the tasks never has a termination condition such as an upper bound on a loop, or a clear way to `break` out of a `while true` loop. While not different than a normal loop, such issues become less obvious underneath the layer of task abstractions.
+::: callout-caution
+If the task never finishes properly inside the `@sync`, then your program may get stuck in an infinite loop and hang. Such as if one of the tasks never has a termination condition such as an upper bound on a loop, or a clear way to `break` out of a `while true` loop. While not different than a normal loop, such issues become less obvious underneath the layer of task abstractions.
+:::
 
 The key takeaway for tasks is that it's a way to chunk work into bundles that can be run in a concurrent fashion, even if nothing is technically being processed in parallel. The multi-threading and parallel programming paradigms sections build off of tasks so an understanding of tasks is helpful. However, some of the higher level libraries hide the task-based building blocks from you as the user/developer and so an intricate understanding of tasks is not required to be successful in parallelizing your Julia code.
 
@@ -241,7 +239,7 @@ The key takeaway for tasks is that it's a way to chunk work into bundles that ca
 When a program starts on your computer, a **process** is created which is where the operating system allocates some overhead items (keeping track of the the code and memory allocations and layout) and block of memory in RAM that can be utilized by that process. Different processes do not have access to each other's allocated memory.
 
 ::: callout-note
-Readers may be familiar with starting Excel in different processes. When Microsoft Excel is opened multiple times, in different processes, then the workbooks in each respective process do not share memory and cannot create links or use full copy/paste functionality between them. It's only when workbooks are opened within the same process that the workbooks may seamlessly talk to each other.
+Readers may be familiar with starting Excel in different processes. When workbooks are opened within the same process (e.g. when creating a new workbook from Excel's File menu), the workbooks may seamlessly talk to each other (copy and paste from one to another). However, when Microsoft Excel is opened in different processes, then the workbooks in each respective process do not share memory and cannot create links or use full copy/paste functionality between them (this is what happens when you hold the control button and open Excel multiple times).
 :::
 
 Within each process, a main thread is created. That thread is where the running of the code occurs. For the level of the discussion here, you can mainly think of a process as a container with shared memory for threads, which do the real work (as illustrated in @fig-process-threads). Besides the main thread, other threads can be created within the process and access the same shared memory.
@@ -274,19 +272,13 @@ digraph G {
 The advantage of threads is that within a single physical processor, there may be multiple cores. Those cores can access the shared process memory and run tasks from different threads simultaneously. This is a technique that takes advantage of modern processor architecture wherein several (sometimes as many as 32 or more) cores exist on the same chip.
 
 ::: callout-note
-Technically, there are different flavors of threading. While not critical for the understanding and modeling-focused discussion here, for completeness here is a bit more detail on different thread types.
+Technically, there are different flavors of threading. While not critical for the understanding and modeling-focused discussion here, here is a bit more detail on different thread types for completeness:
 
--   Recall that **Tasks** are chunks of computation that get performed together, but after which the computer is free to switch to a new task. For example, one task might be loading a data file from persistent storage into RAM. After that task is complete, the computer continues on with another task in the queue (rendering a web page, playing a song, etc.). In this way even with a single processor and core, a computer could be "doing multiple things at once" (or "multi-tasking") even though nothing is running in parallel.
+-   **Multi-Tasking.** Recall that tasks are chunks of computation that get performed together, but after which the computer is free to switch to a new task. For example, one task might be loading a data file from persistent storage into RAM. After that task is complete, the computer continues on with another task in the queue (rendering a web page, playing a song, etc.). In this way even with a single processor and core, a computer could be "doing multiple things at once" (or "multi-tasking") even though nothing is running in parallel.
 -   **Operating System Threads** or just **Threads** are managed (as the name implies) at the operating system level. The benefit to this is that operating system level threads have more power: the operating system can pause or limit throughput on running programs if the operating system needs the resources for something it deems higher priority. It's technically possible to use this power to force a higher priority for your own code, but Julia and many other languages do not offer creating of these types of threads in favor of the next type of threads. Operating system threads have a higher amount overhead (time and memory) involved in creating and destroying the threads.
 -   **Green threads**, **cooperative threads**, **fibers**, or **user-threads** are the type of threads that Julia provides. They are managed at the process (Julia) level and don't have as much overhead in their creation as operating system threads. Also in Julia, a thread is implemented via Tasks
 
-Parallelism in modern computing comes in many flavors, occurs at many different levels (hardware, OS, software, network), and has many different implementations of similar concepts. The terminology of threading in practice and online documentation is confusing and prone to confusion. If you are having a discussion or asking a question, feel free to take the time to ask for clarification on the terminology being used at a given point in time.
-:::
-
-::: callout-important
-To use multi-threading, Julia needs to be started with more than one thread. This can be done by either setting the environment variable `JULIA_NUM_THREADS` to either `auto` or specify a number like `4`. You can also specify how many threads to start julia with if given the `-t` command line argument (such as running `julia -t 4` to start Julia with four threads from the command line). For the examples in this book and how many threads are used, see @sec-colophon for the system settings.
-
-Why doesn't it automatically start with more than one thread? Between "hyper-threading" (synthetic additional thread capacity), multi-core architectures, and the different types of threads it's actually difficult to predict how many threads will be optimal for a given system. Julia's current default is to take the more conservative approach and start single-threaded unless otherwise specified. The "auto" option is a best-guess but can, on certain systems and configurations, be very bad for performance. The authors recommend for most common systems to just use "auto".
+Parallelism in modern computing comes in many flavors, occurs at many different levels (hardware, OS, software, network), and has many different implementations of similar concepts. The terminology of threading in practice and online documentation is prone to confusing even seasoned developers. If you are having a discussion or asking a question, feel free to take the time to ask for clarification on the terminology being used at a given point in time.
 :::
 
 #### Multi-Threading Pitfalls
@@ -314,7 +306,17 @@ end
 sum_bad(100_000)
 ```
 
-The result of this should be that `subtotal` doesn't equal `5000050000` because the different threads pick up the subtotal before the other thread finishes adding it's current value. As a result, when one of the threads finishes it's work another may be starting from a place that ignores the updated value.
+The result will be less than the expected sum (`5000050000`) due to a race condition. Here's what happens:
+
+1.  Multiple threads read the current value of `subtotal` simultaneously.
+
+2.  Each thread adds its own, local value to that reading.
+
+3.  Only one thread writes its result back to `subtotal` first.
+
+4.  A different thread then overwrites `subtotal` with its calculation based on the out-dated starting point for `subtotal`.
+
+This means some thread contributions are lost when they overwrite each other's results. The threads may not see each other's updates, leading to missing values in the final sum.
 
 #### Avoiding Multi-threading Pitfalls
 
@@ -322,7 +324,7 @@ We will cover several ways to manage multi-threading race conditions, but it is 
 
 ##### Chunking up work into single-threaded work
 
-In this example, we can correct `sum_bad` by splitting the work into different threads, each of which is independent. Then, we can aggregate the results of each of the chunks.
+First, let's level-set with a single-threaded result:
 
 ```{julia}
 function sum_single(a)
@@ -335,22 +337,32 @@ end
 @btime sum_single(1:100_000)
 ```
 
-Note that in the single-threaded case, Julia is able to identify this common pattern and use a shortcut, calculating the sum of the integers $1$ through $n$ as $\frac{n(n+1)}{2}$.
+Note that in the single-threaded case, Julia is able to identify this common pattern and use a shortcut, calculating the sum of the integers $1$ through $n$ as $\frac{n(n+1)}{2}$ through a compiler optimization and essentially avoid the loop entirely.
+
+We can implement a correct threaded version by splitting the work into different threads, each of which is independent. Then, we can aggregate the results of each of the chunks.
 
 ```{julia}
 function sum_chunker(a)
 
-chunks = Iterators.partition(1:a, a ÷ Threads.nthreads())
-           tasks = map(chunks) do chunk
-               Threads.@spawn sum_single(chunk)
-           end
-           chunk_sums = fetch.(tasks)
-           return sum_single(chunk_sums)
+    chunks = Iterators.partition(1:a, a ÷ Threads.nthreads()) # <1>
+   
+    tasks = map(chunks) do chunk # <2>
+       Threads.@spawn sum_single(chunk)
+    end
+   
+    chunk_sums = fetch.(tasks)
+   
+    return sum_single(chunk_sums)
 
 end
 
 @btime sum_chunker(100_000)
 ```
+
+1.  Create chunks of the integer range from 1 to a. `Iterators.partition(1:a, a ÷ Threads.nthreads())` splits the range `1:a` into contiguous subranges (chunks), each of size `a ÷ Threads.nthreads()`. For example, if a = 100_000 and nthreads() = 4, you'll get four chunks of size 25_000.
+2.  Create a set of tasks (futures) using `Threads.@spawn` that call `sum_single(chunk)` on each of the chunks. This initiates parallel computation.
+3.  `fetch.(tasks)` collects the results from each of the spawned tasks once they complete. This returns an array containing the sums of each chunk.
+4.  Finally, sum the individual chunk sums to get the total sum. This is a single-threaded operation at the end, but it should be negligible compared to the parallelized work.
 
 ##### Using Locks
 
@@ -358,17 +370,25 @@ end
 
 ```{julia}
 function sum_with_lock(n)
-    subtotal = 0
-    lock = ReentrantLock()
-    Threads.@threads for i in 1:n
-        Base.@lock lock begin
+    subtotal = 0 # <1>
+    
+    lock = ReentrantLock() #<2>
+
+    Threads.@threads for i in 1:n #<3>
+        Base.@lock lock begin #<4>
             subtotal += i
         end
     end
+
     subtotal
 end
 @btime sum_with_lock(100_000)
 ```
+
+1.  Initialize a running total to zero.
+2.  Create a reentrant lock to ensure only one thread updates `subtotal` at a time.
+3.  Parallelize the loop over 1 to n using `Threads.@threads`.
+4.  Acquire the lock before updating the shared variable `subtotal`. This ensures that only one thread updates `subtotal` at a time, preventing race conditions. The lock is automatically released at the end of the block.
 
 ##### Using Atomics
 
@@ -376,15 +396,18 @@ end
 
 ```{julia}
 function sum_with_atomic(n)
-    subtotal = Threads.Atomic{Int}(0)
-    Threads.@threads for i in 1:n
-        Threads.atomic_add!(subtotal, i)
+    subtotal = Threads.Atomic{Int}(0) # <1>
+    Threads.@threads for i in 1:n 
+        Threads.atomic_add!(subtotal, i) # <2>
     end
     subtotal[]
 end
 
 @btime sum_with_atomic(100_000)
 ```
+
+1.  Initialize an atomic integer (`Threads.Atomic{Int}`) to store the subtotal. An atomic variable ensures that increments are performed atomically, preventing race conditions without needing explicit locks.
+2.  Atomically add `i` to `subtotal`. The `Threads.atomic_add!` function ensures that the addition and update of `subtotal` happens as one atomic step, preventing multiple threads from interfering with each other's updates.
 
 ## GPU and TPUs {#sec-GPUs}
 
@@ -400,13 +423,16 @@ GPUs have similar components as the CPU as discussed in @sec-hardware. They have
     -   GPU code is not suited for code with branching conditions (e.g. `if` statements) and so is more limited in the kinds of computations it can handle compared to the CPU.
 -   The RAM is typically much more constrained, typically less than a quarter of what primary RAM might be.
     -   As a result, GPUs may need strategies to move chunks of data to and from the GPU memory for moderately large datasets. Further, it's actually fairly common to use a lower-precision datatype (e.g. `Float16` or `Float32`) to improve overall program throughput at the cost of some precision.
--   The caches are similar in concept to CPU, but unlike most CPU caches, the there is locality to data wherein core #1 will have much quicker access to a different subset of data than, say, core #1024.
--   A GPU is usually a secondary device of sorts: it physically and in device architecture is separate from the CPU which remains in charge of overall computer execution. To some extent, this is changing with some of the latest computer hardware. For example, the M-series of Apple processors have the CPU, GPU, and RAM in a single tightly integrated package for efficiency and computational power.
+-   The caches are similar in concept to CPU, but unlike most CPU caches, there is relative locality to data (wherein core #1 will have much quicker access to a different subset of data than, say, core #1024).
+-   A GPU is usually a secondary device of sorts: it physically and in device architecture is separate from the CPU. The CPU remains in charge of overall computer execution.
     -   The implication of this (as with any movement of memory) is that there is overhead to moving data to and from the GPU. Your calculations will need to be in the single milliseconds range of time in order to start to see benefit from utilizing a GPU.
+    -   To some extent, separable CPU, RAM, and GPU is changing with some of the latest computer hardware. For example, the M-series of Apple processors have the CPU, GPU, and RAM in a single tightly integrated package for efficiency and computational power.
 
 #### Notable Vendors and Libraries
 
-Like the difference between x86 and ARM architectures, GPU also have specific architectures which vary by the vendor. To make full use of the hardware, the vendors need to (1) provide device drivers which allow the CPU to talk to the GPU, and (2) provide the libraries (lower level application programming interfaces, or APIs) which allow developers to utilize different hardware features without needing to write machine code. As of the mid 2020s, here are the most important GPU vendors and the associated programming library for utilizing their specific hardware:
+Like the difference between x86 and ARM architectures, GPU also have specific architectures which vary by the vendor. To make full use of the hardware, the vendors need to (1) provide device drivers which allow the CPU to talk to the GPU, and (2) provide the libraries (lower level application programming interfaces, or APIs) which allow developers to utilize different hardware features without needing to write machine code.
+
+As of the mid 2020s, here are the most important GPU vendors and the associated programming library for utilizing their specific hardware:
 
 | Vendor | Hardware | API Library/Package |
 |------------------------|------------------------|------------------------|
@@ -420,26 +446,30 @@ Like the difference between x86 and ARM architectures, GPU also have specific ar
 
 ### Utilizing a GPU
 
-With some of the key conceptual differences between CPUs and GPUs explained, let's explore how to incorporate these powerful hardware accelerators.
+With some of the key conceptual differences between CPUs and GPUs explained, let's explore how to incorporate these powerful hardware accelerators. We will use Julia libraries to illustrate GPU programming, though the concepts are generally applicable to other high-level languages that offer GPU interface libraries.
 
 #### Julia GPU Libraries
 
 There's essentially two types of GPU programming we will discuss here:
 
-1.  Array-based programming can, in Julia, be fairly easily translated into code that will run on GPUs.
-2.  Generated kernels wherein higher level Julia code is written but is compiled into GPU-compatible code.
+1.  **Array-based programming**, where arrays are stored and operated on directly on the GPU memory. This approach abstracts away the low-level details, allowing you to work with familiar array operations that are automatically executed on the GPU.
+2.  **Custom kernels**, which are specialized functions that define exactly how each GPU thread should process data in parallel. A kernel explicitly specifies the computation that each GPU thread will perform on its portion of the data.
 
 ::: callout-note
-**Kernels** is a term used to describe explicit instructions for operating on data, as opposed to general code where the compiler can translate higher level functions into explicit instructions.
+**Kernels** in this context are specialized functions that run directly on the GPU. Rather than relying solely on high-level array operations, kernels explicitly define the sequence of low-level, parallel instructions executed across many GPU threads. In other words, a kernel directly expresses the computation you want to perform on the data, enabling fine-grained control over GPU execution.
 :::
 
-It is possible to explicitly write a GPU kernel in Julia or vendor API library (CUDA, Metal, etc.) but this is more advanced usage which will not be covered here.
+A third approach would be to implement GPU code in a low-level vendor toolkit (such as C++ and associate CUDA libraries), but this approach will not be illustrated here.
 
 Julia has wonderful support for several of the primary vendors (at the time of writing, CUDA, Metal, OneAPI, and ROCm) via the [JuliaGPU organization](https://juliagpu.org). Installation of the required dependencies is also very straightforward and the interfaces at the array and generated kernel levels are very similar. The differences are obvious at the lower level vendor-API wrappers (which is the lower-level technique that will not be covered here).
 
-The benefit of the consistency of the higher level libraries we will use here is that examples written for one of the types of accelerators will be largely directly translate-able to another. This is especially true for array programming, a little less so for the kernel style, and the least true for for the low level vendor-API wrapper functionality.
+The benefit of the consistency of the higher level libraries we will use here is that examples written for one of the types of accelerators will be largely directly translatable to another. This is especially true for array programming, though less so for the kernel style as architecture-specific considerations often creep in[^parallelization-3].
 
+[^parallelization-3]: The [KernelAbstractions.jl](https://github.com/JuliaGPU/KernelAbstractions.jl) library actually allows you to write generic kernels which then get compiled into different code depending on the backend you are using.
+
+::: callout-note
 This book will be rendered on a Mac and therefore the examples will use Metal in order to run computational cells, however we'll show a CUDA translation for some of the examples in order to show the straight-forward nature of translating higher level GPU code in Julia is.
+:::
 
 | GPU API | GPU Array Type | Kernel Macro |
 |---------|----------------|--------------|
@@ -518,14 +548,16 @@ This example again underscores that hardware parallelization is not an automatic
 
 Another approach to GPU programming is often referred to as kernel programming, or being much more explicit about *how* a computation is performed. This is as opposed to the declarative approach in the array-oriented style (@sec-GPU-array) wherein we specified *what* we wanted the computation to be.
 
-The key ideas here are that we need to manually specify several aspects which came 'free' in the array-oriented style. The tradeoff is that we can be more fine-tuned about how the computation leverages our hardware, potentially increasing performance. 
+The key ideas here are that we need to manually specify several aspects which came 'free' in the array-oriented style. The tradeoff is that we can be more fine-tuned about how the computation leverages our hardware, potentially increasing performance.
 
 The GPU libraries in Julia abstract much of the low level programming typically necessary for this style of programming, but we still need to explicitly look at:
 
-1. How the GPU will iterate across different cores/threads threads.
-2. How many threads to utilize, the optimal number depends on the shape of the computation (long vectors, multi-dimensional arrays), memory constraints, and hardware specifics.
-  - GPU threads: Individual units of execution within a kernel. Each thread runs the same kernel code but operates on a different portion of the data. 
-3. How to chunk (group) the data to distribute the data to the different GPU threads
+1.  How the GPU will iterate across different cores/threads threads.
+2.  How many threads to utilize, the optimal number depends on the shape of the computation (long vectors, multi-dimensional arrays), memory constraints, and hardware specifics.
+
+-   GPU threads: Individual units of execution within a kernel. Each thread runs the same kernel code but operates on a different portion of the data.
+
+3.  How to chunk (group) the data to distribute the data to the different GPU threads
 
 Our strategy for the present values example will be to distribute the work such that different GPU threads are working on different scenarios. Within a scenario, the loop is a very familiar approach: initialize a subtotal to zero and then accumulate the calculated present values.
 
@@ -543,15 +575,15 @@ function calculate_present_values_kernel!(present_values,cashflows, discount_mat
 end
 ```
 
-1. As the work is distributed across threads, `thread_position_in_grid_1d()` will give the index of the current thread so that we can index data appropriately for the work as we decide to split it up (we've split up thw work by scenario in this example).
-2. Recall that we are working with `Float32` on the GPU here, so the zero value is set via the `f0` notation indicating a 32-bit floating point number.
-3. The loop is across timesteps within each thread, while the thread index is tracked with `idx`.
-4. The result is written to the pre-allocated array of present values, and we avoid race conditions because the different threads are working on difference scenarios.
-5. We don't explicitly have to `return nothing` here, but it makes it extra clear that the intention of the function is to mutate the `present_values` array given to it. This mutation intention is also signaled by the `!` convention in the function name.
+1.  As the work is distributed across threads, `thread_position_in_grid_1d()` will give the index of the current thread so that we can index data appropriately for the work as we decide to split it up (we've split up the work by scenario in this example).
+2.  Recall that we are working with `Float32` on the GPU here, so the zero value is set via the `f0` notation indicating a 32-bit floating point number.
+3.  The loop is across timesteps within each thread, while the thread index is tracked with `idx`.
+4.  The result is written to the pre-allocated array of present values, and we avoid race conditions because the different threads are working on different scenarios.
+5.  We don't explicitly have to `return nothing` here, but it makes it extra clear that the intention of the function is to mutate the `present_values` array given to it. This mutation intention is also signaled by the `!` convention in the function name.
 
-The kernel above was fairly similar to how we might write code for CPU-threaded approaches, but we now need to specify the technicals of launching this on the GPU. The `threads` defines how many independent calculations to run at a given time, and the maximum will be dependent on the hardware used. The `groups` argument defines the number of threads that share memory and synchronize results together (meaning that group will wait for all threads to finish before moving onto the next chunk of data). The push-pull here is that threads that can share data avoid needing to create duplicate copies of that data in memory, but if there is variability in how long each calculation will take, then the waiting time for synchronizing results may slow the overall computation down.
+The kernel above was fairly similar to how we might write code for CPU-threaded approaches, but we now need to specify the technicals of launching this on the GPU. The `threads` defines how many independent calculations to run at a given time, and the maximum will be dependent on the hardware used. The `groups` argument defines the number of threads that share memory and synchronize results together (meaning that group will wait for all threads to finish before moving onto the next chunk of data). The push-pull here is that threads that can share data avoid needing to create duplicate copies of that data in memory. However, if there is variability in how long each calculation will take, then the waiting time for synchronizing results may slow the overall computation down.
 
-Our task utilizes shared memory of the cashflows for each thread, so through some experimentation in advance, we find that a relatively large group size of ~512 is optimal.
+Our task utilizes shared memory of the cashflows for each thread, so through some experimentation in advance, we find that a relatively large group size of \~512 is optimal.
 
 We bring this all together through the use of the kernel macro `@metal`:
 
@@ -568,22 +600,20 @@ groups = cld(num_scenarios, 512)
 
 This is approximately seven times faster than the array-oriented style above, meaning that the GPU kernel version's computation is over 1000 times faster than the CPU version. However, we saw previously that the cost of moving the data to the GPU memory and then back to the CPU memory was the biggest time sink of all - again we'd need to have more scale in the problem to make offloading to the GPU beneficial overall.
 
-:::callout-note
-The Metal GPUs are able to iterate threads across three different dimensions. In the prior example, we only used one dimension and thus used `thread_position_in_grid_1d()`. If we were distributing the threads across, say, three dimensions then we would use `thread_position_in_grid_2d()`. 
+::: callout-note
+The Metal GPUs are able to iterate threads across three different dimensions. In the prior example, we only used one dimension and thus used `thread_position_in_grid_1d()`. If we were distributing the threads across, say, three dimensions then we would use `thread_position_in_grid_2d()`.
 
 How do you determine how many dimensions to use? A good approach is to mimic the data you are trying to parallelize. In the example of calculating a vector of present values across 100k scenarios, that was the primary 'axis of parallelization'. If instead of a one-dimensional set of cashflows (e.g. a single asset with fixed cashflows), we had a two-dimensional set of cashflows (e.g. a portfolio of many assets), then we may find the best balance of code simplicity and performance to iterate across two dimensions of threads (but we are still limited by the same number of total available threads).
 :::
 
-:::callout-note
+::: callout-note
 The above example would be translated to CUDA by changing just a few things:
 
-- The thread indexing would be `idx = threadIdx().x` instead of `i = threadIdx().x`
-- The GPU arrays should be created with `CuArray` instead of `MtlArray`.
-- The kernel macro would be `@cuda threads=1024 calculate_present_values_kernel!(...)` instead of `@metal threads=threads groups=groups calculate_present_values_kernel(...)`. The memory sharing and synchronizing between threads is more manual than Metal.jl, but this is not strictly necessary for our example.
+-   The thread indexing would be `idx = threadIdx().x` instead of `i = thread_position_in_grid_1d()`
+-   The GPU arrays should be created with `CuArray` instead of `MtlArray`.
+-   The kernel macro would be `@cuda threads=1024 calculate_present_values_kernel!(...)` instead of `@metal threads=threads groups=groups calculate_present_values_kernel(...)`. The memory sharing and synchronizing between threads is more manual than Metal.jl, but this is not strictly necessary for our example.
 
-THIS CODE NEEDS TO BE TESTED ON A CUDA MACHINE:
-
-```julia
+``` julia
 function calculate_present_values_kernel!(present_values,cashflows, discount_matrices)
     idx = threadIdx().x 
 
@@ -610,91 +640,92 @@ groups = cld(num_scenarios, 512)
 
 Multiple device, or **multi-device** computer refers to using separate groups of memory/processor combinations to accomplish tasks in parallel. This can be as simple as multiple distinct cores on within a single desktop computer, or many separate computers networked across the internet, or many processors within a high performance cluster or a computing-as-a-service provider like Amazon Web Services or JuliaHub.
 
-Everything discussed previously related to hardware (@sec-hardware, @sec-multithreading, @sec-GPUs) continues to apply. The additional complexity is attempting to synchronize the computation across multiple sets of the same (homogenous) or different (heterogenous) hardware.
+Everything discussed previously related to hardware (@sec-hardware, @sec-multithreading, @sec-GPUs) continues to apply. The additional complexity is attempting to synchronize the computation across multiple sets of the same (homogeneous) or different (heterogeneous) hardware.
 
-As you might imagine, approaches to multi-device computing can vary widely. Julia's approach tries to strike the balance between capability and user-friendliness and uses a primary/worker model wherein one of the processors is the main coordinator while other processors are "workers". If only one processor is started, then the main processor is also a worker processor. This main/worker approach uses a "one-sided" approach to coordination. The main worker utilizes high level calls and the workers respond, with some of the communication and handoff handled by Julia transparently from the user's perspective.
+As you might imagine, approaches to multi-device computing can vary widely. Julia's approach tries to strike the balance between capability and user-friendliness and uses a primary/worker model wherein one of the processors is the main coordinator while other processors are "workers". If only one processor is started, then the main processor is also a worker processor. This main/worker approach uses a "one-sided" approach to coordination. The main worker utilizes high level calls and the workers respond, with some of the communication and hand-off handled by Julia transparently from the user's perspective.
 
-A useful mental model is the asynchronous task-based concepts discussed in @sec-tasks, as the main worker will effectively queue up work with the worker processors. Because there may be a delay associated with the computation or the communication between the processors, the worker runs asynchronously.
+A useful mental model is the asynchronous task-based concepts discussed in @sec-tasks, as the main worker will effectively queue work with the worker processors. Because there may be a delay associated with the computation or the communication between the processors, the worker runs asynchronously.
 
-| Description                   | Task API              | Distributed Analogue |
-|-------------------------------|----------------------|----------------------|
-| Create a new task             | `Task()`             | `@spawnat`           |
-| Run task asynchronously       | `@async`             | `@spawnat`           |
-| Retrieve task result          | `fetch`              | `fetch`              |
-| Wait for task completion      | `@sync`              | `sync`               |
-| Communication between tasks   | `Channel`            | `RemoteChannel`      |
+| Description                 | Task API  | Distributed Analogue |
+|-----------------------------|-----------|----------------------|
+| Create a new task           | `Task()`  | `@spawnat`           |
+| Run task asynchronously     | `@async`  | `@spawnat`           |
+| Retrieve task result        | `fetch`   | `fetch`              |
+| Wait for task completion    | `@sync`   | `sync`               |
+| Communication between tasks | `Channel` | `RemoteChannel`      |
 
 Adapting the trade producer and monitor example from above to run on multiple processors (see #sec-channels to review the base model and algorithm), we make a few key changes:
 
-- `using Distributed` loads the Distributed standard Julia library, providing the interface for multi-processing across different hardware.
-- `addprocs(n)` will add `n` worker processors (the main processor is already counted as one worker). When adding local machine processors, the processors are part of the local machine. This starts new Julia processes (you can see this in the task manager of the machine) which inherit the package environment (i.e. `Project.toml` and environment variables) from the main process; this does not occur automatically if not part of the same local machine.
-  - To add processors from other machines, see the [Distributed Computing](https://docs.julialang.org/en/v1/stdlib/Distributed/) section of the Julia docs.
-- `myid()` is the identification number of the given processor that's been spun up.
-- We use a `RemoteChannel` instead of a `Channel` to facilitate communication across processors.
-- Instead of `@async`, we use `@spawnat n` to create a task for processor number `n` (or `:any` will automatically assign a processor).  
+-   `using Distributed` loads the Distributed standard Julia library, providing the interface for multi-processing across different hardware.
+-   `addprocs(n)` will add `n` worker processors (the main processor is already counted as one worker). When adding local machine processors, the processors are part of the local machine. This starts new Julia processes (you can see this in the task manager of the machine) which inherit the package environment (i.e. `Project.toml` and environment variables) from the main process; this does not occur automatically if not part of the same local machine.
+    -   To add processors from other machines, see the [Distributed Computing](https://docs.julialang.org/en/v1/stdlib/Distributed/) section of the Julia docs.
+-   `myid()` is the identification number of the given processor that's been spun up.
+-   We use a `RemoteChannel` instead of a `Channel` to facilitate communication across processors.
+-   Instead of `@async`, we use `@spawnat n` to create a task for processor number `n` (or `:any` will automatically assign a processor).
 
-See 
+See
+
 ```{julia}
 using Distributed
 let
 
-# Add worker processes if not already added
-if nworkers() == 1
-    addprocs(4)  # Add 4 worker processes
-end
-
-@everywhere function trade_producer(channel, i)
-    sleep(rand())
-    profit = randn()
-    put!(channel, profit)
-    println("Producer $(myid()): Trade Result #$i $(round(profit, digits=3))")
-end
-
-@everywhere function portfolio_monitor(channel, n)
-    sum = 0.0
-    for _ in 1:n  # <3>
-        profit = take!(channel)
-        sum += profit
-        println("Monitor $(myid()): Received $(round(profit, digits=3)), Cumulative profit: $(round(sum, digits=3))")
+    # Add worker processes if not already added
+    if nworkers() == 1
+        addprocs(4)  # Add 4 worker processes
     end
-end
-
-function run_distributed_simulation()
-    channel = RemoteChannel(() -> Channel{Float64}(32))  # <4>
-
-    # Start producer and consumer tasks
-    @sync begin  # <5>
-        for i in 1:5
-            @spawnat :any trade_producer(channel, i)  # <6>
+    
+    @everywhere function trade_producer(channel, i)
+        sleep(rand())
+        profit = randn()
+        put!(channel, profit)
+        println("Producer $(myid()): Trade Result #$i $(round(profit, digits=3))")
+    end
+    
+    @everywhere function portfolio_monitor(channel, n)
+        sum = 0.0
+        for _ in 1:n 
+            profit = take!(channel)
+            sum += profit
+            println("Monitor $(myid()): Received $(round(profit, digits=3)), Cumulative profit: $(round(sum, digits=3))")
         end
-        @spawnat :any portfolio_monitor(channel, 5)  # <6>
     end
-
-    # Close the channel and wait for tasks to finish
-    close(channel)
-end
-
-# Run the simulation
-run_distributed_simulation()
+    
+    function run_distributed_simulation()
+        channel = RemoteChannel(() -> Channel{Float64}(32))
+    
+        # Start producer and consumer tasks
+        @sync begin  # <5>
+            for i in 1:5
+                @spawnat :any trade_producer(channel, i)
+            end
+            @spawnat :any portfolio_monitor(channel, 5)
+        end
+    
+        # Close the channel and wait for tasks to finish
+        close(channel)
+    end
+    
+    # Run the simulation
+    run_distributed_simulation()
 end
 ```
 
-Given the similarity to the single-process version, what's the motivation for this approach? A few differences:
+Given the similarity to the single-process task-based version above, what's the motivation for this bothering with a distributed approach? A few differences:
 
-- In this simplified example, we are simply starting additional Julia processes on the same machine. Like a threaded approach, the work will be split across the same multi-core processor. In this context, the main difference is that the processes do not share memory. 
-  - Communicating across processes generally has a little bit more overhead than communicating across threads.
-- If distributing across machines, not sharing memory is advantageous if using multi-processing across machines that have their own memory stores which need not compete with the main process (such as distributing chunks of large datasets).
-- The worker processors don't need to be the same architecture as the main processor, allowing usage of different machines or cloud computing that is communicating with a local main process.
+-   In this simplified example, we are simply starting additional Julia processes on the same machine. Like a threaded approach, the work will be split across the same multi-core processor. In this context, the main difference is that the processes do not share memory.
+    -   Communicating across processes generally has a little bit more overhead than communicating across threads.
+-   If distributing across machines, avoiding memory sharing is advantageous if using the different machines that have their own memory stores, which need not compete with the main process (such as distributed chunks of large datasets). This essentially helps with memory constrained problems since you are no longer limited by the memory size or throughput of a single machine.
+-   The worker processors don't need to be the same architecture as the main processor, allowing usage of different machines or cloud computing that is communicating with a local main process.
 
 ## Parallel Programming Models {#sec-parallel-programming-models}
 
-The previous sections have explained the different parallel programming models and how to directly utilize them to harness additional computing power. Each approach (multi-threading, GPU, distributed processing, etc.) has unique considerations and tradeoffs. These approaches in Julia are generally much more accessible to beginning and intermediate users than other languages, but admittedly still requires a decent amount of thought and care.
+The previous sections have explained the different parallel programming models and how to directly utilize them to harness additional computing power. Each approach (multi-threading, GPU, distributed processing, etc.) has unique considerations and trade-offs. These approaches in Julia are generally much more accessible to beginning and intermediate users than other languages, but admittedly still requires a decent amount of thought and care.
 
-It is possible, if you are willing to give up some fine-grained control, to utilize some higher level approaches which look to abstract away some of the particularities of the implementation. 
+It is possible, if you are willing to give up some fine-grained control, to utilize some higher level approaches which look to abstract away some of the particularities of the implementation.
 
 ### Map-Reduce
 
-Map-Reduce (@sec-map-reduce) operations are inherently parallelizable and various libraries provide parallelized versions of the base `mapreduce`. This is the workhorse function of many 'big data' workloads and many statistical operations are versions of `mapreduce`. 
+Map-Reduce (@sec-map-reduce) operations are inherently parallelizable and various libraries provide parallelized versions of the base `mapreduce`. This is the workhorse function of many 'big data' workloads and many statistical operations are versions of `mapreduce`.
 
 #### Multi-Threading
 
@@ -718,11 +749,11 @@ import ThreadsX
 
 #### Multi-Processing
 
-`reduce(op,pmap(f,collection))` will use a distributed map and reduce the resulting map on the main thread. This pattern works well if each application of `f` to elements of `collection` is costly. 
+`reduce(op,pmap(f,collection))` will use a distributed map and reduce the resulting map on the main thread. This pattern works well if each application of `f` to elements of `collection` is costly.
 
-`@distributed (op) for x in collection; f(x); end` is a way to write the loop with the reduction `op` for which the `f` need not be costly. 
+`@distributed (op) for x in collection; f(x); end` is a way to write the loop with the reduction `op` for which the `f` need not be costly.
 
-The difference between the two approaches is that with `pmap`, `collection` is made available to all workers. In the `@distributed` approach, the collection is partitioned and only a subset is sent to the designated workers. 
+The difference between the two approaches is that with `pmap`, `collection` is made available to all workers. In the `@distributed` approach, the collection is partitioned and only a subset is sent to the designated workers.
 
 Here's an example of both of these, calculating a simple example of counting coin flips:
 
@@ -775,6 +806,7 @@ end
 ```
 
 Using multi-threading
+
 ```{julia}
 let v = collect(1:10000)
     Threads.@threads  for i in eachindex(v)
@@ -785,6 +817,7 @@ end
 ```
 
 Using multi-processing:
+
 ```{julia}
 let v = collect(1:10000)
     Distributed.@distributed for i in eachindex(v)
@@ -800,7 +833,7 @@ For more advanced usage, including handling shared memory see @sec-multi-device 
 
 Task based approaches attempt to abstract the scheduling and distribution of work from the user. Instead of saying how the computation should be done, the user specifies the intended operations and allows the library to handle the workflow. The main library for this in Julia is [Dagger.jl](https://juliaparallel.org/Dagger.jl/dev/darray/).
 
-Effectively, the library establishes a network topology (a map of how different processor nodes can communicate) and models the work as a directed, acyclic graph (a DAG, which is like a map of how the work is related). The library is then able to assign the work in the appropriate order to the available computation devices. The benefit of this is most apparent with complex workflows or network topologies where it would be difficult to manually assign, communicate, and schedule the workflow. 
+Effectively, the library establishes a network topology (a map of how different processor nodes can communicate) and models the work as a directed, acyclic graph (a DAG, which is like a map of how the work is related). The library is then able to assign the work in the appropriate order to the available computation devices. The benefit of this is most apparent with complex workflows or network topologies where it would be difficult to manually assign, communicate, and schedule the workflow.
 
 Here's a very simple example which demonstrates Dagger waiting for the two tasks which work in parallel (we already added multiple processors to this environment in @sec-multi-device):
 
@@ -818,16 +851,15 @@ c = Dagger.@spawn prod(a)
 wait(Dagger.@spawn println("b: ", b, ", c: ", c))
 ```
 
-
 ## Choosing a Parallelization Strategy
 
 There is no one-size-fits-all strategy to parallelization. Here are some general guides to thinking about what parallelization technique to try given the circumstances:
 
-- **CPU-bound workloads with manageable memory demands:** If your entire dataset fits comfortably in RAM and your operations are primarily arithmetic or straightforward loops, start by optimizing your single-threaded performance and consider **vectorization (SIMD)** for inner loops and **multi-threading** for parallelizable tasks. This approach leverages your CPU cores efficiently without introducing significant complexity.
+-   **CPU-bound workloads with manageable memory demands:** If your entire dataset fits comfortably in RAM and your operations are primarily arithmetic or straightforward loops, start by optimizing your single-threaded performance and consider **vectorization (SIMD)** for inner loops and **multi-threading** for parallelizable tasks. This approach leverages your CPU cores efficiently without introducing significant complexity.
 
-- **Large-scale linear algebra or highly data-parallel computations:** If your problem involves large matrix operations, linear algebra routines, or embarrassingly parallel computations that can be batched over many independent elements, a **GPU** or other specialized accelerators may be beneficial. GPUs excel at uniform computations over large datasets and can provide substantial speedups—assuming data transfer overhead and memory constraints are managed effectively. Note that standard linear algebra libraries are likely to already parallelize on the CPU without any explicit parallelization needed to be coded on your part.
+-   **Large-scale linear algebra or highly data-parallel computations:** If your problem involves large matrix operations, linear algebra routines, or embarrassingly parallel computations that can be batched over many independent elements, a **GPU** or other specialized accelerators may be beneficial. GPUs excel at uniform computations over large datasets and can provide substantial speedups—assuming data transfer overhead and memory constraints are managed effectively. Note that standard linear algebra libraries are likely to already parallelize on the CPU without any explicit parallelization needed to be coded on your part.
 
-- **Distributing work across multiple machines or heterogeneous resources:** If you need to scale beyond a single machine’s CPU and GPU capabilities—whether due to extremely large datasets, the need for concurrent access to geographically distributed resources, or leveraging specialized hardware—then consider **distributed computing**. Spreading tasks across multiple processes, servers, or clusters can scale performance horizontally. Just keep in mind the overhead of communication, potential data partitioning strategies, and the complexity of managing a distributed environment.
+-   **Distributing work across multiple machines or heterogeneous resources:** If you need to scale beyond a single machine’s CPU and GPU capabilities—whether due to extremely large datasets, the need for concurrent access to geographically distributed resources, or leveraging specialized hardware—then consider **distributed computing**. Spreading tasks across multiple processes, servers, or clusters can scale performance horizontally. Just keep in mind the overhead of communication, potential data partitioning strategies, and the complexity of managing a distributed environment.
 
 In practice, you may find that a combination of these approaches is ideal: start simple, measure performance, and iterate. By understanding your workload and hardware constraints, you can make informed decisions that balance complexity, cost, and the performance gains of parallel computing.
 
