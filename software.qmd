@@ -12,21 +12,27 @@ In addition to the core concepts from computer science described so far, there's
 
 It's likely that the majority of a professional financial modeler's time is often spent *doing things other than building models*, such as testing the model's results, writing documentation, collaborating with others on the design, and figuring out how to share the model with others inside the company. This chapter covers how a code-first workflow makes each one of those responsibilities easier or more effective.
 
+### Regulatory Compliance and Software Practices
+
+Financial models often face regulatory requirements around model validation, change management, and reproducibility. Software engineering practices directly support these requirements - version control provides a complete audit trail of all model changes, automated testing helps validate model behavior and demonstrates ongoing quality control, and comprehensive documentation meets regulatory demands for model transparency. For example, the European Central Bank's Targeted Review of Internal Models (TRIM) Guide explicitly requires financial institutions to maintain documentation of model changes and validation procedures, which is naturally supported by Git commit history and continuous integration test reports which will be discussed in this chapter.
+
+### Chapter Structure
+
 Thre are three essential topics covered in this chapter:
 
 -   **Testing** is the practice of implementing automated checks for desired behavior and outputs in the system.
 -   **Documentation** is the practice of writing plain English (or your local language) to compliment the computer code for better human understanding.
 -   **Version Control** is the systematic practice of tracking changes and facilitating collaborative workflows on projects.
 
-Additionally, some highly related topics are covered which help bridge some of the conceptual ideas into practical implementations for your own code and models.
+As the chapter progresses, some highly related topics are covered, bridging some of the conceptual ideas into practical implementations for your own code and models.
 
-This chapter is organized such that the conceptual topics are covered first, and towards the end of the chapter specific tips and setup related to Julia codebases is covered. The code examples in the earlier, conceptual parts have direct analogues in other languages.
+As a reminder, this chapter is heavily oriented to concepts that are applicable in any language, though the examples are illustrated using Julia for consistency and its clarity. The code examples would have direct analogues in other languages. In @sec-julia-writing many of these concepts will be reinforced and expanded upon with Julia-specific workflows and tips.
 
 ## Testing
 
-Testing is a crucial aspect of software engineering that ensures the reliability and correctness of code. In financial modeling, where accuracy is paramount, implementing robust testing practices is essential, and in many cases now legally required by the regulatory body or financial reporting authority. But it's just good practice regardless of requirements.
+Testing is a crucial aspect of software engineering that ensures the reliability and correctness of code. In financial modeling, where accuracy is paramount, implementing robust testing practices is essential, and in many cases now legally required by the regulatory body or financial reporting authority. It's good practice regardless of requirements.
 
-Testing looks like this:
+A test is implemented by writing a boolean expression after a `@test` macro:
 
 ``` julia
 @test model_output = desired_output
@@ -57,7 +63,7 @@ using Test
 @test present_value(0.05, [10, 20]) ≈ 10 / 1.05 + 20 / 1.05^2
 ```
 
-The above test passes because the expression is true. However, the following will fail because we have defined the function using a certain assumption about the compounding convention (compounded once per period) as opposed to the test outcome which presumes a continuous compounding convention. Additionally, the failing test will show the stacktrace of where the error occurred.
+The above test passes because the expression is true. However, the following will fail because we have defined the function assuming the given `discount_rate` is compounded once per period. This test will fail because the test target presumes a continuous compounding convention. The failing test will show the stacktrace of where the error occurred.
 
 ```{julia}
 #| error: true
@@ -76,11 +82,12 @@ In tests (as in the `isapprox`/`≈` function), you can also further specify a r
 ```
 :::
 
-The testing described in this section is sort of a 'sampling' based approach, wherein the modeler decides on some pre-determined set of outputs to test and determines the desired outcomes for that chosen set of inputs. For example, testing that `2 + 2 == 4` versus testing that a positive number plus a positive number will always equal another positive number. There are some more advanced techniques that cover testing of the second kind described in @sec-formal-verification. In practice, the type of testing discussed in this section is much more common.
+The testing described in this section is sort of a 'sampling' based approach, wherein the modeler decides on some pre-determined set of outputs to test and determines the desired outcomes for that chosen set of inputs. That is, testing that `2 + 2 == 4` versus testing that a positive number plus a positive number will always equal another positive number. There are some more advanced techniques that cover the latter approach in @sec-formal-verification.
 
-:::callout-tip
-More Julia-specific testing workflows are covered in @sec-julia-testing. 
+::: callout-tip
+More Julia-specific testing workflows are covered in @sec-julia-testing.
 :::
+
 ### Test Driven Design
 
 **Test Driven Design** (TDD) is a software development approach where tests are written before the actual code. The process typically follows these steps:
@@ -128,7 +135,7 @@ end;
 
 ### Test Coverage {#sec-code-coverage}
 
-Testing is great, but what if some things aren't tested? For example, we might have a function that has a branching condition and only ever test one branch. Then when the other branch is encountered in practice it is more vulnerable to having bugs because its behavior was never double checked. Wouldn't it be great to tell whether or not we have tested all of our code?
+Testing is great, but what if some things aren't tested? For example, we might have a function that has a branching `if`/`else` condition and only ever test one branch. Then when the other branch is encountered in practice it is more vulnerable to having bugs because its behavior was never double checked. Wouldn't it be great to tell whether or not we have tested all of our code?
 
 The good news is that there is! **Test coverage** is a measurement related to how much of the codebase is covered by at least one associated test case. In the following example, code coverage would flag that the `... other logic` is not covered by tests and therefore encourage the developer to write tests covering that case:
 
@@ -144,13 +151,13 @@ end
 @test asset_value(10,11) ≈ 1.5   
 ```
 
-From this, it's possible to determine a score, of sorts, for how well a given set of code is tested. 100% coverage means every line of code has at least one test that double checked it's behavior.
+From this, it's possible to determine a score for how well a given set of code is tested. 100% coverage means every line of code has at least one test that double checked it's behavior.
 
 ::: callout-warning
 Testing is only as good as the tests that are written. You could have 100% code coverage for a codebase with only a single rudimentary test covering each line. Or the test itself could be wrong! Testing is not a cure-all, but does encourage best practices.
 :::
 
-Test coverage is also a great addition when making modification to code. It can be set up such that you receive reports on how the test coverage changes if you were to make a certain modification to a codebase. An example might look like this for a proposed change which added 13 lines of code, of which only 11 of those lines were tested. The coverage percent has therefore gone down because the proportion of new lines covered by tests is $11/13 = 84\%$, which is lower than the original coverage rate of 90%.
+Test coverage is also a great addition when making modification to code. It can be set up such that you receive reports on how the test coverage changes if you were to make a certain modification to a codebase. An example might look like this for a proposed change which added 13 lines of code, of which only 11 of those lines were tested ("hit"). The total coverage percent has therefore gone down (`-0.49%`) because the proportion of new lines covered by tests is $11/13 = 84\%$, which is lower than the original coverage rate of 90%.
 
 ``` plaintext
 @@            Coverage Diff             @@
@@ -167,7 +174,7 @@ Test coverage is also a great addition when making modification to code. It can 
 
 ### Types of Tests
 
-Different tests can emphasize different aspects of model behavior. You could be testing a small bit of logic, or test that the whole model runs if hooked up to a database. The variety of this kind of testing has given rise to various 'named' types of testing, but it's somewhat arbitrary and the boundaries between the types is sort of fuzzy.
+Different tests can emphasize different aspects of model behavior. You could be testing a small bit of logic, or test that the whole model runs if hooked up to a database. The variety of this kind of testing has given rise to various named types of testing, but it's somewhat arbitrary and the boundaries between the types can be fuzzy.
 
 +---------------------+-------------------------------------------------------------------------------------------------------------------------------------------+
 | Test Type           | Description                                                                                                                               |
@@ -188,12 +195,12 @@ There are other types of testing that can be performed on a model, such as perfo
 ::: callout-tip
 ## Financial Modeling Pro-tip
 
-Test reports and test coverage are a wonderful way to demonstrate regular and robust testing for compliance
+Test reports and test coverage are a wonderful way to demonstrate regular and robust testing for compliance. It is important to read and understand any limitations related to testing in your choice of language and associated libraries.
 :::
 
 ## Documentation
 
-The most important part of a code for maintenance is plainly written notes for humans, not the compiler. This includes comments, reference materials, and how-to pages, among other potential forms. Julia includes several ways to facilitate documentation of a project and associated codebase.
+The most important part of code for maintenance purposes is plainly written notes for humans, not the compiler. This includes in-line comments, docstrings, reference materials, and how-to pages, etc. Even as a single model developer, writing comments for your future self is critical for model maintenance and ongoing productivity.
 
 ### Comments
 
@@ -218,10 +225,9 @@ function calculate_bond_price(face_value, coupon_rate, years_to_maturity, market
     pv_face_value = face_value / (1 + semi_annual_market_rate)^periods
 
     #=
-    Sum up the components:
+    Sum up the components for total bond price
     1. Present value of all coupon payments
     2. Present value of the face value at maturity
-    This gives us the total bond price
     =#
     bond_price = pv_coupons + pv_face_value
 
@@ -231,7 +237,9 @@ end
 
 ### Docstrings {#sec-software-docstrings}
 
-Docstrings are intended to be a user-facing reference and help text. In Julia, docstrings are just strings placed in front of definitions. Markdown is available (and encouraged) to add formatting within the docstring.
+**Docstrings (**documentation strings) are intended to be a user-facing reference and help text. In Julia, docstrings are just strings placed in front of definitions. Markdown[^software-1] is available (and encouraged) to add formatting within the docstring.
+
+[^software-1]: Markdown is a type of plain text which can be styled for better communication and aesthetics. E.g. `**some text**` would render as boldface: **some text**. This book was written in Markdown and all of the styling arose as a result of plain text files written with certain key elements.
 
 Here's an example with some various features of documentation shown:
 
@@ -292,9 +300,11 @@ Typical contents of a docsite include:
 
 -   *Developer documentation* is intended to be read by those who are interested in understanding, contributing, or modifying the codebase.
 
--   *Reference documentation* describes concepts and available functionality. A subset of this is API, or **Application Programming Interface** documentation which is the detailed specification of the available functionality of a package, often consisting largely of docstrings like the previous example.
+-   *Reference documentation* describes concepts and available functionality. A subset of this is API, or **Application Programming Interface,** documentation which is the detailed specification of the available functionality of a package, often consisting largely of docstrings like the previous example.
 
-At a minimum, by writing docstrings, a docsite generator can create a searchable, hierarchical page with all of the content from the docstrings in a project. This alone is incredibly beneficial for current and potential users of a project. Creating the other types of documentation as described above is mechanically as simple as creating a new markdown file, though the hard part is learning how to write quality documentation. But at least the technical and workflow aspects have been made as easy as possible!
+Docsite generators are generally able to look at the codebase and from just the docstrings create a searchable, hierarchical page with all of the content from the docstrings in a project. This basic docsite feature is incredibly beneficial for current and potential users of a project.
+
+To go beyond creating a searchable index of docstrings requires additional effort (time well invested!). Creating the other types of documentation (quick start, tutorials, etc.) is mechanically as simple as creating a new markdown file. The hard part is learning how to write quality documentation. Good technical writing is a skill developed over time - but at least the technical and workflow aspects have been made as easy as possible!
 
 ## Version Control
 
@@ -307,70 +317,101 @@ At a minimum, by writing docstrings, a docsite generator can create a searchable
 -   Minimization of manual overrides, intervention, and opportunity for user error
 -   Coordinating collaboration in parallel and in sequence between one or many contributors
 
-Among several competing options, Git is the predominant choice as of this book's writing and therefore we will focus on Git concepts and workflows.
+These features are massively beneficial to a financial modeler! A lot of the overhead in a modeler's job becomes much easier or automated through this tooling.
+
+Among several competing options (CVS, Mercurial, Subversion, etc.), Git is the predominant choice as of this book's writing and therefore we will focus on Git concepts and workflows.
 
 ### Git Overview
 
-Git is a free and open source software that tracks changes in files using a series of snapshots. Each commit creates a new snapshot of the entire project, storing references to the files that have changed[^software-1]. All of this is stored in a `.git` subfolder of a project, which is automatically created upon initializing a repository.
+This section will introduce Git related concepts at a level deeper than "here's the five commands to run" but not at a reference-level of detail. The point of this is to reveal some of the underlying technology and approaches so that you can recognize where similar ideas appear in other areas and understand some of the limitations of the technology.
 
-[^software-1]: Git uses a content-addressable filesystem, meaning it stores data as key-value pairs. The key is a hash of the content, ensuring data integrity and allowing efficient storage of identical content.
+Git is a free and open source software that tracks changes in files using a series of snapshots. Git itself is the underlying software tool and is a command-line tool at its core. However, you will often interact with it through various interfaces (such as a graphical user interface in VS Code, GitKraken, or other tool).
 
-Under the hood, Git objects (which include things such as blobs, trees, commits, and tags) form a directed acyclic graph representing the project's history. Blobs store file contents, trees represent directories, commits point to trees and parent commits, and tags provide human-readable names for specific commits. This structure allows Git to efficiently handle branching, merging, and maintaining project history.
+Each snapshot, or **commit**, stores references to the files that have changed[^software-2]. All of this is stored in a `.git/` subfolder of a project, which is automatically created upon initializing a repository. This folder may be hidden by default by your filesystem. You generally never need to modify anything inside the `.git/` folder yourself as Git handles this for you. Git tracks files that are contained in sibling directories to the `.git/` subfolder.
 
-Hashes indicate a verifiable snapshot of a codebase. For example, a full commit ID `40f141303cec3d58879c493988b71c4e56d79b90` will *always* refer to a certain snapshot of the code, and if there is a mismatch in the git history between the contents of the repository and the commit's hash then the git repository is corrupted and it will not function. A corrupted repository usually doesn't happen in practice, of course! You might see hashes shortened to the last several characters (e.g. `6d79b90`) and in the following examples we'll shorten the hypothetical hashes to just three characters (e.g. `b90`).
+[^software-2]: Git uses a content-addressable filesystem, meaning it stores data as key-value pairs. The key is a hash of the content, ensuring data integrity and allowing efficient storage of identical content. For more on hashes, jump to @note-content-hash.
+
+::: callout-note
+A directory structure demonstrating where git data is stored and what content is tracked after initializing a repository in the `tracked-project` directory. Note how `untracked folder` is not the parent directory of the `.git` directory so it does not get tracked by Git.
+
+```         
+/home/username
+├── untracked-folder
+│   ├── random-file.txt
+│   └── ...
+└── tracked-project
+    ├── .git
+    │   ├── config
+    │   ├── HEAD
+    │   └── objects
+    │       └── ...
+    ├── .gitignore
+    ├── README.md
+    └── src
+        ├── MainProject.jl
+        ├── module1.jl
+        └── module2.jl
+```
+
+Under the hood, the Git data stored inside the `.git/` include things such as binary blobs, trees, commits, and tags. Blobs store file contents, trees represent directories, commits point to trees and parent commits, and tags provide human-readable names for specific commits. This structure allows Git to efficiently handle branching, merging, and maintaining project history.
+:::
+
+Hashes indicate a verifiable snapshot of a codebase. For example, a full commit ID (a hash)`40f141303cec3d58879c493988b71c4e56d79b90` will *always* refer to a certain snapshot of the code, and if there is a mismatch in the git history between the contents of the repository and the commit's hash then the git repository is corrupted and it will not function. A corrupted repository usually doesn't happen in practice, of course! You might see hashes shortened to the last several characters (e.g. `6d79b90`) and in the following examples we'll shorten the hypothetical hashes to just three characters (e.g. `b90`).
 
 A codebase can be **branched**, meaning that two different version of the same codebase can be tracked and switched between. Git lends itself to many different workflows, but a common one is to designate a primary branch (call it `main`) and make modifications in a new, separate branch. This allows for non-linear and controlled changes to occur without potentially tainting the `main` branch. It's common practice to always have the `main` branch be a 'working' version of the code that can always 'run' for users, while branches contain works-in-progress or piecemeal changes that temporarily make the project unable to run.
 
-Here's an example of what a workflow looks like in the case of trying to fix an erroneous function `present_value` which was written as part of a hypothetical `FileXYZ.jl` file. This example is trivial, but in a larger project where a 'fix' or 'enhancement' may span many files and take several days or weeks to implement this type of workflow becomes like a superpower compared to traditional, manual version control approaches. It sure beats an approach where you end up with filenames like `FileXYZ v23 July 2022 Final.jl`!
+The commit history forms a directed acyclic graph (DAG) representing the project's history. That is, there is an order to the history: the second commit is dependent on the first commit. From the second commit, two child commits may be created which both have the second commit as their parent. Each one of this commits represents a stored snapshot of the project at the time of the commit.
+
+@tbl-git-workflow shows an example workflow for trying to fix an erroneous function `present_value` which was written as part of a hypothetical `FileXYZ.jl` file. This example is trivial, but in a larger project where a 'fix' or 'enhancement' may span many files and take several days or weeks to implement this type of workflow becomes like a superpower compared to traditional, manual version control approaches. It sure beats an approach where you end up with filenames like `FileXYZ v23 July 2022 Final.jl`!
 
 ::: landscape
 \footnotesize
 
-+-----------------------------------+-------------------------------------------+--------------------------------------------------------------------------------------------------------------------+-----------------+
-| Branch `main` , `FileXYZ.jl` file | Branch `fix_function` , `FileXYZ.jl` file | Action                                                                                                             | Active Branch\  |
-|                                   |                                           |                                                                                                                    | (Commit ID)     |
-+===================================+===========================================+:===================================================================================================================+=================+
-| ``` julia                         | Does not yet exist                        | Write original function which forgets to take into account the `time`.                                             | `main`\         |
-| function pv(rate,amount,time)     |                                           |                                                                                                                    | (`...58b`)      |
-|     amount / (1+rate)             |                                           |                                                                                                                    |                 |
-| end                               |                                           |                                                                                                                    |                 |
-| ```                               |                                           |                                                                                                                    |                 |
-+-----------------------------------+-------------------------------------------+--------------------------------------------------------------------------------------------------------------------+-----------------+
-| "                                 | ``` julia                                 | Create a new branch `fix_function`.\                                                                               | `main`\         |
-|                                   | function pv(rate,amount,time)             | \                                                                                                                  | (`...58b`)      |
-|                                   |     amount / (1+rate)                     | **Git command:** `git branch fix_function`                                                                         |                 |
-|                                   | end                                       |                                                                                                                    |                 |
-|                                   | ```                                       |                                                                                                                    |                 |
-+-----------------------------------+-------------------------------------------+--------------------------------------------------------------------------------------------------------------------+-----------------+
-| "                                 | "                                         | Checkout the new branch and make it active for editing.\                                                           | `fix_function`\ |
-|                                   |                                           | \                                                                                                                  | (`...58b`)      |
-|                                   |                                           | **Git command:** `git checkout fix_function`                                                                       |                 |
-+-----------------------------------+-------------------------------------------+--------------------------------------------------------------------------------------------------------------------+-----------------+
-| "                                 | ``` julia                                 | Edit and save the changed file.                                                                                    | `fix_function`\ |
-|                                   | function pv(rate,amount,time)             |                                                                                                                    | (`...58b`)      |
-|                                   |     amount / (1+rate)^time                |                                                                                                                    |                 |
-|                                   | end                                       |                                                                                                                    |                 |
-|                                   | ```                                       |                                                                                                                    |                 |
-+-----------------------------------+-------------------------------------------+--------------------------------------------------------------------------------------------------------------------+-----------------+
-| "                                 | "                                         | "Stage" the modified file, telling git that you are ready to record ("commit") a new snapshot of the project.\     | `fix_function`\ |
-|                                   |                                           | \                                                                                                                  | (`...58b`)      |
-|                                   |                                           | **Git command:** `git add FileXYZ.jl`                                                                              |                 |
-+-----------------------------------+-------------------------------------------+--------------------------------------------------------------------------------------------------------------------+-----------------+
-| "                                 | "                                         | Commit a new snapshot of the project by committing with a note to collaborators saying `fix: present value logic`\ | `fix_function`\ |
-|                                   |                                           | **Git command:** `git commit -m 'fix: present value logic`                                                         | (`...6ac`)      |
-+-----------------------------------+-------------------------------------------+--------------------------------------------------------------------------------------------------------------------+-----------------+
-| "                                 | "                                         | Switch back to the primary branch\                                                                                 | `main`\         |
-|                                   |                                           | \                                                                                                                  | (`...58b`)      |
-|                                   |                                           | **Git command:** `git checkout main`                                                                               |                 |
-+-----------------------------------+-------------------------------------------+--------------------------------------------------------------------------------------------------------------------+-----------------+
-| ``` julia                         | "                                         | Merge changes from other branch into the `main` branch, incorporating the corrected version of the code.\          | `main`\         |
-| function pv(rate,amount,time)     |                                           | \                                                                                                                  | (`...b90`)      |
-|     amount / (1+rate)^time        |                                           | **Git command:** `git merge fix_function`                                                                          |                 |
-| end                               |                                           |                                                                                                                    |                 |
-| ```                               |                                           |                                                                                                                    |                 |
-+-----------------------------------+-------------------------------------------+--------------------------------------------------------------------------------------------------------------------+-----------------+
++-----------------------------------+-------------------------------------------+----------------------------------------------------------------------------------------------------------------------------+-----------------+
+| Branch `main` , `FileXYZ.jl` file | Branch `fix_function` , `FileXYZ.jl` file | Action                                                                                                                     | Active Branch\  |
+|                                   |                                           |                                                                                                                            | (Commit ID)     |
++===================================+===========================================+:===========================================================================================================================+=================+
+| ``` julia                         | Does not yet exist                        | Write original function which forgets to take into account the `time`. Stage and commit it to the main branch.\            | `main`\         |
+| function pv(rate,amount,time)     |                                           | \                                                                                                                          | (`...58b`)      |
+|     amount / (1+rate)             |                                           | **Git commands**:\                                                                                                         |                 |
+| end                               |                                           | `git add FileXYZ.jlgit commit -m 'add pv function'`                                                                        |                 |
+| ```                               |                                           |                                                                                                                            |                 |
++-----------------------------------+-------------------------------------------+----------------------------------------------------------------------------------------------------------------------------+-----------------+
+| "                                 | ``` julia                                 | Create a new branch `fix_function`.\                                                                                       | `main`\         |
+|                                   | function pv(rate,amount,time)             | \                                                                                                                          | (`...58b`)      |
+|                                   |     amount / (1+rate)                     | **Git command:**\                                                                                                          |                 |
+|                                   | end                                       | `git branch fix_function`                                                                                                  |                 |
+|                                   | ```                                       |                                                                                                                            |                 |
++-----------------------------------+-------------------------------------------+----------------------------------------------------------------------------------------------------------------------------+-----------------+
+| "                                 | "                                         | Checkout the new branch and make it active for editing. The branch is different but is starting from the existing commit.\ | `fix_function`\ |
+|                                   |                                           | \                                                                                                                          | (`...58b`)      |
+|                                   |                                           | **Git command:** `git checkout fix_function`                                                                               |                 |
++-----------------------------------+-------------------------------------------+----------------------------------------------------------------------------------------------------------------------------+-----------------+
+| "                                 | ``` julia                                 | Edit and save the changed file. No git actions taken.                                                                      | `fix_function`\ |
+|                                   | function pv(rate,amount,time)             |                                                                                                                            | (`...58b`)      |
+|                                   |     amount / (1+rate)^time                |                                                                                                                            |                 |
+|                                   | end                                       |                                                                                                                            |                 |
+|                                   | ```                                       |                                                                                                                            |                 |
++-----------------------------------+-------------------------------------------+----------------------------------------------------------------------------------------------------------------------------+-----------------+
+| "                                 | "                                         | "Stage" the modified file, telling git that you are ready to record ("commit") a new snapshot of the project.\             | `fix_function`\ |
+|                                   |                                           | \                                                                                                                          | (`...58b`)      |
+|                                   |                                           | **Git command:** `git add FileXYZ.jl`                                                                                      |                 |
++-----------------------------------+-------------------------------------------+----------------------------------------------------------------------------------------------------------------------------+-----------------+
+| "                                 | "                                         | Commit a new snapshot of the project by committing with a note to collaborators saying `fix: present value logic`\         | `fix_function`\ |
+|                                   |                                           | **Git command:** `git commit -m 'fix: present value logic`                                                                 | (`...6ac`)      |
++-----------------------------------+-------------------------------------------+----------------------------------------------------------------------------------------------------------------------------+-----------------+
+| "                                 | "                                         | Switch back to the primary branch\                                                                                         | `main`\         |
+|                                   |                                           | \                                                                                                                          | (`...58b`)      |
+|                                   |                                           | **Git command:** `git checkout main`                                                                                       |                 |
++-----------------------------------+-------------------------------------------+----------------------------------------------------------------------------------------------------------------------------+-----------------+
+| ``` julia                         | "                                         | Merge changes from other branch into the `main` branch, incorporating the corrected version of the code.\                  | `main`\         |
+| function pv(rate,amount,time)     |                                           | \                                                                                                                          | (`...b90`)      |
+|     amount / (1+rate)^time        |                                           | **Git command:** `git merge fix_function`                                                                                  |                 |
+| end                               |                                           |                                                                                                                            |                 |
+| ```                               |                                           |                                                                                                                            |                 |
++-----------------------------------+-------------------------------------------+----------------------------------------------------------------------------------------------------------------------------+-----------------+
 
-: A workflow demonstrating branching, staging, committing, and merging in order to fix an incorrect function definition for a present value (`pv`) function. The branch name/commit ID shows which version you would see on your own computer/filesystem. {#tbl-git-workflow tbl-colwidths="\[30,30,30,10\]"}
+: A workflow demonstrating branching, staging, committing, and merging in order to fix an incorrect function definition for a present value (`pv`) function. The branch name/commit ID shows which version you would see on your own computer/filesystem. The inactive branches are tracked in Git but do not manifest themselves on your filesystem unless you checkout that branch. {#tbl-git-workflow tbl-colwidths="\[30,30,30,10\]"}
 :::
 
 A visual representation of the git repository and commits for the actions described in @tbl-git-workflow might be as follows, where the `...XXX` is the shortened version of the hash associated with that commit.
@@ -381,9 +422,31 @@ main branch         :  ...58b       →   ...b90
 fix_function branch :  ...58b → ...6ac
 ```
 
+The "staging" aspect will be explained next.
+
+#### Git Staging
+
+Staging (sometimes called the "staging area" or "index") is an intermediate step between making changes to files and recording those changes in a commit. Think of staging as preparing a snapshot - you're choosing which modified files (or even which specific changes within files) should be included in your next commit. When you modify files in your Git repository, those changes are initially "unstaged." Using the git add command (or your Git GUI's staging interface) moves changes into the staging area. This two-step process - staging followed by committing - gives you precise control over which changes get recorded together. Here's a typical workflow:
+
+1.  You modify several files in your modeling project
+2.  You review the changes and decide which ones are ready to commit
+3.  You stage only the changes that belong together as a logical unit
+4.  You create a commit with just those staged changes
+5.  Repeat as needed with other modified files
+
+This is particularly useful when you're working on multiple features or fixes simultaneously. For example, imagine you're updating a financial model and you:
+
+-   Fix a bug in your present value calculation
+-   Add comments to improve documentation
+-   Start working on a new feature
+
+You could stage and commit the bug fix and documentation separately, keeping the work-in-progress feature changes unstaged until they're complete. This creates a cleaner, more logical project history where each commit represents one coherent change.
+
+Think of staging as preparing a shipment: you first gather and organize the items (staging), then seal and send the package (committing). This extra step helps maintain a well-organized project history where each commit represents a logical, self-contained change.
+
 #### Git Tooling
 
-Git is traditionally a command-line based tool, however we will not focus on the command line usage as a more beginner friendly and intuitive interface is available from different available software. Git, containing a graph structure (in the sense of graph theory, not data visualization) lends itself well to better understanding when using a graphical interface for new and intermediate users.
+Git is traditionally a command-line based tool, however we will not focus on the command line usage as more beginner friendly and intuitive interfaces are available from different available software. The branching and nodes are well suited to be represented visually.
 
 ::: callout-note
 Some recommend Git tools with a **graphical user interface** (GUI) :
@@ -402,7 +465,7 @@ Git is a distributed VCS, meaning that copies of the repository and all it's his
 Git maintains a local repository on each user's machine, containing the full project history. This local repository includes the working directory (current state of files), staging area (changes prepared for commit), and the .git directory (metadata and object database). When collaborating, users push and pull changes to and from remote repositories. Git uses a branching model, allowing multiple lines of development to coexist and merge when ready.
 
 ::: callout-note
-By convention, the primary branch of a project is named the `main` branch. Historically, this was called the `master` branch (after the [Master-Slave technology terms](https://en.wikipedia.org/wiki/Master–slave_(technology))) but due to connotations of human slavery most software will now default to the `main` name. However, many projects continue to use or have never renamed their original `master` branch.
+By convention, the primary branch of a project is named the `main` branch. Historically, this was called the `master` branch (after the [Master-Slave technology terms](https://en.wikipedia.org/wiki/Master–slave_(technology))). Due to connotations of human slavery most software will now default to the `main` name. However, many projects continue to use or have never renamed their original `master` branch.
 :::
 
 #### Pull Requests
@@ -413,7 +476,7 @@ The following is an example of a PR on a repository adding a small bit of docume
 
 ![A Pull Request on Github, demonstrating several utilities which enhance change management, automation, and governance.](images/Pull%20Request.png){#fig-pull-request}
 
-Referencing @fig-pull-request, several elements are worth highlighting. In this pull request, the user (and author of this change), `alecloudenback`, is proposing to modify the `QuartoNotebookRunner` repository, which is not a repository for which the user `alecloudenback` has any direct rights to modify. After having made a copy of the repository, creating a new branch, making modifications, and committing those changes... a pull request has been made to modify the primary repository.
+Referencing @fig-pull-request, several elements are worth highlighting. In this pull request the author of this change, `alecloudenback`, is proposing to modify the `QuartoNotebookRunner` repository, which is not a repository for which the user `alecloudenback` has any direct rights to modify. After having made a copy of the repository (a "fork"), creating a new branch, making modifications, and committing those changes... a pull request has been made to modify the primary repository.
 
 -   All changes are recorded using Git, keeping track of authorship, timestamps, and history.
 -   At the top of the screenhsot, the title "Note that Quarto..." allows the author to summarize what is changed in the branch to be merged.
@@ -427,13 +490,13 @@ Referencing @fig-pull-request, several elements are worth highlighting. In this 
     -   The cross-referencing to another related issue in a different repository (the reference to issue #156).
     -   Assignees (assigned doers), labels, milestones, and projects are all functionality to help keep track of codebase development.
 
-The features described here can take modelers many manhours of time - testing, review of changes, sign-off tracking, etc. This is such a powerful paradigm that should be adopted within the financial industry and especially amongst modelers.
+The features described here can take modelers many manhours of time - testing, review of changes, sign-off tracking, etc. In this Git-based workflow, the workflow above happens frictionlessly and much of it is automated. This is such a powerful paradigm that should be adopted within the financial industry and especially amongst modelers.
 
 ![A diff shows a file-by-file and line-by-line comparison of what has changed between commits in a codebase. Red inidicates something was removed or changed, and green shows what replaced it. Note that even within a line, there's extra green highlighting to show the newly added text while the unchanged text remains a lighter shade.](images/Diff.png){#fig-pr-diff}
 
 ### Data Version Control {#sec-data-version-control}
 
-Git is not well suited for large files that change regularly (images, videos, datasets). Instead, the approach is to combine git with a **data version control** tool. These tool essentially replace the data (often called binary data or a blob) with a content hash in the git snapshots. The actual content referred to by the hash is then located elsewhere (e.g. a hosted server).
+Git is not well suited for large files (images, videos, datasets) that change regularly. Instead, the approach is to combine git with a **data version control** tool. These tool essentially replace the data (often called binary data or a blob) with a content hash in the git snapshots. The actual content referred to by the hash is then located elsewhere (e.g. a hosted server).
 
 ::: {#note-content-hash callout-note} \## Content Hashes
 
@@ -518,9 +581,9 @@ Another case to consider is what if new functionality was *added*? Old code need
 
 #### Semantic Versioning
 
-Semantic Versioning (SemVer) is one of the most popular approaches to software versioning. It's not perfect but has emerged as one of the most practical ways since it get's a lot about version numbering right. Here's how SemVer is defined[^software-2]:
+Semantic Versioning (SemVer) is one of the most popular approaches to software versioning. It's not perfect but has emerged as one of the most practical ways since it get's a lot about version numbering right. Here's how SemVer is defined[^software-3]:
 
-[^software-2]: You can read more at [SemVer.org](https://semver.org).
+[^software-3]: You can read more at [SemVer.org](https://semver.org).
 
 ```         
 Given a version number MAJOR.MINOR.PATCH, increment the:
@@ -570,7 +633,8 @@ This is a minor change because it adds new functionality (the ability to add thr
 
 ``` julia
 """ add_numbers(numbers...)
-Add any number of input arguments together
+Add any number of input arguments together. This 
+function replaces `my_add` from prior versions.
 """
 add_numbers(numbers...) = sum(numbers)
 ```
