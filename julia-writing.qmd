@@ -1,4 +1,12 @@
-# Wrting Julia Code {#sec-julia-writing}
+# Writing Julia Code {#sec-julia-writing}
+
+```{julia}
+#| echo: false
+#| output: false
+using Pkg
+Pkg.activate("env/julia-writing")
+Pkg.instantiate()
+```
 
 ## In this chapter
 
@@ -535,9 +543,20 @@ To run tests in Julia, navigate to the package directory and run `Pkg.test()`, o
 
 `runtests.jl` is just a normal Julia file and can `include` other files to help organize your tests. This structure integrates naturally with Julia's package manager and testing tools.
 
-Test organization is handled through `@testset` blocks, which group related tests together and provide summary statistics when tests are run. For example:
+Test organization is handled through `@testset` blocks, which group related tests together and provide summary statistics when tests are run. For example, extending the introduction to testing from @sec-software-testing:
 
 ```{julia}
+using Test
+function present_value(discount_rate, cashflows)
+    v = 1.0
+    pv = 0.0
+    for cf in cashflows
+        v = v / (1 + discount_rate)
+        pv = pv + v * cf
+    end
+    return pv
+end
+
 @testset "Scalar Discount" begin
     @test present_value(0.05, 10) ≈ 10 / 1.05
     @test present_value(0.05, 20) ≈ 20 / 1.05
