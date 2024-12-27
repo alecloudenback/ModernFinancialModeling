@@ -19,9 +19,11 @@ Adapting computer science concepts to work for financial professionals. Computab
 Computer science as a term can be a bit misleading because of the overwhelming association with the physical desktop or laptop machines that we call "computers". The discipline of computer science is much richer than consumer electronics: at its core, computer science concerns itself with areas of research and answering tough questions:
 
 -   **Algorithms and Optimization**. How can a problem be solved efficiently? How can that problem be solved *at all*? Given constraints, how can one find an optimal solution?
--   **Information Theory**. Given limited data, what *can* be known or inferred from it?
 -   **Theory of Computation**. What sorts of questions are even answerable? Is an answer easy to computer or will resolving it require more resources than the entire known universe? Will a computation ever stop calculating?
 -   **Data Structures**. How to encode, store, and use data? How does that data relate to each other and what are the trade-offs between different representations of that data?
+-   **Information Theory**[^elements-of-compsci-1]. Given limited data, what *can* be known or inferred from it?
+
+[^elements-of-compsci-1]: This topic will be covered in @sec-statistics.
 
 For a reader in the twenty-first century we hope that it is patently obvious how impactful the *applied* computer science has been as an end-user of the internet, artificial intelligence, computational photography, safety control systems, etc. have been to our lives. It is a testament to the utility of being able to harness computer science ideas for practical use.
 
@@ -123,9 +125,9 @@ Therefore, this computation takes $1 + ... + (n-2) + (n-1) + n$ steps to complet
 
 ##### Big-O Notation
 
-We can categorize the above implementations using a convention called **Big-O Notation**[^elements-of-compsci-1] which is a way of distilling and classifying computational complexity. We characterize the algorithms by the most significant term in the total number of operations. @tbl-complexity-sum shows for the examples constructed above what the description, order, and order of magnitude complexity is.
+We can categorize the above implementations using a convention called **Big-O Notation**[^elements-of-compsci-2] which is a way of distilling and classifying computational complexity. We characterize the algorithms by the most significant term in the total number of operations. @tbl-complexity-sum shows for the examples constructed above what the description, order, and order of magnitude complexity is.
 
-[^elements-of-compsci-1]: "Big-O", so named because of the "O" in used in $O(1)$. $O(n)$, etc. The "O" refers to the "order" of growth for the function.
+[^elements-of-compsci-2]: "Big-O", so named because of the "O" in used in $O(1)$. $O(n)$, etc. The "O" refers to the "order" of growth for the function.
 
 | Function | Computational Cost | Complexity Description | Big-O Order | Steps ($n=10,000$) |
 |---------------|---------------|---------------|---------------|---------------|
@@ -135,9 +137,9 @@ We can categorize the above implementations using a convention called **Big-O No
 
 : Complexity comparison for the three sample cases of summing integers from $1$ to $n$. {#tbl-complexity-sum}
 
-@tbl-complexity-generic shows a comparison of a more extended set of complexity levels. For the most complex categories of problems, the cost to compute grows so fast that it boggles the mind. What sorts of problems fall into the most complex categories? $O(2^n)$, or exponential complexity, examples include the traveling salesman problem[^elements-of-compsci-2] if solved with dynamic programming or the recursive approach to calculating the $nth$ Fibonacci number. The beastly $O(n!)$ algorithms include brute force solving the traveling salesman problem or enumerating all partitions of a set. In financial modeling, we may encounter these sorts of problems in portfolio optimization (using the brute-force approach of testing every potential combination assets to optimize a portfolio).
+@tbl-complexity-generic shows a comparison of a more extended set of complexity levels. For the most complex categories of problems, the cost to compute grows so fast that it boggles the mind. What sorts of problems fall into the most complex categories? $O(2^n)$, or exponential complexity, examples include the traveling salesman problem[^elements-of-compsci-3] if solved with dynamic programming or the recursive approach to calculating the $nth$ Fibonacci number. The beastly $O(n!)$ algorithms include brute force solving the traveling salesman problem or enumerating all partitions of a set. In financial modeling, we may encounter these sorts of problems in portfolio optimization (using the brute-force approach of testing every potential combination assets to optimize a portfolio).
 
-[^elements-of-compsci-2]: The Traveling Salesperson Problem is a classic computer science problem where you need to find the shortest possible route that visits each city in a given set exactly once and returns to the starting city. It's a seemingly simple problem that becomes computationally intensive very quickly as the number of cities increases.
+[^elements-of-compsci-3]: The Traveling Salesperson Problem is a classic computer science problem where you need to find the shortest possible route that visits each city in a given set exactly once and returns to the starting city. It's a seemingly simple problem that becomes computationally intensive very quickly as the number of cities increases.
 
 | Big-O Order         | Description       | $n=10$    | $n=1,000$  | $n=1,000,000$ |
 |---------------|---------------|---------------|---------------|---------------|
@@ -155,11 +157,7 @@ We can categorize the above implementations using a convention called **Big-O No
 We care only about the most significant term because when $n$ is large, the most significant term tends to dominate. For example, in our quadratic time example which has $n^2 + n ÷ 2$ steps, if n is a large number like 10 million, then we see that it will result in:
 
 $$
-\begin{align*} 
-n^2 &+ (n \div 2) \\ 
-(10^6)^2 &+ (10^6 \div 2) \\
-10^{12} &+ 5^6 \\
-\end{align*} 
+\begin{align*} n^2 &+ (n \div 2) \\ (10^6)^2 &+ (10^6 \div 2) \\10^{12} &+ 5^6 \\\end{align*}
 $$
 
 $10^{12}$ is *significantly* more important than $5^6$ (sixty-four million times as important, to be precise). This is why Big-O notation reduces the problem down to only the most significant complexity cost term.
@@ -230,9 +228,9 @@ In memory, the integers are stored as consecutive bits representing the integer 
 0000000000000000000000000000000000000000000000000000000000000011
 ```
 
-This is great for accessing the values one-by-one or in consecutive groups, but it's not efficient if values need to be inserted in between. For example, if we wanted to insert `0` between the `1` and `2` in `x`, then we'd need to overwrite the second position in the array, ask the operating system to allocate more memory[^elements-of-compsci-3], and re-write the bytes that come after our new value. Inserting values at the end (`push!(array, value)`) is usually fast unless more memory needs to be allocated.
+This is great for accessing the values one-by-one or in consecutive groups, but it's not efficient if values need to be inserted in between. For example, if we wanted to insert `0` between the `1` and `2` in `x`, then we'd need to overwrite the second position in the array, ask the operating system to allocate more memory[^elements-of-compsci-4], and re-write the bytes that come after our new value. Inserting values at the end (`push!(array, value)`) is usually fast unless more memory needs to be allocated.
 
-[^elements-of-compsci-3]: In practice, the operating system may have already allocated space for an array that's larger than what the program is actually using so far, so this step may be 'quick' at times, while other times the operating system may actually need to extend the block of memory allocated to the array.
+[^elements-of-compsci-4]: In practice, the operating system may have already allocated space for an array that's larger than what the program is actually using so far, so this step may be 'quick' at times, while other times the operating system may actually need to extend the block of memory allocated to the array.
 
 ### Linked Lists
 
@@ -347,10 +345,11 @@ One way to check if two sets of data are the same is to compute the hash and see
 
 Dictionaries map a *key* to a *value*. More specifically, they use the *hash of a key* to store a reference to the *value*.
 
-Dictionaries offer constant-time average case access but must handle potential collisions of keys (generally, the more robust the collision handling means higher fixed cost for access). 
+Dictionaries offer constant-time average case access but must handle potential collisions of keys (generally, the more robust the collision handling means higher fixed cost for access).
 
 Here's an illustrative portfolio of assets indexed by CUSIPs:
-```julia
+
+``` julia
 assets = Dict(
     # CUSIP => Asset
     "037833AH4" => Bond("General Electric",...),
@@ -361,7 +360,7 @@ assets = Dict(
 
 Then, lookup is performed by indexing the dictionary by the desired key:
 
-```julia
+``` julia
 assets["037833AH4"] # gives the General Electric Bond
 ```
 
