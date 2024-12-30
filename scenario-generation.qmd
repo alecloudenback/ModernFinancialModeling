@@ -142,6 +142,52 @@ end
 f
 ```
 
+Due to the nature of independence from different scenarios, all simulation examples can be restructured to use GPU instead.
+
+```{julia}
+using Random, CairoMakie
+
+# CIR model parameters
+κ = 0.2       # Speed of mean reversion
+θ = 0.05      # Long-term mean
+σ = 0.1       # Volatility
+
+# Initial short-term interest rate
+r₀ = 0.03
+
+# Number of time steps and simulations
+num_steps = 252
+num_simulations = 1_000
+
+# Time increment
+Δt = 1 / 252
+
+# Function to simulate CIR process in gpu
+function cir_simulation_gpu(κ, θ, σ, r₀, Δt, num_steps, num_simulations)
+    interest_rate_paths = cu(zeros(num_steps, num_simulations))
+    interest_rate_paths .= r₀
+    dW = cu(randn(num_steps - 1, num_simulations)) .* sqrt(Δt)
+    # for Vasicek
+    # dr = κ * (θ - interest_rate_paths[i-1, j]) * Δt + σ * dW
+    for i in 2:num_steps
+        dr = κ .* (θ .- interest_rate_paths[i-1, :]) .* Δt .+ σ .* sqrt.(interest_rate_paths[i-1, :]) .* dW[i-1, :]
+        interest_rate_paths[i, :] .= max.(interest_rate_paths[i-1, :] .+ dr, 0)  # Ensure non-negativity
+    end
+    return interest_rate_paths
+end
+
+# Run CIR simulation
+cir_paths = cir_simulation_gpu(κ, θ, σ, r₀, Δt, num_steps, num_simulations)
+
+# Plot the simulated interest rate paths
+f = Figure()
+Axis(f[1, 1])
+for i in 1:num_simulations
+    lines!(1:num_steps, cir_paths[:, i])
+end
+f
+```
+
 #### Hull White
 
 The Hull-White model is a one-factor model that extends the Vasicek model by allowing the mean reversion and volatility parameters to be time-dependent. It is commonly used for pricing interest rate derivatives. Brace-Gatarek-Musiela (BGM) Model extends the Hull-White model to incorporate more factors. It is one of the Libor Market Model (LMM) that describes the evolution of forward rates. It allows for the modeling of both the short-rate and the entire yield curve. It is defined as
@@ -186,6 +232,50 @@ function hull_white_simulation(α, σ, r₀, Δt, num_steps, num_simulations)
             dr = α * (σ - interest_rate_paths[i-1, j]) * Δt + σ * dW
             interest_rate_paths[i, j] = interest_rate_paths[i-1, j] + dr
         end
+    end
+    return interest_rate_paths
+end
+
+# Run Hull-White simulation
+hull_white_paths = hull_white_simulation(α, σ, r₀, Δt, num_steps, num_simulations)
+
+# Plot the simulated interest rate paths
+f = Figure()
+Axis(f[1, 1])
+for i in 1:num_simulations
+    lines!(1:num_steps, hull_white_paths[:, i])
+end
+f
+```
+
+In GPU.
+
+```{julia}
+using Random, CairoMakie
+
+# Set seed for reproducibility
+Random.seed!(1234)
+
+# Hull-White model parameters
+α = 0.1       # Mean reversion speed
+σ = 0.02      # Volatility
+r₀ = 0.03     # Initial short-term interest rate
+
+# Number of time steps and simulations
+num_steps = 252
+num_simulations = 1_000
+
+# Time increment
+Δt = 1 / 252
+
+# Function to simulate Hull-White process in gpu
+function hull_white_simulation(α, σ, r₀, Δt, num_steps, num_simulations)
+    interest_rate_paths = cu(zeros(num_steps, num_simulations))
+    interest_rate_paths .= r₀
+    dW = cu(randn(num_steps - 1, num_simulations)) .* sqrt(Δt)
+    for i in 2:num_steps
+        dr = α .* (σ .- interest_rate_paths[i-1, :]) .* Δt .+ σ .* dW[i-1, :]
+        interest_rate_paths[i, :] .= interest_rate_paths[i-1, :] .+ dr
     end
     return interest_rate_paths
 end
@@ -266,7 +356,7 @@ end
 f
 ```
 
-The above can be restructured to use GPU instead.
+In GPU.
 
 ```julia
 using Random, CairoMakie
@@ -355,6 +445,50 @@ function garch_simulation(α₀, α₁, β₁, num_steps, num_simulations)
             squared_returns[i] = α₀ + α₁ * ε[i-1]^2 + β₁ * squared_returns[i-1]
             volatility_paths[i, j] = sqrt(squared_returns[i])
         end
+    end
+    return volatility_paths
+end
+
+# Run GARCH simulation
+garch_paths = garch_simulation(α₀, α₁, β₁, num_steps, num_simulations)
+
+# Plot the simulated volatility paths
+f = Figure()
+Axis(f[1, 1])
+for i in 1:num_simulations
+    lines!(1:num_steps, garch_paths[:, i])
+end
+f
+```
+
+In GPU.
+
+```{julia}
+using Random, CairoMakie
+
+# Set seed for reproducibility
+Random.seed!(1234)
+
+# GARCH(1,1) parameters
+α₀ = 0.01      # Constant term
+α₁ = 0.1       # Coefficient for lagged squared returns
+β₁ = 0.8       # Coefficient for lagged conditional volatility
+
+# Number of time steps and simulations
+num_steps = 252
+num_simulations = 1_000
+
+# Time increment
+Δt = 1 / 252
+
+# Function to simulate GARCH(1,1) volatility in gpu
+function garch_simulation(α₀, α₁, β₁, num_steps, num_simulations)
+    volatility_paths = cu(zeros(num_steps, num_simulations))
+    ε = cu(randn(num_steps - 1, num_simulations))
+    squared_returns = cu(zeros(num_simulations))
+    for i in 2:num_steps
+        squared_returns = α₀ .+ α₁ .* ε[i-1, :].^2 .+ β₁ .* squared_returns
+        volatility_paths[i, :] .= sqrt.(squared_returns)
     end
     return volatility_paths
 end
