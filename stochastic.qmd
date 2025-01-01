@@ -2,6 +2,10 @@
 
 > The Monte Carlo Method: (i) A last resort when doing numerical integration, and (ii) a way of wastefully using computer time. - Malvin H. Kalos[^stochastic-1] (c. 1960)
 
+[^stochastic-1]: Kalos was a pioneer in Monte Carlo techniques, quoted via <https://doi.org/10.1007/978-3-540-74686-7_3>
+
+## In This Chapter
+
 Stochastic modeling is a mathematical approach used to model systems or processes that exhibit randomness or uncertainty. It is widely applied in fields like finance, engineering, biology, and operations research. We will start by taking a look at key elements of stochastic modeling.
 
 ```{julia}
@@ -11,6 +15,59 @@ using Pkg
 Pkg.activate("env/stochastic")
 Pkg.instantiate()
 ```
+
+## Introduction
+
+Stochastic modeling is the technique of running many similar scenarios through a model in order to evaluate different aspects of a given model. Some contexts in which stochastic modeling arises in the financial context include:
+
+-   **Valuation**. Market consistent pricing often involves calibrating a set of stochastic economic scenarios to market-observed prices. Those calibrated scenarios are then used to determine the value of another set of contracts for which market prices are not directly observable.
+-   **Scenario Analysis**. Many financial models have a high degree of complexity and interactions between components not well understood *a priori*. Using a set of calibrated or otherwise arbitrary scenarios can illuminate unexpected or interrelated behavior that arises from the model. Sometimes financial assets and liabilities have a path-dependency, meaning that the overall behavior or value is a function of the entire path taken (e.g. an asian option).
+-   **Risk and Capital Analysis**. Whether model parameters are point estimates ("an asset has a $1%$ probability of default") or distributions ("an asset has a probability of default distributed as $Beta(1,99)$"), stochastic modeling can be utilized to determine projected capital levels for a company or line of business at certain security levels.
+
+The modeled outcomes are only as good as the scenarios and model themselves. For example, for many years the predominant economic scenario generator for US regulated insurance liabilities (the American Academy of Actuaries' Economic Scenario Generator) would produce interest rate paths that were substantially higher than then-current market-implied paths. It's erroneous in those circumstances to compute the 99th-percentile scenario and characterize the scenario as "extreme." Similarly, there may be known or unknown deficiencies with the modeled behavior and this should be considered by the modeler when discussing the results.
+
+Recall the kinds of uncertainties in @tbl-uncertainties - stochastic modeling implementations often mechanically only address the aleatory (process) volatility component of outcome uncertainty. Through techniques like developing a posterior distribution for model parameters (\@sec-bayes-rule) we can also explicitly attempt to model epistemic (parameter) uncertainty as well.
+
+## Kinds of Stochastic Models
+
+### Generic 
+
+Any model can be made stochastic via the creation of a set of randomly-generated inputs (such as creating a set of independent economic scenarios). Alternatively, a model could proceed step-by-step and "roll the dice" when encountering a random event inside the model. Two examples:
+
+-   Set of randomly generated inputs: generate 1000 market-consistent equity paths to determine an expected value for a complex equity option[^stochastic-2].
+-   Random events: for a model of a life insurance product, at each point in time for a life insurance product, generate a random uniform $x \in [0,1]$. If $x<\text{expected mortality decrement}$ then the life claim the death benefit, otherwise the contract remains in force for another time period[^stochastic-3].
+
+[^stochastic-2]: An extended example of this approach is discussed in @sec-scegen.
+
+[^stochastic-3]: A worked example of this approach is illustrated in @sec-stochastic-mortality.
+
+Generally, models can easily map across a large number of stochastic inputs. It is more difficult to modify a model that utilizes expected values of random variables. Take the life decrement model described above: if the assumed mortality rate each period is $f(t_i)$, then the unit expectation of claims paid is $f(t_1) + (1-f(t_1)) \times f(t_2) + \ldots$. Many actuarial models utilize this approach to determine expected outcomes given an assumption. This is different than evaluating many possible discrete realized scenarios wherein each insured life either dies or survives each period.
+
+These types of models are evaluated simply by running them many times until the measure of interest converges on a stable result: for example, we might run a model until the mean of the results no longer varies materially as we add more scenarios.
+
+While any model can be made stochastic (or form the starting point for a stochastic conversion), certain special kinds of stochastic models arise which can have special shortcuts or solutions.
+
+### Special Cases or Properties
+
+#### Markov Models
+
+A stochastic process has the Markov property if the future state depends only on the current state and not on the past states (memorylessness). Markov chains and hidden Markov models contain this property. The Markov property simplifies modeling and computation by reducing dependencies on past states.
+
+#### Stationary Models
+
+A stochastic process is stationary if its statistical properties, such as mean and variance, do not change over time. Strict stationarity means all moments of the process are invariant over time, while weak Stationarity means only the mean and variance are invariant over time. Stationarity simplifies the analysis and modeling of stochastic processes, especially for time series data. Sometimes a non-stationary model can be made stationary by transformation (such as removing a constant trend component).
+
+#### Martingales
+
+A martingale is a stochastic process where the expected future value, given all prior information, is equal to the current value. Examples include fair gambling games or financial asset prices in efficient markets. Martingales are important in financial modeling and risk-neutral pricing, especially for derivatives.
+
+#### Stochastic Differential Equations (SDEs)
+
+These are differential equations that incorporate stochastic terms (typically driven by Brownian motion or other noise sources). The well-known Black-Scholes equation for option pricing is one example of how SDE can be applied in real world. SDEs are essential for modeling systems where both deterministic and random factors drive behavior over time.
+
+A special kind of SDE is **Brownian Motion**. This is a continuous-time stochastic process where changes over time are independent and normally distributed. This is extensively used in financial models for asset price movements (e.g., the Black-Scholes model). In addition to financial markets, Brownian motion is also widely used in modeling physical systems (diffusion).
+
+## Components of Stochastic Models
 
 ## Key elements
 
@@ -42,37 +99,9 @@ The time horizon refers to the period over which the stochastic process is obser
 
 These are the starting points or initial values of the random variables or the system at time zero. They may be initial price of a stock, initial number of customers in a queue, etc. The starting condition influences the future evolution of the process, and different initial conditions can lead to different outcomes.
 
-### Expectation and variance
-
-The expected value (mean) represents the average or mean outcome of a random variable over many trials or realizations. The variance measures the spread or variability of outcomes around the expected value. These statistical measures provide insights into the central tendency and the uncertainty or risk in a stochastic model.
-
-### Covariance and correlation
-
-Covariance measures how two random variables change together. Positive covariance indicates that the variables tend to increase together. On the other hand correlation is the standardized version of covariance that measures the strength of the linear relationship between two variables. Understanding how different random variables interact helps in building more complex models, especially in multivariate stochastic processes.
-
-### Stationarity
-
-A stochastic process is stationary if its statistical properties, such as mean and variance, do not change over time. Strict stationarity means all moments of the process are invariant over time, while weak Stationarity means only the mean and variance are invariant over time. Stationarity simplifies the analysis and modeling of stochastic processes, especially for time series data.
-
-### Martingales
-
-A martingale is a stochastic process where the expected future value, given all prior information, is equal to the current value. Examples include fair gambling games or financial asset prices in efficient markets. Martingales are important in financial modeling and risk-neutral pricing, especially for derivatives.
-
 ### Noise (random shocks)
 
 Random noise represents unpredictable random fluctuations that can affect the outcome of a stochastic process. This can be market volatility, measurement errors or environmental variations. Noise is a critical element in stochastic models as it introduces randomness and uncertainty into otherwise deterministic systems.
-
-### Markov property
-
-A stochastic process has the Markov property if the future state depends only on the current state and not on the past states (memorylessness). Markov chains and hidden Markov models contain this property. The Markov property simplifies modeling and computation by reducing dependencies on past states.
-
-### Brownian motion (Wiener process)
-
-A continuous-time stochastic process where changes over time are independent and normally distributed. This is extensively used in financial models for asset price movements (e.g., the Black-Scholes model). In addition to financial markets, Brownian motion is also widely used in modeling physical systems (diffusion).
-
-### Stochastic differential equations (SDEs)
-
-These are differential equations that incorporate stochastic terms (typically driven by Brownian motion or other noise sources). The well-known Black-Scholes equation for option pricing is one example of how SDE can be applied in real world. SDEs are essential for modeling systems where both deterministic and random factors drive behavior over time.
 
 ## Applications
 
@@ -134,7 +163,23 @@ scatter!(1:T, Y, label="Output (Y)")
 f
 ```
 
-## Conclusion
-Stochastic modeling involves the study of systems influenced by random factors and uncertainty. By combining random variables, probability distributions, and processes like Markov chains or Brownian motion, stochastic models provide insights into systems that cannot be described purely deterministically.
+## Evaluating Stochastic Results
 
-[^stochastic-1]: Kalos was a pioneer in Monte Carlo techniques, quoted via <https://doi.org/10.1007/978-3-540-74686-7_3>
+### Expectation and variance
+
+The expected value (mean) represents the average or mean outcome of a random variable over many trials or realizations. The variance measures the spread or variability of outcomes around the expected value. These statistical measures provide insights into the central tendency and the uncertainty or risk in a stochastic model.
+
+### Covariance and correlation
+
+Covariance measures how two random variables change together. Positive covariance indicates that the variables tend to increase together. On the other hand correlation is the standardized version of covariance that measures the strength of the linear relationship between two variables. Understanding how different random variables interact helps in building more complex models, especially in multivariate stochastic processes.
+
+### Risk Measures
+
+\[TODO copy most of the descriptive content from here: https://juliaactuary.github.io/ActuaryUtilities.jl/dev/risk_measures/\] - VaR/Quantile - CTE/TVaR - Wang Transform
+
+::: callout-note
+:::
+
+## Conclusion
+
+Stochastic modeling involves the study of systems influenced by random factors and uncertainty. By combining random variables, probability distributions, and processes like Markov chains or Brownian motion, stochastic models provide insights into systems that cannot be described purely deterministically.
