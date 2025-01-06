@@ -2,7 +2,11 @@
 
 > The Monte Carlo Method: (i) A last resort when doing numerical integration, and (ii) a way of wastefully using computer time. - Malvin H. Kalos[^stochastic-1] (c. 1960)
 
-Stochastic modeling is a mathematical approach used to model systems or processes that exhibit randomness or uncertainty. It is widely applied in fields like finance, engineering, biology, and operations research. We will start by taking a look at key elements of stochastic modeling.
+[^stochastic-1]: Kalos was a pioneer in Monte Carlo techniques, quoted via <https://doi.org/10.1007/978-3-540-74686-7_3>
+
+## In This Chapter
+
+Brief overview of stochastic modeling concepts. Random inputs vs. embedded randomness in stepwise models. Key components: distributions, time horizons, state space. Evaluating outputs with expectation, variance, and risk measures. Special properties like Markov, stationarity, and SDEs. Practical finance examples with Julia code for scenario generation and macroeconomic simulations.
 
 ```{julia}
 #| echo: false
@@ -12,7 +16,87 @@ Pkg.activate("env/stochastic")
 Pkg.instantiate()
 ```
 
-## Key elements
+## Introduction
+
+Stochastic modeling is the technique of running many similar scenarios through a model in order to evaluate different aspects of a given model. Some contexts in which stochastic modeling arises in the financial context include:
+
+-   **Valuation**. Market consistent pricing often involves calibrating a set of stochastic economic scenarios to market-observed prices. Those calibrated scenarios are then used to determine the value of another set of contracts for which market prices are not directly observable.
+-   **Scenario Analysis**. Many financial models have a high degree of complexity and interactions between components not well understood *a priori*. Using a set of calibrated or otherwise arbitrary scenarios can illuminate unexpected or interrelated behavior that arises from the model. Sometimes financial assets and liabilities have a path-dependency, meaning that the overall behavior or value is a function of the entire path taken (e.g. an asian option).
+-   **Risk and Capital Analysis**. Whether model parameters are point estimates ("an asset has a $1%$ probability of default") or distributions ("an asset has a probability of default distributed as $Beta(1,99)$"), stochastic modeling can be utilized to determine projected capital levels for a company or line of business at certain security levels.
+
+The modeled outcomes are only as good as the scenarios and model themselves. For example, for many years the predominant economic scenario generator for US regulated insurance liabilities (the American Academy of Actuaries' Economic Scenario Generator) would produce interest rate paths that were substantially higher than then-current market-implied paths. It's erroneous in those circumstances to compute the 99th-percentile scenario and characterize the scenario as "extreme." Similarly, there may be known or unknown deficiencies with the modeled behavior and this should be considered by the modeler when discussing the results.
+
+Recall the kinds of uncertainties in @tbl-uncertainties - stochastic modeling implementations often mechanically only address the aleatory (process) volatility component of outcome uncertainty. Through techniques like developing a posterior distribution for model parameters (\@sec-bayes-rule) we can also explicitly attempt to model epistemic (parameter) uncertainty as well.
+
+## Kinds of Stochastic Models
+
+### Input Ensemble
+
+In this approach, you first generate many sets of random inputs (scenarios) and then run the same model repeatedly—one run per scenario[^stochastic-2]:
+
+[^stochastic-2]: An extended example of this approach is discussed in @sec-scegen.
+
+-   **Interest Rate Scenarios for Bond Portfolios**\
+    Generate thousands of yield-curve scenarios (e.g., parallel shifts, twists) to test how a bond portfolio might perform over time. By averaging the results over all simulations, you can estimate the portfolio’s expected return or risk metrics.
+
+-   **Commodity Price Paths for Hedging**\
+    Create multiple possible paths for commodity prices under different macro conditions. Use these to evaluate various hedging strategies and see which one consistently mitigates risk across a wide range of market conditions.
+
+Generally, models programmed in code can easily map across a large number of stochastic inputs.
+
+### Random State
+
+Here, the model itself “rolls the dice” at each step. Instead of pre-generating input scenarios, the randomness is embedded in the logic that evolves the state over time[^stochastic-3]:
+
+[^stochastic-3]: A worked example of this approach is illustrated in @sec-stochastic-mortality.
+
+-   **Property & Casualty Claims Simulation**\
+    In each simulated month, randomly draw the number of claims (from a Poisson or negative binomial distribution), then randomly assign the severity of each claim (often a lognormal or gamma distribution). The insurer’s financial state (reserves, surplus) evolves based on these simulated losses.
+
+-   **Call-Center (Queueing) Model**\
+    Model the random arrival of customer calls following a Poisson process, and at each arrival decide if the call is answered immediately or queued. Service times for each call can be drawn from an exponential distribution. By simulating many days, you can estimate average waiting times or the probability that a caller has to wait more than a certain threshold.
+
+::: callout-note
+Many financial models project outcomes using *expected values* of random variables. Many actuarial models utilize this approach to determine expected outcomes given an assumption (such as expected present value of life insurance claims). This is different than evaluating many possible discrete realized scenarios wherein each insured life either dies or survives each period, and models designed for projected expected payments need to be adapted to handle a random state approach.
+:::
+
+### Closed-Form
+
+Some stochastic processes admit analytical solutions or formulas for key quantities, so you do not need to run a simulation for each scenario.
+
+-   **Black Scholes Option Price**\
+    The Black-Scholes European call and put-call price parity are results for analytically pricing options despite the underlying theory being based on a stochastic evolution of asset prices.
+
+-   **Ornstein-Uhlenbeck Interest Rate Model**\
+    An Ornstein-Uhlenbeck process is often used to model mean-reverting interest rates. Despite being fundamentally stochastic, it has closed-form expressions for zero-coupon bond prices and other interest-rate derivatives, saving you from running thousands of random simulations for valuation.
+
+The focus of this section will be on the other kinds of computational-driven, stochastic models.
+
+### Special Cases or Properties
+
+While any model can be made stochastic (or form the starting point for a stochastic conversion), certain special kinds of stochastic models arise which can have special shortcuts or solutions.
+
+#### Markov Models
+
+A stochastic process has the Markov property if the future state depends only on the current state and not on the past states (memorylessness). Markov chains and hidden Markov models contain this property. The Markov property simplifies modeling and computation by reducing dependencies on past states.
+
+#### Stationary Models
+
+A stochastic process is stationary if its statistical properties, such as mean and variance, do not change over time. Strict stationarity means all moments of the process are invariant over time, while weak Stationarity means only the mean and variance are invariant over time. Stationarity simplifies the analysis and modeling of stochastic processes, especially for time series data. Sometimes a non-stationary model can be made stationary by transformation (such as removing a constant trend component).
+
+#### Martingales
+
+A martingale is a stochastic process where the expected future value, given all prior information, is equal to the current value. Examples include fair gambling games or financial asset prices in efficient markets. Martingales are important in financial modeling and risk-neutral pricing, especially for derivatives.
+
+#### Stochastic Differential Equations (SDEs)
+
+These are differential equations that incorporate stochastic terms (typically driven by Brownian motion or other noise sources). The well-known Black-Scholes equation for option pricing is one example of how SDE can be applied in real world. SDEs are essential for modeling systems where both deterministic and random factors drive behavior over time.
+
+A special kind of SDE is **Brownian Motion**. This is a continuous-time stochastic process where changes over time are independent and normally distributed. This is extensively used in financial models for asset price movements (e.g., the Black-Scholes model). In addition to financial markets, Brownian motion is also widely used in modeling physical systems (diffusion).
+
+## Components of Stochastic Models
+
+Stochastic modeling has additional terminology to introduce.
 
 ### Random variables
 
@@ -42,6 +126,14 @@ The time horizon refers to the period over which the stochastic process is obser
 
 These are the starting points or initial values of the random variables or the system at time zero. They may be initial price of a stock, initial number of customers in a queue, etc. The starting condition influences the future evolution of the process, and different initial conditions can lead to different outcomes.
 
+### Noise (random shocks)
+
+Random noise represents unpredictable random fluctuations that can affect the outcome of a stochastic process. This can be market volatility, measurement errors or environmental variations. Noise is a critical element in stochastic models as it introduces randomness and uncertainty into otherwise deterministic systems.
+
+## Evaluating Stochastic Results
+
+These types of models are evaluated simply by running them many times until the measure of interest converges on a stable result: for example, we might run a model until the mean of the results no longer varies materially as we add more scenarios.
+
 ### Expectation and variance
 
 The expected value (mean) represents the average or mean outcome of a random variable over many trials or realizations. The variance measures the spread or variability of outcomes around the expected value. These statistical measures provide insights into the central tendency and the uncertainty or risk in a stochastic model.
@@ -50,33 +142,192 @@ The expected value (mean) represents the average or mean outcome of a random var
 
 Covariance measures how two random variables change together. Positive covariance indicates that the variables tend to increase together. On the other hand correlation is the standardized version of covariance that measures the strength of the linear relationship between two variables. Understanding how different random variables interact helps in building more complex models, especially in multivariate stochastic processes.
 
-### Stationarity
+### Risk Measures
 
-A stochastic process is stationary if its statistical properties, such as mean and variance, do not change over time. Strict stationarity means all moments of the process are invariant over time, while weak Stationarity means only the mean and variance are invariant over time. Stationarity simplifies the analysis and modeling of stochastic processes, especially for time series data.
+Risk measures encompass the set of functions that map a set of outcomes to an output value characterizing the associated riskiness of those outcomes. As is usual when attempting to compress information (e.g. condensing information into a single value), there are multiple ways we can characterize this riskiness.
 
-### Martingales
+#### Coherence & Other Desirable Properties
 
-A martingale is a stochastic process where the expected future value, given all prior information, is equal to the current value. Examples include fair gambling games or financial asset prices in efficient markets. Martingales are important in financial modeling and risk-neutral pricing, especially for derivatives.
+Further, it is desirable that a risk measure has certain properties, and risk measures that meet the first four criteria are called "Coherent" in the literature. From "An Introduction to Risk Measures for Actuarial Applications" ([@hardy2006introduction]), she describes four properties. Using $H$ as a risk measure and $X$ as the associated risk distribution:
 
-### Noise (random shocks)
+##### 1. Translation Invariance
 
-Random noise represents unpredictable random fluctuations that can affect the outcome of a stochastic process. This can be market volatility, measurement errors or environmental variations. Noise is a critical element in stochastic models as it introduces randomness and uncertainty into otherwise deterministic systems.
+For any non-random $c$
 
-### Markov property
+$H(X + c) = H(X) + c$ This means that adding a constant amount (positive or negative) to a risk adds the same amount to the risk measure. It also implies that the risk measure for a non-random loss, with known value c, say, is just the amount of the loss c.
 
-A stochastic process has the Markov property if the future state depends only on the current state and not on the past states (memorylessness). Markov chains and hidden Markov models contain this property. The Markov property simplifies modeling and computation by reducing dependencies on past states.
+##### 2. Positive Homogeneity
 
-### Brownian motion (Wiener process)
+For any non-random $λ > 0$:
 
-A continuous-time stochastic process where changes over time are independent and normally distributed. This is extensively used in financial models for asset price movements (e.g., the Black-Scholes model). In addition to financial markets, Brownian motion is also widely used in modeling physical systems (diffusion).
+$$H(λX) = λH(X)$$
 
-### Stochastic differential equations (SDEs)
+This axiom implies that changing the units of loss does not change the risk measure.
 
-These are differential equations that incorporate stochastic terms (typically driven by Brownian motion or other noise sources). The well-known Black-Scholes equation for option pricing is one example of how SDE can be applied in real world. SDEs are essential for modeling systems where both deterministic and random factors drive behavior over time.
+##### 3. Subadditivity
 
-## Applications
+For any two random losses $X$ and $Y$,
 
-Due to technology advancements in recent years, stochastic analyses can be found in a plethora of fields. Refer to @sec-portop for portfolio optimization applications. Refer to @sec-optimization for the usage of gene algorithms for certain optimization problems.
+$$H(X + Y) ≤ H(X) + H(Y)$$
+
+It should not be possible to reduce the economic capital required (or the appropriate premium) for a risk by splitting it into constituent parts. Or, in other words, diversification (ie consolidating risks) cannot make the risk greater, but it might make the risk smaller if the risks are less than perfectly correlated.
+
+##### 4. Monotonicity
+
+If $Pr(X ≤ Y) = 1$ then $H(X) ≤ H(Y)$.
+
+If one risk is always bigger then another, the risk measures should be similarly ordered.
+
+##### Other Properties
+
+In "Properties of Distortion Risk Measures" (Balbás, Garrido, Mayoral) also note other properties of interest:
+
+###### Complete
+
+Completeness is the property that the distortion function associated with the risk measure produces a unique mapping between the original risk's survival function $S(x)$ and the distorted $S*(x)$ for each $x$. See [Distortion Risk Measures](@ref) for more detail on this.
+
+In practice, this means that a non-complete risk measure ignores some part of the risk distribution (e.g. CTE and VaR don't use the full distribution and have the same)
+
+###### Exhaustive
+
+A risk measure is "exhaustive" if it is coherent and complete.
+
+###### Adaptable
+
+A risk measure is "adapted" or "adaptable" if its distortion function (see [Distortion Risk Measures](@ref)).
+
+```         
+1. $g$ is strictly concave, that is $g$ is strictly decreasing. 
+2. $lim_{u\to0+} g\prime(u) = \inf and lim_{u\to1-} g\prime(u) = 0.
+```
+
+Adaptive risk measures are exhaustive but the converse is not true.
+
+### Summary of Risk Measure Properties
+
+| Measure | Coherent | Complete | Exhaustive | Adaptable | Condition 2 |
+|------------|------------|------------|------------|------------|------------|
+| [VaR](@ref) | No | No | No | No | No |
+| [CTE](@ref) | Yes | No | No | No | No |
+| [DualPower](@ref) $(y > 1)$ | Yes | Yes | Yes | No | Yes |
+| [ProportionalHazard](@ref) $(γ > 1)$ | Yes | Yes | Yes | No | Yes |
+| [WangTransform](@ref) | Yes | Yes | Yes | Yes | Yes |
+
+::: callout-note
+## Distortion Risk Measures
+
+Distortion Risk Measures are a way of remapping the probabilities of a risk distribution in order to compute a risk measure $H$ on the risk distribution $X$.
+
+Adapting [@Wang_2002], there are two key components:
+
+### Distortion Function $g(u)$
+
+This remaps values in the \[0,1\] range to another value in the \[0,1\] range, and in $H$ below, operates on the survival function $S$ and $F=1-S$.
+
+Let $g:[0,1]\to[0,1]$ be an increasing function with $g(0)=0$ and $g(1)=1$. The transform $F^*(x)=g(F(x))$ defines a distorted probability distribution, where "$g$" is called a distortion function.
+
+Note that $F^*$ and $F$ are equivalent probability measures if and only if $g:[0,1]\to[0,1]$ is continuous and one-to-one. Definition 4.2. We define a family of distortion risk-measures using the mean-value under the distorted probability $F^*(x)=g(F(x))$:
+
+### Risk Measure Integration
+
+To calculate a risk measure $H$, we integrate the distorted $F$ across all possible values in the risk distribution (i.e. $x \in X$):
+
+$$H(X) = E^*(X) = - \int_{-\infty}^0 g(F(x))dx + \int_0^{+\infty}[1-g(F(x))]dx$$
+
+That is, the risk measure ($H$) is equal to the expected value of the distortion of the risk distribution ($E^*(X)$).
+:::
+
+### Risk Measures: Examples
+
+#### Basic Comparison
+
+We won't re-implement the logic here, but here's a very simple example demonstrating the relative values of VaR, CTE, and a Wang Transform at the 90% level. These functions come from the public library [ActuaryUtilities.jl](https://github.com/JuliaActuary/ActuaryUtilities.jl).
+
+```{julia}
+using ActuaryUtilities
+
+let outcomes = rand(1000)
+
+    @show VaR(0.90)(outcomes)
+    @show CTE(0.90)(outcomes)
+    @show WangTransform(0.90)(outcomes)
+end
+```
+
+### Plotting a Range of Values
+
+We will generate a random outcome and show how the risk measures behave:
+
+```{julia}
+using Distributions
+using ActuaryUtilities
+using CairoMakie
+
+# the assumed distribution of outcomes
+outcomes = Weibull(1, 5)
+
+
+αs = range(0.00, 0.99; length=100)
+
+let
+    f = Figure()
+    ax = Axis(f[1, 1],
+        xlabel="α",
+        ylabel="Loss",
+        title="Comparison of Risk Measures",
+        xgridvisible=false,
+        ygridvisible=false,
+    )
+
+    lines!(ax,
+        αs,
+        [quantile(outcomes, α) for α in αs],
+        label="Quantile α of Outcome",
+        color=:grey10,
+        linewidth=3,
+    )
+
+    lines!(ax,
+        αs,
+        [VaR(α)(outcomes) for α in αs],
+        label="VaR(α)",
+        linestyle=:dash
+    )
+    lines!(ax,
+        αs,
+        [CTE(α)(outcomes) for α in αs],
+        label="CTE(α)",
+    )
+    lines!(ax,
+        αs[2:end],
+        [WangTransform(α)(outcomes) for α in αs[2:end]],
+        label="WangTransform(α)",
+    )
+    lines!(ax,
+        αs,
+        [ProportionalHazard(2)(outcomes) for α in αs],
+        label="ProportionalHazard(2)",
+    )
+
+    lines!(ax,
+        αs,
+        [DualPower(2)(outcomes) for α in αs],
+        label="DualPower(2)",
+    )
+    lines!(ax,
+        αs,
+        [RiskMeasures.Expectation()(outcomes) for α in αs],
+        label="Expectation",
+    )
+    axislegend(ax, position=:lt)
+
+    f
+end
+```
+
+## Stochastic Modeling: Examples
+
+### Macroeconomic Analysis
 
 Here we show still another stochastic process in macroeconomic analysis. Stochastic macroeconomic analysis often involves modeling random shocks and their effects on macroeconomic variables such as output, consumption, inflation, and employment. One common approach is through Dynamic Stochastic General Equilibrium (DSGE) models, which are widely used in macroeconomic analysis. These models incorporate randomness (stochastic elements) to capture real-world uncertainty in economic systems.
 
@@ -134,7 +385,14 @@ scatter!(1:T, Y, label="Output (Y)")
 f
 ```
 
-## Conclusion
-Stochastic modeling involves the study of systems influenced by random factors and uncertainty. By combining random variables, probability distributions, and processes like Markov chains or Brownian motion, stochastic models provide insights into systems that cannot be described purely deterministically.
+### Other Examples
 
-[^stochastic-1]: Kalos was a pioneer in Monte Carlo techniques, quoted via <https://doi.org/10.1007/978-3-540-74686-7_3>
+Stochastic examples can be found in many other sections of this book, such as:
+
+-   Portfolio optimization applications (@sec-portop).
+-   Genetic algorithms for certain optimization problems (@sec-optimization).
+-   Stochastic state-based mortality projections (@sec-stochastic-mortality).
+
+## Conclusion
+
+Stochastic modeling involves the study of systems influenced by random factors and uncertainty. By combining random variables, probability distributions, and processes like Markov chains or Brownian motion, stochastic models provide insights into systems that cannot be described purely deterministically. :::
