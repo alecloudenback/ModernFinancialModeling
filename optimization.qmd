@@ -1,8 +1,10 @@
 # Optimization {#sec-optimization}
 
+> Far better an approximate answer to the right question, which is often vague, than an exact answer to the wrong question, which can always be made precise. - John Tukey, 1962
+
 ## In This Chapter
 
-Optimization as root finding or minimization/maximazation of defined objectives. Differentiable programming and the benefits to optimization problems. Other non gradient based optimization approaches. Model fitting as an optimization problem.
+Optimization as root finding or minimization/maximization of defined objectives. Differentiable programming and the benefits to optimization problems. Other non-gradient based optimization approaches. Model fitting as an optimization problem.
 
 ```{julia}
 #| echo: false
@@ -10,6 +12,58 @@ Optimization as root finding or minimization/maximazation of defined objectives.
 using Pkg
 Pkg.activate("env/optimization")
 Pkg.instantiate()
+```
+
+## Introduction
+
+Local and global optimization: A **local optimum** value refers to a solution where the objective function (or cost function) has the best possible value in a neighborhood surrounding that solution. A **global optimum** value, on the other hand, is the best possible value of the objective function across the entire feasible domain. For smooth and convex functions, the gradient points towards the global minimum (or maximum), making it extremely efficient for finding the optimal solution. Even for non-convex functions, the gradient provides valuable information about the direction to move towards improving the objective function value locally.
+
+```{julia}
+using CairoMakie
+let
+
+    f(x) = x^8 - 3x^4 + x
+
+    # Generate a range of x and y values
+    xs = range(-1.5, 1.5, length=300)
+    ys = f.(xs)
+
+    fig = Figure(resolution=(600, 400))
+    ax = Axis(fig[1, 1],
+        xlabel="x",
+        ylabel="f(x)",
+        title="Function with Local and Global Maxima",
+        limits=(-1.5, 1.5, -5, 3)
+    )
+
+    lines!(ax, xs, ys, color=:blue)
+
+    x_global_max = -1.1226
+
+    scatter!(ax,
+        [x_global_max],
+        [f(x_global_max)],
+        color=:red,
+        markersize=10,
+        label="Global Minimum"
+    )
+
+    x_local_min = [1.08835]
+
+    scatter!(ax,
+        x_local_min,
+        f.(x_local_min),
+        color=:black,
+        markersize=10,
+        label="Local Minimum"
+    )
+
+    # Add a legend
+    axislegend(ax, position=:ct)
+
+    fig
+end
+
 ```
 
 ## Differentiable programming
@@ -26,7 +80,6 @@ Elements in differentiable programming
 
 - Gradient calculation: The gradient plays a crucial role in optimization problems primarily because it provides the direction of the steepest ascent of a function. Optimization algorithms often iteratively update parameters in the direction opposite to the gradient (for minimization problems), which tends to converge towards a local minimum (or maximum for maximization problems). Besides, computing the gradient is often computationally feasible and relatively inexpensive compared to other methods for determining function behavior, such as higher-order derivatives or function evaluations at different points. Beyond just the direction, the magnitude (or norm) of the gradient also indicates how steep the function change is in that direction. This information is used to adjust step sizes in optimization algorithms, balancing between convergence speed and stability.
 
-- Local and global optimization: A local optimal value refers to a solution where the objective function (or cost function) has the best possible value in a neighborhood surrounding that solution. A global optimal value, on the other hand, is the best possible value of the objective function across the entire feasible domain. For smooth and convex functions, the gradient points towards the global minimum (or maximum), making it extremely efficient for finding the optimal solution. Even for non-convex functions, the gradient provides valuable information about the direction to move towards improving the objective function value locally.
 
 Here shows the value and the derivative of a simple function at a certain point:
 
