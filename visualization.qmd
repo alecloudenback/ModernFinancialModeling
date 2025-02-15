@@ -2,9 +2,11 @@
 
 > Graphical excellence is that which gives to the viewer the greatest number of ideas in the shortest time with the least ink in the smallest space. - Edward Tufte, 2001
 
+*Yun-Tien Lee and Alec Loudenback*
+
 ## In This Chapter
 
-The evolved brain and pattern recognition, recommended principles for looking at data, and avoiding common mistakes. Exploratory visualization versus visualizations intended for an audience.
+The evolved brain and pattern recognition, a general guide for creating and iterating on visualizations, and principles for creating good visualizations while avoiding common mistakes.
 
 ```{julia}
 #| echo: false
@@ -102,7 +104,7 @@ Visualization isn’t just about making data look pretty—it’s about making i
 
 ## Developing Visualizations
 
-How does one develop effective visualizations? While a specialty all it's own, we present the following considerations when creating quantitative displays of visual information:
+How does one develop effective visualizations? While a specialty all it's own, we present the following considerations when creating quantitative displays of visual information. Consider this a guide of 'how' to create visualizations of data.
 
 ### Define Your Message
 
@@ -114,7 +116,7 @@ How does one develop effective visualizations? While a specialty all it's own, w
 -   **Maintain Consistent Scales:** Ensure axes are uniformly scaled and proportional to avoid misleading interpretations. For instance, when showing growth rates or volatility, avoid truncating or exaggerating axes. Consider using logarithmic axes when plotting growth or exponential relationships.
 -   Think about human perception of the shapes. For example:
     -   We have a hard time comparing arc distances compared to linear distances, so pie charts are almost always a bad idea.
-    -   When using area to convey data (such as the size of a circle), note that the area scales quadratically so
+    -   When using area to convey data (such as the size of a circle), note that the area scales quadratically, so small changes in diameter can lead to large perceptual differences in area.
 -   **Data-Driven Design:** Strip away unnecessary decorative elements. Every visual component should serve the core purpose of guiding interpretation based on the data.
 
 ### Prioritize Clarity Over Complexity
@@ -145,13 +147,14 @@ Effective financial visualizations are built on clarity, accuracy, and thoughtfu
 Most financial modelers are familiar with putting together plots in Excel....
 :::
 
-### Example Process:
+### Example: Improving a Disease Funding Visualization
 
 We will take a visualization (@fig-vox-plot) which has a number of issues and apply some of the principles above to improve the communication.
 
 This example was found via [@Schwarz2016], which also identifies several of the following issues with the graphic:
 
--   **Misleading CircleAreas**: Using circle diameters to represent values distorts perception because people interpret area, not diameter. This results in misleading comparisons, such as the area for Breast Cancer funds appearing four times larger than Prostate Cancer, despite being only twice the value.
+-   **Misleading Circle Areas**: Using circle diameters to represent values distorts perception because people intuit a comparison of area, not diameter. This results in misleading comparisons, such as the area for Breast Cancer funds appearing four times larger than Prostate Cancer, despite being only twice the value.
+-   **Data Dimensionality:** There are two dimensions of data conveyed: deaths and funding, while it's presented with four degrees of variation: (1) color, (2) vertical ranking, (3) horizontal categorization, and (4) bubble size.
 -   **Labeling Issue**: Disease names should be placed directly on circles to improve readability and assist color-blind individuals.
 -   **Comparison Clarity**: To effectively compare funds raised to deaths caused, these metrics should be displayed side-by-side or connected with lines.
 -   **Precision Overload**: Excessive precision in numerical data, such as using eight digits for funds raised, is unnecessary and can confuse interpretation.
@@ -161,10 +164,10 @@ This example was found via [@Schwarz2016], which also identifies several of the 
 
 In this revised version, we take the data as accurate and simply recast the visualization of the data. The revised plot takes the following steps:
 
--   Use a simpler scatterplot for what is essentially two dimensional data.
--   Eliminate unnecessary color and let the labels themselves sit within the plot.
+-   Use a simpler 2D scatterplot mirroring the two dimensional data.
+-   Eliminate unnecessary color and let the labels themselves sit within the plot to avoid the eye needing to jump between the legend and the datapoints.
 -   Remove precision in the axis ticks, since decimal level precision is not necessary to tell the story.
--   Remove unnecessary plot elements including gridlines and axis without tick labels
+-   Remove unnecessary plot elements including gridlines and axes without tick labels.
 
 ```{julia}
 using CairoMakie
@@ -194,7 +197,7 @@ for (i, disease) in enumerate(diseases)
     offset = if disease == "Motor Neuron/ALS"
         (0, -15)
     else
-        (4, 2)
+        (3, 2)
     end
     text!(ax, money_raised[i], deaths_us[i], text=disease, fontsize=12, offset=offset)
 end
@@ -214,16 +217,38 @@ And it raises some interesting questions:
 
 -   Is there an inverse relationship between the perceived "control" one has over a disease and how much funding people are willing to allocate to a cause?
 
--   Does funding correlate with progress? E.g. has there been faster progress in extending lifespan from avoiding cancer deaths than other diseases?
+-   Given the wide dispersion in funding, does it matter? Ho does funding correlate with progress? E.g. has there been faster progress in extending lifespan from avoiding cancer deaths than other diseases?
+
+The new visualization is easier to understand and draw comparisons. From the clarity, relationships are revealed and the visualizations itself reveals interesting followup questions and suggests follow-on analysis to be performed.
+
+## Principles of Good Visualization
+
+Extending the above "how", we now present the "what"; principles of good visualization (some elements taken from [@tufte2001visual]):
+
+-   Clearly represent the data without distortions of size or space.
+    -   Refrain from clipping axes.
+    -   Do not rely on features such as shape area unless you have fully considered how viewers perceive them.
+-   Utilize variations of features to represent data dimensionality with purpose.
+    -   If colors vary in a plot, the different colors should have meaning.
+    -   Don't jump to a 3D plot - use variations in marker/line styles or small multiples to convey higher dimensions.
+-   Encourage the eye to compare different pieces of data.
+-   Reveal the data at several levels of detail, from a broad overview to the fine structure.
+    -   Instead of summary statistics, try plotting all of the data with reduced transparency and let the viewer draw summary conclusions.
+-   Maintain consistency throughout the exhibit.
+    -   Any change in font, color, size, weight, etc. can be interpreted as an intentional choice that the viewer will try to interpret - don't overburden the viewer.
+-   Serve a reasonably clear purpose: description, exploration, tabulation, or decoration and cut out what's not purposeful.
+    -   Maximize the data to ink ratio.
 
 ## Types of visualization tools
+
+While not an exhaustive list by any means, we take a brief tour through some very common plots and the associated Julia code.
 
 -   Basic Charts and Graphs: Bar charts, line graphs, scatter plots, histograms, pie charts.
     -   Bar charts are best for comparing categorical data or discrete values across different categories. Sometimes categories can be grouped for a stacked bar chart to show for example how each category changes over time.
     -   Line graphs are best for showing trends over time or when we want to highlight the rate of change. It is very intuitive to use line graphs to track trends or patterns.
     -   Scatter plots are best for showing relationships or correlations between two variables. It is used a lot when one looks for patterns, clusters or outliers, or would like to explore the distribution of data points across different dimensions.
     -   Histograms are best for showing the distribution of a single continuous variable, or visualizing the distribution of data points across different ranges or intervals.
-    -   Pie charts are best for showing parts of a whole or proportional data. It is often used when one has fewer categories (typically 3-5) that sum to 100%.
+
 
 ```{julia}
 using Random, CairoMakie
@@ -232,23 +257,17 @@ using Random, CairoMakie
 categories = ["Product A", "Product B", "Product C", "Product D"]
 sales = [150, 250, 200, 300]  # For bar chart
 
-months = 1:12
-sales_growth = [120, 150, 170, 180, 200, 220, 210, 230, 250, 270, 290, 310]  # For line graph
-
-Random.seed!(1234)
-x = rand(100)  # For scatter plot
-
-proportions = [30, 25, 15, 30]  # For pie chart
+x = randn(100)  # For scatter plot
 
 # Combine individual plots into a 2x2 layout
 f = Figure()
-barplot(f[1, 1], 1:4, sales, axis=(xticks=(1:4, categories), title="bar"))
+barplot(f[1, 1], 1:4, sales, axis=(xticks=(1:4, categories), title="bar", xticklabelsize=10))
 axis = Axis(f[1, 2], title="line")
-lines!(f[1, 2], months, sales_growth)
+lines!(f[1, 2], cumsum(x))
 axis = Axis(f[2, 1], title="scatter")
 scatter!(axis, x)
-axis = Axis(f[2, 2], title="pie")
-pie!(axis, proportions, color=[:yellow, :orange, :red, :blue])
+axis = Axis(f[2, 2], title="histogram")
+hist!(axis, x)
 f
 ```
 
@@ -264,47 +283,49 @@ using Random, CairoMakie
 Random.seed!(1234)
 
 # Data for plots
-z = rand(10, 10) # For heatmap
+# For heatmap
+xs = range(0, π, length=10)
+ys = range(0, π, length=10)
+zs = [sin(x * y) for x in xs, y in ys]
+
 bubble_x = rand(10) * 10
 bubble_y = rand(10) * 10
 bubble_size = rand(10) * 100
 
 # Dummy data for radar chart
 radar_data = [0.7, 0.9, 0.4, 0.6, 0.8]
-radar_labels = ["A", "B", "C", "D", "E"]
 
 # Dummy data for parallel coordinates plot
 parallel_data = rand(10, 5)
-parallel_color = [:green, :orange, :red, :blue, :purple]
 
 f = Figure()
 
 # Heatmap (1,1)
 ax1 = Axis(f[1, 1], title="Heatmap")
-heatmap!(ax1, z)
+heatmap!(ax1, xs, ys, zs)
 
 # Parallel coordinates (1,2)
 ax2 = Axis(f[1, 2], title="Parallel Coordinates")
 for i in 1:size(parallel_data, 2)
-    lines!(ax2, 1:size(parallel_data, 2), parallel_data[i, :], color=parallel_color[i])
+    lines!(ax2, 1:size(parallel_data, 2), parallel_data[i, :])
 end
-ax2.xticks = (1:5, radar_labels)
+
 
 # Radar Chart (2,1)
 ax3 = Axis(f[2, 1], title="Radar Chart", aspect=1)
 angles = range(0, 2π, length=length(radar_data) + 1)
 r = [radar_data; radar_data[1]]
-arc!(ax3, Point2f(0), 0.5, -π, π, color=:orange)
-arc!(ax3, Point2f(0), 1, -π, π, color=:orange)
-lines!(ax3, [-1, 1], [1, -1], color=:orange)
-lines!(ax3, [-1, 1], [-1, 1], color=:orange)
+arc!(ax3, Point2f(0), 0.5, -π, π, color=:grey90)
+arc!(ax3, Point2f(0), 1, -π, π, color=:grey90)
 lines!(ax3, cos.(angles) .* r, sin.(angles) .* r, color=:green)
 poly!(ax3, cos.(angles) .* r, sin.(angles) .* r, color=(:blue, 0.2))
 scatter!(ax3, cos.(angles) .* r, sin.(angles) .* r, color=:red)
+hidedecorations!(ax3)
+hidespines!(ax3)
 
 # Bubble Plot (2,2)
 ax4 = Axis(f[2, 2], title="Bubble Plot")
-scatter!(ax4, bubble_x, bubble_y, markersize=bubble_size, color=:orange)
+scatter!(ax4, bubble_x, bubble_y, markersize=bubble_size, color=:orange, alpha=0.5)
 
 f
 ```
@@ -336,17 +357,25 @@ f
 
 -   Interactive Dashboards: Tools like Tableau, Power BI, Pluto for interactive and dynamic data exploration.
 
+### Additional Examples
+
+For more kinds of visualizations, see:
+
+-   <https://datavizproject.com>
+
+-   [A Tour Through the Visualization Zoo](https://homes.cs.washington.edu/~jheer/files/zoo/) ([@heer2010visualizationzoo])
+
 ## Julia Plotting Packages
 
-Julia has several powerful packages for data visualization, each with different strengths depending on your needs (e.g., interactive vs. static plots, ease of use vs. customization). Below are some of the most common visualization packages in Julia:
+Julia has several powerful packages for data visualization, each with different strengths depending on your needs (e.g., interactive vs. static plots, ease of use vs. customization). Each package has unique strengths depending on the use case, so the best choice depends on our specific needs, the type of data, and whether we need interactive or static visualizations. Below are some of the most common visualization packages in Julia:
 
 ### CairoMakie.jl and GLMakie.jl
 
-`Makie` is designed for high-performance, interactive, and 3D visualization. It supports real-time interaction and is highly customizable. It supports 2D and 3D plotting and real-time interactivity. It is also extremely fast with GPU acceleration for certain operations. CairoMakie is suitable for print-quality vector output, while GLMakie utilizes GPU acceleration for high quality 2D and 3D plots.
+`Makie` is designed for high-performance, interactive, and 3D visualization. It supports real-time interaction and is highly customizable. It supports 2D and 3D plotting and real-time interactivity. It is also extremely fast with GPU acceleration for certain operations. CairoMakie is suitable for print-quality vector output, while GLMakie utilizes GPU acceleration for high quality 2D and 3D plots. CairoMakie was chosen as the tool for this book because it offers very sensible default behavior and aesthetics, is easy to customize, and generally straightforward code.
 
 ### Plots.jl
 
-`Plots` is one of the most versatile and popular Julia plotting libraries. It provides a high-level interface for different plotting backends (e.g., GR, Plotly, PyPlot, PGFPlotsX, etc.). It uses a high-level syntax, easy to use. It supports multiple backends for both static and interactive plots with extensive customization options.
+`Plots` is one of the most versatile and popular Julia plotting libraries. It provides a high-level interface for different plotting backends (e.g., GR, Plotly, PyPlot, PGFPlotsX, etc.). It uses a high-level syntax that is easy to use. It supports multiple backends for both static and interactive plots, but can be more limited in its customization options.
 
 #### StatsPlots.jl
 
@@ -359,8 +388,6 @@ This package is used to plot graphs (networks), such as social network visualiza
 ### UnicodePlots.jl
 
 `UnicodePlots` provides simple plotting capabilities in the terminal using Unicode characters, making it lightweight and fast. There are no external dependencies. It is great for quick plotting within the terminal.
-
-Each package has unique strengths depending on the use case, so the best choice depends on our specific needs, the type of data, and whether we need interactive or static visualizations.
 
 ## References
 
