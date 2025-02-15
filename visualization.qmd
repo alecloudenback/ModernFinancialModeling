@@ -1,5 +1,7 @@
 # Visualizations {#sec-visualization}
 
+> Graphical excellence is that which gives to the viewer the greatest number of ideas in the shortest time with the least ink in the smallest space. - Edward Tufte, 2001
+
 ## In This Chapter
 
 The evolved brain and pattern recognition, recommended principles for looking at data, and avoiding common mistakes. Exploratory visualization versus visualizations intended for an audience.
@@ -13,64 +15,171 @@ Pkg.instantiate()
 ENV["DATADEPS_ALWAYS_ACCEPT"] = true
 ```
 
-## Key elements
+## Introduction
 
-Visualization is a crucial component in data analysis, statistical modeling, and decision-making for several important reasons. It serves as a bridge between raw data and actionable insights, helping to simplify, explore, and communicate complex information effectively. Here are key reasons why visualization is important:
+Visualization is a cornerstone of data analysis, statistical modeling, and decision-making. It transforms raw data into something we can see and understand, making it easier to uncover patterns, communicate ideas, and make informed decisions.
 
-### Understanding and exploring data
+The human brain can only parse a relatively small number of textual datapoints at a single time. We are incredibly visual creatures, with our brains able to process visually many orders of magnitude more information per second than through text.
 
-Depending on purposes, different types of plots can help understand underlying relationships in the data. A scatter plot can reveal correlations between two variables, while a histogram can show the distribution of a single variable.
-- Pattern Recognition: Visualization helps in identifying trends, patterns, and outliers in data that might not be immediately evident through raw numbers.
-- Exploratory Data Analysis (EDA): It allows analysts to explore the data interactively, enabling a better understanding of underlying distributions, relationships, and anomalies before applying formal statistical models.
+Consider the following example of tabular data, with four sets of paired $x$ and $y$ coordinates.
 
-### Simplifying complex information
+```{julia}
+using DataFrames
 
-Large datasets with many variables or dimensions can be overwhelming. Visualization simplifies complex data by representing it in intuitive visual formats like graphs, charts, and heatmaps. Besides, instead of dealing with thousands of rows of data, a well-designed graph can distill essential information for quick understanding. For example, in multivariate datasets, a principal component analysis (PCA) biplot reduces the dimensions of the data, making it easier to interpret.
+# Define the Anscombe Quartet data
+anscombe_data = DataFrame(
+    x1=[10.0, 8.0, 13.0, 9.0, 11.0, 14.0, 6.0, 4.0, 12.0, 7.0, 5.0],
+    y1=[8.04, 6.95, 7.58, 8.81, 8.33, 9.96, 7.24, 4.26, 10.84, 4.82, 5.68],
+    x2=[10.0, 8.0, 13.0, 9.0, 11.0, 14.0, 6.0, 4.0, 12.0, 7.0, 5.0],
+    y2=[9.14, 8.14, 8.74, 8.77, 9.26, 8.10, 6.13, 3.10, 9.13, 7.26, 4.74],
+    x3=[10.0, 8.0, 13.0, 9.0, 11.0, 14.0, 6.0, 4.0, 12.0, 7.0, 5.0],
+    y3=[7.46, 6.77, 12.74, 7.11, 7.81, 8.84, 6.08, 5.39, 8.15, 6.42, 5.73],
+    x4=[8.0, 8.0, 8.0, 8.0, 8.0, 8.0, 8.0, 19.0, 8.0, 8.0, 8.0],
+    y4=[6.58, 5.76, 7.71, 8.84, 8.47, 7.04, 5.25, 12.50, 5.56, 7.91, 6.89]
+)
+```
 
-### Identifying relationships and correlations
+Something not obvious by looking at the tabular data above is that each set of data has the same summary statistics. That is, the four sets of data are all described by the same linear features.
 
-Relationships between variables, such as correlation, dependency, or causality, can be better understood through visualizations like scatter plots, line graphs, and network diagrams. For example, a heatmap can show the strength of correlations between multiple variables, helping in the selection of important features for modeling.
+```{julia}
+using Statistics, Printf
+let d = anscombe_data
+    map([[:x1, :y1], [:x2, :y2], [:x3, :y3], [:x4, :y4]]) do pair
+        x, y = eachcol(d[:, pair])
 
-### Supporting decision making
+        # calculate summary statistics
+        mean_x, mean_y = mean(x), mean(y)
+        intercept, slope = ([ones(size(y)) x] \ y)
+        correlation = cor(x, y)
 
-Visualization aids decision-makers by presenting data in a clear and actionable form, often enabling quicker and more informed decisions. By visualizing risks, such as potential financial losses, decision-makers can understand the range of possible outcomes and make better choices. For example, visualizing portfolio risk through VaR (Value at Risk) or loss distributions helps in assessing potential future losses.
+        (; mean_x, mean_y, intercept, slope, correlation)
+    end |> DataFrame
+end
+```
 
-### Effective communication
+Analytical summarization alone is not enough to understand the data. We need to visualize the data to see the patterns emerge, wherein each of the four datasets tells a very different story:
 
-A good visualization is a powerful tool for communicating insights to stakeholders, especially non-technical audiences, in a way that is easy to grasp. It can also be used to tell a compelling story by emphasizing important findings and making the data more engaging. A time-series line chart can tell the story of stock price movements over time, showing trends and volatility to investors.
+```{julia}
+using CairoMakie
 
-### Spotting anomalies and outliers
 
-Anomalies, such as errors or unexpected behaviors in data, are easier to spot with visual representations like box plots, scatter plots, or time series graphs. This can be applied in fraud detection, where visualizing transactions over time can reveal unusual spikes or patterns that may indicate fraudulent activity.
+# Create the plots
+fig = Figure(resolution=(800, 800))
 
-### Interactive exploration
+ax1 = Axis(fig[1, 1], title="Dataset 1")
+scatter!(ax1, anscombe_data.x1, anscombe_data.y1)
+lines!(ax1, 2:14, x -> 3 + 0.5x, color=:red)
 
-Interactive visualizations, like those created using tools such as Tableau or Plotly in Python/Julia, allow users to zoom in on areas of interest, filter data, and dynamically explore different views of the data. This enables users to adjust parameters, select specific variables, or focus on different time frames, leading to more personalized insights. Interactive dashboards let business analysts explore sales trends by geography, time, or product category in real-time.
+ax2 = Axis(fig[1, 2], title="Dataset 2")
+scatter!(ax2, anscombe_data.x2, anscombe_data.y2)
+lines!(ax2, 2:14, x -> 3 + 0.5x, color=:red)
 
-### Enhancing models and hypotheses
+ax3 = Axis(fig[2, 1], title="Dataset 3")
+scatter!(ax3, anscombe_data.x3, anscombe_data.y3)
+lines!(ax3, 2:14, x -> 3 + 0.5x, color=:red)
 
-Visualizing the results of statistical models (such as regression, classification, or clustering) allows for easier validation and refinement of models. It can also be used to compare model predictions with actual outcomes, identifying where the model performs well or poorly. For example a residual plot can help diagnose model fit in a regression analysis, highlighting whether the errors are randomly distributed or exhibit patterns.
+ax4 = Axis(fig[2, 2], title="Dataset 4")
+scatter!(ax4, anscombe_data.x4, anscombe_data.y4)
+lines!(ax4, 2:14, x -> 3 + 0.5x, color=:red)
 
-### Handling large datasets
+fig
 
-Visualization can handle large datasets by summarizing the data in visual formats, providing a way to understand vast amounts of information quickly. This can be applied in machine learning, where feature importance can be visualized across many features, helping data scientists to focus on the most critical variables for prediction.
+```
 
-### Revealing hidden structures in data
+This dataset is known as Ancsombe's Quartet and is a famous statistical example which is used here to underscore the importance of visualization when seeking to understand or communicate data. However, there are more reasons to refine your experience in the art and science of data visualization which we list in @tbl-viz-reasons.
 
-Techniques like clustering and dimensionality reduction can reveal hidden structures in data, such as natural groupings or latent variables, which become apparent only when visualized. For one application in unsupervised learning, visualizing clusters from a k-means algorithm can show the natural grouping of customers in a marketing dataset.
+| Purpose | Description |
+|------------------|------------------------------------------------------|
+| Simplify Complexity | Raw data can be overwhelming, especially with large datasets or many variables. A single visualization can convey thousands of points of data into a clear picture. |
+| Reveal Patterns and Relationships | Some insights are hidden in plain sight until you visualize them, such as the relationships in the Anscombe's Quartet example. |
+| Support Better Decisions | Understanding patterns and relationships can then translate into better decision making, such as highlighting trends or risks at a glance. |
+| Communicate Effectively | Conveying information to others in a visual manner is one of the most effective way at aiding in understanding. The best visualizations don't just inform— they tell a story that's useful for understanding and decision making |
+| Encourage Exploration | Visual exploration is at the heart of understanding data, uncovering distributions, relationships, or unusual patterns before diving into formal models. |
 
-### Fostering collaboration
+: A list of reasons to practice the art and science of data visualization. {#tbl-viz-reasons}
 
-Visualization helps to bridge communication gaps between different teams (technical, business, management), enabling better collaboration. A dashboard summarizing KPIs (key performance indicators) for different departments can help teams across the organization align with the same goals.
+Visualization isn’t just about making data look pretty—it’s about making it useful. Whether you’re exploring data for the first time, presenting findings to stakeholders, or refining a model, good visualizations are essential tools for turning information into insight.
+
+## Developing Visualizations
+
+How does one develop effective visualizations? While a specialty all it's own, we present the following considerations when creating quantitative displays of visual information:
+
+### Define Your Message
+
+-   **Clarify the Objective:** Start with a clear purpose. What is the key insight you want to communicate? Whether it’s forecasting trends, assessing risk, analyzing variances, or comparing financial scenarios, your visualization should be laser-focused on delivering that message, stripping out unnecessary details.
+-   **Know Your Audience:** Tailor every aspect of your visualization to the needs and expertise of your audience. For financial professionals or actuaries, this means ensuring that the visual elements align with their analytical requirements and technical proficiency.
+
+### Emphasize Accuracy and Integrity
+
+-   **Maintain Consistent Scales:** Ensure axes are uniformly scaled and proportional to avoid misleading interpretations. For instance, when showing growth rates or volatility, avoid truncating or exaggerating axes. Consider using logarithmic axes when plotting growth or exponential relationships.
+-   Think about human perception of the shapes. For example:
+    -   We have a hard time comparing arc distances compared to linear distances, so pie charts are almost always a bad idea.
+    -   When using area to convey data (such as the size of a circle), note that the area scales quadratically so
+-   **Data-Driven Design:** Strip away unnecessary decorative elements. Every visual component should serve the core purpose of guiding interpretation based on the data.
+
+### Prioritize Clarity Over Complexity
+
+-   **Simplify Graphics:** Use straightforward charts, clean lines, and precise labels. Avoid embellishments that detract from the data’s message such as color variation for aesthetics' sake.
+-   **Eliminate “Chartjunk”:** Remove distracting elements like excessive gridlines, complex legends, or overly varied colors. Each element should have a clear role in supporting the narrative.
+-   **Leverage White Space:** Thoughtful use of white space can help separate key elements and make comparisons more intuitive.
+
+### Organize Data Thoughtfully
+
+-   **Decompose Complexity:** When dealing with multi-variable or time-series data, consider breaking it into small multiples or related charts for side-by-side comparison.
+-   **Layered Information:** Combine related datasets (e.g., financial performance vs. risk exposure), but ensure each layer is visually distinct and does not obscure others.
+-   **Provide Multiple Views:** Offer both high-level summaries for quick insights and detailed views for deeper analysis.
+
+### Enhance Readability
+
+-   **Clear Annotations:** Label axes, data points, and key takeaways explicitly. Use annotations to highlight critical insights, such as shifts in trends or activation of risk triggers.
+-   **Consistent Design Elements:** Stick to legible fonts and cohesive color schemes. For example, use consistent colors across charts to represent comparable data points for easier pattern recognition.
+
+### Validate and Iterate
+
+-   **Test for Clarity:** Share your visuals with peers or stakeholders to ensure they are interpreted as intended. Feedback can help identify areas of confusion or misrepresentation.
+-   **Iterate Continuously:** Treat visualization design as an evolving process. Refine layouts, scales, and annotations based on feedback and changing analytical needs.
+
+Effective financial visualizations are built on clarity, accuracy, and thoughtful organization. By adhering to these principles—streamlined design, data integrity, and iterative refinement—you can transform complex datasets into actionable insights that empower decision-making in financial modeling and actuarial work.
+
+::: callout-tip
+Most financial modelers are familiar with putting together plots in Excel....
+:::
+
+### Example Process:
+
+We will take a visualization (@fig-vox-plot) which has a number of issues and apply some of the principles above to improve the communication. This example was found via [@Schwarz2016], which also identifies several of the following issues with the graphic:
+
+-  **Misleading CircleAreas**: Using circle diameters to represent values distorts perception because people interpret area, not diameter. This results in misleading comparisons, such as the area for Breast Cancer funds appearing four times larger than Prostate Cancer, despite being only twice the value.
+-  **Labeling Issue**: Disease names should be placed directly on circles to improve readability and assist color-blind individuals.
+-  **Comparison Clarity**: To effectively compare funds raised to deaths caused, these metrics should be displayed side-by-side or connected with lines.
+-  **Precision Overload**: Excessive precision in numerical data, such as using eight digits for funds raised, is unnecessary and can confuse interpretation.
+-  **Missing Data Label**: The graph omits a label for the last dollar amount, likely related to Diabetes, which could be avoided by labeling directly on the graph.
+
+
+
+![Vox Media Infographic that inappropriately and ineffectively conveys data. {#fig-vox-plot}](images/Donating.vs.Death-Graph.0.jpg)
+
+```{julia}
+diseases = ["Breast Cancer", "Prostate Cancer", "Heart Disease", "Motor Neuron Disease (including ALS)", "HIV / AIDS", "Chronic Obstructive Pulmonary Disease", "Diabetes", "Suicide"]
+
+money_raised = [257850000, 147000000, 54100000, 22900000, 14000000, 7000000, 4200000, 3200000]
+
+deaths_us = [41374, 21176, 596577, 6849, 7683, 142942, 73831, 39518]
+
+
+
+```
+
+
 
 ## Types of visualization tools
 
-- Basic Charts and Graphs: Bar charts, line graphs, scatter plots, histograms, pie charts.
-    + Bar charts are best for comparing categorical data or discrete values across different categories. Sometimes categories can be grouped for a stacked bar chart to show for example how each category changes over time.
-    + Line graphs are best for showing trends over time or when we want to highlight the rate of change. It is very intuitive to use line graphs to track trends or patterns.
-    + Scatter plots are best for showing relationships or correlations between two variables. It is used a lot when one looks for patterns, clusters or outliers, or would like to explore the distribution of data points across different dimensions.
-    + Histograms are best for showing the distribution of a single continuous variable, or visualizing the distribution of data points across different ranges or intervals.
-    + Pie charts are best for showing parts of a whole or proportional data. It is often used when one has fewer categories (typically 3-5) that sum to 100%.
+-   Basic Charts and Graphs: Bar charts, line graphs, scatter plots, histograms, pie charts.
+    -   Bar charts are best for comparing categorical data or discrete values across different categories. Sometimes categories can be grouped for a stacked bar chart to show for example how each category changes over time.
+    -   Line graphs are best for showing trends over time or when we want to highlight the rate of change. It is very intuitive to use line graphs to track trends or patterns.
+    -   Scatter plots are best for showing relationships or correlations between two variables. It is used a lot when one looks for patterns, clusters or outliers, or would like to explore the distribution of data points across different dimensions.
+    -   Histograms are best for showing the distribution of a single continuous variable, or visualizing the distribution of data points across different ranges or intervals.
+    -   Pie charts are best for showing parts of a whole or proportional data. It is often used when one has fewer categories (typically 3-5) that sum to 100%.
 
 ```{julia}
 using Random, CairoMakie
@@ -99,11 +208,11 @@ pie!(axis, proportions, color=[:yellow, :orange, :red, :blue])
 f
 ```
 
-- Multivariate Visualizations: Heatmaps, parallel coordinates plots, radar charts, bubble charts.
-    + Heatmaps are best for visualizing the intensity, interactions or relationships of values across two dimensions.
-    + Bubble charts which are variants of scatter plots are best for showing relationships between three variables. One can easily highlight relative importance or magnitude using the size of bubbles (e.g., revenue, population).
-    + Parallel coordinates plots are best for comparing multiple variables across different observations. They are often used for detecting patterns, correlations or relationships across multiple dimensions.
-    + Radar charts are best for comparing multiple variables for a single or few observations, especially when one needs to show comparisons of several quantitative variables for one or more items, with each variable represented on an axis.
+-   Multivariate Visualizations: Heatmaps, parallel coordinates plots, radar charts, bubble charts.
+    -   Heatmaps are best for visualizing the intensity, interactions or relationships of values across two dimensions.
+    -   Bubble charts which are variants of scatter plots are best for showing relationships between three variables. One can easily highlight relative importance or magnitude using the size of bubbles (e.g., revenue, population).
+    -   Parallel coordinates plots are best for comparing multiple variables across different observations. They are often used for detecting patterns, correlations or relationships across multiple dimensions.
+    -   Radar charts are best for comparing multiple variables for a single or few observations, especially when one needs to show comparisons of several quantitative variables for one or more items, with each variable represented on an axis.
 
 ```{julia}
 using Random, CairoMakie
@@ -156,7 +265,7 @@ scatter!(ax4, bubble_x, bubble_y, markersize=bubble_size, color=:orange)
 f
 ```
 
-- Dimensionality Reduction: PCA plots, t-SNE, and UMAP for visualizing high-dimensional data. Here we show an example how high-dimensional data can be shown on a t-SNE plot.
+-   Dimensionality Reduction: PCA plots, t-SNE, and UMAP for visualizing high-dimensional data. Here we show an example how high-dimensional data can be shown on a t-SNE plot.
 
 ```{julia}
 using TSne, Statistics, MLDatasets, CairoMakie
@@ -177,72 +286,25 @@ scatter!(axis, Y[:, 1], Y[:, 2], color=Int.(allabels[1:size(Y, 1)]))
 f
 ```
 
-- Time Series Visualization: Line charts, area charts, time-series decomposition plots. Refer to @sec-datalearning for a time series plot.
+-   Time Series Visualization: Line charts, area charts, time-series decomposition plots. Refer to @sec-datalearning for a time series plot.
 
-- Geospatial Visualization: Maps, choropleth maps for visualizing spatial data. Here we show how spatial data can be visualized using a choropleth map.
+-   Geospatial Visualization: Maps, choropleth maps for visualizing spatial data. Here we show how spatial data can be visualized using a choropleth map.
 
-```{julia}
-using VegaLite, VegaDatasets
+-   Interactive Dashboards: Tools like Tableau, Power BI, Pluto for interactive and dynamic data exploration.
 
-us10m = dataset("us-10m")
-unemployment = dataset("unemployment")
-
-@vlplot(
-    :geoshape,
-    width = 500, height = 300,
-    data = {
-        values = us10m,
-        format = {
-            type = :topojson,
-            feature = :counties
-        }
-    },
-    transform = [{
-        lookup = :id,
-        from = {
-            data = unemployment,
-            key = :id,
-            fields = ["rate"]
-        }
-    }],
-    projection = {
-        type = :albersUsa
-    },
-    color = "rate:q"
-)
-```
-
-- Interactive Dashboards: Tools like Tableau, Power BI, Pluto for interactive and dynamic data exploration.
-
-## Julia packages
+## Julia Plotting Packages
 
 Julia has several powerful packages for data visualization, each with different strengths depending on your needs (e.g., interactive vs. static plots, ease of use vs. customization). Below are some of the most common visualization packages in Julia:
 
-### Makie.jl
+### CairoMakie.jl and GLMakie.jl
 
-`Makie` is designed for high-performance, interactive, and 3D visualization. It supports real-time interaction and is highly customizable. It supports 2D and 3D plotting and real-time interactivity. It is also extremely fast with GPU acceleration for certain operations.
+`Makie` is designed for high-performance, interactive, and 3D visualization. It supports real-time interaction and is highly customizable. It supports 2D and 3D plotting and real-time interactivity. It is also extremely fast with GPU acceleration for certain operations. CairoMakie is suitable for print-quality vector output, while GLMakie utilizes GPU acceleration for high quality 2D and 3D plots.
 
 ### Plots.jl
 
 `Plots` is one of the most versatile and popular Julia plotting libraries. It provides a high-level interface for different plotting backends (e.g., GR, Plotly, PyPlot, PGFPlotsX, etc.). It uses a high-level syntax, easy to use. It supports multiple backends for both static and interactive plots with extensive customization options.
 
-### Gadfly.jl
-
-`Gadfly` is a grammar-of-graphics plotting system similar to ggplot2 in R. It is very flexible for producing static visualizations. It supports grammar of graphics syntax, great for statistical graphics. It is also easy to learn, especially for users familiar with `ggplot2`. Besides it is good for quick prototyping and publication-quality plots.
-
-### PlotlyJS.jl
-
-`PlotlyJS` is the Julia wrapper for the interactive `Plotly.js` library. It provides rich interactive visualizations with support for hover information, zooming, and more. It is great for interactive web-based visualizations. It supports a wide range of plot types including 3D, maps, and more, and can be used for building dashboards.
-
-### VegaLite.jl
-
-`VegaLite` is a wrapper for the Vega-Lite visualization grammar, which focuses on interactive, declarative visualizations. It works well for complex, layered visualizations. It is grammar-of-graphics based which easily produces interactive charts. It is built for declarative specification of visualizations.
-
-### PyPlot.jl
-
-`PyPlot` is a Julia wrapper for the popular Python `matplotlib` library. It's suitable for users familiar with Python who want the same plotting capabilities in Julia. It leverages the full capabilities of matplotlib and it can produce high-quality, publication-ready plots. It is great for scientific visualization.
-
-### StatsPlots.jl
+#### StatsPlots.jl
 
 `StatsPlots` extends `Plots` by adding statistical plot types such as boxplots, violin plots, histograms, and density plots. It's ideal for users who frequently work with statistical data. It is specialized for statistical visualizations. It allows easy integration with Julia’s statistical packages like `DataFrames` and `StatsBase`.
 
@@ -255,3 +317,7 @@ This package is used to plot graphs (networks), such as social network visualiza
 `UnicodePlots` provides simple plotting capabilities in the terminal using Unicode characters, making it lightweight and fast. There are no external dependencies. It is great for quick plotting within the terminal.
 
 Each package has unique strengths depending on the use case, so the best choice depends on our specific needs, the type of data, and whether we need interactive or static visualizations.
+
+## References
+
+Much of the principles and some of the examples are inspired by [@tufte2001visual].
