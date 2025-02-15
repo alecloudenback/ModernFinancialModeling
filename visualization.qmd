@@ -89,7 +89,7 @@ fig
 This dataset is known as Ancsombe's Quartet and is a famous statistical example which is used here to underscore the importance of visualization when seeking to understand or communicate data. However, there are more reasons to refine your experience in the art and science of data visualization which we list in @tbl-viz-reasons.
 
 | Purpose | Description |
-|------------------|------------------------------------------------------|
+|-------------------|-----------------------------------------------------|
 | Simplify Complexity | Raw data can be overwhelming, especially with large datasets or many variables. A single visualization can convey thousands of points of data into a clear picture. |
 | Reveal Patterns and Relationships | Some insights are hidden in plain sight until you visualize them, such as the relationships in the Anscombe's Quartet example. |
 | Support Better Decisions | Understanding patterns and relationships can then translate into better decision making, such as highlighting trends or risks at a glance. |
@@ -147,30 +147,74 @@ Most financial modelers are familiar with putting together plots in Excel....
 
 ### Example Process:
 
-We will take a visualization (@fig-vox-plot) which has a number of issues and apply some of the principles above to improve the communication. This example was found via [@Schwarz2016], which also identifies several of the following issues with the graphic:
+We will take a visualization (@fig-vox-plot) which has a number of issues and apply some of the principles above to improve the communication.
 
--  **Misleading CircleAreas**: Using circle diameters to represent values distorts perception because people interpret area, not diameter. This results in misleading comparisons, such as the area for Breast Cancer funds appearing four times larger than Prostate Cancer, despite being only twice the value.
--  **Labeling Issue**: Disease names should be placed directly on circles to improve readability and assist color-blind individuals.
--  **Comparison Clarity**: To effectively compare funds raised to deaths caused, these metrics should be displayed side-by-side or connected with lines.
--  **Precision Overload**: Excessive precision in numerical data, such as using eight digits for funds raised, is unnecessary and can confuse interpretation.
--  **Missing Data Label**: The graph omits a label for the last dollar amount, likely related to Diabetes, which could be avoided by labeling directly on the graph.
+This example was found via [@Schwarz2016], which also identifies several of the following issues with the graphic:
 
-
+-   **Misleading CircleAreas**: Using circle diameters to represent values distorts perception because people interpret area, not diameter. This results in misleading comparisons, such as the area for Breast Cancer funds appearing four times larger than Prostate Cancer, despite being only twice the value.
+-   **Labeling Issue**: Disease names should be placed directly on circles to improve readability and assist color-blind individuals.
+-   **Comparison Clarity**: To effectively compare funds raised to deaths caused, these metrics should be displayed side-by-side or connected with lines.
+-   **Precision Overload**: Excessive precision in numerical data, such as using eight digits for funds raised, is unnecessary and can confuse interpretation.
+-   **Missing Data Label**: The graph omits a label for the last dollar amount, likely related to Diabetes, which could be avoided by labeling directly on the graph.
 
 ![Vox Media Infographic that inappropriately and ineffectively conveys data. {#fig-vox-plot}](images/Donating.vs.Death-Graph.0.jpg)
 
+In this revised version, we take the data as accurate and simply recast the visualization of the data. The revised plot takes the following steps:
+
+-   Use a simpler scatterplot for what is essentially two dimensional data.
+-   Eliminate unnecessary color and let the labels themselves sit within the plot.
+-   Remove precision in the axis ticks, since decimal level precision is not necessary to tell the story.
+-   Remove unnecessary plot elements including gridlines and axis without tick labels
+
 ```{julia}
-diseases = ["Breast Cancer", "Prostate Cancer", "Heart Disease", "Motor Neuron Disease (including ALS)", "HIV / AIDS", "Chronic Obstructive Pulmonary Disease", "Diabetes", "Suicide"]
+using CairoMakie
 
-money_raised = [257850000, 147000000, 54100000, 22900000, 14000000, 7000000, 4200000, 3200000]
+# Data
+diseases = ["Breast Cancer", "Prostate Cancer", "Heart Disease", "Motor Neuron/ALS",
+    "HIV / AIDS", "Chronic Obstructive Pulmonary Disease", "Diabetes", "Suicide"]
+money_raised = [257, 147, 54.1, 22.9, 14, 7, 4.2, 3.2]
+deaths_us = [41.374, 21.176, 596.577, 6.849, 7.683, 142.942, 73.831, 39.518]
 
-deaths_us = [41374, 21176, 596577, 6849, 7683, 142942, 73831, 39518]
+# Create the scatter plot
+fig = Figure()
+ax = Axis(
+    fig[1, 1],
+    xlabel="Annual Money Raised (\$millions)",
+    ylabel="Annual Deaths in US (thousands)",
+    limits=(0, 350, -30, 770),
+    xgridvisible=false,
+    ygridvisible=false,
+)
+hidespines!(ax, :t, :r)
+scatter!(ax, money_raised, deaths_us)
 
+# Annotate each point with the disease name
+for (i, disease) in enumerate(diseases)
+    # avoid overlapping labels
+    offset = if disease == "Motor Neuron/ALS"
+        (0, -15)
+    else
+        (4, 2)
+    end
+    text!(ax, money_raised[i], deaths_us[i], text=disease, fontsize=12, offset=offset)
+end
 
+# Display the plot
+fig
 
 ```
 
+From the revised plot, a few key insights emerge naturally and immediately:
 
+-   The cancers receive outsized funding relative to the deaths caused.
+
+-   Heart disease remains an outsized killer compared to all other causes of death present.
+
+And it raises some interesting questions:
+
+-   Is there an inverse relationship between the perceived "control" one has over a disease and how much funding people are willing to allocate to a cause?
+
+-   Does funding correlate with progress? E.g. has there been faster progress in extending lifespan from avoiding cancer deaths than other diseases?
 
 ## Types of visualization tools
 
