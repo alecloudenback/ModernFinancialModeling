@@ -12,15 +12,17 @@ Pkg.activate("env/scenario")
 Pkg.instantiate()
 ```
 
-## Pseudo Random Number Generators
+## Pseudo-Random Number Generators
 
-Modern computers utilize Pseudo random number generators (PRNGs) to generate random-like numbers. PRNGs are algorithms used to generate sequences of numbers that appear to be random but are actually determined by an initial value, known as the seed. These generators are called "pseudo-random" because the sequences they produce are deterministic; if you provide the same seed, you'll get the same sequence of numbers. In addition, they have a finite period, which means that after a certain number of generated values, the sequence will repeat. It's important to choose or design PRNGs with a long enough period for practical applications.
+Modern computers utilize pseudo-random number generators (PRNGs) to generate random-like numbers. PRNGs are algorithms used to generate sequences of numbers that appear to be random but are actually determined by an initial value, known as the seed. These generators are called "pseudo-random" because the sequences they produce are deterministic; if you provide the same seed, you'll get the same sequence of numbers. In addition, they have a finite period, which means that after a certain number of generated values, the sequence will repeat. It's important to choose or design PRNGs with a long enough period for practical applications.
+
+Financial modelers should understand how PRNGs work because many financial models rely on Monte Carlo simulations, risk analysis, and other stochastic modeling techniques that require random sampling. A good PRNG is essential for robust financial modeling. Choosing the right PRNG ensures accurate, reproducible, and unbiased results with efficiency, which is critical when making financial decisions.
 
 ### Common PRNGs
 
 #### Mersenne Twister
 
-One of the strengths of the Mersenne Twister is its exceptionally long period. The period is $2^19937 - 1$, which means it can generate $2^19937 - 1$ pseudo random numbers before repeating. This long period is crucial for applications requiring a large number of independent random numbers. It is also known for its good statistical properties. It passes many standard tests for randomness and provides a relatively uniform distribution of random numbers. Moreover, it is designed to allow multiple independent instances to be used concurrently without interfering with each other. This makes it suitable for parallel computing. Although there are faster generators for specific use cases, the Mersenne Twister is still often favored for its balance between speed and quality.
+One of the strengths of the Mersenne Twister is its exceptionally long period. The period is $2^19937 - 1$, which means it can generate $2^19937 - 1$ pseudo-random numbers before repeating. This long period is crucial for applications requiring a large number of independent random numbers. It is also known for its good statistical properties. It passes many standard tests for randomness and provides a relatively uniform distribution of random numbers. Moreover, it is designed to allow multiple independent instances to be used concurrently without interfering with each other. This makes it suitable for parallel computing. Although there are faster generators for specific use cases, the Mersenne Twister is still often favored for its balance between speed and quality, and has been one of the recommended PRNGs for financial modeling purposes.
 
 #### Xorshift
 
@@ -54,6 +56,34 @@ using Random
 rng = Xoshiro(1234)
 rand(Bool, (2, 3))
 ```
+
+## Common Use Cases of Scenario Generators
+
+Scenario generators are widely used in risk management, investment analysis, and regulatory compliance to model potential future outcomes. If the goal is forecasting actual market behavior, real world scenarios (RW) are commonly used. If, on the other hand, pricing financial instruments is needed, risk neutral (RN) scenarios are often used.
+
+### Risk management, especially Value at Risk (VaR) & Expected Shortfall (ES).
+RW scenario generators are used to simulate market movements to estimate potential portfolio losses. Basel III regulatory capital requirements have adopted these approaches.
+
+### Stress Testing & Regulatory Compliance
+RW scenario generators can also be used to generate extreme but plausible market conditions to assess resilience, which is required by central banks and financial regulators (e.g., Federal Reserve and ECB).
+
+### Portfolio Optimization & Asset Allocation
+RW scenario generators are used to simulate thousands of market conditions to determine optimal portfolio allocations which is commonly used in modern portfolio theory (MPT) and Black-Litterman models.
+
+### Pension & Insurance Risk Modeling
+RW scenario generators can be used to simulate longevity risk, policyholder behavior, and interest rate movements. They are also used for conomic capital estimation under uncertain economic scenarios.
+
+### Economic & Macro-Financial Forecasting
+Central banks and institutions (e.g., IMF, World Bank) use RW scenario generators to predict macroeconomic trends.
+
+### Asset Pricing & Hedging
+RN scenario generators help value options using stochastic models (e.g., Black-Scholes, Heston model). They can help simulate future stock price movements under different volatility conditions. They can also be used for hedging purposes to test how a portfolio performs under different inflation, interest rate, or commodity price scenarios.
+
+### Fixed Income & Interest Rate Modeling
+Yield curve modeling sses RN scenarios to value bonds and interest rate derivatives. Swaps, swaptions, and credit default swaps (CDS) also rely on RN pricing. RN scenario generators can also simulate yield curves for bond and fixed-income pricing. Models like Cox-Ingersoll-Ross (CIR) or Hull-White generate future interest rate paths.
+
+### Regulatory & Accounting Valuations
+IFRS 13 & fair value accounting uses RN models determine the market-consistent value of liabilities. Solvency II for insurers asks valuation of policyholder guarantees using RN scenarios.
 
 ## Common Economic Scenario Generation Approaches
 
@@ -202,7 +232,7 @@ end
 f
 ```
 
-### Stock Models
+### Equity Models
 
 #### Geometric Brownian Motion (GBM)
 
@@ -247,8 +277,9 @@ function gbm_simulation(μ, σ, S₀, Δt, num_steps, num_simulations)
         stock_price_paths[1, j] = S₀
         for i in 2:num_steps
             dW = randn() * sqrt(Δt)
-            dS = μ * S₀ * Δt + σ * S₀ * dW
-            stock_price_paths[i, j] = stock_price_paths[i-1, j] + dS
+            S = stock_price_paths[i-1, j]
+            dS = μ * S * Δt + σ * S * dW
+            stock_price_paths[i, j] = S + dS
         end
     end
     return stock_price_paths
@@ -265,54 +296,6 @@ for i in 1:num_simulations
 end
 f
 ```
-
-The above can be restructured to use GPU instead.
-
-```{julia}
-using Metal
-using Random, CairoMakie
-
-# Set seed for reproducibility
-Random.seed!(1234)
-
-# GBM parameters
-μ = 0.05       # Drift (expected return)
-σ = 0.2        # Volatility
-
-# Initial stock price
-S₀ = 100
-
-# Number of time steps and simulations
-num_steps = 252
-num_simulations = 1_000
-
-# Time increment
-Δt = 1 / 252
-
-# Function to simulate GBM in gpu
-function gbm_simulation_gpu(μ, σ, S₀, Δt, num_steps, num_simulations)
-    μ, σ, S₀, Δt = Float32.((μ, σ, S₀, Δt))
-    stock_price_paths = MtlArray(zeros(Float32, num_steps, num_simulations))
-    stock_price_paths .= S₀
-    dW = MtlArray(randn(Float32, num_steps - 1, num_simulations) .* sqrt(Δt)) # <1>
-    dS = μ * S₀ * Δt .+ σ .* S₀ .* dW
-    stock_price_paths[2:end, :] .+= cumsum(dS, dims=1)
-    return stock_price_paths
-end
-
-# Run GBM simulation
-gbm_paths = gbm_simulation_gpu(μ, σ, S₀, Δt, num_steps, num_simulations)
-
-# Plot the simulated stock price paths
-f = Figure()
-Axis(f[1, 1])
-for i in 1:num_simulations
-    lines!(1:num_steps, Array(gbm_paths[:, i]))
-end
-f
-```
-
-1. If using CUDA.jl, you would replace `using Metal` with `using CUDA` and `MtlArray(...)` with `CuArray(...)`.
 
 #### Generalized Autoregressive Conditional Heteroskedasticity (GARCH)
 
