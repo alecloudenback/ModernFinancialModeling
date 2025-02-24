@@ -156,24 +156,50 @@ scatter!(ax4, bubble_x, bubble_y, markersize=bubble_size, color=:orange)
 f
 ```
 
-- Dimensionality Reduction: PCA plots, t-SNE, and UMAP for visualizing high-dimensional data. Here we show an example how high-dimensional data can be shown on a t-SNE plot.
+- Dimensionality Reduction: PCA plots, t-SNE, and UMAP for visualizing high-dimensional data.
+
+Here we show an example to cluster synthetic stocks based on financial indicators like:
+
+-- Volatility
+-- Momentum (6-month return)
+-- Market Cap
+-- P/E Ratio
+-- Dividend Yield
+
+t-SNE will reduce the dimensions and help us visualize clusters of stocks with similar characteristics.
 
 ```{julia}
-using TSne, Statistics, MLDatasets, CairoMakie
+using TSne, DataFrames, Random, Distributions, Plots, StatsBase, ScikitLearn
 
-alldata, allabels = MNIST(split=:train)[:];
-data = reshape(permutedims(alldata[:, :, 1:2500], (3, 1, 2)), 2500, size(alldata, 1) * size(alldata, 2));
+# Generate synthetic financial dataset
+Random.seed!(42)
+num_stocks = 100
 
-# Normalize the data, this should be done if there are large scale differences in the dataset
-rescale(A; dims=1) = (A .- mean(A, dims=dims)) ./ max.(std(A, dims=dims), eps())
+df = DataFrame(
+    Stock = ["Stock_$(i)" for i in 1:num_stocks],
+    Volatility = rand(Uniform(10, 50), num_stocks),  # % annualized
+    Momentum = rand(Uniform(-10, 30), num_stocks),   # 6-month return
+    Market_Cap = rand(Uniform(1, 500), num_stocks),  # in billion USD
+    P_E_Ratio = rand(Uniform(5, 50), num_stocks),
+    Dividend_Yield = rand(Uniform(0, 5), num_stocks) # in %
+)
 
-X = rescale(data, dims=1);
+# Normalize features
+features = [:Volatility, :Momentum, :Market_Cap, :P_E_Ratio, :Dividend_Yield]
+X = Matrix(df[:, features])
+X = StatsBase.standardize(ZScoreTransform, X, dims=1)  # Standardize data
 
-Y = tsne(X, 2, 50, 1000, 20.0);
+# Apply t-SNE
+tsne_result = tsne(X; d=2, perplexity=30, max_iter=1000)
 
+# Add t-SNE components to DataFrame
+df.TSNE_1 = tsne_result[:, 1]
+df.TSNE_2 = tsne_result[:, 2]
+
+# Plot results
 f = Figure()
 axis = Axis(f[1, 1])
-scatter!(axis, Y[:, 1], Y[:, 2], color=Int.(allabels[1:size(Y, 1)]))
+scatter!(axis, df.TSNE_1, df.TSNE_2, color=Int.(allabels[1:size(tsne_result, 1)]))
 f
 ```
 
