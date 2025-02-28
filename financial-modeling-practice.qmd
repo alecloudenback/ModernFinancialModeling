@@ -1,0 +1,404 @@
+# The Practice of Financial Modeling
+
+```{julia}
+#| echo: false
+#| output: false
+using Pkg
+Pkg.activate("env/fin_model")
+Pkg.instantiate()
+using CairoMakie
+```
+
+> “In theory there is no difference between theory and practice. In practice there is.” – Yogi Berra (often attributed)
+
+*Yun-Tien Lee and Alec Loudenback*
+
+## Introduction
+
+Having covered what models are and what they accomplish, we turn to the *craft* of modeling: what distinguishes a good model from a bad model; likewise what are attributes of an astute practitioner. Lastly, we cover some more "nuts and bolts" topics such as data handling and good governance practices.
+
+## What makes a good model?
+
+The answer is: *it depends*.
+
+### Achieving original purpose
+
+A model is built for a specific set of reasons and therefore we must evaluate a model in terms of achieving that goal. We should not critique a model if we want to use it outside of what it was intended to do. This includes: contents of output and required level of accuracy.
+
+A model may have been created to for scenario analysis to value all assets in a portfolio to within half a percent of a more accurate, but much more computationally expensive model. If we try to add a never-before-seen asset class or use the model to order trades we may be extending the design scope of the original model.
+
+### Usability
+
+How easy is it for someone to use? Does it require pages and pages of documentation, weeks of specialized training and an on-call help desk? *All else equal*, it is an indicator of how usable the model is by the amount of support and training. However, one may sometimes wish to create a highly capable, complex model which is known to require a high amount of experience and expertise. An analogy here might be the cockpit of a small Cessna aircraft versus a fighter jet: the former is a lot simpler and takes less training to master but is also more limited.
+
+@fig-parametric illustrates this concept and shows that if your goal is very high capability that you may need to expect to develop training materials and support the more complex model. On this view, a better model is one that is able to have a shorter amount of time and experience to achieve the same level of capability.
+
+```{julia}
+#| label: fig-parametric
+#| fig-cap: "Tradeoff between complexity and capability"
+#| echo: false
+using CairoMakie
+
+
+f = Figure()
+ax1 = Axis(f[1, 1],
+    xlabel="Amount of Experience with Model",
+    ylabel="Modeler's Capability with Model",
+)
+
+xs = 0:0.01:2.5
+ys1 = exp.(xs) * 0.5
+ys2 = sqrt.(xs) .+ 1
+
+lines!(xs, ys1, linewidth=5, label="More complexity but more capable")
+lines!(xs, ys2, linewidth=5, label="Less complexity but more limited")
+
+hidedecorations!(ax1, label=false)
+axislegend(ax1, halign=:left)
+
+f
+```
+
+### Performance
+
+Financial models are generally not used for their awe-inspiring beauty - users are results oriented and the faster a model returns the requested results, the better. Aside from direct computational costs such as server runtime, a shorter model runtime means that one can iterate faster, test new ideas on the fly, and stay focused on the problem at hand.
+
+Many readers may be familiar with the cadence of (1) try running model overnight, (2) see results failed in the morning, (3) spend day developing, (4) repeat step 1. It is preferred if this cycle can be measured in minutes instead of hours or days.
+
+Of course, requirements must be considered here too: needs for high frequency trading, daily portfolio rebalancing, and quarterly valuations are different when it comes to performance.
+
+### Separation of Model Logic and Data
+
+When business logic is embedded within data, or data inputs are spread out across multiple locations it's tough to keep track of things. Using a spreadsheet as an example, often times it's incredibly difficult to ascertain a model's operation if inputs are spread out across locations on many tabs. Or if related calculations are performed in multiple locations, or if it's not clear where the line is drawn between calculations performed in the worksheets or in macros.
+
+### Abstraction of Modeled Systems
+
+At different times we are interested in different **ladder of abstraction**: sometimes we are interested in the small details, but other times we are interested in understanding the behavior of systems at a higher level.
+
+Say we are an insurance company with a portfolio of fixed income assets supporting long term insurance liabilities. We might delineate different levels of abstraction like so:
+
+::: column-margin
+![Think about moving up and down a ladder of abstraction when analyzing a problem.](assets/simple_ladder.png)
+:::
+
+|               | Item                                                 |
+|---------------|------------------------------------------------------|
+| More Abstract | Sensitivity of an entire company's solvency position |
+|               | Sensitivity of a portfolio of assets                 |
+|               | Behavior over time of an individual contract         |
+| More granular | Mechanics of an individual bond or insurance policy  |
+
+: An example of the different levels of abstraction when thinking about modeling an insurance company's assets and liabilites. {#tbl-insurance-ladder}
+
+At different times, we are often interested in different aspects of a problem. In general, you start to be able to obtain more insights and a greater understanding of the system when you move up the ladder of abstraction.
+
+In fact, a lot of designing a model is essentially trying to figure out where to put the right abstractions. What is the right level of detail to model this in and what is the right level of detail to expose to other systems?
+
+Let us also distinguish between **vertical abstraction**, as described above, and **horizontal abstraction** which will refer to encapsulating different properties, or mechanics of components of model that effectively exist on the same level of vertical abstraction. For example, both asset and liability mechanics sit at the most granular level in @tbl-insurance-ladder, But it may make sense in our model to separate the data and behavior from each other. If we were to do that, that would be an example of creating horizontal abstraction in service of our overall modeling goals.
+
+## What makes a good modeler?
+
+A model is nothing without it's operator, and a skilled practitioner is worth their weight in gold. What elements separate a good modeler from a mediocre modeler?
+
+### Domain Expertise
+
+An expert who knows enough about all of the domains that are applicable is crucial. Imagine if someone said let's emulate an architect by having a construction worker and an artist work together. It's all too common for business to attempt to pair a business expert with an information technologist in the same way.
+
+Unfortunately, this means that there's generally no easy way out of learning enough about finance, actuarial science, computers, and/or programming in order to be an effective modeler.
+
+Also, a word of warning for the financial analysts out there: the computer scientists may find it easier to learn applied financial modeling than the other way around since the tools, techniques, and language of problem solving is already more a more general and flexible skill-set. There's more technologists starting banks than there are financiers starting technology companies.
+
+### Model Theory
+
+If it is granted that financial modeling must involve, as the essential part, a building up of modeler's knowledge, the next issue is to characterize that knowledge more explicitly. The modeler’s knowledge should be regarded as a theory, in the sense of Ryle's[^3] "Concept of the Mind." Very briefly: a person who has or possesses a theory in this sense knows how to do certain things and in addition can support the actual doing with explanations, justifications, and answers to queries, about the model and it's results[^4].
+
+[^3]: Ryle, G. The Concept of Mind. Harmondsworth, England, Penguin, 1963, first published 1949. Applying “Theory Building”
+
+[^4]: The idea of "model theory" is adapted from Peter Naur's 1985 essay, "Programming as Theory Building". Indeed, this whole paragraph is only a slightly modified version of Naur's description of theory in the programming context.
+
+A financial model is rarely left in a final state. Regulatory changes, additional mechanics, sensitivity testing, market dynamics, new products, and new systems to interact with force a model to undergo change and development through its entire life. And like a living thing, it must have nurturing caregivers. This metaphor sounds extended, but Naur's point is that unless the model also lives in the heads of it's developers then it cannot successfully be maintained through time:
+
+> The conclusion seems inescapable that at least with certain kinds of large programs, the continued adaption, modification, and correction of errors in them, is essentially dependent on a certain kind of knowledge possessed by a group of programmers who are closely and continuously connected with them.
+
+Assume that we need to adapt the model to fit a new product. One possessing a high degree of model theory includes:
+
+-   the ability to describe the trade-offs between alternate approaches that would accomplish the desired change
+
+-   relate the proposed change to the design of the current system and any challenges that will arise as a result of prior design decisions
+
+-   provide a quantitative estimation for the impact the change will have: runtime, risk metrics, valuation changes, etc.
+
+-   Analogize how the system works to themselves or to others
+
+-   Describe key limitations that the model has and where it is most divorced from the reality it seeks to represent.
+
+Abstractions and analogies of the system are a critical aspect of model theory, as the human mind cannot retain perfectly precise detail about how the system works in each sub-component. The ability to, at some times, collapse and compartmentalize parts of the model to limit the mental overload while at others recall important implementation details requires training - and is enhanced by learning concepts like those which will be covered in this book.
+
+An example of how the right abstractions (and language describing those abstractions) can be helpful in simplifying the mental load:
+
+Instead of:
+
+*The valuation process starts by reading an extract into three tabs of the spreadsheet. A macro loops through the list of policies on the first tab and in column C it gives the name of the applicable statutory valuation ruleset. The ruleset is defined as the combination of (1) the logic in the macro in the "Valuation" VBA module with, (2) the underlying rate tables from the tabs named XXX to ZZZ, along with (3) the additional policy level detail on the second tab. The valuation projection is then run with the current policy values taken from the third tab of the spreadsheet and the resulting reserve (equal to the actuarial present value of claims) is saved and recorded in column J of the first tab. Finally, a pivot table is used to sum up the reserves by different groups.*
+
+We could instead design the process so that the following could be said instead:
+
+*Policy extracts are parsed into a `Policy` datatype which contains a subtype `ValuationKind` indicating the applicable statutory ruleset to apply. From there, we map the `valuation` function over the set of `Policy`s and perform an additive reduce to determine the total reserve.*
+
+There are terminologies and concepts in the second example which we will develop over the course of this section of the book - we don't want to dwell on the details bright now. However, we do want to emphasize that the process itself being able to condensed down to descriptions that are much more meaningful to the understanding of the model is a key differentiator for a code-based model instead of spreadsheets. It is not exaggerating that we could develop a handful of compartmentalized logics such that our primary valuation process described above could look like this in real code:
+
+``` julia
+policies = parse(Policy,CSV.File("extract.csv")) 
+reserve = mapreduce(+,value,policies)
+```
+
+We've abstracted the mechanistic workings of the model into concise and meaningful symbols that not only perform the desired calculations but also make it obvious to an informed but unfamiliar reader what it's doing.
+
+`parse` , `mapreduce`, `+` , `value` , `Policy` are all imbued with meaning - the first three would be understood by any computer scientist by the nature of their training (and is training that this book covers). The last two are unique to our model and have "real world" meaning that our domain expert modeler would understand which analogizes very directly to the way we would suggest implementing the details of `value` or `Policy`. The benefit of this, again, is to provide tools and concepts which let us more easily develop model theory.
+
+### Curiosity
+
+A model never answers all of the questions and many times find itself overdrawn: sometimes more questions arise then answers provided. It is our experience that you modeler who continues to pursue questions that arise as a result of the analysis and in particular possesses an Insatiable itch for resolving apparent contradictions in model conclusions. That is, if an incomplete understanding or an incorrect model allows one to arrive at contradictory conclusions it's suggest that a deeper understanding or model revision is required.
+
+Therefore, with "Curiosity" we mean:
+
+1.  Continuous learning: Stay updated with the latest developments in finance, mathematics, and technology.
+2.  Interdisciplinary approach: Explore connections between finance and other fields for new insights.
+3.  eQuestioning assumptions: Regularly challenge and re-evaluate model assumptions.
+4.  Investigating anomalies: Pay close attention to unexpected results or outliers for potential insights.
+5.  Experimenting with new techniques: Try out innovative modeling methodologies or tools.
+6.  Seeking feedback: Engage in discussions with peers and experts to gain new perspectives.
+7.  Scenario analysis: Explore a wide range of possible scenarios to understand model behavior.
+8.  Root cause analysis: Dig deep to understand underlying causes when encountering issues.
+
+By cultivating curiosity, modelers can drive innovation, uncover new insights, and continuously improve their models and understanding of financial systems.
+
+### Rigor
+
+When developing a model it's important to ensure that assumptions and parameters are very clear, the methodology is in line with establish theory, inappropriate thought has been given to how the model will be used. Additionally one should be mindful of standards of practice. For example, professional actuarial societies have a long list of Actuarial Standards of Practice ("ASOPs"), some of which apply to modeling and the use of data that models ultimately rely on. Regardless of the applicable standards, many of them share these aspects of the best modelers:
+
+1.  Methodological consistency: Align models with established financial and mathematical theories.
+2.  Robust validation: Implement thorough testing procedures, including backtesting and out-of-sample testing.
+3.  Sensitivity analysis: Conduct comprehensive analyses on key parameters to understand model limitations.
+4.  Data quality assurance: Implement rigorous data cleaning and validation processes.
+5.  Peer review: Engage in review processes to validate methodologies and results.
+6.  Regulatory compliance: Ensure models meet relevant regulatory requirements and standards.
+7.  Ethical considerations: Consider the ethical implications of model assumptions and outputs.
+8.  Continuous improvement: Regularly review and update models based on new information and methodologies.
+
+At times, a bad model can be worse than no model at all. Through rigorous efforts, a minimum standard of quality can be obtained.
+
+### Clarity
+
+A rigorous understanding of the fundamentals is important as it is all too easy to let imprecise communication and terminology interfere with the task at hand. Many terms in finance are overloaded with multiple meanings depending on the context such as the speakers background or company norms. When there is a term that is prone to misunderstanding because of its multiple overloaded meanings, a practitioner should take care to use that term And convey which definition is intended either explicitly or through the appropriate context clues.
+
+1.  Precise language: Use well-defined terms and avoid ambiguity in communications.
+2.  Clear documentation: Provide comprehensive explanations of models, including assumptions and limitations.
+3.  Visual communication: Utilize diagrams and visualizations to explain complex concepts.
+4.  Consistent terminology: Establish and maintain a standardized vocabulary within the organization.
+5.  Audience-appropriate communication: Tailor explanations to the technical level of the audience.
+6.  Transparent assumptions: Clearly state and explain the rationale behind key model assumptions.
+7.  Regular review: Periodically update documentation to ensure ongoing clarity and accuracy.
+
+By prioritizing clarity, modelers can reduce misunderstandings, improve collaboration, and increase the overall effectiveness of their work.
+
+### Humble
+
+Irreducible & epistemic/reducible uncertainty are critical concepts for a modeler to understand and communicate:
+
+1.  Irreducible uncertainty: Also known as aleatoric uncertainty, this refers to the inherent randomness in a system that cannot be reduced by gathering more information.
+    -   Examples include: future market fluctuations, individual policyholder behavior, or natural disasters.
+2.  Epistemic/reducible uncertainty: This type of uncertainty stems from a lack of knowledge and can potentially be reduced through further study or data collection.
+    -   Examples include: parameter estimation errors, model specification errors, or data quality issues.
+
+A humble modeler acknowledges these uncertainties and communicates them clearly to stakeholders. This avoids overconfidence in model predictions and keeps one open to new information and alternative perspectives. By maintaining a humble attitude, modelers can build trust with stakeholders and make more informed decisions based on model outputs.
+
+::: landscape
++---------------------------------------+-------------------------------------------------------------------------------------------------+-----------------------------------+----------------------------------------------------------------------------------------------------------+
+| **Type of Uncertainty**               | **Key Characteristics**                                                                         | **Reducibility**                  | **Example**                                                                                              |
++=======================================+=================================================================================================+===================================+==========================================================================================================+
+| **Aleatory (Process) Uncertainty**    | \- Inherent randomness (aka “irreducible uncertainty”)\                                         | **Irreducible**                   | Rolling dice or coin flips; outcome is inherently uncertain despite full knowledge of initial state      |
+|                                       | - Cannot be eliminated, even with perfect knowledge                                             |                                   |                                                                                                          |
++---------------------------------------+-------------------------------------------------------------------------------------------------+-----------------------------------+----------------------------------------------------------------------------------------------------------+
+| **Epistemic (Parameter) Uncertainty** | \- Due to limited data/knowledge (aka “reducible uncertainty”)\                                 | **Reducible**\                    | Uncertainty in a model’s parameters (e.g., climate sensitivity) that can be refined with more research   |
+|                                       | - Imperfect information or model parameters                                                     | (more data / improved modeling)   |                                                                                                          |
++---------------------------------------+-------------------------------------------------------------------------------------------------+-----------------------------------+----------------------------------------------------------------------------------------------------------+
+| **Model Structure Uncertainty**       | \- Uncertainty about the correct model or framework\                                            | **Partially reducible\            | Linear vs. nonlinear models in complex systems; risk of omitting key variables or mis-specified dynamics |
+|                                       | - Often considered a special subset of epistemic uncertainty                                    | **(better theory/model selection) |                                                                                                          |
++---------------------------------------+-------------------------------------------------------------------------------------------------+-----------------------------------+----------------------------------------------------------------------------------------------------------+
+| **Deep (Knightian) Uncertainty**      | \- “Unknown unknowns”\                                                                          | **Not quantifiable**\             | Impact of radically new technology on society                                                            |
+|                                       | - Probability distributions themselves are not well-defined or are fundamentally unquantifiable | (cannot assign probabilities)     |                                                                                                          |
++---------------------------------------+-------------------------------------------------------------------------------------------------+-----------------------------------+----------------------------------------------------------------------------------------------------------+
+| **Measurement Uncertainty**           | \- Errors in data collection or instrument readings\                                            | **Partially reducible**\          | Instrument precision limits in experiments; calibration errors in sensor data                            |
+|                                       | - Systematic biases or random errors in measurement                                             | (improved measurement methods)    |                                                                                                          |
++---------------------------------------+-------------------------------------------------------------------------------------------------+-----------------------------------+----------------------------------------------------------------------------------------------------------+
+| **Operational Uncertainty**           | \- Uncertainty in implementation/execution\                                                     | **Partially reducible**\          | Surgical errors, system failures, or incorrect handling of a financial trade order                       |
+|                                       | - Human error, mechanical failure, or miscommunication in processes                             | (better training/processes)       |                                                                                                          |
++---------------------------------------+-------------------------------------------------------------------------------------------------+-----------------------------------+----------------------------------------------------------------------------------------------------------+
+
+: In attempting to model an uncertain world, we can be even more granular and specific in discussing sources of that uncertainty. This table summarizes commonly noted kinds of uncertainty that arise, and whether we can reduce the uncertainty by doing better (more data, better data, better models, etc.) or not. {#tbl-uncertainties}.
+:::
+
+### Architecture
+
+Any sufficiently complex project benefits from architectural thinking. Data should be separate from the logic and the model itself should not contain any substantial datum itself - instead dynamically load data from appropriate data stores and leave the "model" as the implementation of data *types* and algorithms.
+
+1.  Modular design: Break complex models into reusable, independent components.
+2.  Separation of concerns: Keep data, logic, and presentation layers distinct for better maintainability.
+3.  Scalability: Design models to handle increasing data volumes and complexity.
+4.  Maintainability: Implement version control and clear documentation practices.
+5.  Flexibility: Create designs that allow for easy updates and modifications.
+6.  Performance optimization: Use efficient data structures and algorithms to enhance model speed.
+7.  Error handling and logging: Implement robust systems for debugging and auditing.
+8.  Security: Ensure proper data protection and regulatory compliance.
+
+### Planning
+
+When tackling a large problem, it helps to have a well-structured planning process. Specific to building a financial model, one should take steps that include:
+
+1.  Defining clear objectives: Understand the purpose of the model and what questions it needs to answer.
+2.  Scope definition: Determine the boundaries of the model, including what to include and what to exclude.
+3.  Data assessment: Identify required data sources, assess data quality, and plan for data preparation.
+4.  Methodology selection: Choose appropriate modeling techniques based on the problem and available data.
+5.  Resource allocation: Estimate time and resources needed for model development, testing, and implementation.
+6.  Stakeholder engagement: Identify key stakeholders and plan for their involvement throughout the modeling process.
+7.  Risk assessment: Anticipate potential challenges and develop mitigation strategies.
+8.  Timeline development: Create a realistic timeline with key milestones and deliverables.
+9.  Documentation strategy: Plan for comprehensive documentation of assumptions, methodologies, and limitations.
+10. Validation and testing approach: Outline strategies for model validation and testing to ensure reliability.
+11. Implementation and maintenance plan: Consider how the model will be deployed and maintained over time.
+
+Time invested at the planning stage often pays dividends through shorter model build times, fewer errors, and clarity from stakeholders at the start of the project. Additionally, it's often easier to make changes to a well-planned project halfway through since the necessary accomodations are more clearly defined.
+
+### Toolset
+
+An experience professional is aware of a number of approaches that can be used in solving a problem. From heuristics that are able to be calculated on a napkin to complex economic models, the ability to draw on a wide tool set allows a practitioner to find the right solution for a given problem. Further, it is the intention of this book to enumerate a number of additional approaches that may prove useful in practice. This includes both soft and hard skills, such as those in @tbl-toolset
+
++-----------------------------+-----------------------------------------------------------------------------------+
+| Category                    | Examples                                                                          |
++=============================+===================================================================================+
+| Diverse Modeling Techniques | -   Statistical methods (e.g. regression, time series analysis, machine learning) |
+|                             | -   Optimization techniques (e.g. linear, non-linear, black-box)                  |
+|                             | -   Simulation methods (e.g. monte-carlo, agent-based, seriatim)                  |
++-----------------------------+-----------------------------------------------------------------------------------+
+| Software Profeciency        | -   Programming languages                                                         |
+|                             | -   Database and data handling                                                    |
+|                             | -   Proprietary tools (e.g. Bloomberg)                                            |
++-----------------------------+-----------------------------------------------------------------------------------+
+| Financial Theory            | -   Asset pricing                                                                 |
+|                             | -   Portfolio theory                                                              |
+|                             | -   Risk Managment frameworks                                                     |
++-----------------------------+-----------------------------------------------------------------------------------+
+| Quantitative techniques     | -   Numerical methods and algorithms                                              |
+|                             | -   Bayesian inference                                                            |
+|                             | -   Stochastic calculus                                                           |
++-----------------------------+-----------------------------------------------------------------------------------+
+| Soft Skills                 | -   Verbal and written communication                                              |
+|                             | -   Stakeholder engagement                                                        |
+|                             | -   Project Management                                                            |
++-----------------------------+-----------------------------------------------------------------------------------+
+
+::: A variety of skills have their place in the proficient financial modeler's toolbelt. {#tbl-toolset}
+
+## How to work with data that feeds the models
+
+Working effectively with data that feeds the models involves several key steps to ensure the data is suitable for modeling and that the model performs well. The steps may include:
+
+1.  Data Collection
+
+-   Source Identification: Identify and gather data from relevant and reliable sources.
+-   Data Acquisition: Use appropriate methods for collecting data, such as web scraping, surveys, sensors, or databases.
+
+2.  Data Exploration and Understanding
+
+-   Descriptive Statistics: Generate summary statistics (mean, median, standard deviation) to understand the data's central tendencies and variability.
+-   Visualization: Use plots (histograms, scatter plots, box plots) to visually inspect distributions and relationships between variables.
+-   Data Profiling: Assess data quality, completeness, and consistency.
+
+3.  Data Cleaning
+
+-   Handling Missing Values: Decide how to address missing data—options include imputation, interpolation, or removing incomplete records.
+-   Outlier Detection: Identify and handle outliers that may affect model performance. Outliers can be treated or removed based on their cause and impact.
+-   Data Transformation: Normalize or standardize data if needed, especially if the model requires data in a specific format or scale.
+
+4.  Feature Engineering
+
+-   Feature Selection: Choose relevant features that contribute to the model's predictive power. This may involve techniques like correlation analysis or feature importance scores.
+-   Feature Creation: Create new features from existing data that might provide additional insights or improve model performance. This could include polynomial features, interaction terms, or domain-specific transformations.
+
+5.  Data Splitting
+
+-   Training and Testing Sets: Split the data into training and testing sets (and sometimes a validation set) to evaluate model performance and avoid overfitting.
+-   Cross-Validation: Use cross-validation techniques (e.g., k-fold cross-validation) to assess model performance on different subsets of the data.
+
+6.  Data Preprocessing
+
+-   Scaling and Normalization: Apply techniques such as min-max scaling or z-score normalization to ensure features are on a similar scale.
+-   Encoding Categorical Variables: Convert categorical variables into numerical formats using methods like one-hot encoding or label encoding.
+-   Data Augmentation: For certain applications (e.g., image processing), augment the data to increase the size and variability of the dataset.
+
+7.  Data Integration
+
+-   Combining Datasets: If using multiple data sources, merge datasets carefully, ensuring consistent formats and handling discrepancies.
+-   Data Alignment: Ensure that the data from different sources are aligned in terms of timing, units, and granularity.
+
+8.  Data Storage and Management
+
+-   Data Warehousing: Store data in a structured format that facilitates easy access and management, such as databases or data lakes.
+-   Version Control: Track changes to datasets over time to maintain reproducibility and manage updates.
+
+9.  Ethical Considerations
+
+-   Bias and Fairness: Evaluate data for biases and ensure that the model does not perpetuate or amplify them.
+-   Privacy: Protect sensitive information and comply with data privacy regulations such as GDPR or CCPA.
+
+10. Continuous Monitoring and Updating
+
+-   Performance Monitoring: Regularly assess the model's performance using new data and update the model as needed.
+-   Data Drift: Monitor for changes in data distribution over time (data drift) and retrain the model if necessary.
+
+By following these steps, one can effectively manage data for your model, ensuring that it is clean, relevant, and capable of delivering accurate and reliable results.
+
+## Model Management
+
+### Risk Governance
+
+An effective risk governance framework for financial modeling begins with clearly stating why such oversight is necessary—namely, to prevent costly missteps in managing complex portfolios or complying with regulations. Organizations often adopt a written policy delineating responsibilities across different levels: management or board-level committees set high-level objectives, while operational teams handle day-to-day processes. 
+
+At the heart of this framework lies a structured model inventory, a catalog of all models in use that details each model’s purpose, assumptions, and present status (for example, whether it is in a prototype phase or fully deployed in production). This inventory helps institutions understand their cumulative exposure to errors or assumptions gone awry.
+
+In practice, many firms adopt tiered risk classifications to decide how much scrutiny a model warrants. Classification schemes may range from “low impact” for small-scale financial calculators to “mission-critical” for enterprise valuation engines. Validation and testing approaches vary according to a model’s assigned tier. 
+
+Highly critical models undergo more extensive backtesting, benchmarking, or sensitivity analyses, with results escalated to senior management. Risk governance also encompasses ongoing monitoring and scheduled reports about model health. By publicizing validation findings and model performance metrics, the organization fosters a culture where potential failures are escalated early and openly, rather than hidden away until a crisis emerges.
+
+
+### Change Management
+
+No model remains static for long; assumptions evolve, new asset classes appear, and software libraries update. For this reason, a firm’s change management process should standardize how modifications are proposed, evaluated, and documented, ensuring continuity of both the model’s logic and the data that feeds it. 
+
+A central repository or version control system is essential: whenever the model or its associated data structures shift, the changes and their justifications must be recorded. This makes it easier to track lineage and revert to a prior version if an update proves problematic in a live environment. Later in this book, we will introduce modern version control systems and workflows that are facilitated by the code-based models that we develop.
+
+
+Equally important is assessing the ripple effects of each change. Simplifying a routine or adjusting a discount rate assumption may be minor in isolation but can have broad implications when integrated across multiple components. Projects often require up-front impact assessments to determine which historical results need recalculating and whether stakeholder training or documentation updates are needed. One strategy, that of package and model version numbering schemes, will be described in @sec-julia-sharing.
+
+Communication around changes should be systematic, distributing concise notes on new features, potential risks, and recommended usage practices to both internal users and (where relevant) regulators. Well-handled change management fosters stability and trust, enabling prompt innovation without sacrificing the reliability of the overall modeling ecosystem.
+
+
+### Data Controls
+
+Sound data controls are paramount in financial modeling because flawed or unverified inputs quickly undermine even the sturdiest model architecture. Organizations typically define data quality standards that address accuracy, completeness, and timeliness. These standards help detect common pitfalls, such as inconsistent formatting, delayed updates, or incorrect data mappings. Complementing formal policies, automated checks are often placed at ingestion points to spot irregularities—anything from out-of-range values that might indicate data corruption, to suspicious spikes hinting at a data input error.
+
+Security and access protocols add another layer of protection. Role-based permission schemes or strong authentication measures minimize the risk of data tampering, accidental deletions, or unauthorized viewings of confidential information. 
+
+Although data versioning may sound like a software concept, it applies equally to financial datasets. Keeping a record of each dataset’s evolution allows managers and auditors to pinpoint when and how anomalies first appeared. Where legislation like GDPR or industry-specific regulations come into play, data controls must also reflect broader requirements about personal information, consent, and retention periods. Coordinating these efforts under a unified data governance approach ensures that model outputs stand on a solid factual foundation.
+
+### Peer and Technical Review
+
+Even the most experienced modelers benefit from additional eyes on their work. **Peer review**, whether informal or systematically mandated, identifies blind spots in assumptions, conceptual design, or coding. Though some organizations require independent reviewers who have not contributed to the original model, smaller teams may rely on a rotating schedule of internal experts sharing responsibility for checks. The key is cultivating a culture where open dialogue about potential faults is not only accepted but encouraged.
+
+**Technical review** goes one step further, focusing on deeper verification of the computations themselves. Complex spreadsheets, code modules, or integrated software platforms may require structured walk-throughs in which reviewers verify arithmetic, confirm the alignment of calculation steps with business logic, or run test scenarios to ensure the model behaves as intended. This process should generate formal documentation capturing who performed the review, what methods they used, and which issues surfaced. Likewise, conceptual soundness—how well the model aligns with economic theory or domain-specific knowledge—merits discussion in a thorough review. If challenges are identified, revisions loop back into the change management system, promoting iterative refinements. By conducting peer and technical reviews in earnest, organizations reinforce consistent quality and reduce the likelihood of undetected errors slipping into production.
+
+## Conclusion
+
+The art and science of financial modeling require a unique blend of skills, knowledge, and personal qualities. A proficient modeler combines domain expertise, theoretical understanding, and practical skills with a curious and rigorous mindset. They leverage a diverse toolset, employ sound architectural principles, and communicate with clarity. The ability to navigate the complexities of financial systems while maintaining humility in the face of irreducible uncertainties is paramount.
+
+As the financial world continues to evolve, so too must the modeler's approach. By cultivating these attributes and continuously refining their craft, financial modelers can create more robust, insightful, and valuable models that drive informed decision-making in an increasingly complex economic landscape. The journey of a financial modeler is one of perpetual learning and adaptation, where each challenge presents an opportunity for growth and innovation.
