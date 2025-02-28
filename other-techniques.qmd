@@ -27,3 +27,115 @@ We'd then conclude that the value of the house very likely exceeds the outstandi
 ## Modeling Techniques
 
 ### Serialization
+
+## Model Validation
+
+### Static and dynamic validation
+
+Static validation typically involves splitting the dataset into training and testing sets, where the testing set is held out and not used during model training. The model is trained on the training set and then evaluated on the held-out testing set to assess its performance. This approach helps to measure how well the model generalizes to unseen data.
+
+Dynamic validation, on the other hand, involves using a rolling or expanding window to train and test the model iteratively over time. In each iteration, the model is trained on past data and tested on future data, simulating how the model would perform in a real-world scenario where new data becomes available over time. This approach helps to assess the model's ability to adapt to changing patterns and trends in the data.
+
+The following example shows how to do a static validation in Julia.
+
+```{julia}
+using Statistics
+
+# Generate synthetic time series data
+num_samples = 100
+data = rand(num_samples)
+X = [ones(num_samples) data]
+y = 2data .+ 1 .+ 0.1 * randn(num_samples, 1)  # dependent variable with noise
+# Train the model on the training set
+θ = X \ y
+# Predictions
+y_pred = θ[2] .* data .+ θ[1]
+# Compute evaluation metrics
+mse = mean((y_pred .- y) .^ 2)
+mae = mean(abs.(y_pred .- y))
+
+println("Static validation results:")
+println("Mean Squared Error (MSE): ", mse)
+println("Mean Absolute Error (MAE): ", mae)
+```
+
+The following example shows how to do a dynamic validation in Julia.
+
+```{julia}
+using Statistics
+
+# Dynamic validation to update model over time and evaluate
+num_updates = 5
+mse_dyn = Float64[]
+mae_dyn = Float64[]
+for i in 1:num_updates
+    data = rand(num_samples)
+    X = [ones(num_samples) data]
+    y = 2data .+ 1 .+ 0.1 * randn(num_samples, 1)  # dependent variable with noise
+    # Train the model on the training set
+    θ = X \ y
+    # Predictions
+    y_pred = θ[2] .* data .+ θ[1]
+    # Compute evaluation metrics
+    mse = mean((y_pred .- y) .^ 2)
+    mae = mean(abs.(y_pred .- y))
+    push!(mse_dyn, mse)
+    push!(mae_dyn, mae)
+end
+
+println("Dynamic validation results:")
+println("Mean Squared Error (MSE): ", mean(mse_dyn))
+println("Mean Absolute Error (MAE): ", mean(mae_dyn))
+```
+
+### Implied rate analysis
+
+Implied rates are rates that are derived from the prices of financial instruments, such as bonds or options. For example, in the context of bonds, the implied rate is the interest rate that equates the present value of future cash flows from the bond (coupons and principal) to its current market price.
+
+```{julia}
+using Zygote
+
+# Define the bond cash flows and prices
+cash_flows = [100, 100, 100, 100, 1000]  # Coupons and principal
+prices = [950, 960, 1010, 1020, 1050]  # Market prices
+
+# Define a function to calculate the present value of cash flows given a rate
+function present_value(rate, cash_flows)
+    pv = 0
+    for (i, cf) in enumerate(cash_flows)
+        pv += cf / (1 + rate)^i
+    end
+    return pv
+end
+
+# Define a function to calculate the implied rate using bisection method
+function implied_rate(cash_flows, price)
+    f(rate) = present_value(rate, cash_flows) - price
+    return rootassign(f, 0.0, 1.0)
+end
+function rootassign(f, l, u)
+    # Define an initial value
+    x = 0.05
+    # tolerance of difference in value
+    tol = 1e-6
+    # maximum number of iteration of the algorithm
+    max_iter = 100
+    iter = 0
+    while abs(f(x)) > tol && iter < max_iter
+        x -= f(x) / gradient(f, x)[1]
+        iter += 1
+    end
+    if iter < max_iter && l < x < u
+        return x
+    else
+        return -1.0
+    end
+end
+
+# Calculate implied rates for each bond
+implied_rates = [implied_rate(cash_flows, price) for price in prices]
+# Print the results
+for (i, rate) in enumerate(implied_rates)
+    println("Implied rate for bond $i: $rate")
+end
+```
