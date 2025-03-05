@@ -80,7 +80,6 @@ Elements in differentiable programming
 
 - Gradient calculation: The gradient plays a crucial role in optimization problems primarily because it provides the direction of the steepest ascent of a function. Optimization algorithms often iteratively update parameters in the direction opposite to the gradient (for minimization problems), which tends to converge towards a local minimum (or maximum for maximization problems). Besides, computing the gradient is often computationally feasible and relatively inexpensive compared to other methods for determining function behavior, such as higher-order derivatives or function evaluations at different points. Beyond just the direction, the magnitude (or norm) of the gradient also indicates how steep the function change is in that direction. This information is used to adjust step sizes in optimization algorithms, balancing between convergence speed and stability.
 
-
 Here shows the value and the derivative of a simple function at a certain point:
 
 ```{julia}
@@ -93,6 +92,65 @@ x = 2.0
 
 println("Value of f(x) at x=", f(x))
 println("Gradient of f(x) at x=", gradient(f, x))
+```
+
+### Root finding
+
+Root finding, also known as root approximation or root isolation, is the process of finding the values of the independent variable (usually denoted as $x$) for which a given function equals zero. In mathematical terms, if we have a function $f(x)$, root finding involves finding values of $x$ such that $f(x)=0$.
+
+There are various algorithms for root finding, each with its own advantages and disadvantages depending on the characteristics of the function and the requirements of the problem. One notable approach is Newton's method, an iterative method that uses the derivative or gradient of the function to approximate the root with increasing accuracy in each iteration.
+
+We will again use a simple function to illustrate the process:
+
+```{julia}
+using Zygote
+
+# Define a differentiable function
+f(x) = 2x^2 - 3x + 1
+# Define an initial value
+x = 0.0
+# tolerance of difference in value
+tol = 1e-6
+# maximum number of iteration of the algorithm
+max_iter = 1000
+iter = 0
+while abs(f(x)) > tol && iter < max_iter
+    x -= f(x) / gradient(f, x)[1]
+    iter += 1
+end
+if iter == max_iter
+    println("Warning: Maximum number of iterations reached.")
+else
+    println("Root found after ", iter, " iterations.")
+end
+print("Approximate root: ", x)
+```
+
+### BFGS
+
+The Broyden-Fletcher-Goldfarb-Shanno (BFGS) method is a popular iterative optimization algorithm used for unconstrained optimization problems. It belongs to the family of quasi-Newton methods, which are designed to find the local minimum of a differentiable objective function without needing its Hessian matrix directly. Instead, BFGS iteratively constructs an approximation to the inverse Hessian matrix using gradients of the objective function.
+
+The following example uses the `Optim` package available in Julia to do the BFGS optimization.
+
+```{julia}
+using Optim
+
+# Define the objective function to minimize
+function objective_function(x)
+    return sum(x .* x)
+end
+
+# Initial guess for the minimization
+initial_x = [1.0]
+# Perform optimization using BFGS method
+result = optimize(objective_function, initial_x, BFGS())
+# Extract the optimized solution
+solution = result.minimizer
+minimum_value = result.minimum
+
+# Print the result
+println("Optimized solution: x = ", solution)
+println("Minimum value found: ", minimum_value)
 ```
 
 ## Gradient-Free Optimization
@@ -186,7 +244,7 @@ end
 
 ### Nelder-Mead simplex method
 
-The Nelder-Mead simplex method is a popular optimization algorithm used for minimizing (or maximizing) nonlinear functions that are not necessarily differentiable. It’s particularly useful when gradient-based methods cannot be applied. It is often used in low-dimensional problems due to its simplicity and robustness.
+The Nelder-Mead simplex method is a popular optimization algorithm used for minimizing (or maximizing) nonlinear functions that are not necessarily differentiable. It’s particularly useful when gradient-based methods cannot be applied. It is often used in low-dimensional problems due to its simplicity and robustness. We will use the Rosenbrock function which can be useful in certain portfolio optimization problem to illustrate the process.
 
 ```{julia}
 using Optim
@@ -213,7 +271,7 @@ println("Minimum Value: ", minimum_value)
 
 ### Simulated annealing
 
-Simulated Annealing (SA) is a probabilistic optimization technique inspired by the annealing process in metallurgy. It is used to find near-optimal solutions to optimization problems, particularly in cases where traditional gradient-based methods may get stuck in local minima/maxima. SA accepts worse solutions with a certain probability, allowing it to explore the search space more broadly initially and then gradually narrow down towards better solutions as it progresses.
+Simulated Annealing (SA) is a probabilistic optimization technique inspired by the annealing process in metallurgy. It is used to find near-optimal solutions to optimization problems, particularly in cases where traditional gradient-based methods may get stuck in local minima/maxima. SA accepts worse solutions with a certain probability, allowing it to explore the search space more broadly initially and then gradually narrow down towards better solutions as it progresses. In this section the Rastrigin function is used to illustrate the process. The function can be useful for asset modeling.
 
 ```{julia}
 using Random
@@ -397,7 +455,7 @@ mutation_rate = 0.1            # Probability of mutation
 crossover_rate = 0.7           # Probability of crossover
 bounds = (-5.12, 5.12)         # Boundaries for each gene
 
-# Target function: Rastrigin function (a common benchmark for optimization)
+# Target function: Rastrigin function
 function rastrigin(x)
     A = 10
     n = length(x)
@@ -535,67 +593,6 @@ best_x, best_value = bayesian_optimization(objective, (-5.0, 5.0), 10)
 println("Best x found: $best_x, Best value: $best_value")
 ```
 
-### BFGS
-
-The Broyden-Fletcher-Goldfarb-Shanno (BFGS) method is a popular iterative optimization algorithm used for unconstrained optimization problems. It belongs to the family of quasi-Newton methods, which are designed to find the local minimum of a differentiable objective function without needing its Hessian matrix directly. Instead, BFGS iteratively constructs an approximation to the inverse Hessian matrix using gradients of the objective function.
-
-The following example uses the `Optim` package available in Julia to do the BFGS optimization.
-
-```{julia}
-using Optim
-
-# Define the objective function to minimize
-function objective_function(x)
-    return sum(x .* x)
-end
-
-# Initial guess for the minimization
-initial_x = [1.0]
-# Perform optimization using BFGS method
-result = optimize(objective_function, initial_x, BFGS())
-# Extract the optimized solution
-solution = result.minimizer
-minimum_value = result.minimum
-
-# Print the result
-println("Optimized solution: x = ", solution)
-println("Minimum value found: ", minimum_value)
-```
-
-## Model fitting
-
-### Root finding
-
-Root finding, also known as root approximation or root isolation, is the process of finding the values of the independent variable (usually denoted as $x$) for which a given function equals zero. In mathematical terms, if we have a function $f(x)$, root finding involves finding values of $x$ such that $f(x)=0$.
-
-There are various algorithms for root finding, each with its own advantages and disadvantages depending on the characteristics of the function and the requirements of the problem. One notable approach is Newton's method, an iterative method that uses the derivative of the function to approximate the root with increasing accuracy in each iteration.
-
-We will again use a simple function to illustrate the process:
-
-```{julia}
-using Zygote
-
-# Define a differentiable function
-f(x) = 3x^2 + 2x + 1
-# Define an initial value
-x = 1.0
-# tolerance of difference in value
-tol = 1e-6
-# maximum number of iteration of the algorithm
-max_iter = 100
-iter = 0
-while abs(f(x)) > tol && iter < max_iter
-    x -= f(x) / gradient(f, x)[1]
-    iter += 1
-end
-if iter == max_iter
-    println("Warning: Maximum number of iterations reached.")
-else
-    println("Root found after", iter, " iterations.")
-end
-print("Approximate root: ", x)
-```
-
 ### Bracketed search algorithm
 
 A bracketed search algorithm is a technique used in optimization and numerical methods to confine or "bracket" a minimum or maximum of a function within a specified interval. The primary goal is to reduce the search space systematically until a satisfactory solution or range containing the optimal value is found.
@@ -658,7 +655,7 @@ println("Iterations taken: ", iterations)
 println("Function value at root: ", f(root))
 ```
 
-### Best fitting curve
+## Modeling fitting
 
 In model fitting, the "best fitting curve" refers to the curve or function that best describes the relationship between the independent and dependent variables in the data. The goal of model fitting is to find the parameters of the chosen curve or function that minimize the difference between the observed data points and the values predicted by the model.
 
@@ -678,9 +675,9 @@ using LsqFit, CairoMakie
 x_data = 0:0.1:10
 y_data = 2 .* sin.(x_data) .+ 0.5 .* randn(length(x_data))
 # Define the model function
-curve_model(x, p) = p[1] * x .^ 3 + p[2] * x .^ 2 .+ p[3] * x .+ p[4]
+curve_model(x, p) = p[1] * x .^ 5 + p[2] * x .^ 4 .+ p[3] * x .^ 3 .+ p[4] * x .^ 2 .+ p[5] * x .+ p[6]
 # Initial parameter guess
-p₀ = [1.0, 1.0, 1.0, 1.0]
+p₀ = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
 # Fit the model to the data
 fit_result = curve_fit(curve_model, x_data, y_data, p₀)
 # Extract the fitted parameters
