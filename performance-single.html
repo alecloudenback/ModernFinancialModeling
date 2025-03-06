@@ -552,7 +552,7 @@ Note
 </div>
 </div>
 <p>A general rule of thumb is that dynamically sizable or mutable objects (arrays, mutable structs) will be heap allocated while small fixed size objects can be stack allocated. For mutable objects, a common technique is to pre-allocate an array and then re-use that array for subsequent calculations. In the following example, note how we pre-allocate the output vector instead of creating vectors for each bond <em>and then</em> summing the vectors together at the end:</p>
-<div id="9cd76d80" class="cell" data-execution_count="2">
+<div id="2aeead0e" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>end_time <span class="op">=</span> <span class="fl">10</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>cashflow_output <span class="op">=</span> <span class="fu">zeros</span>(end_time)</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -572,20 +572,20 @@ Note
 <span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>cashflow_output</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="3">
 <pre><code>10-element Vector{Float64}:
-  50.32235295540691
-  50.32235295540691
- 388.3223529554066
-  50.32235295540691
- 390.32235295540664
-  50.32235295540691
-  50.32235295540691
-  50.32235295540691
-  50.32235295540691
- 372.32235295540676</code></pre>
+  50.99355532343174
+  50.99355532343174
+ 376.99355532343094
+  50.99355532343174
+ 403.9935553234311
+  50.99355532343174
+  50.99355532343174
+  50.99355532343174
+  50.99355532343174
+ 371.9935553234309</code></pre>
 </div>
 </div>
 <p>Julia’s&nbsp;<code>@allocated</code> macro will display the number of bytes allocated by an expression, helping you identify and eliminate unnecessary allocations.</p>
-<div id="3c449d56" class="cell" data-execution_count="3">
+<div id="c5ac25c5" class="cell" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">random_sum</span>() <span class="op">=</span> <span class="fu">sum</span>([<span class="fu">rand</span>() for _ <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">10</span>])</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@allocated</span> <span class="fu">random_sum</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="4">
@@ -601,7 +601,7 @@ Note
 <h4 data-number="10.3.2.1" class="anchored" data-anchor-id="spatial-locality"><span class="header-section-number">10.3.2.1</span> Spatial Locality</h4>
 <p>Spatial locality refers to accessing data that is physically near each other in memory (e..g contiguous blocks of data in an array).</p>
 <p>For example, it’s better to access data in a linear order rather than random order. For example, if we sum up the elements of an array in order it will be significantly faster than if we do it randomly:</p>
-<div id="cb651ddb" class="cell" data-execution_count="4">
+<div id="d94235d3" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">BenchmarkTools</span>, <span class="bu">Random</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a large array of structs to emphasize memory access patterns</span></span>
@@ -648,13 +648,13 @@ Note
 <span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">random_sum</span>(<span class="op">$</span>large_array, <span class="op">$</span>shuffled_indices)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Sequential access:
-  874.292 μs (0 allocations: 0 bytes)
+  891.000 μs (0 allocations: 0 bytes)
 
 Random access:
-  3.041 ms (0 allocations: 0 bytes)</code></pre>
+  3.039 ms (0 allocations: 0 bytes)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="5">
-<pre><code>499727.2754335392</code></pre>
+<pre><code>500049.1303916967</code></pre>
 </div>
 </div>
 <p>When the data is accessed in a linear order, it means that the computer can load chunks of data into the cache and it can operate on that cached data for several cycles before new data needs to be loaded into the cache. In contrast, when accessing the data randomly, then the cache frequently needs to be populated with a different set of bits from a completely different part of our array.</p>
@@ -662,7 +662,7 @@ Random access:
 <h5 data-number="10.3.2.1.1" class="anchored" data-anchor-id="column-vs-row-major-order"><span class="header-section-number">10.3.2.1.1</span> Column vs Row Major Order</h5>
 <p>All multi-dimensional arrays in computer memory are actually stored linearly. When storing the multi-dimensional array, an architectural decision needs to be made at the language-level and Julia is column-major, similar to many performance-oriented languages and libraries (e.g.&nbsp;LAPACK, Fortran, Matlab). Values are stored going down the columns instead of across the rows.</p>
 <p>For example, this 2D array would be stored as <code>[1,2,3,...]</code> in memory, which is made clear via <code>vec</code> (which turns a multi-dimensional array into a 1D vector):</p>
-<div id="4468b596" class="cell" data-execution_count="5">
+<div id="c5d734e5" class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    array <span class="op">=</span> [</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>        <span class="fl">1</span> <span class="fl">4</span> <span class="fl">7</span></span>
@@ -687,41 +687,41 @@ Random access:
 </div>
 <p>When working with arrays, prefer accessing elements in column-major order (the default in Julia) to maximize spatial locality. This allows the CPU to prefetch data more effectively.</p>
 <p>You can see how summing up values across the first (column) dimension is much faster than summing across rows:</p>
-<div id="b29460da" class="cell" data-execution_count="6">
+<div id="bdb3d9de" class="cell" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">sum</span>(arr, dims<span class="op">=</span><span class="fl">1</span>) setup <span class="op">=</span> arr <span class="op">=</span> <span class="fu">rand</span>(<span class="fl">1000</span>, <span class="fl">1000</span>)</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">sum</span>(arr, dims<span class="op">=</span><span class="fl">2</span>) setup <span class="op">=</span> arr <span class="op">=</span> <span class="fu">rand</span>(<span class="fl">1000</span>, <span class="fl">1000</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  87.875 μs (3 allocations: 7.95 KiB)
-  134.083 μs (3 allocations: 7.95 KiB)</code></pre>
+<pre><code>  81.125 μs (3 allocations: 7.95 KiB)
+  133.750 μs (3 allocations: 7.95 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="7">
 <pre><code>1000×1 Matrix{Float64}:
- 494.88177382612844
- 502.986061869184
- 520.7906107943957
- 507.6253197927696
- 499.0381944132434
- 495.1842929383667
- 500.5389766217677
- 493.8885060108757
- 489.38159498914666
- 490.69913156219894
- 494.89423569605566
- 519.1173878179768
- 504.2844051042887
+ 489.5031167020347
+ 492.2896205178477
+ 502.1523842876035
+ 507.52468234567635
+ 516.4592585819464
+ 498.81226571667526
+ 489.66643094057457
+ 486.14401032307944
+ 490.97647915210297
+ 490.55436321488565
+ 495.11811346262783
+ 511.72625064185513
+ 512.2401286245938
    ⋮
- 492.53016303561947
- 493.7514971295959
- 498.9666652661667
- 500.9845795774949
- 491.13116334651914
- 477.9694159902232
- 484.44814594909843
- 497.07886189620245
- 497.8073922146053
- 492.516728206604
- 500.70665779202074
- 496.85540359640254</code></pre>
+ 500.7199833829477
+ 493.72281495696325
+ 500.14341652770014
+ 502.52735205070223
+ 492.25846728772063
+ 495.88014631521384
+ 497.990681160658
+ 497.2324439856106
+ 514.2481507140378
+ 512.3011394182456
+ 492.96903088803583
+ 510.91314967857227</code></pre>
 </div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -789,7 +789,7 @@ Warning
 <h3 data-number="10.3.4" class="anchored" data-anchor-id="avoid-type-instabilities"><span class="header-section-number">10.3.4</span> Avoid Type Instabilities</h3>
 <p>Type instabilities occur when the compiler cannot infer a single concrete type for a variable or function return value. These instabilities can significantly hinder Julia’s ability to generate optimized machine code, leading to performance degradation. When the compiler is not able to infer the types at compile-time (<strong>compile time dispatch</strong>), then while the program is running a lookup needs to be performed to find the most appropriate functions for the given type (<strong>runtime dispatch</strong>). When the types are known at compile-time, Julia is able to create efficient machine code that will point directly to the desired function instead of needing to perform that lookup.</p>
 <p>To avoid type instabilities, ensure that functions have inferrable, concrete types across all code paths. For example:</p>
-<div id="70825525" class="cell" data-execution_count="7">
+<div id="c832c98f" class="cell" data-execution_count="7">
 <div class="sourceCode cell-code" id="annotated-cell-6"><pre class="sourceCode julia code-annotation-code code-with-copy code-annotated"><code class="sourceCode julia"><span id="annotated-cell-6-1"><a href="#annotated-cell-6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">unstable_example</span>(array)</span>
 <a class="code-annotation-anchor" data-target-cell="annotated-cell-6" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-6-2" class="code-annotation-target"><a href="#annotated-cell-6-2" aria-hidden="true" tabindex="-1"></a>    x <span class="op">=</span> []</span>
 <span id="annotated-cell-6-3"><a href="#annotated-cell-6-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> y <span class="kw">in</span> array</span>
@@ -822,11 +822,11 @@ Warning
 </dl>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  13.500 μs (2007 allocations: 53.11 KiB)
-  1.012 μs (9 allocations: 21.89 KiB)</code></pre>
+<pre><code>  13.583 μs (2007 allocations: 53.11 KiB)
+  1.083 μs (9 allocations: 21.89 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="8">
-<pre><code>511.64886673639415</code></pre>
+<pre><code>497.6223635983617</code></pre>
 </div>
 </div>
 <p>The <code>unstable_example</code> function illustrates a common anti-pattern wherein an <code>Any</code> typed array is created and then elements are added to it. Because any type can be added to an <code>Any</code> array (we happen to just add floats to it) then Julia’s not sure what types to expect inside the container and therefore has to determine it at runtime.</p>
@@ -858,7 +858,7 @@ Tip
 <li><p>In some cases, it may be beneficial to replace branches with arithmetic operations (e.g., using the ternary operator or multiplication by boolean values) to allow for better vectorization and reduce the impact of branch mispredictions. An example of this would be using a statement like <code>y += max(x,0)</code> instead of <code>if x &gt; 0; y += x; end</code>.</p></li>
 </ol>
 <p>Here’s an example demonstrating the impact of branch prediction:</p>
-<div id="798f863f" class="cell" data-execution_count="8">
+<div id="46373eca" class="cell" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb16"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">process_data</span>(data, threshold)</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    sum <span class="op">=</span> <span class="fl">0.0</span></span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> x <span class="kw">in</span> data</span>
@@ -880,8 +880,8 @@ Tip
 <span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">process_data</span>(<span class="op">$</span>rand_data, <span class="fl">0.5</span>)</span>
 <span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">process_data</span>(<span class="op">$</span>sorted_data, <span class="fl">0.5</span>);</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  5.391 ms (0 allocations: 0 bytes)
-  2.016 ms (0 allocations: 0 bytes)</code></pre>
+<pre><code>  5.581 ms (0 allocations: 0 bytes)
+  2.014 ms (0 allocations: 0 bytes)</code></pre>
 </div>
 </div>
 <p>In this example, having sorted data means that the CPU will predict which branch of the <code>if</code> statement is likely to be utilized. By then speculatively executing the code that it thinks will be used, the overall program time is faster when processing <code>sorted_data</code>.</p>

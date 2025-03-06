@@ -541,7 +541,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="measuring-performance" class="level2" data-number="24.3">
 <h2 data-number="24.3" class="anchored" data-anchor-id="measuring-performance"><span class="header-section-number">24.3</span> Measuring performance</h2>
 <p>The simplest way to measure how fast a piece of code runs is to use the <code>@time</code> macro, which returns the result of the code and prints the measured runtime and allocations. Because code needs to be compiled before it can be run, you should first run a function without timing it so it can be compiled, and then time it:</p>
-<div id="b26fd1d7" class="cell" data-execution_count="2">
+<div id="90a1b516" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sum_abs</span>(vec) <span class="op">=</span> <span class="fu">sum</span>(<span class="fu">abs</span>(x) <span class="cf">for</span> x <span class="kw">in</span> vec);</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>v <span class="op">=</span> <span class="fu">rand</span>(<span class="fl">100</span>);</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -549,32 +549,32 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="pp">@time</span> <span class="fu">sum_abs</span>(v); <span class="co"># Inaccurate, note the &gt;99% compilation time</span></span>
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="pp">@time</span> <span class="fu">sum_abs</span>(v); <span class="co"># Accurate</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  0.009527 seconds (70.38 k allocations: 3.394 MiB, 99.92% compilation time)
-  0.000001 seconds (1 allocation: 16 bytes)</code></pre>
+<pre><code>  0.009954 seconds (70.38 k allocations: 3.394 MiB, 99.89% compilation time)
+  0.000003 seconds (1 allocation: 16 bytes)</code></pre>
 </div>
 </div>
 <p>Using <code>@time</code> is quick but it has flaws, because your function is only measured once. That measurement might have been influenced by other things going on in your computer at the same time. In general, running the same block of code multiple times is a safer measurement method, because it diminishes the probability of only observing an outlier.</p>
 <section id="benchmarktools" class="level3" data-number="24.3.1">
 <h3 data-number="24.3.1" class="anchored" data-anchor-id="benchmarktools"><span class="header-section-number">24.3.1</span> BenchmarkTools</h3>
 <p><a href="https://github.com/JuliaCI/BenchmarkTools.jl">BenchmarkTools.jl</a> is the most popular package for repeated measurements on function executions. Similarly to <code>@time</code>, BenchmarkTools offers <code>@btime</code> which can be used in exactly the same way but will run the code multiple times and provide an average. Additionally, by using <code>$</code> to <a href="https://juliaci.github.io/BenchmarkTools.jl/stable/manual/#Interpolating-values-into-benchmark-expressions">interpolate external values</a>, you remove the overhead caused by global variables.</p>
-<div id="3e33b01a" class="cell" data-execution_count="3">
+<div id="e9fb464a" class="cell" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">BenchmarkTools</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">sum_abs</span>(v);</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">sum_abs</span>(<span class="op">$</span>v);</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  42.466 ns (1 allocation: 16 bytes)
-  29.606 ns (0 allocations: 0 bytes)</code></pre>
+<pre><code>  42.634 ns (1 allocation: 16 bytes)
+  29.942 ns (0 allocations: 0 bytes)</code></pre>
 </div>
 </div>
 <p>In more complex settings, you might need to construct variables in a <a href="https://juliaci.github.io/BenchmarkTools.jl/stable/manual/#Setup-and-teardown-phases">setup phase</a> that is run before each sample. This can be useful to generate a new random input every time, instead of always using the same input.</p>
-<div id="f4c9e870" class="cell" data-execution_count="4">
+<div id="173ef0e1" class="cell" data-execution_count="4">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">my_matmul</span>(A, b) <span class="op">=</span> A <span class="op">*</span> b;</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">my_matmul</span>(A, b) setup <span class="op">=</span> (</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    A <span class="op">=</span> <span class="fu">rand</span>(<span class="fl">1000</span>, <span class="fl">1000</span>); <span class="co"># use semi-colons between setup lines</span></span>
 <span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    b <span class="op">=</span> <span class="fu">rand</span>(<span class="fl">1000</span>)</span>
 <span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>);</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  103.291 μs (3 allocations: 7.94 KiB)</code></pre>
+<pre><code>  105.500 μs (3 allocations: 7.94 KiB)</code></pre>
 </div>
 </div>
 <p>For better visualization, the <code>@benchmark</code> macro shows performance histograms:</p>
@@ -653,7 +653,7 @@ Tip
 <section id="type-stability" class="level2" data-number="24.5">
 <h2 data-number="24.5" class="anchored" data-anchor-id="type-stability"><span class="header-section-number">24.5</span> Type stability</h2>
 <p>For a section of code to be considered type stable, the type inferred by the compiler must be “concrete”, which means that the size of memory that needs to be allocated to store its value is known at compile time. Types declared abstract with <code>abstract type</code> are not concrete and neither are <a href="https://docs.julialang.org/en/v1/manual/types/#Parametric-Types">parametric types</a> whose parameters are not specified:</p>
-<div id="acbd5018" class="cell" data-execution_count="5">
+<div id="0867e923" class="cell" data-execution_count="5">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@show</span> <span class="fu">isconcretetype</span>(<span class="dt">Any</span>)</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@show</span> <span class="fu">isconcretetype</span>(<span class="dt">AbstractVector</span>)</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="pp">@show</span> <span class="fu">isconcretetype</span>(<span class="dt">Vector</span>) <span class="co"># Shorthand for `Vector{T} where T`</span></span>
@@ -690,7 +690,7 @@ Note
 <section id="sec-detecting-instabilities" class="level3" data-number="24.5.1">
 <h3 data-number="24.5.1" class="anchored" data-anchor-id="sec-detecting-instabilities"><span class="header-section-number">24.5.1</span> Detecting Instabilities</h3>
 <p>The simplest way to detect an instability is with the builtin macro <a href="https://docs.julialang.org/en/v1/manual/performance-tips/#man-code-warntype"><code>@code_warntype</code></a>: The output of <code>@code_warntype</code> is difficult to parse, but the key takeaway is the return type of the function’s <code>Body</code>: if it is an abstract type, like <code>Any</code>, something is wrong. In a normal Julia REPL, such cases would show up colored in red as a warning.</p>
-<div id="5615f3d7" class="cell" data-execution_count="6">
+<div id="4b276f9b" class="cell" data-execution_count="6">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">InteractiveUtils</span> <span class="co"># loaded automatically if using a notebook or REPL</span></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">put_in_vec_and_sum</span>(x)</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    v <span class="op">=</span> []</span>
@@ -719,9 +719,13 @@ Body::Any
 </div>
 </div>
 <p>Unfortunately, <code>@code_warntype</code> is limited to one function body: calls to other functions are not expanded, which makes deeper type instabilities easy to miss. That is where <a href="https://github.com/aviatesk/JET.jl">JET.jl</a> can help: it provides <a href="https://aviatesk.github.io/JET.jl/stable/optanalysis/">optimization analysis</a> aimed primarily at finding type instabilities. While <a href="https://aviatesk.github.io/JET.jl/stable/optanalysis/#optanalysis-test-integration">test integrations</a> are also provided, the interactive entry point of JET is the <code>@report_opt</code> macro.</p>
-<div id="a7443357" class="cell" data-execution_count="7">
+<div id="90509040" class="cell" data-execution_count="7">
 <div class="sourceCode cell-code" id="cb13"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">JET</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@report_opt</span> <span class="fu">put_in_vec_and_sum</span>(<span class="fl">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[ Info: Precompiling JET [c3a54625-cd67-489e-a8e7-0a5a0ff4e31b] (cache misses: wrong dep version loaded (2), incompatible header (2))
+[ Info: Precompiling ReviseExt [08c3a254-6768-59bc-8e27-c66d568e569c] </code></pre>
+</div>
 <div class="cell-output cell-output-display" data-execution_count="8">
 <div class="ansi-escaped-output">
 <pre>═════ 4 possible errors found ═════
@@ -751,6 +755,9 @@ Body::Any
 <span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-yellow-fg">│</span><span class="ansi-green-fg">│</span><span class="ansi-magenta-fg">│</span><span class="ansi-blue-fg">│</span><span class="ansi-bright-red-fg">└────────────────────</span>
 </pre>
 </div>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[ Info: tracking Base</code></pre>
 </div>
 </div>
 <div class="callout callout-style-default callout-tip callout-titled">
@@ -785,20 +792,20 @@ Tip
 </div>
 </div>
 <p>When working with parametric types, look to avoid usage of generic type parameters (e.g.&nbsp;<code>Array{Any}</code>) whenever possible. For custom types, make use of parametric types to create type-stable abstractions. For example, the latter <code>struct Bond2</code> or <code>struct Bond3</code> will allow Julia to create distinct concrete types and methods as opposed to needing generic runtime dispatch due to the unpredictable potential types of the <code>struct</code> fields. The difference between <code>Bond2</code> and <code>Bond3</code> is that the fields in <code>Bond3</code> could be any type (such as <code>Float16</code> or <code>String</code>) as long as both of them equaled the type variable <code>T</code>.</p>
-<div class="sourceCode" id="cb14"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> Bond1</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    par</span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    coupon</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> Bond2</span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    par<span class="op">::</span><span class="dt">Float64</span></span>
-<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    coupon<span class="op">::</span><span class="dt">Float64</span></span>
-<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
-<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> Bond3{T}</span>
-<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    par<span class="op">::</span><span class="dt">T</span></span>
-<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>    coupon<span class="op">::</span><span class="dt">T</span></span>
-<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb16"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> Bond1</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    par</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    coupon</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> Bond2</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    par<span class="op">::</span><span class="dt">Float64</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    coupon<span class="op">::</span><span class="dt">Float64</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> Bond3{T}</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    par<span class="op">::</span><span class="dt">T</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>    coupon<span class="op">::</span><span class="dt">T</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
 </section>
 <section id="memory-management" class="level2" data-number="24.6">
@@ -814,31 +821,31 @@ Tip
 <h3 data-number="24.7.1" class="anchored" data-anchor-id="precompilation"><span class="header-section-number">24.7.1</span> Precompilation</h3>
 <p><a href="https://github.com/JuliaLang/PrecompileTools.jl">PrecompileTools.jl</a> reduces the amount of time taken to run functions loaded from a package or local module that you wrote. It allows module authors to specify methods to precompile when a module is loaded for the first time. The methods chosen should represent those which would be used during typical user workflows. These methods then have the same latency as if they had already been run by the end user. This adds upfront pre-compilation time when installing a package version for the first time, but then subsequent uses will be much quicker.</p>
 <p>Here’s an example of precompilation, adapted from the package’s <a href="https://julialang.github.io/PrecompileTools.jl/stable/#Tutorial:-forcing-precompilation-with-workloads">documentation</a>:</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">module</span> MyPackage</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">PrecompileTools</span>: @compile_workload</span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> MyType</span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    x<span class="op">::</span><span class="dt">Int</span></span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
-<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a><span class="fu">myfunction</span>(a<span class="op">::</span><span class="dt">Vector</span>) <span class="op">=</span> a[<span class="fl">1</span>].x</span>
-<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a><span class="pp">@compile_workload</span> <span class="cf">begin</span></span>
-<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>    a <span class="op">=</span> [<span class="fu">MyType</span>(<span class="fl">1</span>)]</span>
-<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">myfunction</span>(a)</span>
-<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
-<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb17"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">module</span> MyPackage</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">PrecompileTools</span>: @compile_workload</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> MyType</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    x<span class="op">::</span><span class="dt">Int</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="fu">myfunction</span>(a<span class="op">::</span><span class="dt">Vector</span>) <span class="op">=</span> a[<span class="fl">1</span>].x</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a><span class="pp">@compile_workload</span> <span class="cf">begin</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>    a <span class="op">=</span> [<span class="fu">MyType</span>(<span class="fl">1</span>)]</span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">myfunction</span>(a)</span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Note that every method that is called will be compiled, no matter how far down the call stack or which module it comes from. To see if the intended calls were compiled correctly or diagnose other problems related to precompilation, use <a href="https://github.com/timholy/SnoopCompile.jl">SnoopCompile.jl</a>. This is especially important for writers of registered Julia packages, as it allows you to diagnose recompilation that happens due to invalidation.</p>
 </section>
 <section id="package-compilation" class="level3" data-number="24.7.2">
 <h3 data-number="24.7.2" class="anchored" data-anchor-id="package-compilation"><span class="header-section-number">24.7.2</span> Package compilation</h3>
 <p>To reduce the time that packages take to load, you can use <a href="https://github.com/JuliaLang/PackageCompiler.jl">PackageCompiler.jl</a> to generate a custom version of Julia, called a <strong>sysimage</strong> (system image), with its own custom standard library. As packages in the standard library are already compiled, any <code>using</code> or <code>import</code> statement involving them is almost instant.</p>
 <p>Once PackageCompiler.jl is added to your global environment, activate a local environment for which you want to generate a sysimage, ensure all of the packages you want to compile are in its <code>Project.toml</code>, and run <code>create_sysimage</code> as in the example below. The filetype of <code>sysimage_path</code> differs by operating system: Linux has <code>.so</code>, MacOS has <code>.dylib</code>, and Windows has <code>.dll</code>.</p>
-<div class="sourceCode" id="cb16"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">PackageCompiler</span> <span class="co"># installed in global environment</span></span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>packages_to_compile <span class="op">=</span> [<span class="st">"Makie"</span>, <span class="st">"DifferentialEquations"</span>]</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="fu">create_sysimage</span>(packages_to_compile; sysimage_path<span class="op">=</span><span class="st">"MySysimage.so"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb18"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">PackageCompiler</span> <span class="co"># installed in global environment</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>packages_to_compile <span class="op">=</span> [<span class="st">"Makie"</span>, <span class="st">"DifferentialEquations"</span>]</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="fu">create_sysimage</span>(packages_to_compile; sysimage_path<span class="op">=</span><span class="st">"MySysimage.so"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Once a sysimage is generated, it can be used with the command line flag: <code>julia --sysimage=path/to/sysimage</code>.</p>
 <div class="callout callout-style-default callout-tip callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -924,10 +931,10 @@ Tip
 </div>
 <p>Regardless of the number of threads, you can parallelise a for loop with the macro <code>Threads.@threads</code>. The macros <code>@spawn</code> and <code>@async</code> function similarly, but require more manual management of tasks and their results. For this reason <code>@threads</code> is recommended for those who do not wish to use third-party packages.</p>
 <p>When designing multithreaded code, you should generally try to write to shared memory as rarely as possible. Where it cannot be avoided, you need to be careful to avoid “race conditions”, i.e.&nbsp;situations when competing threads try to write different things to the same memory location. It is usually a good idea to separate memory accesses with loop indices, as in the example below:</p>
-<div class="sourceCode" id="cb17"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> <span class="fu">zeros</span>(<span class="dt">Int</span>, <span class="fl">4</span>)</span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="bu">Threads</span>.<span class="pp">@threads</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">4</span></span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    results[i] <span class="op">=</span> i<span class="op">^</span><span class="fl">2</span></span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb19"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> <span class="fu">zeros</span>(<span class="dt">Int</span>, <span class="fl">4</span>)</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="bu">Threads</span>.<span class="pp">@threads</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">4</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    results[i] <span class="op">=</span> i<span class="op">^</span><span class="fl">2</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Almost always, it is <a href="https://julialang.org/blog/2023/07/PSA-dont-use-threadid/"><strong>not</strong> a good idea to use <code>threadid()</code></a>.</p>
 <p>Even if you manage to avoid any race conditions in your multithreaded code, it is very easy to run into subtle performance issues (like <a href="https://en.wikipedia.org/wiki/False_sharing">false sharing</a>). For these reasons, you might want to consider using a high-level package like <a href="https://github.com/JuliaFolds2/OhMyThreads.jl">OhMyThreads.jl</a>, which provides a user-friendly alternative to <code>Threads</code> and makes managing threads and their memory use much easier. The helpful <a href="https://juliafolds2.github.io/OhMyThreads.jl/stable/translation/">translation guide</a> demonstrates how Base multi-threading loops can be translated into the OhMyThreads API.</p>
 <p>If the latency of spinning up new threads becomes a bottleneck, check out <a href="https://github.com/JuliaSIMD/Polyester.jl">Polyester.jl</a> for very lightweight threads that are quicker to start.</p>
@@ -937,19 +944,19 @@ Tip
 <h3 data-number="24.8.2" class="anchored" data-anchor-id="distributed-computing"><span class="header-section-number">24.8.2</span> Distributed computing</h3>
 <p>Julia’s multiprocessing and distributed relies on the standard library <code>Distributed</code>. The main difference with multi-threading is that data isn’t shared between worker processes. Once Julia is started, processes can be added with <code>addprocs</code>, and their can be queried with <code>nworkers</code>.</p>
 <p>The macro <code>Distributed.@distributed</code> is a <em>syntactic</em> equivalent for <code>Threads.@threads</code>. Hence, we can use <code>@distributed</code> to parallelise a for loop as before, but we have to additionally deal with sharing and recombining the <code>results</code> array. We can delegate this responsibility to the standard library <code>SharedArrays</code>. However, in order for all workers to know about a function or module, we have to load it <code>@everywhere</code>:</p>
-<div id="41139ae1" class="cell" data-execution_count="8">
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Distributed</span></span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Add additional workers then load code on the workers</span></span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="fu">addprocs</span>(<span class="fl">3</span>)</span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="pp">@everywhere</span> <span class="im">using</span> <span class="bu">SharedArrays</span></span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="pp">@everywhere</span> <span class="fu">f</span>(x) <span class="op">=</span> <span class="fl">3</span>x<span class="op">^</span><span class="fl">2</span></span>
-<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> <span class="fu">SharedArray</span><span class="dt">{Int}</span>(<span class="fl">4</span>)</span>
-<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a><span class="pp">@sync</span> <span class="pp">@distributed</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">4</span></span>
-<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    results[i] <span class="op">=</span> <span class="fu">f</span>(i)</span>
-<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
-<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>results</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="0d464043" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Distributed</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Add additional workers then load code on the workers</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="fu">addprocs</span>(<span class="fl">3</span>)</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="pp">@everywhere</span> <span class="im">using</span> <span class="bu">SharedArrays</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="pp">@everywhere</span> <span class="fu">f</span>(x) <span class="op">=</span> <span class="fl">3</span>x<span class="op">^</span><span class="fl">2</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> <span class="fu">SharedArray</span><span class="dt">{Int}</span>(<span class="fl">4</span>)</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a><span class="pp">@sync</span> <span class="pp">@distributed</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">4</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>    results[i] <span class="op">=</span> <span class="fu">f</span>(i)</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>results</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="9">
 <pre><code>4-element SharedVector{Int64}:
   3
@@ -960,20 +967,20 @@ Tip
 </div>
 <p>Note that <code>@distributed</code> does not force the main process to wait for other workers, so we must use <code>@sync</code> to block execution until all computations are done.</p>
 <p>One feature <code>@distributed</code> has over <code>@threads</code> is the possibility to specify a reduction function (an associative binary operator) which combines the results of each worker. In this case <code>@sync</code> is implied, as the reduction cannot happen unless all of the workers have finished.</p>
-<div id="f5a67a3e" class="cell" data-execution_count="9">
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Distributed</span>  <span class="co"># hide</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="953581d8" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Distributed</span>  <span class="co"># hide</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="4fe1bd26" class="cell" data-execution_count="10">
-<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@distributed</span> (<span class="op">+</span>) <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">4</span></span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    i<span class="op">^</span><span class="fl">2</span></span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="e95d4e28" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@distributed</span> (<span class="op">+</span>) <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">4</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>    i<span class="op">^</span><span class="fl">2</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="11">
 <pre><code>30</code></pre>
 </div>
 </div>
 <p>Alternately, the convenience function <code>pmap</code> can be used to easily parallelise a <code>map</code>, both in a distributed and multi-threaded way.</p>
-<div id="0227e7a7" class="cell" data-execution_count="11">
-<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> <span class="fu">pmap</span>(f, <span class="fl">1</span><span class="op">:</span><span class="fl">100</span>; distributed<span class="op">=</span><span class="cn">true</span>, batch_size<span class="op">=</span><span class="fl">25</span>, on_error<span class="op">=</span>ex <span class="op">-&gt;</span> <span class="fl">0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="bbc29f66" class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> <span class="fu">pmap</span>(f, <span class="fl">1</span><span class="op">:</span><span class="fl">100</span>; distributed<span class="op">=</span><span class="cn">true</span>, batch_size<span class="op">=</span><span class="fl">25</span>, on_error<span class="op">=</span>ex <span class="op">-&gt;</span> <span class="fl">0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="12">
 <pre><code>100-element Vector{Int64}:
      3
@@ -1066,12 +1073,12 @@ Tip
 <h3 data-number="24.9.1" class="anchored" data-anchor-id="static-arrays"><span class="header-section-number">24.9.1</span> Static arrays</h3>
 <p>Using <a href="https://github.com/JuliaArrays/StaticArrays.jl">StaticArrays.jl</a>, you can construct arrays which contain size information in their type. Through multiple dispatch, statically sized arrays give rise to specialised, efficient methods for certain algorithms like linear algebra. In addition, the <code>SArray</code>, <code>SMatrix</code> and <code>SVector</code> types are immutable, so the array does not need to be garbage collected as it can be stack-allocated. Creating a new <code>SArray</code>s comes at almost no extra cost, compared to directly editing the data of a mutable object. With <code>MArray</code>, <code>MMatrix</code>, and <code>MVector</code>, data remains mutable as in normal arrays.</p>
 <p>To handle mutable and immutable data structures with the same syntax, you can use <a href="https://github.com/JuliaObjects/Accessors.jl">Accessors.jl</a>:</p>
-<div id="0ff0ec21" class="cell" data-execution_count="12">
-<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">StaticArrays</span>, <span class="bu">Accessors</span></span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>sx <span class="op">=</span> SA[<span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">3</span>] <span class="co"># SA constructs an SArray</span></span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="pp">@set</span> sx[<span class="fl">1</span>] <span class="op">=</span> <span class="fl">3</span> <span class="co"># Returns a copy, does not update the variable</span></span>
-<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="pp">@reset</span> sx[<span class="fl">1</span>] <span class="op">=</span> <span class="fl">4</span> <span class="co"># Replaces the original</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="55686963" class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">StaticArrays</span>, <span class="bu">Accessors</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>sx <span class="op">=</span> SA[<span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">3</span>] <span class="co"># SA constructs an SArray</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="pp">@set</span> sx[<span class="fl">1</span>] <span class="op">=</span> <span class="fl">3</span> <span class="co"># Returns a copy, does not update the variable</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a><span class="pp">@reset</span> sx[<span class="fl">1</span>] <span class="op">=</span> <span class="fl">4</span> <span class="co"># Replaces the original</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="13">
 <pre><code>3-element SVector{3, Int64} with indices SOneTo(3):
  4
