@@ -459,7 +459,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#usability" id="toc-usability" class="nav-link" data-scroll-target="#usability"><span class="header-section-number">4.2.2</span> Usability</a></li>
   <li><a href="#performance" id="toc-performance" class="nav-link" data-scroll-target="#performance"><span class="header-section-number">4.2.3</span> Performance</a></li>
   <li><a href="#separation-of-model-logic-and-data" id="toc-separation-of-model-logic-and-data" class="nav-link" data-scroll-target="#separation-of-model-logic-and-data"><span class="header-section-number">4.2.4</span> Separation of Model Logic and Data</a></li>
-  <li><a href="#abstraction-of-modeled-systems" id="toc-abstraction-of-modeled-systems" class="nav-link" data-scroll-target="#abstraction-of-modeled-systems"><span class="header-section-number">4.2.5</span> Abstraction of Modeled Systems</a></li>
+  <li><a href="#organization-of-model-components-and-architecture" id="toc-organization-of-model-components-and-architecture" class="nav-link" data-scroll-target="#organization-of-model-components-and-architecture"><span class="header-section-number">4.2.5</span> Organization of Model Components and Architecture</a></li>
+  <li><a href="#abstraction-of-modeled-systems" id="toc-abstraction-of-modeled-systems" class="nav-link" data-scroll-target="#abstraction-of-modeled-systems"><span class="header-section-number">4.2.6</span> Abstraction of Modeled Systems</a></li>
   </ul></li>
   <li><a href="#what-makes-a-good-modeler" id="toc-what-makes-a-good-modeler" class="nav-link" data-scroll-target="#what-makes-a-good-modeler"><span class="header-section-number">4.3</span> What makes a good modeler?</a>
   <ul class="collapse">
@@ -521,11 +522,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="achieving-original-purpose" class="level3" data-number="4.2.1">
 <h3 data-number="4.2.1" class="anchored" data-anchor-id="achieving-original-purpose"><span class="header-section-number">4.2.1</span> Achieving original purpose</h3>
 <p>A model is built for a specific set of reasons and therefore we must evaluate a model in terms of achieving that goal. We should not critique a model if we want to use it outside of what it was intended to do. This includes: contents of output and required level of accuracy.</p>
-<p>A model may have been created to for scenario analysis to value all assets in a portfolio to within half a percent of a more accurate, but much more computationally expensive model. If we try to add a never-before-seen asset class or use the model to order trades we may be extending the design scope of the original model.</p>
+<p>A model may have been created to for scenario analysis to value all assets in a portfolio to within half a percent of a more accurate, but much more computationally expensive model. If we try to add a never-before-seen asset class or use the model to order trades we may be extending the design scope of the original model and lose predictive accuracy.</p>
 </section>
 <section id="usability" class="level3" data-number="4.2.2">
 <h3 data-number="4.2.2" class="anchored" data-anchor-id="usability"><span class="header-section-number">4.2.2</span> Usability</h3>
-<p>How easy is it for someone to use? Does it require pages and pages of documentation, weeks of specialized training and an on-call help desk? <em>All else equal</em>, it is an indicator of how usable the model is by the amount of support and training. However, one may sometimes wish to create a highly capable, complex model which is known to require a high amount of experience and expertise. An analogy here might be the cockpit of a small Cessna aircraft versus a fighter jet: the former is a lot simpler and takes less training to master but is also more limited.</p>
+<p>How easy is it for someone to use? Does it require pages and pages of documentation, weeks of specialized training and an on-call help desk? <em>All else equal</em>, it is an indicator of how usable the model is by the amount of support and training required. However, one may sometimes wish to create a highly capable, complex model which is known to require a high amount of experience and expertise. An analogy here might be the cockpit of a small Cessna aircraft versus a fighter jet: the former is a lot simpler and takes less training to master but is also more limited.</p>
 <p><a href="#fig-parametric" class="quarto-xref">Figure&nbsp;<span>4.1</span></a> illustrates this concept and shows that if your goal is very high capability that you may need to expect to develop training materials and support the more complex model. On this view, a better model is one that is able to have a shorter amount of time and experience to achieve the same level of capability.</p>
 <div id="cell-fig-parametric" class="cell" data-execution_count="2">
 <div id="fig-parametric" class="cell-output cell-output-display quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="3">
@@ -544,14 +545,19 @@ Figure&nbsp;4.1: Tradeoff between complexity and capability
 <h3 data-number="4.2.3" class="anchored" data-anchor-id="performance"><span class="header-section-number">4.2.3</span> Performance</h3>
 <p>Financial models are generally not used for their awe-inspiring beauty - users are results oriented and the faster a model returns the requested results, the better. Aside from direct computational costs such as server runtime, a shorter model runtime means that one can iterate faster, test new ideas on the fly, and stay focused on the problem at hand.</p>
 <p>Many readers may be familiar with the cadence of (1) try running model overnight, (2) see results failed in the morning, (3) spend day developing, (4) repeat step 1. It is preferred if this cycle can be measured in minutes instead of hours or days.</p>
-<p>Of course, requirements must be considered here too: needs for high frequency trading, daily portfolio rebalancing, and quarterly valuations are different when it comes to performance.</p>
+<p>Of course, requirements must be considered here too: needs for high frequency trading, daily portfolio rebalancing, and quarterly financial reporting models have different requirements when it comes to performance.</p>
 </section>
 <section id="separation-of-model-logic-and-data" class="level3" data-number="4.2.4">
 <h3 data-number="4.2.4" class="anchored" data-anchor-id="separation-of-model-logic-and-data"><span class="header-section-number">4.2.4</span> Separation of Model Logic and Data</h3>
-<p>When business logic is embedded within data, or data inputs are spread out across multiple locations it’s tough to keep track of things. Using a spreadsheet as an example, often times it’s incredibly difficult to ascertain a model’s operation if inputs are spread out across locations on many tabs. Or if related calculations are performed in multiple locations, or if it’s not clear where the line is drawn between calculations performed in the worksheets or in macros.</p>
+<p>When data is intertwined with business logic it can be difficult to understand, maintain, or adapt a model. Spreadsheet are a common example of where data exists co-mingled with business logic. An alternative which separates data sources from the computations provides for better model service in the future.</p>
 </section>
-<section id="abstraction-of-modeled-systems" class="level3 page-columns page-full" data-number="4.2.5">
-<h3 data-number="4.2.5" class="anchored" data-anchor-id="abstraction-of-modeled-systems"><span class="header-section-number">4.2.5</span> Abstraction of Modeled Systems</h3>
+<section id="organization-of-model-components-and-architecture" class="level3" data-number="4.2.5">
+<h3 data-number="4.2.5" class="anchored" data-anchor-id="organization-of-model-components-and-architecture"><span class="header-section-number">4.2.5</span> Organization of Model Components and Architecture</h3>
+<p>If model components or data inputs are spread out in a disorganized way, it can lead to usability and maintenance issues. As an example, often times it’s incredibly difficult to ascertain a model’s operation if inputs are spread out across locations on many tabs. Or if related calculations are performed in multiple locations, or if it’s not clear where the line is drawn between calculations performed in the worksheets or in macros.</p>
+<p>If logical components or related data are broken out into discrete parts of a model, it becomes easier to reason about model behavior or make modifications. Compartmentalization is an important principle which allows a larger model to remain comprised of simpler components where whole model is greater than the sum of the pieces.</p>
+</section>
+<section id="abstraction-of-modeled-systems" class="level3 page-columns page-full" data-number="4.2.6">
+<h3 data-number="4.2.6" class="anchored" data-anchor-id="abstraction-of-modeled-systems"><span class="header-section-number">4.2.6</span> Abstraction of Modeled Systems</h3>
 <p>At different times we are interested in different <strong>ladder of abstraction</strong>: sometimes we are interested in the small details, but other times we are interested in understanding the behavior of systems at a higher level.</p>
 <p>Say we are an insurance company with a portfolio of fixed income assets supporting long term insurance liabilities. We might delineate different levels of abstraction like so:</p>
 
@@ -800,7 +806,13 @@ Table&nbsp;4.1: An example of the different levels of abstraction when thinking 
 </section>
 <section id="toolset" class="level3" data-number="4.3.9">
 <h3 data-number="4.3.9" class="anchored" data-anchor-id="toolset"><span class="header-section-number">4.3.9</span> Toolset</h3>
-<p>An experience professional is aware of a number of approaches that can be used in solving a problem. From heuristics that are able to be calculated on a napkin to complex economic models, the ability to draw on a wide tool set allows a practitioner to find the right solution for a given problem. Further, it is the intention of this book to enumerate a number of additional approaches that may prove useful in practice. This includes both soft and hard skills, such as those in <span class="quarto-unresolved-ref">?tbl-toolset</span></p>
+<p>An experience professional is aware of a number of approaches that can be used in solving a problem. From heuristics that are able to be calculated on a napkin to complex economic models, the ability to draw on a wide tool set allows a practitioner to find the right solution for a given problem. Further, it is the intention of this book to enumerate a number of additional approaches that may prove useful in practice. This includes both soft and hard skills, such as those in <a href="#tbl-toolset" class="quarto-xref">Table&nbsp;<span>4.2</span></a></p>
+<div id="tbl-toolset" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-toolset-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;4.2: A variety of skills have their place in the proficient financial modeler’s toolbelt.
+</figcaption>
+<div aria-describedby="tbl-toolset-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <table class="caption-top table">
 <colgroup>
 <col style="width: 26%">
@@ -855,7 +867,9 @@ Table&nbsp;4.1: An example of the different levels of abstraction when thinking 
 </tr>
 </tbody>
 </table>
-<p>::: A variety of skills have their place in the proficient financial modeler’s toolbelt. {#tbl-toolset}</p>
+</div>
+</figure>
+</div>
 </section>
 </section>
 <section id="how-to-work-with-data-that-feeds-the-models" class="level2" data-number="4.4">
