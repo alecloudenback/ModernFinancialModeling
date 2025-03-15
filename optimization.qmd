@@ -1,3 +1,7 @@
+---
+engine: julia
+---
+
 # Optimization {#sec-optimization}
 
 *Yun-Tien Lee and Alec Loudenback*
@@ -68,21 +72,55 @@ end
 
 ```
 
-## Differentiable programming
+Optimization techniques are incredibly important and find uses in many areas:
 
-Differentiable programming is an approach to programming where functions are defined using differentiable operations, allowing automatic differentiation to be applied to them. Automatic differentiation is a technique used to efficiently compute derivatives of functions, and it is crucial in many machine learning algorithms, optimization techniques, and scientific computing applications.
+-   Machine learning relies on "training", which is essentially optimizing parameters to match target data.
+-   Determining parameters for market consistent models where the modeled price is fit to market-observed prices.
+-   Minimizing a certain risk outcome by optimizing asset allocations
+-   Maximizing risk-adjusted yield in a portfolio.
 
-Elements in differentiable programming
+We will introduce some basic concepts and categories of optimization techniques in this chapter:
 
-- Differentiable functions: Functions are defined using operations that are differentiable. These operations include basic arithmetic operations (addition, subtraction, multiplication, division), as well as more complex operations like exponentials, logarithms, trigonometric functions, etc.
+-   Objective and Loss Functions
+-   Optimization Techniques
+    -   Nonlinear Optimization
+        -   Gradient Based Techniques
+        -   Bracketing Methods
+        -   Other Techniques
+    -   Linear Optimization
 
-- Automatic differentiation (AD): Automatic differentiation is used to compute derivatives of functions with respect to their inputs or parameters. AD exploits the fact that every computer program, no matter how complex, executes a sequence of elementary arithmetic operations (addition, subtraction, multiplication, division), and elementary functions (exponentials, logarithms, trigonometric functions). By applying the chain rule repeatedly to these operations, derivatives of arbitrary order can be computed automatically, accurately to working precision, and using at most a small constant factor more arithmetic operations than the original program. Refer to @sec-autodiff on automatic differentiation.
+Below is an expanded version of the section that aims to be more thorough while keeping the writing concise and direct.
 
-- Optimization and machine learning: Differentiable programming is particularly useful in optimization problems, where gradients or higher-order derivatives are required to find the minimum or maximum of a function. It's also widely used in machine learning, where optimization algorithms like gradient descent are used to train models by adjusting their parameters to minimize a loss function.
+## Objective and Loss Functions
 
-- Gradient calculation: The gradient plays a crucial role in optimization problems primarily because it provides the direction of the steepest ascent of a function. Optimization algorithms often iteratively update parameters in the direction opposite to the gradient (for minimization problems), which tends to converge towards a local minimum (or maximum for maximization problems). Besides, computing the gradient is often computationally feasible and relatively inexpensive compared to other methods for determining function behavior, such as higher-order derivatives or function evaluations at different points. Beyond just the direction, the magnitude (or norm) of the gradient also indicates how steep the function change is in that direction. This information is used to adjust step sizes in optimization algorithms, balancing between convergence speed and stability.
+Any optimization algorithm needs to know what is being optimized. We call this function the **objective function**. Usually, the objective function is something we want to minimize—though maximizing a function is mathematically equivalent to minimizing its negative. Concretely, if you want to maximize \(f(x)\), you can minimize \(-f(x)\). The **optimal point** (\(\arg\min\)) is simply the input value that produces the smallest objective value.
 
-Here shows the value and the derivative of a simple function at a certain point:
+In many practical situations—especially those with noisy or uncertain data—the function we want to optimize is called a **loss function**. This term is common in statistical modeling and machine learning, where the aim is to measure how far a model’s predictions deviate from real observations. For instance, the following squared loss function computes the sum of squared errors between a model’s predictions and the targets:
+
+```julia
+loss(f, guess, target) = sum((f.(guess) .- target).^2)
+```
+Here, `guess` might represent model parameters (or input values), and `target` is the observed data. Minimizing this loss aligns the model’s predictions with reality as closely as possible.
+
+## Optimization Techniques
+
+### Non-Linear Optimization
+
+Non-linear optimization refers to problems where the relationship between the inputs and outputs is not constrained to be a linear relationship, which is incredibly common in financial modeling.
+
+In many financial settings, variables must obey certain bounds or relationships (e.g., portfolios cannot exceed a total budget, a particular risk measure must remain below a threshold). Handling constraints often involves methods like Lagrange multipliers, projected gradient, or analytic penalty functions. We won’t cover these in depth here, but be aware that most general optimization libraries can handle constraints in non-linear problems as well.
+
+#### Gradient-Based Optimization
+
+The most efficient non-linear optimization algorithms tend to utilize the gradient (i.e. muti-variable derivative) in order to make the optimization substantially more efficient. The gradient is useful because it can tell you if you are at a maxima or minima (when the derivative is zero, the function is at a maxima or minima), but also because algorithms can be 'smarter' about searching for a solution using the additional information. The gradient provides the direction of the steepest ascent of a function. Optimization algorithms often iteratively update parameters in the direction opposite to the gradient (for minimization problems), which tends to converge towards a local minimum (or maximum for maximization problems). Besides, computing the gradient is often computationally feasible and relatively inexpensive compared to other methods for determining function behavior, such as higher-order derivatives or finite-difference methods. Beyond just the direction, the magnitude (or norm) of the gradient also indicates how steep the function change is in that direction. This information is used to adjust step sizes in optimization algorithms, balancing between convergence speed and stability.
+
+Calculating gradients in the context of computer algorithms is discussed at length in @sec-autodiff, but a quick recap of the available approaches:
+
+-   Finite differences: evaluate the function at nearby points and determine the rates of change associated with each change in direction. This
+-   Analytic derivatives: A human-derived or computer tool (such as Mathematica) is able to analytically determine a derivative that is coded into the optimization algorithm
+-   Automatic differentiation (AD): elementary rules are applied to decompose elementary code operations into derivatives, allowing for very efficient computation of complex algorithms.
+
+To compare the approaches, here is an example of determining the derivative of a simple function at a certain point:
 
 ```{julia}
 using Zygote
@@ -92,11 +130,19 @@ f(x) = 3x^2 + 2x + 1
 # Define an input value
 x = 2.0
 
+finite_diff = (f(x + 0.001) - f(x)) / 0.001
+
 println("Value of f(x) at x=", f(x))
-println("Gradient of f(x) at x=", gradient(f, x))
+println("Gradient of f(x) at x=", finite_diff) # <1>
+println("Gradient of f(x) at x=", gradient(f, x)) # <2>
+println("Gradient of f(x) at x=", 6 * x + 2) # <3>
 ```
 
-### Root finding
+1.  A finite-difference approach to determining a gradient. Note that this method required two function calls of `f` to calculate an approximation.
+2.  An automatic, exact derivative determined by the rules in the Zygote library.
+3.  An analytic derivative using a user-coded derivative.
+
+#### Root finding
 
 Root finding, also known as root approximation or root isolation, is the process of finding the values of the independent variable (usually denoted as $x$) for which a given function equals zero. In mathematical terms, if we have a function $f(x)$, root finding involves finding values of $x$ such that $f(x)=0$.
 
@@ -128,7 +174,9 @@ end
 print("Approximate root: ", x)
 ```
 
-### BFGS
+Although it might look different, **root-finding** (solving \(g(x)=0\)) can be cast as a minimization problem by defining an objective function such as \( (g(x))^2 \). In this view, driving \( (g(x))^2 \) to zero compels \( g(x) \) itself to be zero, so the methods and algorithmic ideas from minimization apply naturally to root-finding scenarios as well.
+
+#### BFGS
 
 The Broyden-Fletcher-Goldfarb-Shanno (BFGS) method is a popular iterative optimization algorithm used for unconstrained optimization problems. It belongs to the family of quasi-Newton methods, which are designed to find the local minimum of a differentiable objective function without needing its Hessian matrix directly. Instead, BFGS iteratively constructs an approximation to the inverse Hessian matrix using gradients of the objective function.
 
@@ -155,96 +203,79 @@ println("Optimized solution: x = ", solution)
 println("Minimum value found: ", minimum_value)
 ```
 
-## Gradient-Free Optimization
+
+### Gradient-Free Optimization
 
 This category includes algorithms that do not rely on gradients or derivative information. They often explore the objective function using heuristics or other types of probes to guide the search.
 
-### Linear optimization
+#### Bracketing Methods
 
-Linear optimization, also known as linear programming (LP), is a mathematical method for finding the best outcome in a mathematical model with linear relationships. It involves optimizing a linear objective function subject to a set of linear equality and inequality constraints. Linear programming has a wide range of applications across various fields, including operations research, economics, engineering, and logistics.
 
-We will use linear optimization to solve the following problem, with $n$ the number of elements in $b$:
-
-\begin{align*}
-    \max_{x} \quad c \cdot x
-    \text{Subject to} x \geq 0 \\
-    A_i \cdot x \leq b_i \quad \forall i \in n
-\end{align*}
+A bracketed search algorithm is a technique used in optimization and numerical methods to confine or "bracket" a minimum or maximum of a function within a specified interval. The primary goal is to reduce the search space systematically until a satisfactory solution or range containing the optimal value is found.
 
 ```{julia}
-using JuMP, GLPK, LinearAlgebra
+function bisection_method(f, a, b; tol=1e-6, max_iter=100)
+    """
+    Bisection method to find a root of the function f(x) within the interval [a, b].
 
-# Define the objective coefficients
-c = [1.0, 2.0, 3.0]
-# Define the constraint matrix (A) and right-hand side (b)
-A = [1.0 1.0 0.0;
-    0.0 1.0 1.0]
-b = [10.0, 20.0]
-# Create a JuMP model
-linear_model = Model(GLPK.Optimizer)
-# Define decision variables
-@variable(linear_model, x[1:3] >= 0)
-# Define objective function
-@objective(linear_model, Max, dot(c, x))
-# Add constraints
-@constraint(linear_model, constr[i=1:2], dot(A[i, :], x) <= b[i])
-# Solve the optimization problem
-optimize!(linear_model)
+    Parameters:
+    - f: Function to find the root of.
+    - a, b: Initial interval [a, b] where the root is expected to be.
+    - tol: Tolerance for the root (default is 1e-6).
+    - max_iter: Maximum number of iterations allowed (default is 100).
+
+    Returns:
+    - root: Approximate root found within the tolerance.
+    - iterations: Number of iterations taken to converge.
+    """
+    fa = f(a)
+    fb = f(b)
+    if fa * fb > 0
+        error("The function values at the endpoints must have opposite signs.")
+    end
+    iterations = 0
+    while (b - a) / 2 > tol && iterations < max_iter
+        c = (a + b) / 2
+        fc = f(c)
+        if fc == 0
+            return c, iterations
+        end
+        if fa * fc < 0
+            b = c
+            fb = fc
+        else
+            a = c
+            fa = fc
+        end
+        iterations += 1
+    end
+    root = (a + b) / 2
+    return root, iterations
+end
+
+# Define the function we want to find the root of
+function f(x)
+    return x^3 - 6x^2 + 11x - 6.1
+end
+
+# Initial interval [a, b] and tolerance
+a = 0.5
+b = 10
+tolerance = 1e-6
+# Apply the bisection method
+root, iterations = bisection_method(f, a, b, tol=tolerance)
 
 # Print results
-println("Objective value: ", objective_value(linear_model))
-println("Optimal solution:")
-for i in 1:3
-    println("\tx[$i] = ", value(x[i]))
-end
+println("Approximate root: ", root)
+println("Iterations taken: ", iterations)
+println("Function value at root: ", f(root))
 ```
 
-### Integer programming
+A popular practical algorithm is called Brent's Method, which uses additional heuristics to accelerate the optimization routhine in most cases.
 
-Integer Programming (IP) is a type of optimization problem where some or all of the variables are restricted to be integers. Although the problem definition seems similar to an LP, the complexity of solving an IP hugely increases as the solution space is not continuous but discrete.
+#### Other Non-Linear Optimization Techniques
 
-Let us use IP to solve this problem. A factory produces two types of products x₁ and x₂ with the following details:
-
-\begin{align*}
-    \max_{x} 40 \cdot x_1 + 50 \cdot x_2
-    \text{Subject to} x_1 and x_2 are integers \\
-    4 \cdot x_1 + 3 \cdot x_2 \le 200 (labor)
-    x_1 + 2 \cdot x_2 \le 40 (material)
-\end{align*}
-
-```{julia}
-# Import necessary packages
-using JuMP, GLPK
-
-# Create a model with the GLPK solver
-model = Model(GLPK.Optimizer)
-
-# Define decision variables (x₁ and x₂ are integers)
-@variable(model, x₁ >= 0, Int)
-@variable(model, x₂ >= 0, Int)
-
-# Define the objective function (maximize profit)
-@objective(model, Max, 40 * x₁ + 50 * x₂)
-
-# Add constraints
-@constraint(model, 4x₁ + 3x₂ <= 200)  # Labor constraint
-@constraint(model, x₁ + 4x₂ <= 40)   # Material constraint
-
-# Solve the model
-optimize!(model)
-
-# Check the solution status
-if termination_status(model) == MOI.OPTIMAL
-    println("Optimal solution found!")
-    println("x₁ (Product x₁ units): ", value(x₁))
-    println("x₂ (Product x₂ units): ", value(x₂))
-    println("Maximum Profit: ", objective_value(model))
-else
-    println("No optimal solution found.")
-end
-```
-
-### Nelder-Mead simplex method
+##### Nelder-Mead simplex method
 
 The Nelder-Mead simplex method is a popular optimization algorithm used for minimizing (or maximizing) nonlinear functions that are not necessarily differentiable. It’s particularly useful when gradient-based methods cannot be applied. It is often used in low-dimensional problems due to its simplicity and robustness. We will use the Rosenbrock function which can be useful in certain portfolio optimization problem to illustrate the process.
 
@@ -271,7 +302,7 @@ println("Optimal Point: ", optimal_point)
 println("Minimum Value: ", minimum_value)
 ```
 
-### Simulated annealing
+##### Simulated annealing
 
 Simulated Annealing (SA) is a probabilistic optimization technique inspired by the annealing process in metallurgy. It is used to find near-optimal solutions to optimization problems, particularly in cases where traditional gradient-based methods may get stuck in local minima/maxima. SA accepts worse solutions with a certain probability, allowing it to explore the search space more broadly initially and then gradually narrow down towards better solutions as it progresses. In this section the Rastrigin function is used to illustrate the process. The function can be useful for asset modeling.
 
@@ -352,7 +383,7 @@ println("Best Solution: ", best_solution)
 println("Best Value (Minimum): ", best_value)
 ```
 
-### Particle swarm optimization (PSO)
+##### Particle swarm optimization (PSO)
 
 Particle swarm optimization is a metaheuristic optimization algorithm inspired by the social behavior of birds flocking or fish schooling. It is used to solve optimization problems by iteratively improving a candidate solution based on the velocity and position of particles (potential solutions) in the search space. The PSO algorithm differs from other methods in a key way, that instead of updating a single candidate solution at each iteration, we update a population (set) of candidate solutions, called a swarm. Each candidate solution is the swarm is called a particle. We think of a swarm as an apparently disorganized population of moving individuals that tend to cluster together while each individual seems to be moving in a random direction. The POS algorithm aims to mimic the social behavior of animals and insects.
 
@@ -438,7 +469,7 @@ axislegend(ax)
 fig
 ```
 
-### Evolutionary algorithm
+##### Evolutionary Algorithm
 
 An evolutionary algorithm (EA) is a family of optimization algorithms inspired by the principles of biological evolution. They are particularly useful for solving complex optimization problems where traditional gradient-based methods may struggle due to non-linearity, multimodality, or high dimensionality of the search space.
 
@@ -553,7 +584,7 @@ println("Best Solution: ", best_solution)
 println("Best Value (Minimum): ", best_value)
 ```
 
-### Bayesian optimization
+##### Bayesian optimization
 
 Bayesian Optimization (BO) is a powerful technique for global optimization of expensive-to-evaluate black-box functions. It leverages probabilistic models to predict the objective function's behavior across the search space and uses these models to make informed decisions about where to evaluate the function next. This approach efficiently balances exploration (searching for promising regions) and exploitation (exploiting regions likely to yield optimal values), making it particularly suitable for optimization problems where function evaluations are costly, such as tuning hyperparameters of machine learning models or optimizing parameters of complex simulations.
 
@@ -595,81 +626,109 @@ best_x, best_value = bayesian_optimization(objective, (-5.0, 5.0), 10)
 println("Best x found: $best_x, Best value: $best_value")
 ```
 
-### Bracketed search algorithm
+While gradient-free methods help optimize complex non-linear or noisy functions, some financial and operational problems are best modeled with linear relationships. The next section shows how to set up such problems, including constraints, using linear and integer programming.
 
-A bracketed search algorithm is a technique used in optimization and numerical methods to confine or "bracket" a minimum or maximum of a function within a specified interval. The primary goal is to reduce the search space systematically until a satisfactory solution or range containing the optimal value is found.
+### Linear optimization
+
+Linear optimization, also known as linear programming (LP), is a mathematical method for finding the best outcome in a mathematical model with linear relationships. It involves optimizing a linear objective function subject to a set of linear equality and inequality constraints. Linear programming has a wide range of applications across various fields, including operations research, economics, engineering, and logistics.
+
+We will use linear optimization to solve the following problem, with $n$ the number of elements in $b$:
+
+\begin{align*}
+    \max_{x} \quad c \cdot x
+    \text{Subject to} x \geq 0 \\
+    A_i \cdot x \leq b_i \quad \forall i \in n
+\end{align*}
 
 ```{julia}
-function bisection_method(f, a, b; tol=1e-6, max_iter=100)
-    """
-    Bisection method to find a root of the function f(x) within the interval [a, b].
+using JuMP, GLPK, LinearAlgebra
 
-    Parameters:
-    - f: Function to find the root of.
-    - a, b: Initial interval [a, b] where the root is expected to be.
-    - tol: Tolerance for the root (default is 1e-6).
-    - max_iter: Maximum number of iterations allowed (default is 100).
-
-    Returns:
-    - root: Approximate root found within the tolerance.
-    - iterations: Number of iterations taken to converge.
-    """
-    fa = f(a)
-    fb = f(b)
-    if fa * fb > 0
-        error("The function values at the endpoints must have opposite signs.")
-    end
-    iterations = 0
-    while (b - a) / 2 > tol && iterations < max_iter
-        c = (a + b) / 2
-        fc = f(c)
-        if fc == 0
-            return c, iterations
-        end
-        if fa * fc < 0
-            b = c
-            fb = fc
-        else
-            a = c
-            fa = fc
-        end
-        iterations += 1
-    end
-    root = (a + b) / 2
-    return root, iterations
-end
-
-# Define the function we want to find the root of
-function f(x)
-    return x^3 - 6x^2 + 11x - 6.1
-end
-
-# Initial interval [a, b] and tolerance
-a = 0.5
-b = 10
-tolerance = 1e-6
-# Apply the bisection method
-root, iterations = bisection_method(f, a, b, tol=tolerance)
+# Define the objective coefficients
+c = [1.0, 2.0, 3.0]
+# Define the constraint matrix (A) and right-hand side (b)
+A = [1.0 1.0 0.0;
+    0.0 1.0 1.0]
+b = [10.0, 20.0]
+# Create a JuMP model
+linear_model = Model(GLPK.Optimizer)
+# Define decision variables
+@variable(linear_model, x[1:3] >= 0)
+# Define objective function
+@objective(linear_model, Max, dot(c, x))
+# Add constraints
+@constraint(linear_model, constr[i=1:2], dot(A[i, :], x) <= b[i])
+# Solve the optimization problem
+optimize!(linear_model)
 
 # Print results
-println("Approximate root: ", root)
-println("Iterations taken: ", iterations)
-println("Function value at root: ", f(root))
+println("Objective value: ", objective_value(linear_model))
+println("Optimal solution:")
+for i in 1:3
+    println("\tx[$i] = ", value(x[i]))
+end
 ```
 
-## Modeling fitting
+#### Integer programming
+
+Integer Programming (IP) is a type of optimization problem where some or all of the variables are restricted to be integers. Although the problem definition seems similar to an LP, the complexity of solving an IP hugely increases as the solution space is not continuous but discrete.
+
+Let us use IP to solve this problem. A factory produces two types of products x₁ and x₂ with the following details:
+
+\begin{align*}
+    \max_{x} 40 \cdot x_1 + 50 \cdot x_2
+    \text{Subject to} x_1 and x_2 are integers \\
+    4 \cdot x_1 + 3 \cdot x_2 \le 200 (labor)
+    x_1 + 2 \cdot x_2 \le 40 (material)
+\end{align*}
+
+```{julia}
+# Import necessary packages
+using JuMP, GLPK
+
+# Create a model with the GLPK solver
+model = Model(GLPK.Optimizer)
+
+# Define decision variables (x₁ and x₂ are integers)
+@variable(model, x₁ >= 0, Int)
+@variable(model, x₂ >= 0, Int)
+
+# Define the objective function (maximize profit)
+@objective(model, Max, 40 * x₁ + 50 * x₂)
+
+# Add constraints
+@constraint(model, 4x₁ + 3x₂ <= 200)  # Labor constraint
+@constraint(model, x₁ + 4x₂ <= 40)   # Material constraint
+
+# Solve the model
+optimize!(model)
+
+# Check the solution status
+if termination_status(model) == MOI.OPTIMAL
+    println("Optimal solution found!")
+    println("x₁ (Product x₁ units): ", value(x₁))
+    println("x₂ (Product x₂ units): ", value(x₂))
+    println("Maximum Profit: ", objective_value(model))
+else
+    println("No optimal solution found.")
+end
+```
+
+
+## Example: Modeling fitting
 
 In model fitting, the "best fitting curve" refers to the curve or function that best describes the relationship between the independent and dependent variables in the data. The goal of model fitting is to find the parameters of the chosen curve or function that minimize the difference between the observed data points and the values predicted by the model.
 
 The process of finding the best fitting curve typically involves:
 
-- Choosing a model: Based on the nature of the data and the underlying relationship between the variables, a suitable model or family of models are selected.
+-   Choosing a model: Based on the nature of the data and the underlying relationship between the variables, a suitable model or family of models are selected.
 
-- Estimating parameters: Using the chosen model, one estimates the parameters that best describe the relationship between the variables. This is often done using optimization techniques such as least squares regression, maximum likelihood estimation, or Bayesian inference.
+-   Estimating parameters: Using the chosen model, one estimates the parameters that best describe the relationship between the variables. This is often done using optimization techniques such as least squares regression, maximum likelihood estimation, or Bayesian inference.
 
-- Evaluating the fit: Once the parameters are estimated, one evaluates the goodness of fit of the model by comparing the predicted values to the observed data. Common metrics for evaluating fit, or error functions, include the residual sum of squares, the coefficient of determination (R-squared), and visual inspection of the residuals.
+-   Evaluating the fit: Once the parameters are estimated, one evaluates the goodness of fit of the model by comparing the predicted values to the observed data. Common metrics for evaluating fit, or error functions, include the residual sum of squares, the coefficient of determination (R-squared), and visual inspection of the residuals.
 
-- Iterating if necessary: If the fit is not satisfactory, one may need to iterate on the model or consider alternative models until you find a satisfactory fit to the data.
+-   Iterating if necessary: If the fit is not satisfactory, one may need to iterate on the model or consider alternative models until you find a satisfactory fit to the data.
+
+While we have shown general approaches like BFGS or gradient‐free schemes, libraries such as LsqFit wrap these concepts into convenient functions. Under the hood, these packages may employ gradient‐based methods (including automatic differentiation) to refine parameters. Below is a demonstration:
 
 ```{julia}
 using LsqFit, CairoMakie
@@ -693,3 +752,9 @@ scatter!(x_data, y_data, label="Data")
 lines!(x_data, y_fit, label="Fitted Curve", linestyle=:dash, color=:red)
 fig
 ```
+
+## More Resources
+
+The textbook "Algorithms For Optimization" (by Kochenderfer And Wheeler) is a comprehensive introduction to optimization and uses Julia for it's examples.
+
+In Julia, [Optimization.jl](https://github.com/SciML/Optimization.jl) provides a unified front-end for all kinds of general optimization problems. [JuMP.jl](https://jump.dev) provides a unified front-end in a specialized optimization mini-domain specific language.
