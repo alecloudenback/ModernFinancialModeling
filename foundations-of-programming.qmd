@@ -398,19 +398,19 @@ Additional range in the positive direction if one chooses to use "unsigned", non
 
 Excel's numeric storage and routine is complex and not quite the same as most programming languages, which follow the Institute of Electrical and Electronics Engineer's standards (such as the IEEE 754 standard for double precision floating point numbers). Excel uses IEEE for the *computations* but results (and therefore the cells that comprise many calculations interim values) are stored with 15 significant digits of information. In some ways this is the worst of both worlds: having the sometimes unusual (but well-defined) behavior of floating point arithmetic *and* having additional modifications to various steps of a calculation. In general, you can assume that the programming language result (following the IEEE 754 standard) is a better result because there are aspects to the IEEE 754 defines techniques to minimize issues that arise in floating point math. Some of the issues (round-off or truncation) can be amplified instead of minimized with Excel.
 
-In practice, this means that it can be difficult to exactly replicate a calculation in Excel in a progamming language and vice-versa. It's best to try to validate a programming model versus Excel model using very small unit calculations (e.g. a single step or iteration of a routine) instead of an all-in result. You may need to define some tolerance threshold for comparison of a value that is the result of a long chain of calculation.
+In practice, this means that it can be difficult to exactly replicate a calculation in Excel in a programming language and vice-versa. It's best to try to validate a programming model versus Excel model using very small unit calculations (e.g. a single step or iteration of a routine) instead of an all-in result. You may need to define some tolerance threshold for comparison of a value that is the result of a long chain of calculation.
 :::
 
 ::: callout-tip
 ## Currencies and Decimals
 
-Note that floating point numbers should **not** be used in storing transaction records! The intricacies of floating point math described above to not lend itself to accurate record-keeping, since with operations like `0.11 + 0.12` don't precisely equal `0.23`
+Due to the inherent imprecision with floating point numbers, they should **not** be used in storing financial transaction records! The trade-offs inherent floating point math described above to not lend itself to accurate record-keeping. For example, in looking at summing up two products sold for $19.99 and $84.99, since floating point operations like `19.99 + 84.99` do not precisely equal `105.98`. 
 
 ```{julia}
 BigFloat(0.11 + 0.12)
 ```
 
-As you can see, if we were adding US Dollar cents here, we would have destroyed a fraction of a penny. Do that for millions of transactions in a day and you have a problem!
+See how the prior is slightly lower than `105.98` — if we were adding US Dollars here, our system would be off by fractions of a cent. Do that for millions of transactions in a day and you have a problem!
 
 Generally, when doing *modeling* or even creating a *valuation model*, it's okay to use floating point math. As an example, if you are trying to determine the value of an exotic option, your model is likely just fine outputting a value like `101.987087` . If you go and sell this option, you'll have to settle for either `101.98` or `101.99` when booking it. In most contexts this imprecision is likely okay!
 
