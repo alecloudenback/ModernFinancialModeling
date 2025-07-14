@@ -137,7 +137,7 @@ end
 ```{julia}
 1 > 0
 1 == 1 # check for equality
-Float64 isa Rational
+1.0 isa Float64
 (5 > 0) & (-1 < 2) # "and" expression
 (5 > 0) | (-1 > 2) # "or" expression
 1 != 2
@@ -263,6 +263,14 @@ If we tried to re-assign `PHI`, we would get an error.
 
 ::: callout-warning
 Note that if we declare a `const` variable that refers to a mutable container like an array, the container can still be mutated. It's the reference to the container that remains constant, not necessarily the elements within the container.
+
+For example, while `MY_ARRAY` will point always to the same array, the array itself can get mutated
+
+```{julia}
+const MY_ARRAY = [1,2]
+MY_ARRAY[1] = 99
+MY_ARRAY
+```
 :::
 
 ### Loops
@@ -845,14 +853,20 @@ end
 ::: callout-note
 Can we define the `struct`s above without indicating a (parametric) type? Yes!
 
-``` julia
-struct Point
+```{julia}
+struct PointUntyped
     x # no type here!
     y # no type declared here either!
 end
 ```
 
-But! `x` and `y` will both be allowed to be `Any`, which is the fallback type where Julia says that it doesn't know any more about the type until runtime (the time at which our program encounters the data when running). This means that the compiler (and us!) can't reason about or optimize the code as effectively as when the types are explicit or parametric. This is an example of how Julia can provide a nice learning curve - don't worry about the types until you start to get more sophisticated about the program design or need to extract more performance from the code.
+But! `x` and `y` will both be allowed to be `Any`, which is the fallback type where Julia says that it doesn't know any more about the type until runtime (the time at which our program encounters the data when running). Observe that the type of `x` and `y` here is `Any`:
+
+```{julia}
+fieldtypes(PointUntyped)
+```
+
+This means that the compiler (and us!) can't reason about or optimize the code as effectively as when the types are explicit or parametric. This is an example of how Julia can provide a nice learning curve - don't worry about the types until you start to get more sophisticated about the program design or need to extract more performance from the code.
 :::
 
 The above `struct`s that we have defined are examples of **concrete types** types which hold data. **Abstract types** don't directly hold data themselves but are used to define a hierarchy of types which we will later exploit (@sec-patterns-abstractions) to implement custom behavior depending on what type our data is.
@@ -1280,7 +1294,7 @@ v = [1, 2, 3]
 
 function double!(v)
     for i in eachindex(v)
-        v[1] = 2 * v[i]
+        v[i] = 2 * v[i]
     end
 end
 
