@@ -8,7 +8,6 @@ Pkg.activate("env/scenario")
 Pkg.instantiate()
 ```
 
-
 *Yun-Tien Lee and Alec Loudenback*
 
 > "Scenarios are the rehearsal of possible futures. They are not predictions, but pathways that help us prepare for the unknown." — Peter Schwartz
@@ -21,25 +20,39 @@ How to generate synthetic data for your model using sub-models, with application
 
 Modern computers utilize pseudo-random number generators (PRNGs) to generate random-like numbers. PRNGs are algorithms used to generate sequences of numbers that appear to be random but are actually determined by an initial value, known as the seed. These generators are called "pseudo-random" because the sequences they produce are deterministic; if you provide the same seed, you'll get the same sequence of numbers. In addition, they have a finite period, which means that after a certain number of generated values, the sequence will repeat. It's important to choose or design PRNGs with a long enough period for practical applications.
 
-Financial modelers should understand how PRNGs work because many financial models rely on Monte Carlo simulations, risk analysis, and other stochastic modeling techniques that require random sampling. A good PRNG is essential for robust financial modeling. Choosing the right PRNG ensures accurate, reproducible, and unbiased results with efficiency, which is critical when making financial decisions. The ability to specify and control the seed of a random number generator is a fundamental requirement in computational modeling, as it enables exact reproducibility of results. By using a fixed seed, simulations can be rerun with identical random sequences, allowing researchers and stakeholders to verify outcomes, conduct consistent sensitivity analyses, and perform rigorous debugging. This reproducibility is critical for transparency, auditability, and compliance with regulatory standards in fields such as quantitative finance, risk management, and scientific computing. Without a seedable PRNG, the inherent randomness of simulations would preclude the possibility of replicating results precisely, undermining confidence in the validity and reliability of the modeling process.
+Financial modelers should understand how PRNGs work because many financial models rely on Monte Carlo simulations, risk analysis, and other stochastic modeling techniques that require random sampling. A good PRNG is essential for robust financial modeling. Choosing the right PRNG ensures results with high statistical quality and efficiency, which is critical when making financial decisions. The ability to specify and control the seed of a random number generator is a fundamental requirement in computational modeling, as it enables exact reproducibility of results. By using a fixed seed, simulations can be rerun with identical random sequences, allowing researchers and stakeholders to verify outcomes, conduct consistent sensitivity analyses, and perform rigorous debugging. This reproducibility is critical for transparency, auditability, and compliance with regulatory standards in fields such as quantitative finance, risk management, and scientific computing. Without a seedable PRNG, the inherent randomness of simulations would preclude the possibility of replicating results precisely, undermining confidence in the validity and reliability of the modeling process.
 
-Different choices of random number generators typically have a low impact on the mean outputs of stochastic models, since most generators are designed to approximate uniform distributions adequately over short horizons. However, they can have a substantial effect on risk measures such as standard deviation, Value-at-Risk (VaR), and tail quantiles, particularly when the PRNG has a short period or exhibits hidden correlations. In such cases, the variability and uncertainty estimates around risk measures can be severely biased or understated, leading to misleading conclusions about the model’s risk profile. For this reason, it is essential to rerun the stochastic model multiple times with different seeds — or even different PRNGs — to test the stability and convergence of the estimated risk measures and to ensure that the results are robust to the choice of random number source.
+Different choices of random number generators typically have a low impact on the mean outputs of stochastic models, since most generators are designed to approximate uniform distributions adequately. However, they can have a substantial effect on risk measures such as standard deviation, Value-at-Risk (VaR), and tail quantiles, particularly when the PRNG has a short period or exhibits hidden correlations. In such cases, the variability and uncertainty estimates around risk measures can be severely biased or understated, leading to misleading conclusions about the model’s risk profile. For this reason, it is essential to rerun the stochastic model multiple times with different seeds—or even different PRNGs—to test the stability and convergence of the estimated risk measures and ensure that the results are robust to the choice of random number source.
 
 ### Common PRNGs
 
 #### Mersenne Twister
 
-One of the strengths of the Mersenne Twister is its exceptionally long period. The period is $2^(19937) - 1$, which means it can generate $2^(19937) - 1$ pseudo-random numbers before repeating. This long period is crucial for applications requiring a large number of independent random numbers. It is also known for its good statistical properties. It passes many standard tests for randomness and provides a relatively uniform distribution of random numbers. Moreover, it is designed to allow multiple independent instances to be used concurrently without interfering with each other. Although there are faster generators for specific use cases, the Mersenne Twister is still often favored for its balance between speed and quality, and has been one of the recommended PRNGs for financial modeling purposes.
+For many years, the Mersenne Twister was a standard and highly recommended PRNG for financial modeling purposes. One of its greatest strengths is its exceptionally long period of \(2^{19937} - 1\), which is crucial for applications requiring a large number of independent random numbers. It is also known for its good statistical properties, passing many standard tests for randomness. Moreover, it was designed with features for creating multiple streams, though ensuring their statistical independence in parallel applications requires careful management.
 
 #### Xorshift
 
-Xorshift is a family of PRNGs known for their simplicity and relatively fast operation. The name "xorshift" comes from the bitwise XOR (exclusive or) and bit-shifting operations that are the core of the algorithm. Xorshift generators are often used in applications where speed is a priority and cryptographic-strength randomness is not a strict requirement. Xorshift PRNGs use bitwise XOR, left shifts, and right shifts to update the internal state and generate pseudo-random numbers. The basic idea is to repeatedly apply these operations to the state to produce a sequence of numbers. The period of a typical xorshift generator is relatively short compared to some other PRNGs like the Mersenne Twister. However, there are variations of xorshift algorithms that can have longer periods. One of the main advantages of xorshift is its simplicity and speed. The bitwise XOR and bit-shifting operations can be efficiently implemented in hardware, making xorshift generators suitable for applications where fast random number generation is crucial.
+Xorshift is a family of PRNGs known for their simplicity and extremely fast operation. The name "xorshift" comes from the bitwise XOR (exclusive or) and bit-shifting operations that are the core of the algorithm. Xorshift generators are often used in applications where speed is a priority and cryptographic-strength randomness is not a strict requirement. One of the main advantages of xorshift is that its core operations can be efficiently implemented in hardware. However, a typical xorshift generator has a relatively short period compared to the Mersenne Twister.
 
 #### Xoshiro
 
-Xoshiro is a family of PRNGs known for their high performance and good statistical properties. The name "Xoshiro" is derived from the Japanese word "xoroshiro," meaning "random." Xoshiro algorithms, including Xoshiro256** — which represents a robust advancement over earlier Xoshiro variants — use a combination of bitwise XOR, bit-shifting, and addition operations. They often have more complex update rules than basic Xorshift algorithms. In addition, they typically have longer periods, making them suitable for applications that require more pseudo-random numbers before repetition.
+Xoshiro is a family of high-performance PRNGs with excellent statistical properties. The name "Xoshiro" is a portmanteau of the core operations it uses: **XO**R, **SHI**FT, and **RO**TATE. Xoshiro algorithms, including the highly-regarded **Xoshiro256++** variant, use a combination of bitwise XOR, bit-shifting, and addition/rotation operations. They generally have more complex update rules and longer periods than basic Xorshift algorithms.
 
-When selecting a set of seeds at random to initialize multiple instances of the Mersenne Twister generator, there is a significant likelihood of producing streams that are statistically correlated in parallel computations. This arises because the seeding mechanism does not sufficiently decorrelate the internal states across different instances, particularly when seeds are closely spaced or drawn without careful design. Consequently, the outputs may exhibit unintended dependencies, which can bias simulation results or compromise the reliability of risk estimates. In contrast, generators such as Xoshiro256**, offer markedly improved suitability for parallel environments, with carefully managed seeding methodologies such as counter based approaches. Carefully designed Xoshiro256** provides better statistical properties, longer periods, and more reliable stream independence, whether or not the seeds are explicitly fixed, thereby reducing the risk of inadvertent correlations and enhancing the reproducibility and accuracy of large-scale stochastic modeling.
+When selecting seeds at random to initialize multiple instances of the Mersenne Twister generator, there is a significant likelihood of producing streams that are statistically correlated in parallel computations. This arises because the default seeding mechanism may not sufficiently de-correlate the internal states across different instances. In contrast, generators such as Xoshiro256++ offer markedly improved suitability for parallel environments, with carefully managed methodologies for ensuring stream independence.
+
+#### Comparing PRNGs
+
+| Generator | Typical Period | Relative Speed | Parallel Safety |
+| :--- | :--- | :--- | :--- |
+| Mersenne Twister | Very Long (\(2^{19937}-1\)) | Good | Poor (risk of correlation) |
+| Xorshift | Shorter | Very Fast | Poor (not designed for it) |
+| Xoshiro256++ | Very Long (\(2^{256}-1\)) | Excellent | Excellent (designed for it) |
+
+:::callout-note
+Since Julia 1.7, the default random number generator for the language has been **Xoshiro256++**, which replaced an implementation of Mersenne Twister. 
+
+Importantly, Julia's implementation of Xoshiro256++ is thread safe (meaning you can use the RNG in multiple threads without losing RNG quality). 
+:::
 
 ### Consistent Interface
 
@@ -71,27 +84,35 @@ rand(Bool, (2, 3))
 Scenario generators are widely used in risk management, investment analysis, and regulatory compliance to model potential future outcomes. If the goal is forecasting actual market behavior, real world scenarios (RW) are commonly used. If, on the other hand, pricing financial instruments is needed, risk neutral (RN) scenarios are often used.
 
 ### Risk management, especially Value at Risk (VaR) & Expected Shortfall (ES).
+
 RW scenario generators are used to simulate market movements to estimate potential portfolio losses. Basel III regulatory capital requirements have adopted these approaches.
 
 ### Stress Testing & Regulatory Compliance
+
 RW scenario generators can also be used to generate extreme but plausible market conditions to assess resilience, which is required by central banks and financial regulators (e.g., Federal Reserve and ECB).
 
 ### Portfolio Optimization & Asset Allocation
+
 RW scenario generators are used to simulate thousands of market conditions to determine optimal portfolio allocations which is commonly used in modern portfolio theory (MPT) and Black-Litterman models.
 
 ### Pension & Insurance Risk Modeling
+
 RW scenario generators can be used to simulate longevity risk, policyholder behavior, and interest rate movements. They are also used for economic capital estimation under uncertain economic scenarios.
 
 ### Economic & Macro-Financial Forecasting
+
 Central banks and institutions (e.g., IMF, World Bank) use RW scenario generators to predict macroeconomic trends.
 
 ### Asset Pricing & Hedging
+
 RN scenario generators help value options using stochastic models (e.g., Black-Scholes, Heston model). They can help simulate future stock price movements under different volatility conditions. They can also be used for hedging purposes to test how a portfolio performs under different inflation, interest rate, or commodity price scenarios.
 
 ### Fixed Income & Interest Rate Modeling
+
 Yield curve modeling uses RN scenarios to value bonds and interest rate derivatives. Swaps, swaptions, and credit default swaps (CDS) also rely on RN pricing. RN scenario generators can also simulate yield curves for bond and fixed-income pricing. Models like Cox-Ingersoll-Ross (CIR) or Hull-White generate future interest rate paths.
 
 ### Regulatory & Accounting Valuations
+
 IFRS 13 & fair value accounting uses RN models determine the market-consistent value of liabilities. Solvency II for insurers asks valuation of policyholder guarantees using RN scenarios.
 
 ## Common Economic Scenario Generation Approaches
@@ -110,11 +131,11 @@ $$
 
 where
 
-- $r(t)$ is the short-term interest rate at time $t$.
-- $κ$ is the speed of mean reversion, representing how quickly the interest rate reverts to its long-term mean.
-- $θ$ is the long-term mean or equilibrium level of the interest rate.
-- $σ$ is the volatility of the interest rate.
-- $dW(t)$ is a Wiener process or Brownian motion, representing a random shock.
+-   $r(t)$ is the short-term interest rate at time $t$.
+-   $κ$ is the speed of mean reversion, representing how quickly the interest rate reverts to its long-term mean.
+-   $θ$ is the long-term mean or equilibrium level of the interest rate.
+-   $σ$ is the volatility of the interest rate.
+-   $dW(t)$ is a Wiener process or Brownian motion, representing a random shock.
 
 And CIR is defined as
 
@@ -124,11 +145,11 @@ $$
 
 where
 
-- $r(t)$ is the short-term interest rate at time $t$.
-- $κ$ is the speed of mean reversion, representing how quickly the interest rate reverts to its long-term mean.
-- $θ$ is the long-term mean or equilibrium level of the interest rate.
-- $σ$ is the volatility of the interest rate.
-- $dW(t)$ is a Wiener process or Brownian motion, representing a random shock.
+-   $r(t)$ is the short-term interest rate at time $t$.
+-   $κ$ is the speed of mean reversion, representing how quickly the interest rate reverts to its long-term mean.
+-   $θ$ is the long-term mean or equilibrium level of the interest rate.
+-   $σ$ is the volatility of the interest rate.
+-   $dW(t)$ is a Wiener process or Brownian motion, representing a random shock.
 
 The following code shows a simplified implementation of a CIR model. The specification of $dr$ can be changed to make it a Vasicek model.
 
@@ -191,11 +212,11 @@ $$
 
 where
 
-- $r(t)$ is the short-term interest rate at time $t$.
-- $θ$ is the long-term mean or equilibrium level of the interest rate.
-- $a$ is the speed of mean reversion.
-- $σ(t)$ is the time-dependent volatility of the interest rate.
-- $dW(t)$ is a Wiener process or Brownian motion, representing a random shock.
+-   $r(t)$ is the short-term interest rate at time $t$.
+-   $θ$ is the long-term mean or equilibrium level of the interest rate.
+-   $a$ is the speed of mean reversion.
+-   $σ(t)$ is the time-dependent volatility of the interest rate.
+-   $dW(t)$ is a Wiener process or Brownian motion, representing a random shock.
 
 ```{julia}
 using Random, CairoMakie
@@ -253,11 +274,10 @@ $$
 
 where
 
-- $S(t)$ is the stock price at time $t$.
-- $μ$ is the drift coefficient (expected return).
-- $σ$ is the volatility coefficient.
-- $dW(t)$ is a Wiener process or Brownian motion, representing a random shock.
-
+-   $S(t)$ is the stock price at time $t$.
+-   $μ$ is the drift coefficient (expected return).
+-   $σ$ is the volatility coefficient.
+-   $dW(t)$ is a Wiener process or Brownian motion, representing a random shock.
 
 ```{julia}
 using Random, CairoMakie
@@ -318,10 +338,10 @@ $$
 r_t = \varepsilon_t \sqrt{\sigma^2_t}
 $$
 
-- $σ^2_t$ is the conditional variance at time $t$
-- $r_t$ is the return at time $t$
-- $\varepsilon_t$ is a white noise or innovation process
-- $\omega$, $\alpha_1$, $\beta_1$ are model parameters
+-   $σ^2_t$ is the conditional variance at time $t$
+-   $r_t$ is the return at time $t$
+-   $\varepsilon_t$ is a white noise or innovation process
+-   $\omega$, $\alpha_1$, $\beta_1$ are model parameters
 
 ```{julia}
 using Random, CairoMakie
