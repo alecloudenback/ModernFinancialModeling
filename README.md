@@ -1,4 +1,4 @@
-# Computational Thinking for Actuaries and Financial Professionals
+# Modern Financial Modeling: Concepts and Applications for Actuaries and Other Financial Professionals
 
 ## Rendering the Book
 
