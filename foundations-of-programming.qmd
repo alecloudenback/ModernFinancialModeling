@@ -116,6 +116,20 @@ z = (x = 1; y = 2; x + y)
 
 Compound expressions allow you to group multiple operations together while still having the entire block evaluate to a single value, typically the last expression. This makes it easy to use complex logic anywhere a value is needed, like in function arguments or assignments.
 
+`let` blocks define variables within its scope and cannot be accessed outside thats scope. More on scope in @sec-scope.
+```{julia}
+#| error: true
+c = let
+    g = 3
+    h = 4
+    g + h
+end
+
+@show c
+@show g
+```
+
+
 #### Conditional Expressions
 
 **Conditionals** are expressions that evaluate to a **boolean** `true` or `false`. This is the beginning of really being able to assemble complex logic to perform useful work. Here are a handful expressions that would evaluate to `true`:
@@ -123,7 +137,7 @@ Compound expressions allow you to group multiple operations together while still
 ```{julia}
 1 > 0
 1 == 1 # check for equality
-Float64 isa Rational
+1.0 isa Float64
 (5 > 0) & (-1 < 2) # "and" expression
 (5 > 0) | (-1 > 2) # "or" expression
 1 != 2
@@ -249,6 +263,14 @@ If we tried to re-assign `PHI`, we would get an error.
 
 ::: callout-warning
 Note that if we declare a `const` variable that refers to a mutable container like an array, the container can still be mutated. It's the reference to the container that remains constant, not necessarily the elements within the container.
+
+For example, while `MY_ARRAY` will point always to the same array, the array itself can get mutated
+
+```{julia}
+const MY_ARRAY = [1,2]
+MY_ARRAY[1] = 99
+MY_ARRAY
+```
 :::
 
 ### Loops
@@ -398,19 +420,19 @@ Additional range in the positive direction if one chooses to use "unsigned", non
 
 Excel's numeric storage and routine is complex and not quite the same as most programming languages, which follow the Institute of Electrical and Electronics Engineer's standards (such as the IEEE 754 standard for double precision floating point numbers). Excel uses IEEE for the *computations* but results (and therefore the cells that comprise many calculations interim values) are stored with 15 significant digits of information. In some ways this is the worst of both worlds: having the sometimes unusual (but well-defined) behavior of floating point arithmetic *and* having additional modifications to various steps of a calculation. In general, you can assume that the programming language result (following the IEEE 754 standard) is a better result because there are aspects to the IEEE 754 defines techniques to minimize issues that arise in floating point math. Some of the issues (round-off or truncation) can be amplified instead of minimized with Excel.
 
-In practice, this means that it can be difficult to exactly replicate a calculation in Excel in a progamming language and vice-versa. It's best to try to validate a programming model versus Excel model using very small unit calculations (e.g. a single step or iteration of a routine) instead of an all-in result. You may need to define some tolerance threshold for comparison of a value that is the result of a long chain of calculation.
+In practice, this means that it can be difficult to exactly replicate a calculation in Excel in a programming language and vice-versa. It's best to try to validate a programming model versus Excel model using very small unit calculations (e.g. a single step or iteration of a routine) instead of an all-in result. You may need to define some tolerance threshold for comparison of a value that is the result of a long chain of calculation.
 :::
 
 ::: callout-tip
 ## Currencies and Decimals
 
-Note that floating point numbers should **not** be used in storing transaction records! The intricacies of floating point math described above to not lend itself to accurate record-keeping, since with operations like `0.11 + 0.12` don't precisely equal `0.23`
+Due to the inherent imprecision with floating point numbers, they should **not** be used in storing financial transaction records! The trade-offs inherent floating point math described above to not lend itself to accurate record-keeping. For example, in looking at summing up two products sold for $19.99 and $84.99, since floating point operations like `19.99 + 84.99` do not precisely equal `105.98`. 
 
 ```{julia}
 BigFloat(0.11 + 0.12)
 ```
 
-As you can see, if we were adding US Dollar cents here, we would have destroyed a fraction of a penny. Do that for millions of transactions in a day and you have a problem!
+See how the prior is slightly lower than `105.98` — if we were adding US Dollars here, our system would be off by fractions of a cent. Do that for millions of transactions in a day and you have a problem!
 
 Generally, when doing *modeling* or even creating a *valuation model*, it's okay to use floating point math. As an example, if you are trying to determine the value of an exotic option, your model is likely just fine outputting a value like `101.987087` . If you go and sell this option, you'll have to settle for either `101.98` or `101.99` when booking it. In most contexts this imprecision is likely okay!
 
@@ -593,6 +615,7 @@ Specify the number of values within the range, inclusive of the first number[^fo
 [^foundations-of-programming-12]: Whether the last number is in the resulting range depends on if the step evenly divides the end of the range.
 
 ```{julia}
+# range(start, stop, length)
 range(0, 10, 21)
 ```
 
@@ -830,14 +853,20 @@ end
 ::: callout-note
 Can we define the `struct`s above without indicating a (parametric) type? Yes!
 
-``` julia
-struct Point
+```{julia}
+struct PointUntyped
     x # no type here!
     y # no type declared here either!
 end
 ```
 
-But! `x` and `y` will both be allowed to be `Any`, which is the fallback type where Julia says that it doesn't know any more about the type until runtime (the time at which our program encounters the data when running). This means that the compiler (and us!) can't reason about or optimize the code as effectively as when the types are explicit or parametric. This is an example of how Julia can provide a nice learning curve - don't worry about the types until you start to get more sophisticated about the program design or need to extract more performance from the code.
+But! `x` and `y` will both be allowed to be `Any`, which is the fallback type where Julia says that it doesn't know any more about the type until runtime (the time at which our program encounters the data when running). Observe that the type of `x` and `y` here is `Any`:
+
+```{julia}
+fieldtypes(PointUntyped)
+```
+
+This means that the compiler (and us!) can't reason about or optimize the code as effectively as when the types are explicit or parametric. This is an example of how Julia can provide a nice learning curve - don't worry about the types until you start to get more sophisticated about the program design or need to extract more performance from the code.
 :::
 
 The above `struct`s that we have defined are examples of **concrete types** types which hold data. **Abstract types** don't directly hold data themselves but are used to define a hierarchy of types which we will later exploit (@sec-patterns-abstractions) to implement custom behavior depending on what type our data is.
@@ -1265,7 +1294,7 @@ v = [1, 2, 3]
 
 function double!(v)
     for i in eachindex(v)
-        v[1] = 2 * v[i]
+        v[i] = 2 * v[i]
     end
 end
 
