@@ -1,0 +1,645 @@
+# Auto-differentiation and Asset Liability Management (AAD & ALM)
+
+*Alec Loudenback*
+
+```{julia}
+#| echo: false
+#| output: false
+using Pkg
+Pkg.activate("env/autodiff_ALM")
+Pkg.instantiate()
+```
+
+
+Asset liability modeling requires computing derivatives of portfolio values with respect to yield curve changes. Traditional approaches use finite difference methods or analytical approximations, but automatic differentiation ("autodiff" or "AD") provides exact derivatives with minimal additional computation. This post demonstrates how to implement ALM workflows using autodiff in Julia.
+
+```{julia}
+using FinanceCore              # provides Cashflow object
+using DifferentiationInterface # autodiff 
+import ForwardDiff             # specific autodiff technique
+using CairoMakie               # plotting
+using DataInterpolations       # yield curve interpolation
+using Transducers              # data aggregation
+using JuMP, HiGHS              # portfolio optimization
+using LinearAlgebra            # math
+using BenchmarkTools           # benchmarking
+using OhMyThreads              # multi-threading
+```
+
+## Interest Rate Curve Setup
+
+We start by constructing a yield curve using cubic spline interpolation:
+
+The `curve` function creates a discount factor curve from zero rates and time points. This curve will serve as input to our `value` function, which makes it straightforward to compute sensitivities by differentiating with respect to the rate parameters.
+
+```{julia}
+
+zeros = [0.01, 0.02, 0.02, 0.03, 0.05, 0.055] #continuous
+
+times = [1., 2., 3., 5., 10., 20.]
+
+function curve(zeros, times)
+    DataInterpolations.CubicSpline([1.0; exp.(-zeros .* times)], [0.; times])
+end
+
+c = curve(zeros, times)
+```
+
+## Asset Valuation Framework
+
+The core valuation function operates on any instrument that produces cashflows:
+
+```{julia}
+function value(curve, asset)
+    cfs = asset(curve)
+    mapreduce(cf -> cf.amount * curve(cf.time), +, cfs)
+end
+```
+
+This design separates the valuation logic from the instrument definition. Each asset type implements a callable interface that generates cashflows given a yield curve. Note how the asset itself gets passed the curve (the `asset(curve)` statement) to determine the cashflows.
+
+For fixed bonds, we create a structure that generates periodic coupon payments:
+
+```{julia}
+#| output: false
+struct FixedBond{A,B,C}
+    coupon::A
+    tenor::B
+    periodicity::C
+end
+function (b::FixedBond)(curve)
+    map(1//b.periodicity:1//b.periodicity:b.tenor) do t
+        Cashflow(b.coupon / b.periodicity + (t == b.tenor ? 1. : 0.), t)
+    end
+end
+
+function par_yield(curve, tenor, periodicity)
+    dfs = curve.(1//periodicity:1//periodicity:tenor)
+
+    (1 - last(dfs)) / sum(dfs) * periodicity
+end
+```
+
+The `(b::FixedBond)(curve)` function (sometimes called a 'functor', since we are using the `b` object itself as the function invocation) takes the curve and returns an array of `Cashflow`s. 
+
+:::callout-note
+`Cashflow` objects are part of the [JuliaActuary suite](https://juliaactuary.org/packages). This allows the cashflows to be tied with the exact timepoint that they occur, rather than needing a bunch of logic to pre-determine a timestep (annual, quarterly, etc.) for which cashflows would get bucketed. This is more efficient in many cases and much simpler code.
+:::
+
+The `par_yield` function computes the coupon rate that prices the bond at par, which we'll use to construct our asset universe.
+
+Here's an example of bond cashflows and valuing that bond using the curve `c` that we constructed earlier.
+
+```{julia}
+FixedBond(0.08, 10, 2)(c)
+```
+
+```{julia}
+value(c, FixedBond(0.09, 10, 2))
+```
+
+## Liability Modeling
+
+Deferred annuities require more complex modeling than fixed bonds due to policyholder behavior (optionality). The surrender rate depends on the difference between market rates and the guaranteed rate. The surrender function chosen below is arbitrary, but follows a typical pattern with much higher surrenders if the market rate on competing instruments is higher than what's currently available. The account value accumulates at the guaranteed rate, and surrenders create negative cashflows representing benefit payments. Lastly, the `annuities` function is a wrapper function we will use to compute the portfolio value and ALM metrics later.
+
+```{julia}
+begin
+    struct DeferredAnnuity{A,B}
+        tenor::A
+        rate::B
+    end
+
+    function (d::DeferredAnnuity)(curve)
+        av = 1.
+        map(1//12:1//12:d.tenor) do t
+            mkt_rate = -log(curve(d.tenor) / curve(t)) / (d.tenor - t)
+            av *= exp(d.rate / 12)
+            rate_diff = mkt_rate - d.rate
+            sr = t == d.tenor ? 1.0 : surrender_rate(rate_diff) / 12
+            av_surr = av * sr
+            av -= av_surr
+            Cashflow(-av_surr, t)
+
+        end
+    end
+
+    function surrender_rate(rate_diff)
+        1 / (1 + exp(3 - rate_diff * 60))
+    end
+    function annuities(rates, portfolio)
+        times = [1., 2., 3., 5., 10., 20.]
+
+        c = curve(rates, times)
+
+        # threaded map-reduce for more speed
+        OhMyThreads.tmapreduce(+, 1:length(portfolio); ntasks=Threads.nthreads()) do i
+            value(c, portfolio[i])
+        end
+        # mapreduce(l -> value(c,l),+,portfolio)
+    end
+
+end
+```
+
+Here's what the surrender rate behavior looks like for different levels of market rates compared to the a 3% crediting rate.
+
+```{julia}
+let
+    cred_rate = 0.03
+    mkt_rates = 0.005:0.001:0.08
+    rate_diff = mkt_rates .- cred_rate
+
+    lines(rate_diff, surrender_rate.(rate_diff),
+        axis=(
+            title="Surrender rate by difference to market rate",
+            xlabel="Rate Difference",
+            ylabel="Annual Surrender Rate"
+        ))
+end
+
+```
+
+
+We model a large portfolio of these annuities with random tenors:
+
+```{julia}
+liabilities = map(1:100_000) do i
+    tenor = rand(1:20)
+    DeferredAnnuity(tenor, par_yield(c, tenor, 12))
+end
+```
+
+::: {.callout-note collapse="true"}
+## Consolidating Cashflows
+
+Later on we will generate vectors of vectors of cashflows without any guarantee that the timepoints will line up, making aggregating cashflows by timepoints a non-obvious task. There are many ways to accomplish this, but [I like Transducers](https://juliaactuary.github.io/FinanceModels.jl/dev/faq/#Why-does-the-package-rely-on-using-Transducers?). 
+
+Transducers are unfamiliar to many people, and don't let the presence deter you from the main points of this post. The details aren't central to the point of this blog post so just skip over if confusing.
+
+```{julia}
+function consolidate(cashflows)
+
+    cashflows |> # take the collection
+    MapCat(identity) |> # flatten it out without changing elements
+    # group by the time, and just keep and sum the amounts 
+    GroupBy(x -> x.time, Map(last) ⨟ Map(x -> x.amount), +) |>
+    foldxl(Transducers.right) # perform the aggregation and keep the final grouped result
+end
+```
+
+Example:
+
+```{julia}
+cashflow_vectors = [l(c) for l in liabilities]
+```
+
+And running `consolidate` groups the cashflows into `timepoint => amount` pairs.
+
+```{julia}
+consolidate(cashflow_vectors)
+```
+:::
+
+Here's a visualization of the liability cashflows, showing that when the interest rates are bumped up slightly, that there is more surrenders that occur earlier on (so there's fewer policies around at the time of each maturity). Negative cashflows are outflows:
+
+
+```{julia}
+let
+    d = consolidate([p(c) for p in liabilities])
+    ks = collect(keys(d)) |> sort!
+    vs = [d[k] for k in ks]
+
+    c2 = curve(zeros .+ 0.005, times)
+    d2 = consolidate([p(c2) for p in liabilities])
+    ks2 = collect(keys(d2)) |> sort!
+    vs2 = [d2[k] for k in ks2]
+
+    f = Figure(size = (900, 600))
+    ax = Axis(f[1, 1], 
+        xlabel = "Time (Years)",
+        ylabel = "Cashflow Amount (cumulative)",
+        title = "Cumulative Liability Cashflows: Base vs +50bp Rate Shock",
+    )
+
+    lines!(ax, ks, cumsum(vs), label = "Base Scenario")
+
+    lines!(ax, ks2, cumsum(vs2), label = "+50bp Rate Shock")
+
+    axislegend(ax, position = :rb)
+
+    f
+end
+
+```
+
+In the upwards shaped yield curve, without a surrender charge or market value adjustment, many mid-to-late-duration policyholders elect to surrender instead of hold to maturity.
+
+## Computing Derivatives with Autodiff
+
+Rather than approximating derivatives through finite differences, autodiff computes exact values, gradients, and Hessians. The concepts and background are covered in @sec-autodiff.
+
+The `value_gradient_and_hessian` function returns the present value, key rate durations (gradient), and convexities (Hessian diagonal) for the entire liability portfolio. We compute similar derivatives for each potential asset.
+
+```{julia}
+vgh_liab = let
+    value_gradient_and_hessian(z -> annuities(z, liabilities), AutoForwardDiff(), zeros)
+end
+```
+
+### Gradients and Hessians in ALM
+
+Let's dive into the results here a little bit.
+
+The first element of `vgh_liab` is the value of the liability portfolio using the yield curve constructed earlier:
+
+```{julia}
+vgh_liab[1]
+```
+
+The second element of `vgh_liab` is the partial derivative with respect to each of the inputs (here, just the `zeros` rates that dictate the curve). The sum of the partials is the effective duration of the liabilities. 
+
+```{julia}
+@show sum(vgh_liab[2])
+vgh_liab[2]
+```
+
+This is the sensitivity relative to a full unit change in rates (e.g. `1.0`). So if we wanted to estimate the dollar impact of a 50bps change, we would take `0.005` times the gradient/hessian. Also note these are 'dollar durations' but we could divide by the price to get `effective` or percentage durations:
+
+```{julia}
+-sum(vgh_liab[2]) / vgh_liab[1]
+```
+
+
+Additionally, note that this is the dynamic duration of the liabilities, not the static duration which ignores the effect of the interest-sensitive behavior of the liabilities.
+
+```{julia}
+let 
+    dynamic(zeros) = value(curve(zeros,times),liabilities[1])
+    cfs = liabilities[1](c)
+    static(zeros) = let
+        c = curve(zeros,times)
+        # note that `cfs` are defined outside of the function, so 
+        # will not change as the curve is sensitized
+        mapreduce(cf -> c(cf.time) * cf.amount,+,cfs)
+    end
+
+    @show gradient(dynamic,AutoForwardDiff(),zeros) |> sum
+    @show gradient(static,AutoForwardDiff(),zeros) |> sum
+end
+```
+
+Due to the steepness of the surrender function, the policy exiting sooner, on average, results in a higher change in value than if the policy was not sensitive to the change in rates. The increase in value from earlier cashflows outweighs the greater discount rate.
+
+The third element of `vgh_liab` is the Hessian matrix, containing all second partial derivatives with respect to the yield curve inputs:
+
+```{julia}
+vgh_liab[3]
+```
+
+This matrix captures the convexity characteristics of the liability portfolio. The diagonal elements represent "key rate convexities"—how much the duration at each key rate changes as that specific rate moves:
+
+```{julia}
+@show diag(vgh_liab[3])
+@show sum(diag(vgh_liab[3]))  # Total dollar convexity
+```
+
+Like duration, we can convert dollar convexity to percentage convexity by dividing by the portfolio value:
+
+```{julia}
+sum(diag(vgh_liab[3])) / vgh_liab[1]
+```
+
+The off-diagonal elements show cross-convexities—how the sensitivity to one key rate changes when a different key rate moves. For most portfolios, these cross-terms are smaller than the diagonal terms but can be significant for complex instruments.
+
+This convexity measurement is also dynamic, capturing how the surrender behavior changes the second-order interest rate sensitivity:
+
+```{julia}
+let 
+    dynamic(zeros) = value(curve(zeros,times),liabilities[1])
+    cfs = liabilities[1](c)
+    static(zeros) = let
+        c = curve(zeros,times)
+        mapreduce(cf -> c(cf.time) * cf.amount,+,cfs)
+    end
+
+    @show hessian(dynamic,AutoForwardDiff(),zeros) |> diag |> sum
+    @show hessian(static,AutoForwardDiff(),zeros) |> diag |> sum
+end
+```
+
+The dynamic convexity differs from static convexity because the surrender function creates path-dependent behavior. As rates change, not only do the discount factors change, but the timing and magnitude of cashflows shift as well. This interaction between discount rate changes and cashflow timing changes produces the additional convexity captured in the dynamic measurement. Note how the convexity is larger in the dynamic case.
+
+For ALM purposes, this convexity information helps quantify how well a duration-matched hedge will perform under large rate movements.
+
+
+## Optimizing an Asset Portfolio
+
+### Define Asset Universe
+
+We will create a set of par bonds and select a portfolio of assets that matches the liabilities, subject to duration and KRD constraints:
+
+
+```{julia}
+asset_universe = [
+	FixedBond(par_yield(c,t,4),t,4)
+	for t in 1:20
+]
+```
+
+And we capture the measures for each of the available assets for the portfolio selection:
+
+```{julia}
+vgh_assets= [value_gradient_and_hessian(x->value(curve(x,times),a),AutoForwardDiff(), zeros) for a in asset_universe]
+
+```
+
+
+### Optimization Routine
+
+This optimization function uses functionality from [JuMP](https://jump.dev), a robust optimization library in Julia.
+
+With derivatives available, we can optimize the asset portfolio to match liability characteristics.The optimization maximizes asset yield while constraining the difference between asset and liability key rate durations. This ensures that small yield curve movements don't create large changes in surplus.
+
+```{julia}
+function optimize_portfolio(assets, vgh_assets, liabs, vgh_liabs, constraints)
+    n = length(assets)
+
+    # Create model
+    model = Model(HiGHS.Optimizer)
+    set_silent(model)  # Suppress solver output
+
+    # Decision variables: weight vector w
+    @variable(model, w[1:n])
+
+    @constraint(model, w .>= 0)  # Long-only constraint
+    # Budget/asset value constraint
+    budget_sum = sum(w .* [a[1] for a in vgh_assets]) + vgh_liabs[1]
+    @constraint(model, budget_sum <= 1e2)
+    @constraint(model, budget_sum >= -1e2)
+
+    # Objective: Maximize total yield
+    @objective(model, Max, sum(w[i] * assets[i].coupon for i in 1:n))
+
+    # Gradient component (krd) constraints
+    for j in 1:length(vgh_liabs[2])
+        gradient_sum = sum(w[i] * vgh_assets[i][2][j] for i in 1:n) - sum(vgh_liabs[2][j])
+
+        @constraint(model, gradient_sum >= constraints[:krd][:lower])
+        @constraint(model, gradient_sum <= constraints[:krd][:upper])
+    end
+
+    # total duration constraint 
+    duration_gap = sum(w[i] * sum(vgh_assets[i][2]) for i in 1:n) + sum(vgh_liabs[2])
+    @constraint(model, duration_gap <= constraints[:krd][:upper])
+    @constraint(model, duration_gap >= constraints[:krd][:lower])
+
+    # Solve
+    optimize!(model)
+
+    # Return results
+    if termination_status(model) == MOI.OPTIMAL
+        return (
+            status=:optimal,
+            weights=JuMP.value.(w),
+            objective_value=objective_value(model),
+        )
+    else
+        return (status=termination_status(model), weights=nothing)
+    end
+end
+
+
+# Define gradient constraints
+constraints = Dict(
+    :krd => Dict(:lower => -0.35e6, :upper => 0.35e6),
+    :duration => Dict(:lower => -0.05e6, :upper => 0.05e6)
+)
+
+# Optimize
+result = optimize_portfolio(asset_universe, vgh_assets, liabilities, vgh_liab, constraints)
+
+```
+
+### Results
+
+The optimization produces asset weights that hedge the liability portfolio. We can visualize both the resulting cashflow patterns and the key rate duration matching:
+
+```{julia}
+
+let
+    d = consolidate([p(c) for p in liabilities])
+    ks = collect(keys(d)) |> sort!
+    vs = -cumsum([d[k] for k in ks])
+
+    f = Figure(size = (900, 600))
+    ax = Axis(f[1, 1], 
+        xlabel = "Time (Years)",
+        ylabel = "Cashflow Amount (cumulative)",
+        title = "Cumulative Asset vs Liability Cashflows",
+    )
+
+    lines!(ax, ks, vs, label = "Liabilities")
+
+
+    asset_cfs = map(1:length(asset_universe)) do i
+        cfs =
+            result.weights[i] * asset_universe[i](c)
+    end
+
+    d = consolidate(asset_cfs)
+    ks2 = collect(keys(d)) |> sort!
+    vs2 = cumsum([d[k] for k in ks2])
+    lines!(ax, ks2, vs2, label = "Assets")
+
+    axislegend(ax, position = :rb)
+
+    f
+end    
+
+
+
+```
+
+
+
+```{julia}
+let
+    asset_krds = sum(getindex.(vgh_assets,2) .* result.weights)
+    liab_krds = -vgh_liab[2]
+
+    f = Figure(size = (800, 500))
+    ax = Axis(f[1, 1], 
+        xlabel = "Tenor (Years)",
+        ylabel = "Key Rate Dollar Duration",
+        title = "Asset vs Liability Key Rate Dollar Duration Profile",
+    )
+    
+    scatter!(ax, times, asset_krds, label = "Optimized Assets")
+    
+    scatter!(ax, times, liab_krds, label = "Liabilities")
+    
+    axislegend(ax, position = :rt)
+    
+    f
+end
+```
+
+The first plot shows the distribution of asset cashflows over time. The second compares the key rate duration profiles of the optimized asset portfolio and the liability portfolio, demonstrating how well the hedge performs across different points on the yield curve.
+
+
+## Computational Benefits
+
+Autodiff provides several advantages over traditional finite difference approaches:
+
+- Exact derivatives rather than approximations
+- Single function evaluation computes value and all derivatives
+- No tuning of step sizes or dealing with numerical artifacts
+- Scales efficiently to high-dimensional parameter spaces
+
+For ALM applications, this means more accurate risk measurement and the ability to optimize portfolios with complex constraints that would be computationally expensive using traditional methods.
+
+Here, we value 100,000 interest-sensitive policies with a monthly timestep for up to 20 years *and* compute 1st and 2nd order partial sensitives extremely quickly:
+
+```{julia}
+@btime value_gradient_and_hessian(z -> annuities(z, liabilities), AutoForwardDiff(), zeros)
+```
+
+However, there's still some performance left on the table! the `(d::DeferredAnnuity)(curve)` function defined above is not type stable. In the appendix to this post, we'll cover a way to improve the performance even more.
+
+## Conclusion
+
+The Julia ecosystem supports this workflow through packages like `DifferentiationInterface` for autodiff, `JuMP` for optimization, and `FinanceCore` for financial mathematics. This combination enables sophisticated ALM implementations that are both mathematically precise and computationally efficient.
+
+
+## Appendix: Even more performance (Advanced)
+
+Julia is fastest when all functions are type stable (i.e. the return type can be inferred at compile time). Looking back at the function defined above, the issue is that the `av` function is defined outside of the scope used within the `map` block. This means that the compiler can't be sure that `av` won't be modified while being used within the `map`. Therefore, `av` get's 'boxed' and held as an `Any` type. This type uncertainty propagates to the value returned from the `(d::DeferredAnnuity)(curve)` function:
+
+```julia
+function (d::DeferredAnnuity)(curve)
+    av = 1. 
+    map(1//12:1//12:d.tenor) do t
+        mkt_rate = -log(curve(d.tenor) / curve(t)) / (d.tenor - t)
+        av *= exp(d.rate / 12)
+        rate_diff = mkt_rate - d.rate
+        sr = t == d.tenor ? 1.0 : surrender_rate(rate_diff) / 12
+        av_surr = av * sr
+        av -= av_surr
+        Cashflow(-av_surr, t)
+    end
+end
+```
+
+An alterative would be to write a `for` loop and initialize an array to hold the cashflows. The challenge with that is to concretely define the output type of the resulting array. Particularly when combine with AD, the types within the program are no longer basic floats and integers, as we have dual numbers and more complex types running through our functions. 
+
+
+To maintain most of the simplicity, an alternative approach[^zulip] is to use small, immutable containers from [MicroCollections.jl](https://juliahub.com/ui/Packages/General/MicroCollections) and combine them with [BangBang.jl](https://juliahub.com/ui/Packages/General/BangBang). Then, instead of using `map` we will write a regular loop. The macro `@unroll` is defined to unroll the first `N` iterations of the loop. This means that the macro transforms the source code to explicitly write out the first two loops. An example of this might be as follows where two iterations of the loop are unrolled.
+
+```julia
+function basic_loop()
+    out = []
+    for i ∈ 1:10
+        push!(out,i)
+    end
+    out
+end
+
+function partially_unrolled_loop()
+    out = []
+    push!(out,1)
+    push!(out,2) # two steps unrolled
+    for i ∈ 3:10
+        push!(out,i)
+    end
+    out
+end
+```
+
+
+Here's the macro that does this (expand to see the full definition):
+
+::: {.callout-note collapse="true"}
+## `@unroll` macro
+
+```{julia}
+"""
+    @unroll N for_loop
+
+Unroll the first `N` iterations of a for loop, with remaining iterations handled by a regular loop.
+
+This macro takes a for loop and explicitly expands the first `N` iterations, which can improve 
+performance and type stability, particularly when building collections where the first few 
+iterations determine the container's type.
+
+# Arguments
+- `N::Int`: Number of loop iterations to unroll (must be a compile-time constant)
+- `for_loop`: A standard for loop expression
+
+"""
+macro unroll(N::Int, loop)
+    Base.isexpr(loop, :for) || error("only works on for loops")
+    Base.isexpr(loop.args[1], :(=)) || error("This loop pattern isn't supported")
+    val, itr = esc.(loop.args[1].args)
+    body = esc(loop.args[2])
+    @gensym loopend
+    label = :(@label $loopend)
+    goto = :(@goto $loopend)
+    out = Expr(:block, :(itr = $itr), :(next = iterate(itr)))
+    unrolled = map(1:N) do _
+        quote
+            isnothing(next) && @goto loopend
+            $val, state = next
+            $body
+            next = iterate(itr, state)
+        end
+    end
+    append!(out.args, unrolled)
+    remainder = quote
+        while !isnothing(next)
+            $val, state = next
+            $body
+            next = iterate(itr, state)
+        end
+        @label loopend
+    end
+    push!(out.args, remainder)
+    out
+end
+```
+:::
+
+
+Then, we re-write and redefine `(d::DeferredAnnuity)(curve)` to utilize this technique. 
+
+```{julia}
+using BangBang, MicroCollections
+
+function (d::DeferredAnnuity)(curve)
+    times = 1//12:1//12:d.tenor
+    out = UndefVector{Union{}}(length(times)) # 1
+    av = 1.0
+    @unroll 2 for (i, t) ∈ enumerate(times) # 2
+        mkt_rate = -log(curve(d.tenor) / curve(t)) / (d.tenor - t)
+        av *= exp(d.rate / 12)
+        rate_diff = mkt_rate - d.rate
+        sr = t == d.tenor ? 1.0 : surrender_rate(rate_diff) / 12
+        av_surr = av * sr
+        av -= av_surr
+        cf = Cashflow(-av_surr, t)
+        out = setindex!!(out, cf, i) # 3
+    end
+    out
+end;
+```
+
+1. We tell the `out` vector how many elements to expect
+2. We unroll two iterations of the loop so that the compiler can use the calculated result to determine the type of the output container.
+3. We use `setindex!!` from BangBang to efficiently update the output vector and it's type.
+
+Using this technique, we can see that we achieve a significant speedup (less than half the runtime) from the earlier version due to improving the type stability of the code:
+
+```{julia}
+@btime value_gradient_and_hessian(z -> annuities(z, liabilities), AutoForwardDiff(), zeros)
+```
+
+[^zulip]: With thanks to the helpful persons on the Julia Zulip and in particular Mason Protter for this approach. 
