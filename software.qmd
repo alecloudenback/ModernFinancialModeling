@@ -4,7 +4,7 @@
 
 > “Programs must be written for people to read, and only incidentally for machines to execute.” — Harold Abelson and Gerald Jay Sussman (Structure and Interpretations of Computer Programs, 1984)
 
-## In this section
+## Chapter Overview
 
 Modern software engineering practices such as version control, testing, documentation, and pipelines which makes modeling more robust and automated. Data practices and workflow advice.
 
@@ -334,6 +334,17 @@ Each snapshot, or **commit**, stores references to the files that have changed[^
 [^software-2]: Git uses a content-addressable filesystem, meaning it stores data as key-value pairs. The key is a hash of the content, ensuring data integrity and allowing efficient storage of identical content. For more on hashes, jump to @note-content-hash.
 
 ::: callout-note
+Think of Git as a series of 'save points' in a video game. Each time you reach a milestone, you create a 'commit' - a snapshot of your entire project. If you make a mistake later, you can always reload a previous save point. 'Branches' are like alternate timelines, allowing you to experiment with new features without affecting your main saved game.
+:::
+
+Hashes indicate a verifiable snapshot of a codebase. For example, a full commit ID (a hash)`40f141303cec3d58879c493988b71c4e56d79b90` will *always* refer to a certain snapshot of the code, and if there is a mismatch in the git history between the contents of the repository and the commit's hash then the git repository is corrupted and it will not function. A corrupted repository usually doesn't happen in practice, of course! You might see hashes shortened to the last several characters (e.g. `6d79b90`) and in the following examples we'll shorten the hypothetical hashes to just three characters (e.g. `b90`).
+
+A codebase can be **branched**, meaning that two different version of the same codebase can be tracked and switched between. Git lends itself to many different workflows, but a common one is to designate a primary branch (call it `main`) and make modifications in a new, separate branch. This allows for non-linear and controlled changes to occur without potentially tainting the `main` branch. It's common practice to always have the `main` branch be a 'working' version of the code that can always 'run' for users, while branches contain works-in-progress or piecemeal changes that temporarily make the project unable to run.
+
+The commit history forms a directed acyclic graph (DAG) representing the project's history. That is, there is an order to the history: the second commit is dependent on the first commit. From the second commit, two child commits may be created which both have the second commit as their parent. Each one of this commits represents a stored snapshot of the project at the time of the commit.
+
+
+::: callout-note
 A directory structure demonstrating where git data is stored and what content is tracked after initializing a repository in the `tracked-project` directory. Note how `untracked folder` is not the parent directory of the `.git` directory so it does not get tracked by Git.
 
 ```         
@@ -358,11 +369,6 @@ A directory structure demonstrating where git data is stored and what content is
 Under the hood, the Git data stored inside the `.git/` include things such as binary blobs, trees, commits, and tags. Blobs store file contents, trees represent directories, commits point to trees and parent commits, and tags provide human-readable names for specific commits. This structure allows Git to efficiently handle branching, merging, and maintaining project history.
 :::
 
-Hashes indicate a verifiable snapshot of a codebase. For example, a full commit ID (a hash)`40f141303cec3d58879c493988b71c4e56d79b90` will *always* refer to a certain snapshot of the code, and if there is a mismatch in the git history between the contents of the repository and the commit's hash then the git repository is corrupted and it will not function. A corrupted repository usually doesn't happen in practice, of course! You might see hashes shortened to the last several characters (e.g. `6d79b90`) and in the following examples we'll shorten the hypothetical hashes to just three characters (e.g. `b90`).
-
-A codebase can be **branched**, meaning that two different version of the same codebase can be tracked and switched between. Git lends itself to many different workflows, but a common one is to designate a primary branch (call it `main`) and make modifications in a new, separate branch. This allows for non-linear and controlled changes to occur without potentially tainting the `main` branch. It's common practice to always have the `main` branch be a 'working' version of the code that can always 'run' for users, while branches contain works-in-progress or piecemeal changes that temporarily make the project unable to run.
-
-The commit history forms a directed acyclic graph (DAG) representing the project's history. That is, there is an order to the history: the second commit is dependent on the first commit. From the second commit, two child commits may be created which both have the second commit as their parent. Each one of this commits represents a stored snapshot of the project at the time of the commit.
 
 @tbl-git-workflow shows an example workflow for trying to fix an erroneous function `present_value` which was written as part of a hypothetical `FileXYZ.jl` file. This example is trivial, but in a larger project where a 'fix' or 'enhancement' may span many files and take several days or weeks to implement this type of workflow becomes like a superpower compared to traditional, manual version control approaches. It sure beats an approach where you end up with filenames like `FileXYZ v23 July 2022 Final.jl`!
 
