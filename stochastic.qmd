@@ -26,7 +26,9 @@ Stochastic modeling is the technique of running many similar scenarios through a
 -   **Scenario Analysis**. Many financial models have a high degree of complexity and interactions between components not well understood *a priori*. Using a set of calibrated or otherwise arbitrary scenarios can illuminate unexpected or interrelated behavior that arises from the model. Sometimes financial assets and liabilities have a path-dependency, meaning that the overall behavior or value is a function of the entire path taken (e.g. an asian option).
 -   **Risk and Capital Analysis**. Whether model parameters are point estimates ("an asset has a $1\%$ probability of default") or distributions ("an asset has a probability of default distributed as $Beta(1,99)$"), stochastic modeling can be utilized to determine projected capital levels for a company or line of business at certain security levels.
 
-The quality of modeled outcomes is closely tied to the scenarios and the model itself. For instance, there have been instances where economic scenario generators, such as the American Academy of Actuaries' Economic Scenario Generator used for US regulated insurance liabilities, produced interest rate paths that were notably higher than those implied by current market conditions. In such cases, if labeling the 99th-percentile scenario as "extreme" needs care would need to be taken to appropriately describe what exactly is meant by that label. Additionally, it's important for modelers to be aware of any potential limitations or areas for improvement in the model's behavior when interpreting results.
+The reliability of modeled outcomes is fundamentally dependent on the quality of both the underlying scenarios and the model framework itself. For example, the 2008 American Academy of Actuaries' Economic Scenario Generator, which has served as the predominant tool for US regulated insurance liabilities, has demonstrated limitations in its calibration. Specifically, the generator has historically produced interest rate paths that diverge significantly from market-implied forward rates, often skewing toward higher values [@strommen2022low]. In such instances, characterizing outputs at the 99th percentile as representing "extreme" scenarios would be methodologically inappropriate, as the baseline calibration already embeds an upward bias relative to market expectations[^stochastic-2].
+
+[^stochastic-2]: It should be noted that the as of mid-2025, the NAIC undertaking a comprehensive project to replace this economic scenario generator, recognizing the need for enhanced modeling capabilities.
 
 Recall the kinds of uncertainties in @tbl-uncertainties - stochastic modeling implementations often mechanically only address the aleatory (process) volatility component of outcome uncertainty. Through techniques like developing a posterior distribution for model parameters (\@sec-bayes-rule) we can also explicitly attempt to model epistemic (parameter) uncertainty as well.
 
@@ -105,9 +107,9 @@ With these fundamental concepts in mind, we can now explore specific types of st
 
 #### Input Ensemble
 
-In this approach, you first generate many sets of random inputs (scenarios) and then run the same model repeatedly—one run per scenario[^stochastic-2]:
+In this approach, you first generate many sets of random inputs (scenarios) and then run the same model repeatedly—one run per scenario[^stochastic-3]:
 
-[^stochastic-2]: An extended example of this approach is discussed in @sec-scenario-generation.
+[^stochastic-3]: An extended example of this approach is discussed in @sec-scenario-generation.
 
 -   **Interest Rate Scenarios for Bond Portfolios**\
     Generate thousands of yield-curve scenarios (e.g., parallel shifts, twists) to test how a bond portfolio might perform over time. By averaging the results over all simulations, you can estimate the portfolio’s expected return or risk metrics.
@@ -119,9 +121,9 @@ Generally, models programmed in code can easily map across a large number of sto
 
 #### Random State
 
-Here, the model itself “rolls the dice” at each step. Instead of pre-generating input scenarios, the randomness is embedded in the logic that evolves the state over time[^stochastic-3]:
+Here, the model itself “rolls the dice” at each step. Instead of pre-generating input scenarios, the randomness is embedded in the logic that evolves the state over time[^stochastic-4]:
 
-[^stochastic-3]: A worked example of this approach is illustrated in @sec-stochastic-mortality.
+[^stochastic-4]: A worked example of this approach is illustrated in @sec-stochastic-mortality.
 
 -   **Property & Casualty Claims Simulation**\
     In each simulated month, randomly draw the number of claims (from a Poisson or negative binomial distribution), then randomly assign the severity of each claim (often a lognormal or gamma distribution). The insurer’s financial state (reserves, surplus) evolves based on these simulated losses.
@@ -323,9 +325,9 @@ using ActuaryUtilities
 
 let outcomes = rand(1000)
 
-    @show VaR(0.90)(outcomes)
-    @show CTE(0.90)(outcomes)
-    @show WangTransform(0.90)(outcomes)
+    @show VaR(0.9)(outcomes)
+    @show CTE(0.9)(outcomes)
+    @show WangTransform(0.9)(outcomes)
 end
 ```
 
@@ -342,11 +344,12 @@ using CairoMakie
 outcomes = Weibull(1, 5)
 
 
-αs = range(0.00, 0.99; length=100)
+αs = range(0.0, 0.99; length=100)
 
 let
     f = Figure()
-    ax = Axis(f[1, 1],
+    ax = Axis(
+        f[1, 1],
         xlabel="α",
         ylabel="Loss",
         title="Comparison of Risk Measures",
@@ -354,7 +357,8 @@ let
         ygridvisible=false,
     )
 
-    lines!(ax,
+    lines!(
+        ax,
         αs,
         [quantile(outcomes, α) for α in αs],
         label="Quantile α of Outcome",
@@ -362,34 +366,40 @@ let
         linewidth=3,
     )
 
-    lines!(ax,
+    lines!(
+        ax,
         αs,
         [VaR(α)(outcomes) for α in αs],
         label="VaR(α)",
         linestyle=:dash
     )
-    lines!(ax,
+    lines!(
+        ax,
         αs,
         [CTE(α)(outcomes) for α in αs],
         label="CTE(α)",
     )
-    lines!(ax,
+    lines!(
+        ax,
         αs[2:end],
         [WangTransform(α)(outcomes) for α in αs[2:end]],
         label="WangTransform(α)",
     )
-    lines!(ax,
+    lines!(
+        ax,
         αs,
         [ProportionalHazard(2)(outcomes) for α in αs],
         label="ProportionalHazard(2)",
     )
 
-    lines!(ax,
+    lines!(
+        ax,
         αs,
         [DualPower(2)(outcomes) for α in αs],
         label="DualPower(2)",
     )
-    lines!(ax,
+    lines!(
+        ax,
         αs,
         [RiskMeasures.Expectation()(outcomes) for α in αs],
         label="Expectation",
@@ -452,7 +462,7 @@ function simulate_stochastic_solow(T, α, δ, s, n, g, σ, K0, A0)
     A[1] = A0           # Initial productivity
     K[1] = K0           # Initial capital
 
-    for t in 1:T-1
+    for t in 1:(T-1)
         # Apply random productivity shock
         ε_t = rand(rng_gen, shock_distribution)
         A[t+1] = A[t] * exp(ε_t)  # Productivity evolves stochastically

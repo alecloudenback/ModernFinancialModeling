@@ -40,7 +40,7 @@ A "heap allocation" (or simply "allocation") occurs when we create a new variabl
 1.  Allocating memory on the heap takes substantially more time than stack allocated memory to be created.
 2.  Periodically, a **garbage collector** (GC), needs to run to de-allocate (free up) memory on the heap which is no longer used by the program
 
-Execution of code is stopped while the garbage collector runs, so minimising its usage is important.
+Execution of code is stopped while the garbage collector runs, so minimizing its usage is important.
 
 The vast majority of performance tips come down to these two fundamental ideas.
 
@@ -117,7 +117,7 @@ The packages [ProfileView.jl](https://github.com/timholy/ProfileView.jl) and [PP
 Calling `@profview do_work(some_input)` in the integrated Julia REPL will open an interactive flame graph, similar to ProfileView.jl but without requiring a separate package.
 :::
 
-To integrate profile visualisations into environments like Jupyter and Pluto, use [ProfileSVG.jl](https://github.com/kimikage/ProfileSVG.jl) or [ProfileCanvas.jl](https://github.com/pfitzseb/ProfileCanvas.jl), whose outputs can be embedded into a notebook.
+To integrate profile visualizations into environments like Jupyter and Pluto, use [ProfileSVG.jl](https://github.com/kimikage/ProfileSVG.jl) or [ProfileCanvas.jl](https://github.com/pfitzseb/ProfileCanvas.jl), whose outputs can be embedded into a notebook.
 
 No matter which tool you use, if your code is too fast to collect samples, you may need to run it multiple times in a loop.
 
@@ -148,7 +148,7 @@ For a section of code to be considered type stable, the type inferred by the com
 
 While type-stable function calls compile down to fast `GOTO` statements, type-unstable function calls generate code that must read the list of all methods for a given operation and find the one that matches. This phenomenon called "dynamic dispatch" prevents further optimizations.
 
-Type-stability is a contagous thing: if a variable's type cannot be inferred, then the types of variables that depend on it may not be inferrable either. Most code should be type-stable unless it has a good reason not to be.
+Type-stability is a contagious thing: if a variable's type cannot be inferred, then the types of variables that depend on it may not be inferrable either. Most code should be type-stable unless it has a good reason not to be.
 
 ### Detecting Instabilities {#sec-detecting-instabilities}
 
@@ -282,9 +282,9 @@ Starting with Julia 1.12, it is anticipated that there will be a new way to comp
 
 ## Parallelism
 
-Code can be made to run faster through parallel execution with [multithreading](https://docs.julialang.org/en/v1/manual/multi-threading/) (shared-memory parallelism) or [multiprocessing / distributed computing](https://docs.julialang.org/en/v1/manual/distributed-computing/). Parallelism was covered in a whole chapter (@sec-parallelization), but this section provides insight into recommended pacakges and patterns specific to Julia.
+Code can be made to run faster through parallel execution with [multithreading](https://docs.julialang.org/en/v1/manual/multi-threading/) (shared-memory parallelism) or [multiprocessing / distributed computing](https://docs.julialang.org/en/v1/manual/distributed-computing/). Parallelism was covered in a whole chapter (@sec-parallelization), but this section provides insight into recommended packages and patterns specific to Julia.
 
-Many common operations such as maps and reductions can be trivially parallelised through either method by using their respective Julia packages (e.g `pmap` from Distributed.jl and `tmap` from OhMyThreads.jl). Multithreading is available on almost all modern hardware, whereas distributed computing is most useful to users of high-performance computing clusters.
+Many common operations such as maps and reductions can be trivially parallelized through either method by using their respective Julia packages (e.g `pmap` from Distributed.jl and `tmap` from OhMyThreads.jl). Multithreading is available on almost all modern hardware, whereas distributed computing is most useful to users of high-performance computing clusters.
 
 ### Multithreading
 
@@ -302,7 +302,7 @@ Linear algebra code calls the low-level libraries [BLAS](https://en.wikipedia.or
 In this case, once `LinearAlgebra` is loaded, BLAS can be set to use only one thread by calling `BLAS.set_num_threads(1)`. For more information see the docs on [multithreading and linear algebra](https://docs.julialang.org/en/v1/manual/performance-tips/#man-multithreading-linear-algebra).
 :::
 
-Regardless of the number of threads, you can parallelise a for loop with the macro `Threads.@threads`. The macros `@spawn` and `@async` function similarly, but require more manual management of tasks and their results. For this reason `@threads` is recommended for those who do not wish to use third-party packages.
+Regardless of the number of threads, you can parallelize a for loop with the macro `Threads.@threads`. The macros `@spawn` and `@async` function similarly, but require more manual management of tasks and their results. For this reason `@threads` is recommended for those who do not wish to use third-party packages.
 
 When designing multithreaded code, you should generally try to write to shared memory as rarely as possible. Where it cannot be avoided, you need to be careful to avoid "race conditions", i.e. situations when competing threads try to write different things to the same memory location. It is usually a good idea to separate memory accesses with loop indices, as in the example below:
 
@@ -325,7 +325,7 @@ If you're on Linux, you should consider using [ThreadPinning.jl](https://github.
 
 Julia's multiprocessing and distributed relies on the standard library `Distributed`. The main difference with multi-threading is that data isn't shared between worker processes. Once Julia is started, processes can be added with `addprocs`, and their can be queried with `nworkers`.
 
-The macro `Distributed.@distributed` is a *syntactic* equivalent for `Threads.@threads`. Hence, we can use `@distributed` to parallelise a for loop as before, but we have to additionally deal with sharing and recombining the `results` array. We can delegate this responsibility to the standard library `SharedArrays`. However, in order for all workers to know about a function or module, we have to load it `@everywhere`:
+The macro `Distributed.@distributed` is a *syntactic* equivalent for `Threads.@threads`. Hence, we can use `@distributed` to parallelize a for loop as before, but we have to additionally deal with sharing and recombining the `results` array. We can delegate this responsibility to the standard library `SharedArrays`. However, in order for all workers to know about a function or module, we have to load it `@everywhere`:
 
 ```{julia}
 using Distributed
@@ -424,4 +424,4 @@ All but the most obscure data structures can be found in the packages from the [
 
 ### Bits types
 
-When you create custome `struct`s, keeping the fields as simple, concrete types makes it more likely that the compiler will be able to allocate these objects on the stack instead of hte heap. An example of this was shown in @sec-struct-bits.
+When you create custom `struct`s, keeping the fields as simple, concrete types makes it more likely that the compiler will be able to allocate these objects on the stack instead of the heap. An example of this was shown in @sec-struct-bits.
