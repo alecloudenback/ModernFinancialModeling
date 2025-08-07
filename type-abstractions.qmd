@@ -29,7 +29,7 @@ As a preview of why we want to utilize types in our program, there are a number 
 
 1.  **Separate concerns**. For example, deciding how to value an option need not know how we value a bond. The code and associated logic is kept distinct which is easier to reason about and to test.
 2.  **Re-use code**. When a set of types within a hierarchy all share the same logic, then we can define the method at the highest relevant level and avoid writing the method for each possible type. In our simple example we won't get as much benefit here since the hierarchy is simple and the set of types small.
-3.  **Dispatch on type**. By defining types for our assets, we can use multiple dispatch to define specialized behavior for each type. This allows us to write generic code that works with any asset type, and the Julia compiler will automatically select the appropriate method based on the type of the asset at runtime. This is a powerful feature that enables extensibility and modularity in our code.
+3.  **Extensibility through dispatch**. By defining types for our assets, we can use multiple dispatch to define specialized behavior for each type. This allows us to write generic code that works with any asset type, and the Julia compiler will automatically select the appropriate method based on the type of the asset at runtime. This is a powerful feature that enables extensibility and modularity in our code.
 4.  **Improve readability and clarity**. By defining types for our assets, we make our code more expressive and self-documenting. The types provide a clear indication of what kind of data we are working with, making it easier for other developers (or ourselves in the future) to understand and maintain the codebase.
 5.  **Enable type safety**. By specifying the expected types for function arguments and return values, we can catch type-related errors at compile time rather than at runtime. This helps prevent bugs and makes our code more robust.
 
@@ -92,7 +92,7 @@ This is a parametric type because later on we will vary what objects we use for 
 econ_baseline = EconomicAssumptions(0.05)
 ```
 
-Now on to defining the valuation for `Cash` and `AbstractBonds`. Cash is always equal to its balance:
+Now on to defining the valuation for `Cash` and `AbstractBonds`. Cash is always equal to it's balance:
 
 ```{julia}
 
@@ -130,6 +130,7 @@ end
 2.  `value` is defined for `AbstractBond`s in general...
 3.  ... and then more specifically for `ZeroCouponBond`s. This will be explained when discussing "dispatch" below.
 
+
 ### Dispatch
 
 When a function is called, the computer has to decide which method to use. In the example above, when we want to `value` a `ZeroCouponBond`, does the `value(asset::AbstractBond, r)` or `value(bond::ZeroCouponBond, r)` version get used?
@@ -158,9 +159,33 @@ end
 
 With dispatch, the compiler does this lookup for us, and more efficiently than enumerating a list of possible codepaths.
 
-In our "don't do this" definition of `value` above, we used a simple scalar interest rate to determine the rate to discount the cash flows. Note how in the definition of `value` for `ZeroCouponBond`, we have defined a *more specific* signature: both the first and second arguments are specific, concrete types. When we call `value(ZeroCouponBond(100.0,3),0.05)`, we avoid the loop that's defined in the generic case and jump immediate to a more efficient definition of its `value`. This is dispatching on the combination of types and picking the most relevant (specific) version for what has been passed to it.
+In contrast with the prior code example, we didn't have a long chain of `if` statements, and instead are letting the types themselves dictate which functions are relevant and will be called. We provided a generic `value` function for any `AbstractBond` which loops through time, and a specialized one for `ZeroCouponBond`.
 
-Despite the definitions above, the following will error because we haven't defined a method for `value` which takes as its second argument a type of `EconomicAssumptions`:
+We *could* have simply used the generic `AbstractBond` method for the `ZeroCouponBond` as well. To do so, we would only need to define its `cashflow` method:
+
+```julia
+# An alternative, but less efficient, implementation
+function cashflow(bond::ZeroCouponBond, time)
+    # A zero-coupon bond only pays its par value at the very end
+    if time == bond.tenor
+        return bond.par
+    else
+        return 0.0
+    end
+end
+```
+
+With this method, the generic `value` function would have worked correctly, looping from `t=1` to `t=tenor` and finding only a single non-zero cashflow to discount.
+
+However, this is inefficient. We know there is a more direct, closed-form formula to value a zero-coupon bond: $PV = \frac{\text{Par}}{(1+r)^\text{tenor}}$. There's no need to loop through intermediate years where the cashflow is zero.
+
+This is the power of dispatch. By defining a **more specific** method, `value(bond::ZeroCouponBond, r::Float64)`, we are telling Julia: "When you have a `ZeroCouponBond`, use this highly efficient, direct formula. For any *other* kind of `AbstractBond`, you can fall back on the generic looping version." Dispatch ensures that the most specific, and in this case most performant, implementation is automatically chosen. This allows you to build a system that is both general and extensible, while also being highly optimized for the most common and simple cases.
+
+
+#### Integrating Economic Assumptions
+
+
+Despite the definitions above, the following will error because we haven't defined a method for `value` which takes as it's second argument a type of `EconomicAssumptions`:
 
 ``` julia
 #| error: true
@@ -228,7 +253,7 @@ econ_sin = EconomicAssumptions(t -> 0.05 + sin(t) / 100)
 
 Now value will not work, because we've only defined how `value` works on bonds if the given rate is a `Float64` type:
 
-``` julia
+```{julia}
 #| error: true
 value(ZeroCouponBond(100.0, 5), econ_sin)
 ```
@@ -252,13 +277,11 @@ value(ZeroCouponBond(100.0, 5), econ_sin)
 
 The important thing to note here is that the compiler is using the most specific method of the function (`value(bond::ZeroCouponBond, r::T) where {T<:Function}`). Both the types of the arguments are influencing the decision of which method to use. We could go on to define the appropriate method for `CouponBond` to complete the example.
 
-## Objected-Oriented Design {#sec-object-oriented}
+## Object-Oriented Design {#sec-object-oriented}
 
-Object oriented (OO) type systems use the analogy that various parts of the system are their own objects which encapsulate both data and behavior. Object oriented design is often one the first computer programming abstractions introduced because it very relatable[^type-abstractions-1], however there are a number of its flaws in over-relying on OO patterns. Julia does not natively have traditional OO classes and types, but much of OO design can be emulated in Julia except for data inheritance.
+Object oriented (OO) type systems use the analogy that various parts of the system are their own objects which encapsulate both data and behavior. Object oriented design is often one of the first computer programming abstractions introduced because it very relatable[^type-abstractions-1], however there are a number of its flaws in over-relying on OO patterns. Julia does not natively have traditional OO classes and types, but much of OO design can be emulated in Julia except for data inheritance.
 
 [^type-abstractions-1]: "Many people who have no idea how a computer works find the idea of object-oriented programming quite natural. In contrast, many people who have experience with computers initially think there is something strange about object oriented systems.” - David Robson, "Object Oriented Software Systems" in Byte Magazine (1981).
-
-We bring up object oriented design for comparison's sake, but think that ultimately choosing a data driven or functional believe is better for financial modeling. Of course, many robust, well used financial models have been built this way but in our experience the abstractions become unnatural and maintenance unwieldy beyond simple examples. We'll now discuss some of the aspects of OO design and why the overuse of OO is not preferred.
 
 ::: callout-note
 For readers without background in OO programming, the main features of OO languages are:
@@ -270,25 +293,205 @@ For readers without background in OO programming, the main features of OO langua
 -   Functions that depend on the type of the object need to be ascribed to a single class and then can dispatch more specifically on the given argument's type.
 :::
 
-## Assigning Behavior
+We bring up object oriented design for comparison's sake, but think that ultimately choosing a data driven or functional design is better for financial modeling. Of course, many robust, well-used financial models have been built this way but in our experience the abstractions become unnatural. Additionally, maintenance unwieldy beyond simple examples. We'll now discuss some of the aspects of OO design and why the overuse of OO is not preferred.
+
+### Assigning Behavior
 
 Needing to assign methods to a single class can lead to awkward design limitations - when multiple objects are involved in a computation, why dictate that only one of them "controls" the logic?
 
-The `value` function is a good example of this. If we had to assign `value` to one of the objects involved, should it be the economic parameters of the asset contracts? The choice is not obvious at all. Isn't it the market (economic parameters) that determines the value? But then if `value` were to be a method wholly owned by the economic parameters, how could it possible define in advance the valuation semantics of all types of assets? What if one wanted to extend the valuation to a new asset class? Downstream users or developers would need to modify the economic types to handle new assets they wanted to value. However, because the economic types were owned by an upstream package, they can't be extended this way.
+The `value` function is a good example of this. If we had to assign `value` to one of the objects involved, should it be the economic parameter object or the asset objects? The choice is not obvious at all. Isn't it the market (economic parameters) that determines the value? But then if `value` were to be a method wholly owned by the economic parameters, how could it possible define in advance the valuation semantics of all types of assets? What if one wanted to extend the valuation to a new asset class? Downstream users or developers would need to modify the economic types to handle new assets they wanted to value. However, because the economic types were owned by an upstream package, they can't be extended this way.
 
 This is an issue with traditional OO designs and that resolves itself so elegantly with multiple dispatch.
 
-## Inheritance
+#### Example: The Expression Problem
 
-We discussed the type hierarchy in @sec-elements-programming and in most OO implementations this hierarchy comes with inheriting both data *and* behavior. This is different from Julia where subtypes inherit behavior but not data from the parent type.
+A fundamental limitation of OOP is what's called the **Expression Problem**. The challenge (or problem) is that with OOP languages it is difficult to extend both datatypes *and* behavior. In the example that follows, we define types of insurance products with associated methods.
+
+Here's the setup: we are modeling insurance contracts and someone has provided a nice library which we will call Insurance.jl and pyInsurance for a Julia and Python package. The package defines datatypes for Term and Whole Life insurance products, as well as a lot of utilities related to calculating premiums and reserves (i.e. performing valuations). Defining the functionality is straightforward enough in both languages/approaches:
+
+:::::: {.columns .column-body-outset}
+::: {.column width="43%"}
+**Insurance.jl**
+
+A hypothetical package available for your use.
+
+``` julia
+abstract type InsuranceProduct end
+
+struct TermLife <: InsuranceProduct
+    term::Int
+    face_amount::Float64
+    age::Int
+end
+
+struct WholeLife <: InsuranceProduct
+    face_amount::Float64
+    age::Int
+end
+
+# Calculate premium
+premium(p::TermLife) = ...
+premium(p::WholeLife) = ...
+
+# Calculate reserves
+reserve(p::TermLife, t::Int) = ...
+reserve(p::WholeLife, t::Int) = ...
+```
+
+\
+:::
+
+::: {.column width="4%"}
+:::
+
+::: {.column width="53%"}
+**pyInsurance**
+
+A hypothetical package available for your use.
+
+``` python
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+
+class InsuranceProduct(ABC):
+    @abstractmethod
+    def calculate_premium(self) -> float:
+        pass
+    
+    @abstractmethod
+    def calculate_reserve(self, t: int) -> float:
+        pass
+
+@dataclass
+class TermLife(InsuranceProduct):
+    term: int
+    face_amount: float
+    age: int
+
+    # Term-specific calculations
+    def calculate_premium(self) -> float:
+        return ...
+    
+    def calculate_reserve(self, t: int) -> float:
+        return ...
+
+@dataclass
+class WholeLife(InsuranceProduct):
+    face_amount: float
+    age: int
+
+    # WholeLife-specific calculations
+    def calculate_premium(self) -> float:
+        return ...
+    
+    def calculate_reserve(self, t: int) -> float:
+        return ...
+```
+:::
+::::::
+
+Now, say that we want to utilize this package and extend the behavior. Specifically, we want to add a Deferred Annuity type and add functionality (for all products) related to determining a cash surrender value.
+
+We run into limitations with Python version. We can extend a new representation (dataclass), but adding new functionality (e.g. `cash_value`) requires modifying other classes which you may not own and for which the method not apply.
+
+:::::: {.columns .column-body-outset}
+::: {.column width="43%"}
+**Julia (Multiple Dispatch)**
+
+``` julia
+struct DeferredAnnuity <: InsuranceProduct
+    premium::Float64
+    deferral_period::Int
+    age::Int
+end
+
+# Implement existing methods
+premium(p::DeferredAnnuity) = ...
+reserve(p::DeferredAnnuity, t::Int) = ...
+
+# Adding new function
+cash_value(p::WholeLife, t::Int) = ...
+cash_value(p::DeferredAnnuity, t::Int) = ...
+```
+:::
+
+::: {.column width="4%"}
+:::
+
+::: {.column width="53%"}
+**Python (Object-Oriented)**
+
+``` python
+@dataclass
+class DeferredAnnuity(InsuranceProduct):
+    premium: float
+    deferral_period: int
+    age: int
+    
+    def calculate_premium(self) -> float:
+        # Annuity-specific premium calc
+        return ...
+    
+    def calculate_reserve(self, t: int) -> float:
+        # Annuity-specific reserve calc
+        return ...
+```
+:::
+::::::
+
+There are workarounds to handle this, which include:
+
++---------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Workaround to OOP Expression Problem                                                  | Concerns with Workaround                                                                                                                                                                                                                                          |
++=======================================================================================+===================================================================================================================================================================================================================================================================+
+| **Monkey-Patching**                                                                   | -   **Overwriting Conflicts:** If two different parts of a program try to patch the same method, the last one to run will overwrite the others. This can disable expected functionality in a way that is difficult to predict.                                    |
+|                                                                                       | -   **Harder to Debug:** Patching makes the code's runtime behavior different from its source code. This complicates debugging because the written code no longer represents what is actually happening.                                                          |
+| You can dynamically inject the method into the library's class definition at runtime. | -   **Upgrade Instability:** A patch may break when the underlying code it modifies is updated. This creates a maintenance burden, as patches need to be re-validated and potentially re-written with each library upgrade.                                       |
+|                                                                                       |                                                                                                                                                                                                                                                                   |
+| ``` python                                                                            |                                                                                                                                                                                                                                                                   |
+| # WARNING: This is generally considered bad practice                                  |                                                                                                                                                                                                                                                                   |
+| from ultimate_insurance_models import WholeLife                                       |                                                                                                                                                                                                                                                                   |
+|                                                                                       |                                                                                                                                                                                                                                                                   |
+| def _calculate_cash_value_for_wholelife(self, t: int) -> float:                       |                                                                                                                                                                                                                                                                   |
+|   return ...                                                                          |                                                                                                                                                                                                                                                                   |
+|                                                                                       |                                                                                                                                                                                                                                                                   |
+| # At the start of your app, "patch" the library's class                               |                                                                                                                                                                                                                                                                   |
+| WholeLife.calculate_cash_value = _calculate_cash_value_for_wholelife                  |                                                                                                                                                                                                                                                                   |
+|                                                                                       |                                                                                                                                                                                                                                                                   |
+| wl_policy = WholeLife(face_amount=500000, age=40)                                     |                                                                                                                                                                                                                                                                   |
+| wl_policy.calculate_cash_value(t=10)                                                  |                                                                                                                                                                                                                                                                   |
+| ```                                                                                   |                                                                                                                                                                                                                                                                   |
++---------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| **Subclassing**                                                                       | -   **Incomplete Coverage:** The new functionality only exists on your subclass. Any code that creates an instance of the original parent class will produce an object that lacks your new methods.                                                               |
+|                                                                                       | -   **Breaks Polymorphism:** It forces you to check an object's specific type before using the new functionality (e.g., using isinstance). This defeats the purpose of having a common interface and makes the code more complex and less robust.                 |
+| You can inherit from the parent class to create your own custom version.              | -   **Doesn't Affect Object Creation:** Functions within the original library will continue to create and return instances of the original parent class. You cannot alter this behavior, meaning objects created by the library will not have your added methods. |
+|                                                                                       |                                                                                                                                                                                                                                                                   |
+| ``` python                                                                            |                                                                                                                                                                                                                                                                   |
+| from ultimate_insurance_models import WholeLife                                       |                                                                                                                                                                                                                                                                   |
+|                                                                                       |                                                                                                                                                                                                                                                                   |
+| class MyExtendedWholeLife(WholeLife):                                                 |                                                                                                                                                                                                                                                                   |
+|   def calculate_cash_value(self, t: int) -> float:                                    |                                                                                                                                                                                                                                                                   |
+|     # Your brilliant logic                                                            |                                                                                                                                                                                                                                                                   |
+|     return self.face_amount * 0.1 * t                                                 |                                                                                                                                                                                                                                                                   |
+|                                                                                       |                                                                                                                                                                                                                                                                   |
+| # You have to make sure you ONLY create your extended version                         |                                                                                                                                                                                                                                                                   |
+| my_policy = MyExtendedWholeLife(face_amount=500000, age=40)                           |                                                                                                                                                                                                                                                                   |
+| ```                                                                                   |                                                                                                                                                                                                                                                                   |
++---------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+The object oriented paradigm does not allow for extension of **both** representation (data types) and behavior (methods).
+
+In Julia, functions are defined separately from data types. This allows you to add new functions to existing types—even those from external libraries—without altering their original code. Your new functionality works on all instances of the original type, avoiding both the conflicts of patching and the type-checking required by subclassing. whereas a more general, data-oriented approach does facilitate this using Julia's multiple dispatch.
+
+### Inheritance
+
+As seen in the prior example, most OO implementations this hierarchy comes with inheriting both data *and* behavior. This is different from Julia where subtypes inherit behavior but not data from the parent type.
 
 Inheriting the data tends to introduce a tight coupling between the parent and the child classes in OO systems. This tight coupling can lead to several issues, particularly as systems grow in complexity. For example, changes in the parent class can inadvertently affect the behavior of all its child classes, which can be problematic if these changes are not carefully managed. This is often referred to as the "fragile base class problem," where base classes are delicate and changes to them can have widespread, unintended consequences.
 
 Another issue with inheritance in OO design is the temptation to use it for code reuse, which can lead to inappropriate hierarchies. Developers might create deep inheritance structures just to reuse code, leading to a scenario where classes are not logically related but are forced into a hierarchy. This can make the system harder to understand and maintain.
 
-Moreover, inheritance can sometimes lead to the duplication of code across the hierarchy, especially if the inherited behavior needs to be slightly modified in different child classes. This goes against the DRY (Don't Repeat Yourself) principle, which is a fundamental concept in software engineering advocating for the reduction of repetition in code.
-
-### Composition over Inheritance
+#### Composition over Inheritance
 
 To mitigate some of the problems associated with inheritance, there's a growing preference for *composition*. Composition involves creating objects that contain instances of other objects to achieve complex behaviors. This approach is more flexible than inheritance as it allows for the creation of more modular and reusable code. There is a general preference for "composition over inheritance" among professional developers these days.
 
@@ -347,3 +550,23 @@ Composition lets us bundle the data and behavior together without needing comple
 ::: callout-note
 A CUSIP (Committee on Uniform Security Identification Procedures) number, is a unique nine-character alphanumeric code assigned to securities, such as stocks and bonds, in the United States and Canada. This code is used to facilitate the clearing and settlement process of securities and to uniquely identify them in transactions and records.
 :::
+
+## Data-Oriented Design
+
+Data-Oriented Programming (DOP), especially in a computational field like financial modeling, is an approach that prioritizes the data itself—its structure, its layout in memory, and how it’s processed in bulk. This stands in contrast to Object-Oriented Programming, which prioritizes encapsulating data within objects and interacting with that data through the object's methods.
+
+DOP separates the data from the behavior:
+
+1.  **Data is transparent and inert**. We define structures (like the `Cash` and `CouponBond` structs in our example) that are simple, transparent containers for information. Their job is to hold data, not to have complex internal logic.
+
+2.  **Behavior is handled by functions**. Logic is implemented in generic functions (like our `value` function) that operate on this data.
+
+The portfolio valuation model we have built in this chapter is an example of data-oriented design. We created a collection of data—the `portfolio` array. We then used Julia's functions (`mapreduce`, and our own `value` function) to transform that data into a final result. We can easily add a completely new operation, say `calculate_duration(asset, econ_assumptions)`, without ever modifying the original `struct` definitions for our assets.
+
+This approach is pertinent for financial modeling for several key reasons:
+
+-   **Flexibility:** Financial models require many different views of the same data. Today we need to `value` a portfolio. Tomorrow, we might need to calculate its credit risk, liquidity risk, or run a stress test. With a data-oriented approach, each new requirement is simply a new set of functions that we write to operate on the same underlying data structures. In a strict OO world, we might be forced to add a `.calculate_credit_risk()` method to every single asset class, which can become unwieldy.
+-   **Performance:** Financial computations often involve applying a single operation to millions or billions of items (e.g., valuing every asset in a large portfolio, running a Monte Carlo simulation with millions of paths). DOP allows the data to be laid out in memory in a way that is highly efficient for modern CPUs or GPUs to process (e.g., in contiguous arrays). By processing data in bulk, we leverage how computer hardware is designed to work, leading to significant performance gains over designs that require calling methods on individual objects one by one.
+-   **Simplicity and Scalability:** As a system grows, data-oriented designs can be easier to reason about. The "state" of the system is just the data itself. The logic is contained in pure functions that transform data. This avoids the complex webs of object relationships, inheritance hierarchies, and hidden state that can make large OO systems difficult to maintain and debug.
+
+While object-oriented design patterns can be useful, for the performance-critical and mathematically intensive world of financial modeling, a data-oriented approach often proves to be a more natural, scalable, and efficient choice. It aligns perfectly with the core task: the transformation of data (market and instrument parameters) into insight (value, risk, etc.).
