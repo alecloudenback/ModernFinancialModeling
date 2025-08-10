@@ -29,56 +29,62 @@ We will focus primarily on the architecture of a single computer, as even laptop
 
 ### Memory Types and Location
 
-Memory has an inverse relationship between size and proximity to the central processor unit (CPU). The closer the data is to the processor units, the smaller the storage and the less likely the data will persist at that location for very long.
+Memory has an inverse relationship between size and proximity to the central processing unit (CPU). The closer the data is to the processor units, the smaller the storage and the less likely the data will persist at that location for very long.
 
-+-------------------------------------------------+----------------------------+-------------------------------------------------+
-| Kind                                            | Rough Size                 | Lifecycle                                       |
-+=================================================+============================+=================================================+
-| Solid State Disk (SSD) or Hard Disk Drive (HDD) | TBs                        | Persistent/Permanent                            |
-+-------------------------------------------------+----------------------------+-------------------------------------------------+
-| Random Access Memory (RAM)                      | Dozens to Hundereds of GBs | Seconds to Hours (while computer is powered on) |
-+-------------------------------------------------+----------------------------+-------------------------------------------------+
-| CPU Cache - L3                                  | 8 MB to 128 MB             | Microseconds to Milliseconds                    |
-+-------------------------------------------------+----------------------------+-------------------------------------------------+
-| CPU Cache - L2                                  | 2 MB to 16 MB              | Nanoseconds to Microseconds                     |
-+-------------------------------------------------+----------------------------+-------------------------------------------------+
-| CPU Cache - L1                                  | \~16 KB                    | Nanoseconds                                     |
-+-------------------------------------------------+----------------------------+-------------------------------------------------+
++----------------+---------------------+---------------------------------------------+----------------------------+
+| Kind           | Typical capacity    | Typical latency                             | Persistence                |
++================+=====================+=============================================+============================+
+| SSD or HDD     | 1–10+ TB            | 100,000–10,000,000 ns (read/seek dependent) | Persistent                 |
++----------------+---------------------+---------------------------------------------+----------------------------+
+| RAM (DRAM)     | 8–256+ GB           | 60–120 ns                                   | Volatile (power-dependent) |
++----------------+---------------------+---------------------------------------------+----------------------------+
+| CPU Cache – L3 | 4–128 MB            | 10–40 ns                                    | Volatile                   |
++----------------+---------------------+---------------------------------------------+----------------------------+
+| CPU Cache – L2 | 256 KB–8 MB         | 3–10 ns                                     | Volatile                   |
++----------------+---------------------+---------------------------------------------+----------------------------+
+| CPU Cache – L1 | 32–128 KB           | 0.5–1.5 ns                                  | Volatile                   |
++----------------+---------------------+---------------------------------------------+----------------------------+
+| CPU Registers  | a few hundred bytes | single-cycle access                         | Volatile                   |
++----------------+---------------------+---------------------------------------------+----------------------------+
 
 After requesting data from a persistent location like a Solid State Drive (SSD), the memory is read into Random Access Memory (RAM). The advantage of RAM over a persistent location is speed - typically that memory can be accessed and modified many times faster than the persistent data location. The tradeoff is that RAM is not persistent: when the computer is powered down, the RAM loses the information stored within.
 
-When data is needed by the CPU, data is read from RAM into a small hierarchy of caches before being accessed by the CPU. The **CPU Caches** are small (physically and in capacity), but very fast. The caches are also physically colocated with the CPU for efficiency. Data is organized and funneled through the caches as an intermediary between the CPU and RAM and is fed from Level 3 (L3) cache in steps down to L1 cache as the data gets closer to the processor.
+When data is needed by the CPU, data is read from RAM into a small hierarchy of caches before being accessed by the CPU. The **CPU caches** are small and very fast, and they move data in fixed-size ‘cache lines’ (typically 64 bytes). The caches are also physically co-located with the CPU for efficiency. Data is organized and funneled through the caches as an intermediary between the CPU and RAM and is fed from Level 3 (L3) cache in steps down to L1 cache as the data gets closer to the processor.
+
+At the very top of the memory hierarchy are **CPU registers**—tiny storage locations on the chip that the processor can read and write in a single cycle. This is where the CPU actually performs calculations. The CPU’s execution units operate on values held in registers. Most arithmetic, logical, and comparison instructions take their operands from registers and write results back to registers; separate load/store instructions move data between memory and registers.
 
 ::: callout-note
-For reference, memory units are:
+Memory units at a glance:
 
--   1 bit is a single binary digit (`0` or `1`)
--   8 bits = 1 byte
--   8 bytes = 1 word
--   1024 bytes = 1 Kilobyte (KB)
--   1024 KB = 1 Megabyte (MB)
--   1024 MB = 1 Gigabyte (GB)
--   1024 GB = 1 Terabyte (TB)
--   1024 TB = 1 Petabyte (PB)
+-   1 bit is a single 0 or 1; 8 bits = 1 byte.
+-   Binary multiples (common for RAM/caches and many OS readouts):
+-   1 KiB = 1,024 bytes; 1 MiB = 1,024 KiB; 1 GiB = 1,024 MiB.
+-   Decimal multiples (common for storage devices and network speeds):
+-   1 kB = 1,000 bytes; 1 MB = 1,000,000 bytes; 1 Gb = 1,000,000,000 bits.
+-   KB vs Kb: uppercase B = bytes; lowercase b = bits. 1 KB is eight times larger than 1 Kb.
 
-Sometimes, you might see Kb, which is Kilo*bits*, or 1024 bits. Therefore 1 KB is 8 times larger than a Kb.
-
-The increments are 1024 and not the usual 1000, because 1024 is $2^{10}$. The even binary multiple of 1024 is more convenient than 1000 when working with bits.
+Rule of thumb: treat memory sizes (RAM, caches) as base‑2, and disk/network specs as base‑10. The “i” in KiB/MiB/GiB explicitly means base‑2 $(2^{10} = 1{,}024)$.
 :::
 
 ### Stack vs Heap
 
 Sitting within the RAM region of memory are two sections called Stack and Heap. These are places where variables created from our program's code can be stored. In both cases, the program will request memory space but they have some differences to be aware of.
 
-The **stack** stores small, fixed-size (known bit length), data and program components. The stack is a last-in-first-out queue of data that is able to be written to and read from very quickly. The **heap** is a region which can be dynamically sized and has random read/write (you need not access the data in a particular order). The heap is much slower but more flexible.
+-   The **stack** stores small, fixed-size (known bit length), data and program components. The stack is a last-in-first-out queue of data that is able to be written to and read from very quickly. The stack is CPU cache friendly.
+
+-   The **heap** is a region which can be dynamically sized and has random read/write (you need not access the data in a particular order). The heap is much slower but more flexible. The heap is not very CPU cache friendly.
 
 #### Garbage Collector
 
 The **garbage collector** is a program that gets run to free up previously requested/allocated memory. It accomplishes this by keeping track of references to data in memory by section of your code. If a section of code is no longer reachable (e.g. inside a function that will never get called again, or a loop that ran earlier in the program but is now complete), then, periodically, the garbage collector will pause execution of the primary program in order to "sweep" the memory. This step marks the space as able to be reused by your program or the operating system.
 
+::: callout-tip
+Julia uses a generational, stop-the-world garbage collector to reclaim heap memory that is no longer reachable by your program. Periodically, execution pauses briefly while the GC identifies unreachable objects and frees them. In performance-sensitive code, reducing heap allocations (e.g., by reusing buffers, working in-place, and writing type-stable code) minimizes GC pressure and improves throughput.
+:::
+
 ## Processor {#sec-hardware-processor}
 
-The processor reads lines (groups of bits) from the cache into registers and then executes instructions. An example would be to take the bytes from register 10 and add the bytes from register 11 to them. This is really all a processor does at the lowest level: combining bits of data using logical circuits.
+The processor reads cache lines (typically 64 bytes) from caches and moves the needed values into registers and then executes instructions. An example would be to take the bytes from register 10 and add the bytes from register 11 to them. This is really all a processor does at the lowest level: combining bits of data using logical circuits.
 
 Logical circuits (**transistors**) are an arrangement of wires that output a new electrical signal that varies depending on the input. From a collection of smaller building block gates (e.g. AND, OR, NOR, XOR) more complex operations can be built up[^hardware-1], into operations like addition, multiplication, division, etc. Electric impulses move the state of the program forward once time per CPU cycle (controlled by a master "clock" ticking billions of times per second). CPU cycle speed is what's quoted for chip performance, e.g. when a CPU is advertised as 3.0 GHz (or 3 billion cycles per second).
 
@@ -86,7 +92,7 @@ Logical circuits (**transistors**) are an arrangement of wires that output a new
 
 The programmer (or compiler, if we are working in a higher level language like Julia) tells the CPU which instruction to run. The set of instructions that are valid for a given processor are called the Instruction Set Architecture, or ISA. In computer Assembly language (roughly one-level above directly manipulating the bits), the instructions are given names like `ADD`, `SUB`, `MUL`, `DIV`, and `MOV`. These instructions mirror the raw instruction that is part of the ISA.
 
-All instructions are not all created equal, however. Some instructions take many CPU cycles to complete. For example, floating point `DIV` (division) takes 10-20 CPU cycles while `ADD` only takes a single CPU cycle.
+Not all instructions are created equal, however. Some instructions take many CPU cycles to complete. For example, floating point `DIV` (division) takes 10-20 CPU cycles while `ADD` only takes a single CPU cycle.
 
 Some architecture examples that may be familiar:
 
@@ -158,21 +164,21 @@ Compilers are complex, hyper-optimized programs which turn your source code into
 
 #### Increasing Complexity in Search of Performance
 
-Transistors are the building-block that creates the CPU and enables the physical process which governs the computations. For a very long time, the major source of improved computer performance was simply to make smaller transistors, allowing more of them to be packed together to create computer chips. This worked for many years and the propensity for the transistor count to double about every two years. In this way, software performance improvements came as side effect of the phenomenal scaling in hardware capability. However, raw single core performance and clock frequency (CPU cycle speed) dramatically flattened out starting a bit before the year 2010. This was due to the fact that transistor density has been starting to be limited by:
+Transistors are the building-block that creates the CPU and enables the physical process which governs the computations. For a very long time, the major source of improved computer performance was simply to make smaller transistors, allowing more of them to be packed together to create computer chips. This worked for many years and the propensity was for the transistor count to double about every two years. In this way, software performance improvements came as side effect of the phenomenal scaling in hardware capability. However, raw single core performance and clock frequency (CPU cycle speed) dramatically flattened out starting a bit before the year 2010. This was due to the fact that transistor density has been starting to be limited by:
 
 1.  Pure physical constraints (transistors can be measured in width of atoms) where we have limited ability to manufacture something so small.
 2.  Thermodynamics, where heat can't be removed from the CPU core fast enough to avoid damaging the core and therefore operations per second are capped.
 
 To obtain increasing performance, two main strategies have been employed in lieu of throwing more transistors into a single core:
 
-1.  Utilize multiple, separate cores and operate in an increasingly parallel way.
-2.  Use clever tricks to predict, schedule, and optimize the computations to make better use of the memory pipeline and otherwise idle CPU cycles.
+1.  **Parallelism:** utilize multiple, separate cores and operate in an increasingly parallel way.
+2.  **Microarchitectural techniques:** clever tricks to predict, schedule, and optimize the computations to make better use of the memory pipeline and otherwise idle CPU cycles.
 
 We will cover techniques to utilize concurrent/parallel processing in @sec-parallelization. As for the second technique, it is capable of very impressive accelerations (on the order 2x to 100x faster than a naive implementation. However, it has sometimes caused issues. There have been some famous security vulnerabilities such as Spectre and Meltdown, which exploited speculative execution – a technique used to optimize CPU performance which will execute code *before being explicitly asked to* because the scheduler *anticipates* the next steps (with very good, but imperfect accuracy).
 
 ## Logistics Warehouse Analogy
 
-The problem is analogous to a logistics warehouse (persistent data) which needs to package up orders (processor instructions). There's a conveyor belt of items being constantly routed to the packaging station. In order to keep the packing station working at full capacity, the intermediate systems (RAM & CPU caches) are funneling items they *think* will be needed to the packager (data that's *expected* to be used in the processor). Most of the time, the necessary item (data) is optimally brought to the packaging station(process), or a nearby holding spot (CPU cache).
+The problem is analogous to a logistics warehouse (persistent data) which needs to package up orders (processor instructions). There's a conveyor belt of items being constantly routed to the packaging station. In order to keep the packing station working at full capacity, the intermediate systems (RAM & CPU caches) are funneling items they *think* will be needed to the packager (data that's *expected* to be used in the processor). Most of the time, the necessary item (data) is optimally brought to the packaging station (process), or a nearby holding spot (CPU cache).
 
 This system has grown very efficient, but sometimes the predictions miss or a never-before-ordered item needs to be picked from the far side of the warehouse and this causes significant delays to the system. Sometimes a package will start to be assembled before the packager has even gotten to that order (branch prediction) which can make the system faster most of the time, but if the predicted package isn't actually what the customer ordered, then the work is lost and has to be redone (branch mis-predict).
 
@@ -184,59 +190,76 @@ There are a lot more optimizations along the way:
 
 -   Different types of packaging stations might be used for specialized items (e.g. vector processing or cryptography instructions in the CPU).
 
+:::callout-tip
+## Financial Modeling Pro-tip
+
+Julia arrays are column-major. Access memory contiguously to exploit caches:
+```julia
+X = randn(10_000, 100)  # rows × cols
+# Fast: process columns (contiguous memory)
+sums = map(sum, eachcol(X))
+
+# Slower: process rows (strided access)
+sums_rows = map(sum, eachrow(X))
+```
+In portfolio/risk code, organize factor loadings or scenario matrices so your hot loops iterate along columns where possible. This often yields 2–10× speedups purely from better cache locality.
+:::
+
 ## Speed of Computer Actions
 
 In a financial model, even small delays (such as main memory references vs. L1 cache access) can accumulate quickly in high-frequency trading or risk calculation routines. Understanding these timings can guide decisions on structuring data access patterns and deciding what data to cache or load in memory for optimal performance.
 
 Representative time is given in @tbl-computer-speeds for a variety of common actions performed on a computer. It's clear that having memory access from a local source is better for computer performance!
 
-+-------------------------------------------------------------------+-------------+---------------------------------------------------+
-| Operation                                                         | Time (ns)   | Distance Light Traveled                           |
-+===================================================================+=============+===================================================+
-| Single CPU Cycle (e.g. one `ADD` or `OR` operation on a register) | 0.3         | 9 centimeters                                     |
-+-------------------------------------------------------------------+-------------+---------------------------------------------------+
-| L1 cache reference                                                | 1           | 30 centimeters                                    |
-+-------------------------------------------------------------------+-------------+---------------------------------------------------+
-| Branch mispredict                                                 | 5           | 150 centimeters                                   |
-+-------------------------------------------------------------------+-------------+---------------------------------------------------+
-| L2 cache reference                                                | 5           | 150 centimeters                                   |
-+-------------------------------------------------------------------+-------------+---------------------------------------------------+
-| Main memory reference                                             | 100         | 30 meters                                         |
-+-------------------------------------------------------------------+-------------+---------------------------------------------------+
-| Read 1MB sequentially from RAM                                    | 250,000     | 75 km (\~2 marathons)                             |
-+-------------------------------------------------------------------+-------------+---------------------------------------------------+
-| Round trip within a datacenter                                    | 500,000     | 150km (the thickness of Earth's atmosphere)       |
-+-------------------------------------------------------------------+-------------+---------------------------------------------------+
-| Read 1MB sequentially from SSD                                    | 1,000,000   | 300km (distance Washington D.C. to New York City) |
-+-------------------------------------------------------------------+-------------+---------------------------------------------------+
-| Hard disk seek                                                    | 10,000,000  | 3,000km (width of continental United States)      |
-+-------------------------------------------------------------------+-------------+---------------------------------------------------+
-| Send packet CA-\>Netherlands-\>CA                                 | 150,000,000 | 45,000km (circumference of earth)                 |
-+-------------------------------------------------------------------+-------------+---------------------------------------------------+
+| Operation | Time (ns) | Distance light traveled |
+|---|---:|---|
+| Single CPU cycle (e.g., one add on a register) | 0.3 | 9 centimeters |
+| L1 cache reference | 1 | 30 centimeters |
+| Branch mispredict | 5 | 150 centimeters |
+| L2 cache reference | 5 | 150 centimeters |
+| Main memory reference | 100 | 30 meters |
+| Read 1 MB sequentially from RAM | 250,000 | 75 km (≈2 marathons) |
+| Round trip within a datacenter | 500,000 | 150 km (thickness of Earth’s atmosphere) |
+| Read 1 MB sequentially from SSD | 1,000,000 | 300 km (Washington, D.C. to New York City) |
+| Hard disk seek | 10,000,000 | 3,000 km (width of the continental U.S.) |
+| Send packet CA→Netherlands→CA | 150,000,000 | 45,000 km (Earth’s circumference) |
 
-: How long different actions take on a computer. As an interesting yardstick, the distance a beam of light travels is also given to provide a sense of scale (this comparison originally comes from Admiral Grace Hopper). Source for the timings comes from: <https://cs.brown.edu/courses/csci0300/2022/assign/labs/lab4.html> {#tbl-computer-speeds}
+: How long different actions take on a computer. As an interesting yardstick, the distance a beam of light travels is also given to provide a sense of scale (this comparison originally comes from Admiral Grace Hopper). Source for the timings comes from: <https://cs.brown.edu/courses/csci0300/2022/assign/labs/lab4.html>. Also note that timings vary substantially by hardware and workload; treat these as order-of-magnitude references. {#tbl-computer-speeds}
 
 As introduced in @sec-hardware-processor, calculations on the CPU vary widely. Take, for example, @tbl-CPU-ops shows runtime varying quite a bit for common mathematical operations. Despite mathematically all essentially being elementary operations, the compute intensity varies widely:
 
++------------------------+----------------+----------------------------------------------+
 | Mathematical Operation | Julia Function | Runtime in nanoseconds (`Float64` arguments) |
-|----|----|----|
-| $a+b$ | `+` | 1.7 |
-| $a-b$ | `-` | 1.7 |
-| $a/b$ | `/` | 1.7 |
-| $a \times b$ | `*` | 1.7 |
-| $a^b$ | `^` | 10.8 |
-| $exp(a)$ | `exp` | 3.9 |
-| $log_{10}(a)$ | `log` | 5.4 |
-| $log(a)$ | `ln` | 3.7 |
-| $abs(a)$ | `abs` | 1.7 |
++========================+================+==============================================+
+| $a+b$                  | `+`            | 1.7                                          |
++------------------------+----------------+----------------------------------------------+
+| $a-b$                  | `-`            | 1.7                                          |
++------------------------+----------------+----------------------------------------------+
+| $a/b$                  | `/`            | 1.7                                          |
++------------------------+----------------+----------------------------------------------+
+| $a \times b$           | `*`            | 1.7                                          |
++------------------------+----------------+----------------------------------------------+
+| $a^b$                  | `^`            | 10.8                                         |
++------------------------+----------------+----------------------------------------------+
+| $exp(a)$               | `exp`          | 3.9                                          |
++------------------------+----------------+----------------------------------------------+
+| $log_{10}(a)$          | `log`          | 5.4                                          |
++------------------------+----------------+----------------------------------------------+
+| $log(a)$               | `ln`           | 3.7                                          |
++------------------------+----------------+----------------------------------------------+
+| $abs(a)$               | `abs`          | 1.7                                          |
++------------------------+----------------+----------------------------------------------+
 
 : Different operations utilize different levels of required compute. On different hardware, the result may be different depending on the fundamental computational complexity of an operation and what hardware instructions are built into the CPU. {#tbl-CPU-ops}
 
-:::callout-tip
+::: callout-tip
 One way to speed up financial models is to utilize techniques to avoid using the `^` operation, as it's one of the most expensive basic operations, but unfortunately is also one of the most common when dealing with rates and compounding.
 
 Some strategies:
 
-- Instead of using interest rates which require exponentiation, utilize continuously compounded rates and use the `exp` and `log` functions instead.
-- Say you are running a monthly model with inputs that are annual rates. Before running through the 'hot loop', pre-compute the annual rates into a vector of monthly rates to avoid re-computing this transformation at the cell/seriatim level.
+-   Instead of using interest rates which require exponentiation, utilize continuously compounded rates and use the `exp` and `log` functions instead.
+  - For small r, use `expm1`/`log1p` to improve accuracy:
+    - `expm1(x)` computes \(\exp(x) - 1\) accurately for small \(x\).
+    - `log1p(x)` computes \(\log(1 + x)\) accurately for small \(x\).
+-   Say you are running a monthly model with inputs that are annual rates. Before running through the 'hot loop', pre-compute the annual rates into a vector of monthly rates to avoid re-computing this transformation at the cell/seriatim level.
 :::

@@ -12,7 +12,6 @@ author:
 using Pkg
 Pkg.activate("env/fin_model")
 Pkg.instantiate()
-using CairoMakie
 ```
 
 > “In theory there is no difference between theory and practice. In practice there is.” – Yogi Berra (often attributed)
@@ -27,13 +26,13 @@ The answer is: *it depends*.
 
 ### Achieving original purpose
 
-A model is built for a specific set of reasons and therefore we must evaluate a model in terms of achieving that goal. We should not critique a model if we want to use it outside of what it was intended to do. This includes: contents of output and required level of accuracy.
+A model is built for a specific set of reasons and therefore we must evaluate a model in terms of achieving that goal. We should not critique a model if we want to use it outside of what it was intended to do. This includes: contents of the output and required level of accuracy.
 
-A model may have been created to for scenario analysis to value all assets in a portfolio to within half a percent of a more accurate, but much more computationally expensive model. If we try to add a never-before-seen asset class or use the model to order trades, then we may be extending beyond the design scope of the original model and lose predictive accuracy.
+A model may have been created for scenario analysis to value all assets in a portfolio to within half a percent of a more accurate, but much more computationally expensive model. If we try to add a never-before-seen asset class or use the model to order trades, then we may be extending beyond the design scope of the original model and lose predictive accuracy.
 
 ### Usability
 
-How easy is it for someone to use? Does it require pages and pages of documentation, weeks of specialized training and an on-call help desk? *All else equal*, it is an indicator of how usable the model is by the amount of support and training required. However, one may sometimes wish to create a highly capable, complex model which is known to require a high amount of experience and expertise. An analogy here might be the cockpit of a small Cessna aircraft versus a fighter jet: the former is a lot simpler and takes less training to master but is also more limited.
+How easy is it for someone to use? Does it require pages and pages of documentation, weeks of specialized training and an on-call help desk? All else equal, the heavier the support and training required, the lower the model’s usability. However, one may sometimes wish to create a highly capable, complex model which is known to require a high amount of experience and expertise. An analogy here might be the cockpit of a small Cessna aircraft versus a fighter jet: the former is a lot simpler and takes less training to master but is also more limited.
 
 @fig-parametric illustrates this concept and shows that if your goal is very high capability that you may need to expect to develop training materials and support the more complex model. On this view, a better model is one that is able to have a shorter amount of time and experience to achieve the same level of capability.
 
@@ -99,13 +98,13 @@ Say we are an insurance company with a portfolio of fixed income assets supporti
 |               | Behavior over time of an individual contract         |
 | More granular | Mechanics of an individual bond or insurance policy  |
 
-: An example of the different levels of abstraction when thinking about modeling an insurance company's assets and liabilites. {#tbl-insurance-ladder}
+: An example of the different levels of abstraction when thinking about modeling an insurance company's assets and liabilities. {#tbl-insurance-ladder}
 
 At different times, we are often interested in different aspects of a problem. In general, you start to be able to obtain more insights and a greater understanding of the system when you move up the ladder of abstraction.
 
 In fact, a lot of designing a model is essentially trying to figure out where to put the right abstractions. What is the right level of detail to model this in and what is the right level of detail to expose to other systems?
 
-Let us also distinguish between **vertical abstraction**, as described above, and **horizontal abstraction** which will refer to encapsulating different properties, or mechanics of components of model that effectively exist on the same level of vertical abstraction. For example, both asset and liability mechanics sit at the most granular level in @tbl-insurance-ladder, But it may make sense in our model to separate the data and behavior from each other. If we were to do that, that would be an example of creating horizontal abstraction in service of our overall modeling goals.
+Let us also distinguish between **vertical abstraction**, as described above, and **horizontal abstraction** which will refer to encapsulating different properties, or mechanics of components of the model at the same level of vertical abstraction. For example, both asset and liability mechanics sit at the most granular level in @tbl-insurance-ladder, But it may make sense in our model to separate the data and behavior from each other. If we were to do that, that would be an example of creating horizontal abstraction in service of our overall modeling goals.
 
 This book will introduce powerful, programmatic ways to handle this through things like packages, modules, namespaces, and functions.
 
@@ -119,7 +118,7 @@ An expert who knows enough about all of the domains that are applicable is cruci
 
 Unfortunately, this means that there's generally no easy way out of learning enough about finance, actuarial science, computers, and/or programming in order to be an effective modeler.
 
-Also, a word of warning for the financial analysts out there: the computer scientists may find it easier to learn applied financial modeling than the other way around since the tools, techniques, and language of problem solving is already more a more general and flexible skill-set. There's more technologists starting banks than there are financiers starting technology companies.
+Also, a word of warning for the financial analysts out there: the computer scientists may find it easier to learn applied financial modeling than the other way around since the tools, techniques, and language of problem solving is already a more general and flexible skill-set. There are more technologists starting banks than there are financiers starting technology companies.
 
 ### Model Theory
 
@@ -131,7 +130,7 @@ If it is granted that financial modeling must involve, as the essential part, a 
 
 A financial model is rarely left in a final state. Regulatory changes, additional mechanics, sensitivity testing, market dynamics, new products, and new systems to interact with force a model to undergo change and development through its entire life. And like a living thing, it must have nurturing caregivers. This metaphor sounds extended, but Naur's point is that unless the model also lives in the heads of its developers then it cannot successfully be maintained through time:
 
-> "The conclusion seems inescapable that at least with certain kinds of large programs, the continued adaption, modification, and correction of errors in them, is essentially dependent on a certain kind of knowledge possessed by a group of programmers who are closely and continuously connected with them." - Peter Naur, Programming as Theory Building, page 395.
+> "The conclusion seems inescapable that at least with certain kinds of large programs, the continued adaptation, modification, and correction of errors in them, is essentially dependent on a certain kind of knowledge possessed by a group of programmers who are closely and continuously connected with them." - Peter Naur, Programming as Theory Building, page 395.
 
 Assume that we need to adapt the model to fit a new product. One possessing a high degree of model theory includes:
 
@@ -141,7 +140,7 @@ Assume that we need to adapt the model to fit a new product. One possessing a hi
 
 -   provide a quantitative estimation for the impact the change will have: runtime, risk metrics, valuation changes, etc.
 
--   Analogize how the system works to themselves or to others
+-   Analogize system behavior to themselves and to others
 
 -   Describe key limitations that the model has and where it is most divorced from the reality it seeks to represent.
 
@@ -161,7 +160,7 @@ There are terminologies and concepts in the second example which we will develop
 
 ``` julia
 policies = parse(Policy,CSV.File("extract.csv")) 
-reserve = mapreduce(+,value,policies)
+reserve = mapreduce(value,+,policies)
 ```
 
 We've abstracted the mechanistic workings of the model into concise and meaningful symbols that not only perform the desired calculations but also make it obvious to an informed but unfamiliar reader what it's doing.
@@ -179,8 +178,8 @@ Take, for instance, the gnawing feeling you get when a model’s output seems �
 In practice, carrying curiosity into modeling means:
 
 -   **Taking the time to poke holes in every story your model tells.** If two approaches give wildly different answers for the same scenario, don’t sweep that under the rug. Dig until you’ve either found the bug or learned a new subtlety.
--   **Going down rabbit holes.** Sometimes the best model improvements stem from following up on the “trivial” anomaly hiding in the the numerical 'blip' every 12 months. Ask yourself: is there a structural reason, a missing piece of data, or an assumption that needs to be made explicit?
--   **Pursuing the “why” behind the numbers.** Instead of blindly running scenarios, become obsessed with the model’s behavior. If changing an input slightly has points has an outsized effect elsewhere, dig into the feedback mechanism that causes it.
+-   **Going down rabbit holes.** Sometimes the best model improvements stem from following up on the “trivial” anomaly hiding in the numerical 'blip' every 12 months. Ask yourself: is there a structural reason, a missing piece of data, or an assumption that needs to be made explicit?
+-   **Pursuing the “why” behind the numbers.** Instead of blindly running scenarios, become obsessed with the model’s behavior. If changing an input slightly has an outsized effect elsewhere, dig into the feedback mechanism that causes it.
 -   **Challenging your own assumptions.** No matter how seasoned you are, ask foundational questions and reconsider the “obvious.” There are no dumb questions! You’d be surprised how many “everybody knows that” ideas are actually half-remembered lore.
 -   **Learning from surprises.** Whenever the model spits out something bizarre, treat it like an opportunity rather than a headache. Sometimes the oddball result teaches you more about the system than any routine validation could.
 -   **Trying new techniques and tools to keep your intellectual toolbox diverse.** Look for the overlap between different things, such as recognizing the similarities between different areas of practice, even if it's not your 'specialty'.
@@ -201,7 +200,7 @@ When developing a model it's important to ensure that assumptions and parameters
 
 -   **Don’t hide the warts**. Make uncertainty visible, not hypothetical. Annotate what’s based on thin data versus what’s on solid ground. Rigor means being honest about what you don’t know—or what the model simply can’t say.
 
--   **Lean on first principles.** Often times there will be a 'simpler' way to model something, but making explicit all components of an interaction can be illuminating. For example, if you have a complex, multi-leg transaction that 'works like exotic option ABC', don't always rely on that heuristic. Alternatively, model out each leg of the transaction for clarity and confirmation of your understanding.
+-   **Lean on first principles.** Oftentimes there will be a 'simpler' way to model something, but making explicit all components of an interaction can be illuminating. For example, if you have a complex, multi-leg transaction that 'works like exotic option ABC', don't always rely on that heuristic. Alternatively, model out each leg of the transaction for clarity and confirmation of your understanding.
 
 A bad model can be worse than no model at all. Through rigorous efforts, a minimum standard of quality can be obtained.
 
@@ -260,7 +259,7 @@ A humble modeler acknowledges these uncertainties and communicates them clearly 
 
 ### Architecture
 
-Any sufficiently complex project benefits from architectural thinking. Think of your model like a house: if you don’t plan the plumbing, you’ll have a mess down the line. Data should be separate from the logic and the model itself should not contain any substantial datum itself - instead dynamically load data from appropriate data stores and leave the "model" as the implementation of data *types* and algorithms.
+Any sufficiently complex project benefits from architectural thinking. Think of your model like a house: if you don’t plan the plumbing, you’ll have a mess down the line. Data should be separate from the logic and the model itself should not embed substantial datum. Instead, dynamically load data from appropriate data stores and leave the "model" as the implementation of datatypes and algorithms.
 
 -   Modular design: Break complex models into reusable, independent components.
 -   Separation of concerns: Keep data, logic, and presentation layers distinct for better maintainability.
@@ -285,7 +284,7 @@ When tackling a large problem, it helps to have a well-structured planning proce
 8.  Timeline development: Create a realistic timeline with key milestones and deliverables.
 9.  Documentation strategy: Plan for comprehensive documentation of assumptions, methodologies, and limitations.
 10. Validation and testing approach: Outline strategies for model validation and testing to ensure reliability.
-11. Implementation and maintenance plan: Who will have responsibility after the model achieves its initial objectives?
+11. Implementation and maintenance plan: Who owns the model once initial objectives are met?
 
 Time invested at the planning stage often pays dividends through shorter model build times, fewer errors, and clarity from stakeholders at the start of the project. Additionally, it's often easier to make changes to a well-planned project halfway through since the necessary accommodations are more clearly defined.
 
@@ -298,7 +297,7 @@ An experienced professional is aware of a number of approaches that can be used 
 +=============================+===================================================================================+
 | Diverse Modeling Techniques | -   Statistical methods (e.g. regression, time series analysis, machine learning) |
 |                             | -   Optimization techniques (e.g. linear, non-linear, black-box)                  |
-|                             | -   Simulation methods (e.g. monte-carlo, agent-based, seriatim)                  |
+|                             | -   Simulation methods (e.g. Monte-Carlo, agent-based, seriatim)                  |
 +-----------------------------+-----------------------------------------------------------------------------------+
 | Software Proficiency        | -   Programming languages                                                         |
 |                             | -   Database and data handling                                                    |
