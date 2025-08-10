@@ -1,6 +1,8 @@
-# Auto-differentiation and Asset Liability Management (AAD & ALM)
+---
+author: Alec Loudenback
+---
 
-*Alec Loudenback*
+# Auto-differentiation and Asset Liability Management (AAD & ALM)
 
 ```{julia}
 #| echo: false
@@ -35,15 +37,15 @@ The `curve` function creates a discount factor curve from zero rates and time po
 
 ```{julia}
 
-zeros = [0.01, 0.02, 0.02, 0.03, 0.05, 0.055] #continuous
+zero_rates = [0.01, 0.02, 0.02, 0.03, 0.05, 0.055] #continuous
 
 times = [1., 2., 3., 5., 10., 20.]
 
-function curve(zeros, times)
-    DataInterpolations.CubicSpline([1.0; exp.(-zeros .* times)], [0.; times])
+function curve(zero_rates, times)
+    DataInterpolations.CubicSpline([1.0; exp.(-zero_rates .* times)], [0.; times])
 end
 
-c = curve(zeros, times)
+c = curve(zero_rates, times)
 ```
 
 ## Asset Valuation Framework
@@ -210,7 +212,7 @@ let
     ks = collect(keys(d)) |> sort!
     vs = [d[k] for k in ks]
 
-    c2 = curve(zeros .+ 0.005, times)
+    c2 = curve(zero_rates .+ 0.005, times)
     d2 = consolidate([p(c2) for p in liabilities])
     ks2 = collect(keys(d2)) |> sort!
     vs2 = [d2[k] for k in ks2]
@@ -243,7 +245,7 @@ The `value_gradient_and_hessian` function returns the present value, key rate du
 
 ```{julia}
 vgh_liab = let
-    value_gradient_and_hessian(z -> annuities(z, liabilities), AutoForwardDiff(), zeros)
+    value_gradient_and_hessian(z -> annuities(z, liabilities), AutoForwardDiff(), zero_rates)
 end
 ```
 
@@ -257,7 +259,7 @@ The first element of `vgh_liab` is the value of the liability portfolio using th
 vgh_liab[1]
 ```
 
-The second element of `vgh_liab` is the partial derivative with respect to each of the inputs (here, just the `zeros` rates that dictate the curve). The sum of the partials is the effective duration of the liabilities. 
+The second element of `vgh_liab` is the partial derivative with respect to each of the inputs (here, just the `zero_rates` rates that dictate the curve). The sum of the partials is the effective duration of the liabilities. 
 
 ```{julia}
 @show sum(vgh_liab[2])
@@ -275,17 +277,17 @@ Additionally, note that this is the dynamic duration of the liabilities, not the
 
 ```{julia}
 let 
-    dynamic(zeros) = value(curve(zeros,times),liabilities[1])
+    dynamic(zero_rates) = value(curve(zero_rates,times),liabilities[1])
     cfs = liabilities[1](c)
-    static(zeros) = let
-        c = curve(zeros,times)
+    static(zero_rates) = let
+        c = curve(zero_rates,times)
         # note that `cfs` are defined outside of the function, so 
         # will not change as the curve is sensitized
         mapreduce(cf -> c(cf.time) * cf.amount,+,cfs)
     end
 
-    @show gradient(dynamic,AutoForwardDiff(),zeros) |> sum
-    @show gradient(static,AutoForwardDiff(),zeros) |> sum
+    @show gradient(dynamic,AutoForwardDiff(),zero_rates) |> sum
+    @show gradient(static,AutoForwardDiff(),zero_rates) |> sum
 end
 ```
 
@@ -316,15 +318,15 @@ This convexity measurement is also dynamic, capturing how the surrender behavior
 
 ```{julia}
 let 
-    dynamic(zeros) = value(curve(zeros,times),liabilities[1])
+    dynamic(zero_rates) = value(curve(zero_rates,times),liabilities[1])
     cfs = liabilities[1](c)
-    static(zeros) = let
-        c = curve(zeros,times)
+    static(zero_rates) = let
+        c = curve(zero_rates,times)
         mapreduce(cf -> c(cf.time) * cf.amount,+,cfs)
     end
 
-    @show hessian(dynamic,AutoForwardDiff(),zeros) |> diag |> sum
-    @show hessian(static,AutoForwardDiff(),zeros) |> diag |> sum
+    @show hessian(dynamic,AutoForwardDiff(),zero_rates) |> diag |> sum
+    @show hessian(static,AutoForwardDiff(),zero_rates) |> diag |> sum
 end
 ```
 
@@ -350,7 +352,7 @@ asset_universe = [
 And we capture the measures for each of the available assets for the portfolio selection:
 
 ```{julia}
-vgh_assets= [value_gradient_and_hessian(x->value(curve(x,times),a),AutoForwardDiff(), zeros) for a in asset_universe]
+vgh_assets= [value_gradient_and_hessian(x->value(curve(x,times),a),AutoForwardDiff(), zero_rates) for a in asset_universe]
 
 ```
 
@@ -502,7 +504,7 @@ For ALM applications, this means more accurate risk measurement and the ability 
 Here, we value 100,000 interest-sensitive policies with a monthly timestep for up to 20 years *and* compute 1st and 2nd order partial sensitives extremely quickly:
 
 ```{julia}
-@btime value_gradient_and_hessian(z -> annuities(z, liabilities), AutoForwardDiff(), zeros)
+@btime value_gradient_and_hessian(z -> annuities(z, liabilities), AutoForwardDiff(), zero_rates)
 ```
 
 However, there's still some performance left on the table! the `(d::DeferredAnnuity)(curve)` function defined above is not type stable. In the appendix to this post, we'll cover a way to improve the performance even more.
@@ -640,7 +642,7 @@ end;
 Using this technique, we can see that we achieve a significant speedup (less than half the runtime) from the earlier version due to improving the type stability of the code:
 
 ```{julia}
-@btime value_gradient_and_hessian(z -> annuities(z, liabilities), AutoForwardDiff(), zeros)
+@btime value_gradient_and_hessian(z -> annuities(z, liabilities), AutoForwardDiff(), zero_rates)
 ```
 
 [^zulip]: With thanks to the helpful persons on the Julia Zulip and in particular Mason Protter for this approach. 
