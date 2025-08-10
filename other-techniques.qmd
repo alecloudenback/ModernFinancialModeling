@@ -1,6 +1,9 @@
-# Other Useful Techniques
+---
+author:
+  - name: Alec Loudenback
+---
 
-*Alec Loudenback*
+# More Useful Techniques
 
 ```{julia}
 #| echo: false
@@ -13,7 +16,7 @@ ENV["DATADEPS_ALWAYS_ACCEPT"] = true
 
 ## Chapter Overview
 
-Other useful techniques are surveyed, such as: memoization to avoid repeated computations, psuedo-monte carlo, creating a model office, and tips on modeling a complete balance sheet. Also covered are elements of practical review such as static and dynamic validations, and implied rate analysis.
+Other useful techniques are surveyed, such as: memoization to avoid repeated computations, psuedo-monte carlo, creating a model office, and tips on modeling a complete balance sheet. Also covered are elements of practical review such as static and dynamic validations, and implied rate analysis. Explanatory vs predictive modeling considerations.
 
 ## Conceptual Techniques
 
@@ -148,3 +151,82 @@ for (i, rate) in enumerate(implied_rates)
     println("Implied rate for bond $i: $rate")
 end
 ```
+
+## Predictive vs Explanatory Model Assessments {#sec-model-assessment}
+
+Model assessment should be driven by the model’s purpose. A predictive model is judged by how well it forecasts targets under realistic deployment conditions. An explanatory (or structural) model is judged by how well its parameters are identified, interpretable, and stable under interventions—so that counterfactuals are credible.
+
+Predictive assessment
+-  Define the forecast target and loss explicitly (point, quantile, probability, or full distribution).
+-  Point forecasts (levels/returns): prioritize scale-aware losses such as RMSE and MAE.
+$$
+\mathrm{RMSE} = \sqrt{\frac{1}{T}\sum_{t=1}^{T}(\hat{y}_t - y_t)^2}, \quad \mathrm{MAE} = \frac{1}{T}\sum_{t=1}^{T}|\hat{y}_t - y_t|
+$$
+  Avoid MAPE when values can be near zero; consider symmetric MAPE variants if needed.
+-  Quantile forecasts (e.g., VaR at level $\tau$): use pinball (quantile) loss.
+$$
+  L_\tau(\hat{q}_t, y_t) = \left(\tau - \mathbf{1}\{y_t < \hat{q}_t\}\right)(y_t - \hat{q}_t)
+$$
+-  Probabilistic forecasts (default probabilities, loss distributions): use log score (negative log-likelihood), Brier score for binary events, CRPS for full distributions; evaluate calibration (reliability curves, PIT uniformity) and sharpness (narrowness of distributions).
+-  Interval forecasts: evaluate coverage vs nominal and average interval width (or Winkler score).
+-  Classification tasks (e.g., downgrade prediction): use AUROC/PR, calibration error, expected utility with cost-sensitive thresholds.
+-  Validation design: for time series, use walk-forward (rolling-origin) evaluation with realistic feature availability; guard against leakage; include transaction costs/slippage where applicable.
+
+Explanatory assessment
+-  Parameter interpretability: signs, magnitudes, and units align with theory and domain knowledge; elasticities and risk premia within plausible ranges.
+-  Identification: demonstrate that parameters are uniquely recoverable from the data/design (e.g., instrument relevance/exogeneity for IV; rank conditions for GMM); report overidentification tests where applicable (e.g., Hansen’s J).
+-  Stability/invariance: test parameter constancy across regimes (structural break tests such as Chow; rolling/CUSUM diagnostics); assess sensitivity to alternative samples/specifications.
+-  Counterfactual validity: show that the model’s structural relationships remain invariant under contemplated interventions (policy changes, shocks); evaluate out-of-sample counterfactual predictions when historical policy variation exists.
+-  Moment fit for structural models: report distance between empirical and model-implied moments; assess which moments are well matched and which are not.
+-  Sensitivity/uncertainty analysis: local and global parameter sensitivity (e.g., Sobol indices), posterior uncertainty where Bayesian, and scenario robustness for key assumptions.
+
+Summary mapping
+
+| Goal          | Primary metrics/loss                     | Validation design                           | Finance examples                                      |
+|:---|:---|:---|:---|
+| Predict point | RMSE, MAE, MAPE (with caution)          | Walk-forward CV; leakage checks             | Forecast next-month returns, prepayment speeds        |
+| Predict quantile | Pinball loss at τ                     | Rolling quantile backtests                   | VaR at 99%                                            |
+| Predict probability/distribution | Log score, Brier, CRPS; calibration and sharpness | Time-stamped splits; reliability/PIT checks | Default probability, loss distribution for stress     |
+| Classification | AUROC/PR, calibration error, expected utility | Cost-sensitive thresholds; class imbalance handling | Downgrade/watchlist prediction                        |
+| Explanatory (structural) | Identification tests, parameter plausibility, moment fit | Stability/structural-break tests; sensitivity analysis | Term-structure model, demand/supply elasticities       |
+| Counterfactual | Invariance under intervention; policy simulation accuracy | Natural experiments; out-of-sample policy periods | Impact of capital requirement change on lending       |
+
+:::callout-tip
+## Finance Modeling Pro-tip
+Align the loss you optimize in estimation with the metric you report in evaluation. If your risk committee cares about 99% tail losses, train and evaluate on quantile/tail losses, not just RMSE.
+:::
+
+### Counterfactuals
+
+A **counterfactual** asks: “What would the outcome have been if we had made a different decision or if a policy/input had taken a different value?” It is a “what if” exercise where we deliberately change one input and keep the model’s underlying relationships the same.
+
+The key idea is to separate two questions:
+-  What we typically observe when an input is high or low (patterns in past data).
+-  What would have happened if we had actively set that input to a new level (a deliberate change).
+
+To run a counterfactual analysis in practice:
+1. Pick the specific change (e.g., raise a capital ratio from 8% to 10%; lower mortgage rates by 100 bps; cap deposit betas at 0.30).
+2. Hold the model’s mechanism the same (the estimated relationships and parameters do not change because of the thought experiment).
+3. Recompute the outcomes under the new input and compare to the original (baseline) outcomes.
+4. Report the difference as the counterfactual effect, along with uncertainty or sensitivity to key assumptions.
+
+When to trust a counterfactual:
+-  Parameters are interpretable and align with finance intuition (signs, magnitudes, units).
+-  Relationships are reasonably stable across time and regimes.
+-  Results are robust to plausible alternative specifications and samples.
+
+Finance examples
+- Capital policy: “If the Tier 1 capital requirement were 10% instead of 8%, how would loan growth and ROE have changed?”
+- Mortgages: “If mortgage rates were 100 bps lower last quarter, holding credit standards fixed, what would prepayment speeds have been?”
+- ALM: “If deposit betas were capped at 0.30, how would net interest margin and the liquidity coverage ratio have evolved?”
+
+Tip: Be explicit about what you changed, what you held fixed, and why the model’s relationships should remain valid under the proposed change.
+
+Change Log
+- Rewrote the counterfactual definition in plain language without causal notation or equations.
+- Added a simple, repeatable checklist for conducting counterfactual analyses.
+- Included concise finance-focused examples consistent with the chapter’s tone and audience.
+
+Recommendations
+- When you first introduce counterfactuals in later chapters, show a small worked example: baseline vs counterfactual run, side-by-side, with a sentence on what was held fixed and why.
+

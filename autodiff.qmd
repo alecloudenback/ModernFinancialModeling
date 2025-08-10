@@ -1,6 +1,8 @@
-# Automatic Differentiation {#sec-autodiff}
+---
+author: Alec Loudenback
+---
 
-*Alec Loudenback*
+# Automatic Differentiation {#sec-autodiff}
 
 ```{julia}
 #| echo: false
@@ -88,8 +90,6 @@ for this example we'll show the results of the three methods calculated at diffe
 ```{julia}
 #| label: fig-finite-diff-error
 #| fig-cap: "A log-log plot showing the absolute error of the finite differences. Further to the left, roundoff error dominates while further to the right, truncation error dominates."
-using DataFrames
-
 
 f(x) = exp(x)
 ϵ = 10 .^ (range(-16, stop=0, length=100))
@@ -136,7 +136,7 @@ Using this rule, we can define how elementary operations act when differentiated
 
 ### Dual Numbers
 
-To understand where we are going, let's remind ourselves about complex numbers. Complex numbers are of the form which has an real part ($r$) and an imaginary part ($iq$):
+To understand where we are going, let's remind ourselves about complex numbers. Complex numbers are of the form which has a real part ($r$) and an imaginary part ($iq$):
 
 $$
 r+iq
@@ -200,7 +200,7 @@ That's not super interesting though - the derivative of `f1` is just `1` and we 
 Let's make this more interesting by also defining the multiplication operation on dual numbers. We'll follow the product rule:
 
 $$
-(u \times v)' = u ' \times v + u \times v' 
+(u v)' = u' v + u v'
 $$
 
 ```{julia}
@@ -264,11 +264,11 @@ Recall that in the finite difference method, we generally had to evaluate the fu
 
 ```{julia}
 using BenchmarkTools
-@btime f3(rand())
+@btime f3(x) setup = x = rand()
 ```
 
 ```{julia}
-@btime f3(DualNumber(rand(), 1))
+@btime f3(DualNumber(x, 1)) setup = x = rand()
 ```
 
 In performing this computation, the compiler has been able to optimize it such that we effectively are able to compute the function and its derivative at less than two times the cost of the base function evaluation. As the function gets more complex, the overhead does increase but is still a generally preferred versus finite differentiation. This advantage becomes more pronounced as we contemplate derivatives with respect to many variables at once or for higher-order derivatives.
@@ -276,7 +276,7 @@ In performing this computation, the compiler has been able to optimize it such t
 ::: callout-note
 In fact, it's largely due to the advances in applications of automatic differentiation that has led to the explosion of machine learning and artificial intelligence techniques in the 2010s/2020s. The "learning" process relies on solving parameter weights and would be too computationally expensive if using finite differences.
 
-These applications of AD in specialized C++ libraries underpin the libraries like PyTorch, Tensorfow, and Keras. These libraries specialize in allowing for AD on a limited subset of operations. Julia's available AD libraries are more general and can be applied to many more scenarios.
+These applications of AD in specialized C++ libraries underpin the libraries like PyTorch, TensorFlow, and Keras. These libraries specialize in allowing for AD on a limited subset of operations. Julia's available AD libraries are more general and can be applied to many more scenarios.
 :::
 
 ## Automatic Differentiation in Practice
@@ -314,7 +314,7 @@ function eurocall(parameters)
     iszero(τ) && return max(zero(S), S - K)
     d₁ = d1(S, K, τ, r, σ, q)
     d₂ = d2(S, K, τ, r, σ, q)
-    return (N(d₁) * S * exp(τ * (r - q)) - N(d₂) * K) * exp(-r * τ)
+    return S * exp(-q * τ) * N(d₁) - K * exp(-r * τ) * N(d₂)
 end
 ```
 
@@ -348,6 +348,13 @@ With the above code, now we can get the partial derivatives with respect to each
 ForwardDiff.gradient(eurocall, params)
 ```
 
+-  Entry 1: delta \( \partial C / \partial S \)
+-  Entry 2: sensitivity to strike \( \partial C / \partial K \) (no standard Greek)
+-  Entry 3: \( \partial C / \partial \tau \), which is the negative of the market convention “theta” (\( \Theta = \partial C / \partial t = -\partial C / \partial \tau \))
+-  Entry 4: rho \( \partial C / \partial r \)
+-  Entry 5: vega \( \partial C / \partial \sigma \)
+-  Entry 6: dividend rho (often denoted “phi”) \( \partial C / \partial q \)
+
 We can also get the second order greeks with another call. This includes many uncommon second order partial derivatives, but the popular *gamma* is in the `[1,1]` position for example:
 
 ```{julia}
@@ -373,7 +380,7 @@ end
 
 ## Forward Mode and Reverse Mode
 
-The approach of AD outlined about is called **forward mode** AD where the derivative is brought forward through the computation and accumulated through each step. The alternative to this is to first evaluate the function and then work backwards by accumulating the partial derivatives in what's called **reverse mode** AD.
+The approach outlined above is forward-mode AD, where derivatives are propagated alongside values. Reverse-mode AD evaluates the function, records a computation graph, and then accumulates sensitivities backwards.
 
 Reverse mode requires more book-keeping because unlike the forward mode the derivative needs to be carried backwards, unlike the `DualNumber` approach of forward mode.
 
@@ -384,6 +391,9 @@ Here are a few practical tips to keep in mind.
 ### Choosing between Reverse Mode and Forward Mode
 
 Forward mode is more efficient when the number of outputs is much larger than the number inputs. When the number of inputs is much larger than the number of outputs, then reverse mode will generally be more efficient. Examples of the number of inputs being larger than the outputs might be in a statistical analysis where many features are used to predict a limited number of outcome variables or a complex model with a lot of parameters.
+
+-  Use forward mode when the number of inputs is small relative to the number of outputs.
+-  Use reverse mode when the number of inputs is large and the number of outputs is small (e.g., loss functions).
 
 ### Mutation
 
