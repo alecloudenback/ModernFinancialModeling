@@ -716,50 +716,64 @@ window.Quarto = {
 <p>We will focus primarily on the architecture of a single computer, as even laptop computers today contain enough power for most modeling tasks, <em>if the computer is used effectively</em>. Further, learning how to optimize a program for a single computer/processor is almost always a precursor step to effective parallelization as well.</p>
 <section id="memory-types-and-location" class="level3" data-number="9.3.1">
 <h3 data-number="9.3.1" class="anchored" data-anchor-id="memory-types-and-location"><span class="header-section-number">9.3.1</span> Memory Types and Location</h3>
-<p>Memory has an inverse relationship between size and proximity to the central processor unit (CPU). The closer the data is to the processor units, the smaller the storage and the less likely the data will persist at that location for very long.</p>
+<p>Memory has an inverse relationship between size and proximity to the central processing unit (CPU). The closer the data is to the processor units, the smaller the storage and the less likely the data will persist at that location for very long.</p>
 <table class="caption-top table">
 <colgroup>
-<col style="width: 38%">
-<col style="width: 22%">
-<col style="width: 38%">
+<col style="width: 14%">
+<col style="width: 18%">
+<col style="width: 39%">
+<col style="width: 25%">
 </colgroup>
 <thead>
 <tr class="header">
 <th>Kind</th>
-<th>Rough Size</th>
-<th>Lifecycle</th>
+<th>Typical capacity</th>
+<th>Typical latency</th>
+<th>Persistence</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Solid State Disk (SSD) or Hard Disk Drive (HDD)</td>
-<td>TBs</td>
-<td>Persistent/Permanent</td>
+<td>SSD or HDD</td>
+<td>1–10+ TB</td>
+<td>100,000–10,000,000 ns (read/seek dependent)</td>
+<td>Persistent</td>
 </tr>
 <tr class="even">
-<td>Random Access Memory (RAM)</td>
-<td>Dozens to Hundereds of GBs</td>
-<td>Seconds to Hours (while computer is powered on)</td>
+<td>RAM (DRAM)</td>
+<td>8–256+ GB</td>
+<td>60–120 ns</td>
+<td>Volatile (power-dependent)</td>
 </tr>
 <tr class="odd">
-<td>CPU Cache - L3</td>
-<td>8 MB to 128 MB</td>
-<td>Microseconds to Milliseconds</td>
+<td>CPU Cache – L3</td>
+<td>4–128 MB</td>
+<td>10–40 ns</td>
+<td>Volatile</td>
 </tr>
 <tr class="even">
-<td>CPU Cache - L2</td>
-<td>2 MB to 16 MB</td>
-<td>Nanoseconds to Microseconds</td>
+<td>CPU Cache – L2</td>
+<td>256 KB–8 MB</td>
+<td>3–10 ns</td>
+<td>Volatile</td>
 </tr>
 <tr class="odd">
-<td>CPU Cache - L1</td>
-<td>~16 KB</td>
-<td>Nanoseconds</td>
+<td>CPU Cache – L1</td>
+<td>32–128 KB</td>
+<td>0.5–1.5 ns</td>
+<td>Volatile</td>
+</tr>
+<tr class="even">
+<td>CPU Registers</td>
+<td>a few hundred bytes</td>
+<td>single-cycle access</td>
+<td>Volatile</td>
 </tr>
 </tbody>
 </table>
 <p>After requesting data from a persistent location like a Solid State Drive (SSD), the memory is read into Random Access Memory (RAM). The advantage of RAM over a persistent location is speed - typically that memory can be accessed and modified many times faster than the persistent data location. The tradeoff is that RAM is not persistent: when the computer is powered down, the RAM loses the information stored within.</p>
-<p>When data is needed by the CPU, data is read from RAM into a small hierarchy of caches before being accessed by the CPU. The <strong>CPU Caches</strong> are small (physically and in capacity), but very fast. The caches are also physically colocated with the CPU for efficiency. Data is organized and funneled through the caches as an intermediary between the CPU and RAM and is fed from Level 3 (L3) cache in steps down to L1 cache as the data gets closer to the processor.</p>
+<p>When data is needed by the CPU, data is read from RAM into a small hierarchy of caches before being accessed by the CPU. The <strong>CPU caches</strong> are small and very fast, and they move data in fixed-size ‘cache lines’ (typically 64 bytes). The caches are also physically co-located with the CPU for efficiency. Data is organized and funneled through the caches as an intermediary between the CPU and RAM and is fed from Level 3 (L3) cache in steps down to L1 cache as the data gets closer to the processor.</p>
+<p>At the very top of the memory hierarchy are <strong>CPU registers</strong>—tiny storage locations on the chip that the processor can read and write in a single cycle. This is where the CPU actually performs calculations. The CPU’s execution units operate on values held in registers. Most arithmetic, logical, and comparison instructions take their operands from registers and write results back to registers; separate load/store instructions move data between memory and registers.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -770,38 +784,51 @@ Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>For reference, memory units are:</p>
+<p>Memory units at a glance:</p>
 <ul>
-<li>1 bit is a single binary digit (<code>0</code> or <code>1</code>)</li>
-<li>8 bits = 1 byte</li>
-<li>8 bytes = 1 word</li>
-<li>1024 bytes = 1 Kilobyte (KB)</li>
-<li>1024 KB = 1 Megabyte (MB)</li>
-<li>1024 MB = 1 Gigabyte (GB)</li>
-<li>1024 GB = 1 Terabyte (TB)</li>
-<li>1024 TB = 1 Petabyte (PB)</li>
+<li>1 bit is a single 0 or 1; 8 bits = 1 byte.</li>
+<li>Binary multiples (common for RAM/caches and many OS readouts):</li>
+<li>1 KiB = 1,024 bytes; 1 MiB = 1,024 KiB; 1 GiB = 1,024 MiB.</li>
+<li>Decimal multiples (common for storage devices and network speeds):</li>
+<li>1 kB = 1,000 bytes; 1 MB = 1,000,000 bytes; 1 Gb = 1,000,000,000 bits.</li>
+<li>KB vs Kb: uppercase B = bytes; lowercase b = bits. 1 KB is eight times larger than 1 Kb.</li>
 </ul>
-<p>Sometimes, you might see Kb, which is Kilo<em>bits</em>, or 1024 bits. Therefore 1 KB is 8 times larger than a Kb.</p>
-<p>The increments are 1024 and not the usual 1000, because 1024 is <span class="math inline">\(2^{10}\)</span>. The even binary multiple of 1024 is more convenient than 1000 when working with bits.</p>
+<p>Rule of thumb: treat memory sizes (RAM, caches) as base‑2, and disk/network specs as base‑10. The “i” in KiB/MiB/GiB explicitly means base‑2 <span class="math inline">\((2^{10} = 1{,}024)\)</span>.</p>
 </div>
 </div>
 </section>
 <section id="stack-vs-heap" class="level3" data-number="9.3.2">
 <h3 data-number="9.3.2" class="anchored" data-anchor-id="stack-vs-heap"><span class="header-section-number">9.3.2</span> Stack vs Heap</h3>
 <p>Sitting within the RAM region of memory are two sections called Stack and Heap. These are places where variables created from our program’s code can be stored. In both cases, the program will request memory space but they have some differences to be aware of.</p>
-<p>The <strong>stack</strong> stores small, fixed-size (known bit length), data and program components. The stack is a last-in-first-out queue of data that is able to be written to and read from very quickly. The <strong>heap</strong> is a region which can be dynamically sized and has random read/write (you need not access the data in a particular order). The heap is much slower but more flexible.</p>
+<ul>
+<li><p>The <strong>stack</strong> stores small, fixed-size (known bit length), data and program components. The stack is a last-in-first-out queue of data that is able to be written to and read from very quickly. The stack is CPU cache friendly.</p></li>
+<li><p>The <strong>heap</strong> is a region which can be dynamically sized and has random read/write (you need not access the data in a particular order). The heap is much slower but more flexible. The heap is not very CPU cache friendly.</p></li>
+</ul>
 <section id="garbage-collector" class="level4" data-number="9.3.2.1">
 <h4 data-number="9.3.2.1" class="anchored" data-anchor-id="garbage-collector"><span class="header-section-number">9.3.2.1</span> Garbage Collector</h4>
 <p>The <strong>garbage collector</strong> is a program that gets run to free up previously requested/allocated memory. It accomplishes this by keeping track of references to data in memory by section of your code. If a section of code is no longer reachable (e.g.&nbsp;inside a function that will never get called again, or a loop that ran earlier in the program but is now complete), then, periodically, the garbage collector will pause execution of the primary program in order to “sweep” the memory. This step marks the space as able to be reused by your program or the operating system.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Julia uses a generational, stop-the-world garbage collector to reclaim heap memory that is no longer reachable by your program. Periodically, execution pauses briefly while the GC identifies unreachable objects and frees them. In performance-sensitive code, reducing heap allocations (e.g., by reusing buffers, working in-place, and writing type-stable code) minimizes GC pressure and improves throughput.</p>
+</div>
+</div>
 </section>
 </section>
 </section>
 <section id="sec-hardware-processor" class="level2" data-number="9.4">
 <h2 data-number="9.4" class="anchored" data-anchor-id="sec-hardware-processor"><span class="header-section-number">9.4</span> Processor</h2>
-<p>The processor reads lines (groups of bits) from the cache into registers and then executes instructions. An example would be to take the bytes from register 10 and add the bytes from register 11 to them. This is really all a processor does at the lowest level: combining bits of data using logical circuits.</p>
+<p>The processor reads cache lines (typically 64 bytes) from caches and moves the needed values into registers and then executes instructions. An example would be to take the bytes from register 10 and add the bytes from register 11 to them. This is really all a processor does at the lowest level: combining bits of data using logical circuits.</p>
 <p>Logical circuits (<strong>transistors</strong>) are an arrangement of wires that output a new electrical signal that varies depending on the input. From a collection of smaller building block gates (e.g.&nbsp;AND, OR, NOR, XOR) more complex operations can be built up<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>, into operations like addition, multiplication, division, etc. Electric impulses move the state of the program forward once time per CPU cycle (controlled by a master “clock” ticking billions of times per second). CPU cycle speed is what’s quoted for chip performance, e.g.&nbsp;when a CPU is advertised as 3.0 GHz (or 3 billion cycles per second).</p>
 <p>The programmer (or compiler, if we are working in a higher level language like Julia) tells the CPU which instruction to run. The set of instructions that are valid for a given processor are called the Instruction Set Architecture, or ISA. In computer Assembly language (roughly one-level above directly manipulating the bits), the instructions are given names like <code>ADD</code>, <code>SUB</code>, <code>MUL</code>, <code>DIV</code>, and <code>MOV</code>. These instructions mirror the raw instruction that is part of the ISA.</p>
-<p>All instructions are not all created equal, however. Some instructions take many CPU cycles to complete. For example, floating point <code>DIV</code> (division) takes 10-20 CPU cycles while <code>ADD</code> only takes a single CPU cycle.</p>
+<p>Not all instructions are created equal, however. Some instructions take many CPU cycles to complete. For example, floating point <code>DIV</code> (division) takes 10-20 CPU cycles while <code>ADD</code> only takes a single CPU cycle.</p>
 <p>Some architecture examples that may be familiar:</p>
 <ul>
 <li><p>Intel x86-64 (a.k.a. AMD64) are common computer processors that use registers that are 64 bits wide (the prior generation was 32 bits wide) and use the <strong>x86</strong> instruction set developed by Intel.</p></li>
@@ -833,7 +860,7 @@ Tip
     .p2align    <span class="ansi-yellow-fg">2</span>
 <span class="ansi-bright-red-fg">_julia_myadd_6893:</span>                      <span class="ansi-bright-black-fg">; @julia_myadd_6893</span>
 <span class="ansi-bright-black-fg">; Function Signature: myadd(Int64, Int64, Int64)</span>
-<span class="ansi-bright-black-fg">; ┌ @ /Users/alecloudenback/prog/julia-fin-book/hardware.qmd:106 within `myadd`</span>
+<span class="ansi-bright-black-fg">; ┌ @ /Users/alecloudenback/prog/julia-fin-book/hardware.qmd:112 within `myadd`</span>
 <span class="ansi-bright-black-fg">; %bb.0:                                ; %top</span>
 <span class="ansi-bright-black-fg">; │ @ /Users/alecloudenback/prog/julia-fin-book/hardware.qmd within `myadd`</span>
     <span class="ansi-bright-black-fg">;DEBUG_VALUE: myadd:x &lt;- $x0</span>
@@ -842,7 +869,7 @@ Tip
     <span class="ansi-bright-black-fg">;DEBUG_VALUE: myadd:y &lt;- $x1</span>
     <span class="ansi-bright-black-fg">;DEBUG_VALUE: myadd:z &lt;- $x2</span>
     <span class="ansi-bright-black-fg">;DEBUG_VALUE: myadd:z &lt;- $x2</span>
-<span class="ansi-bright-black-fg">; │ @ /Users/alecloudenback/prog/julia-fin-book/hardware.qmd:106 within `myadd`</span>
+<span class="ansi-bright-black-fg">; │ @ /Users/alecloudenback/prog/julia-fin-book/hardware.qmd:112 within `myadd`</span>
 <span class="ansi-bright-black-fg">; │┌ @ operators.jl:596 within `+` @ int.jl:87</span>
     <span class="ansi-bright-cyan-fg ansi-bold">add</span>  x8, x1, x0
     <span class="ansi-bright-cyan-fg ansi-bold">add</span>  x0, x8, x2
@@ -931,22 +958,22 @@ _julia_myadd_1851:                      ; @julia_myadd_1851
 </div>
 <section id="increasing-complexity-in-search-of-performance" class="level4" data-number="9.4.0.1">
 <h4 data-number="9.4.0.1" class="anchored" data-anchor-id="increasing-complexity-in-search-of-performance"><span class="header-section-number">9.4.0.1</span> Increasing Complexity in Search of Performance</h4>
-<p>Transistors are the building-block that creates the CPU and enables the physical process which governs the computations. For a very long time, the major source of improved computer performance was simply to make smaller transistors, allowing more of them to be packed together to create computer chips. This worked for many years and the propensity for the transistor count to double about every two years. In this way, software performance improvements came as side effect of the phenomenal scaling in hardware capability. However, raw single core performance and clock frequency (CPU cycle speed) dramatically flattened out starting a bit before the year 2010. This was due to the fact that transistor density has been starting to be limited by:</p>
+<p>Transistors are the building-block that creates the CPU and enables the physical process which governs the computations. For a very long time, the major source of improved computer performance was simply to make smaller transistors, allowing more of them to be packed together to create computer chips. This worked for many years and the propensity was for the transistor count to double about every two years. In this way, software performance improvements came as side effect of the phenomenal scaling in hardware capability. However, raw single core performance and clock frequency (CPU cycle speed) dramatically flattened out starting a bit before the year 2010. This was due to the fact that transistor density has been starting to be limited by:</p>
 <ol type="1">
 <li>Pure physical constraints (transistors can be measured in width of atoms) where we have limited ability to manufacture something so small.</li>
 <li>Thermodynamics, where heat can’t be removed from the CPU core fast enough to avoid damaging the core and therefore operations per second are capped.</li>
 </ol>
 <p>To obtain increasing performance, two main strategies have been employed in lieu of throwing more transistors into a single core:</p>
 <ol type="1">
-<li>Utilize multiple, separate cores and operate in an increasingly parallel way.</li>
-<li>Use clever tricks to predict, schedule, and optimize the computations to make better use of the memory pipeline and otherwise idle CPU cycles.</li>
+<li><strong>Parallelism:</strong> utilize multiple, separate cores and operate in an increasingly parallel way.</li>
+<li><strong>Microarchitectural techniques:</strong> clever tricks to predict, schedule, and optimize the computations to make better use of the memory pipeline and otherwise idle CPU cycles.</li>
 </ol>
 <p>We will cover techniques to utilize concurrent/parallel processing in <a href="parallelization.html" class="quarto-xref"><span>Chapter 11</span></a>. As for the second technique, it is capable of very impressive accelerations (on the order 2x to 100x faster than a naive implementation. However, it has sometimes caused issues. There have been some famous security vulnerabilities such as Spectre and Meltdown, which exploited speculative execution – a technique used to optimize CPU performance which will execute code <em>before being explicitly asked to</em> because the scheduler <em>anticipates</em> the next steps (with very good, but imperfect accuracy).</p>
 </section>
 </section>
 <section id="logistics-warehouse-analogy" class="level2" data-number="9.5">
 <h2 data-number="9.5" class="anchored" data-anchor-id="logistics-warehouse-analogy"><span class="header-section-number">9.5</span> Logistics Warehouse Analogy</h2>
-<p>The problem is analogous to a logistics warehouse (persistent data) which needs to package up orders (processor instructions). There’s a conveyor belt of items being constantly routed to the packaging station. In order to keep the packing station working at full capacity, the intermediate systems (RAM &amp; CPU caches) are funneling items they <em>think</em> will be needed to the packager (data that’s <em>expected</em> to be used in the processor). Most of the time, the necessary item (data) is optimally brought to the packaging station(process), or a nearby holding spot (CPU cache).</p>
+<p>The problem is analogous to a logistics warehouse (persistent data) which needs to package up orders (processor instructions). There’s a conveyor belt of items being constantly routed to the packaging station. In order to keep the packing station working at full capacity, the intermediate systems (RAM &amp; CPU caches) are funneling items they <em>think</em> will be needed to the packager (data that’s <em>expected</em> to be used in the processor). Most of the time, the necessary item (data) is optimally brought to the packaging station (process), or a nearby holding spot (CPU cache).</p>
 <p>This system has grown very efficient, but sometimes the predictions miss or a never-before-ordered item needs to be picked from the far side of the warehouse and this causes significant delays to the system. Sometimes a package will start to be assembled before the packager has even gotten to that order (branch prediction) which can make the system faster most of the time, but if the predicted package isn’t actually what the customer ordered, then the work is lost and has to be redone (branch mis-predict).</p>
 <p>There are a lot more optimizations along the way:</p>
 <ul>
@@ -954,6 +981,26 @@ _julia_myadd_1851:                      ; @julia_myadd_1851
 <li><p>If an item usually ordered after another one is, the conveyor system will start to bring that second item as soon as the first one is ordered (prefetching).</p></li>
 <li><p>Different types of packaging stations might be used for specialized items (e.g.&nbsp;vector processing or cryptography instructions in the CPU).</p></li>
 </ul>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Financial Modeling Pro-tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Julia arrays are column-major. Access memory contiguously to exploit caches:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> <span class="fu">randn</span>(<span class="fl">10_000</span>, <span class="fl">100</span>)  <span class="co"># rows × cols</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Fast: process columns (contiguous memory)</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>sums <span class="op">=</span> <span class="fu">map</span>(sum, <span class="fu">eachcol</span>(X))</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Slower: process rows (strided access)</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>sums_rows <span class="op">=</span> <span class="fu">map</span>(sum, <span class="fu">eachrow</span>(X))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>In portfolio/risk code, organize factor loadings or scenario matrices so your hot loops iterate along columns where possible. This often yields 2–10× speedups purely from better cache locality.</p>
+</div>
+</div>
 </section>
 <section id="speed-of-computer-actions" class="level2" data-number="9.6">
 <h2 data-number="9.6" class="anchored" data-anchor-id="speed-of-computer-actions"><span class="header-section-number">9.6</span> Speed of Computer Actions</h2>
@@ -962,72 +1009,72 @@ _julia_myadd_1851:                      ; @julia_myadd_1851
 <div id="tbl-computer-speeds" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-computer-speeds-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;9.2: How long different actions take on a computer. As an interesting yardstick, the distance a beam of light travels is also given to provide a sense of scale (this comparison originally comes from Admiral Grace Hopper). Source for the timings comes from: <a href="https://cs.brown.edu/courses/csci0300/2022/assign/labs/lab4.html" class="uri">https://cs.brown.edu/courses/csci0300/2022/assign/labs/lab4.html</a>
+Table&nbsp;9.2: How long different actions take on a computer. As an interesting yardstick, the distance a beam of light travels is also given to provide a sense of scale (this comparison originally comes from Admiral Grace Hopper). Source for the timings comes from: <a href="https://cs.brown.edu/courses/csci0300/2022/assign/labs/lab4.html" class="uri">https://cs.brown.edu/courses/csci0300/2022/assign/labs/lab4.html</a>. Also note that timings vary substantially by hardware and workload; treat these as order-of-magnitude references.
 </figcaption>
 <div aria-describedby="tbl-computer-speeds-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <table class="caption-top table">
 <colgroup>
-<col style="width: 50%">
-<col style="width: 10%">
-<col style="width: 38%">
+<col style="width: 30%">
+<col style="width: 40%">
+<col style="width: 30%">
 </colgroup>
 <thead>
 <tr class="header">
 <th>Operation</th>
-<th>Time (ns)</th>
-<th>Distance Light Traveled</th>
+<th style="text-align: right;">Time (ns)</th>
+<th>Distance light traveled</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Single CPU Cycle (e.g.&nbsp;one <code>ADD</code> or <code>OR</code> operation on a register)</td>
-<td>0.3</td>
+<td>Single CPU cycle (e.g., one add on a register)</td>
+<td style="text-align: right;">0.3</td>
 <td>9 centimeters</td>
 </tr>
 <tr class="even">
 <td>L1 cache reference</td>
-<td>1</td>
+<td style="text-align: right;">1</td>
 <td>30 centimeters</td>
 </tr>
 <tr class="odd">
 <td>Branch mispredict</td>
-<td>5</td>
+<td style="text-align: right;">5</td>
 <td>150 centimeters</td>
 </tr>
 <tr class="even">
 <td>L2 cache reference</td>
-<td>5</td>
+<td style="text-align: right;">5</td>
 <td>150 centimeters</td>
 </tr>
 <tr class="odd">
 <td>Main memory reference</td>
-<td>100</td>
+<td style="text-align: right;">100</td>
 <td>30 meters</td>
 </tr>
 <tr class="even">
-<td>Read 1MB sequentially from RAM</td>
-<td>250,000</td>
-<td>75 km (~2 marathons)</td>
+<td>Read 1 MB sequentially from RAM</td>
+<td style="text-align: right;">250,000</td>
+<td>75 km (≈2 marathons)</td>
 </tr>
 <tr class="odd">
 <td>Round trip within a datacenter</td>
-<td>500,000</td>
-<td>150km (the thickness of Earth’s atmosphere)</td>
+<td style="text-align: right;">500,000</td>
+<td>150 km (thickness of Earth’s atmosphere)</td>
 </tr>
 <tr class="even">
-<td>Read 1MB sequentially from SSD</td>
-<td>1,000,000</td>
-<td>300km (distance Washington D.C. to New York City)</td>
+<td>Read 1 MB sequentially from SSD</td>
+<td style="text-align: right;">1,000,000</td>
+<td>300 km (Washington, D.C. to New York City)</td>
 </tr>
 <tr class="odd">
 <td>Hard disk seek</td>
-<td>10,000,000</td>
-<td>3,000km (width of continental United States)</td>
+<td style="text-align: right;">10,000,000</td>
+<td>3,000 km (width of the continental U.S.)</td>
 </tr>
 <tr class="even">
-<td>Send packet CA-&gt;Netherlands-&gt;CA</td>
-<td>150,000,000</td>
-<td>45,000km (circumference of earth)</td>
+<td>Send packet CA→Netherlands→CA</td>
+<td style="text-align: right;">150,000,000</td>
+<td>45,000 km (Earth’s circumference)</td>
 </tr>
 </tbody>
 </table>
@@ -1043,9 +1090,9 @@ Table&nbsp;9.3: Different operations utilize different levels of required comput
 <div aria-describedby="tbl-CPU-ops-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <table class="caption-top table">
 <colgroup>
-<col style="width: 33%">
-<col style="width: 33%">
-<col style="width: 33%">
+<col style="width: 27%">
+<col style="width: 18%">
+<col style="width: 52%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -1119,6 +1166,11 @@ Tip
 <p>Some strategies:</p>
 <ul>
 <li>Instead of using interest rates which require exponentiation, utilize continuously compounded rates and use the <code>exp</code> and <code>log</code> functions instead.</li>
+<li>For small r, use <code>expm1</code>/<code>log1p</code> to improve accuracy:
+<ul>
+<li><code>expm1(x)</code> computes <span class="math inline">\(\exp(x) - 1\)</span> accurately for small <span class="math inline">\(x\)</span>.</li>
+<li><code>log1p(x)</code> computes <span class="math inline">\(\log(1 + x)\)</span> accurately for small <span class="math inline">\(x\)</span>.</li>
+</ul></li>
 <li>Say you are running a monthly model with inputs that are annual rates. Before running through the ‘hot loop’, pre-compute the annual rates into a vector of monthly rates to avoid re-computing this transformation at the cell/seriatim level.</li>
 </ul>
 </div>
