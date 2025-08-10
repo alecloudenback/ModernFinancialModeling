@@ -6,6 +6,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
+<meta name="author" content="Alec Loudenback">
 
 <title>13&nbsp; Elements of Computer Science – Modern Financial Modeling</title>
 <style>
@@ -615,7 +616,7 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./other-techniques.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">32</span>&nbsp; <span class="chapter-title">Other Useful Techniques</span></span></a>
+ <span class="menu-text"><span class="chapter-number">32</span>&nbsp; <span class="chapter-title">More Useful Techniques</span></span></a>
   </div>
 </li>
       </ul>
@@ -678,6 +679,7 @@ window.Quarto = {
   <li><a href="#property-based-testing" id="toc-property-based-testing" class="nav-link" data-scroll-target="#property-based-testing"><span class="header-section-number">13.6.2</span> Property Based Testing</a></li>
   <li><a href="#fuzzing" id="toc-fuzzing" class="nav-link" data-scroll-target="#fuzzing"><span class="header-section-number">13.6.3</span> Fuzzing</a></li>
   </ul></li>
+  <li><a href="#sec-portfolio-complexity" id="toc-sec-portfolio-complexity" class="nav-link" data-scroll-target="#sec-portfolio-complexity"><span class="header-section-number">13.7</span> Finance Example: Complexity and Portfolio Selection</a></li>
   </ul>
 </nav>
     </div>
@@ -694,6 +696,12 @@ window.Quarto = {
 
 <div class="quarto-title-meta">
 
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Alec Loudenback </p>
+          </div>
+  </div>
     
   
     
@@ -704,9 +712,8 @@ window.Quarto = {
 </header>
 
 
-<p><em>Alec Loudenback</em></p>
 <blockquote class="blockquote">
-<p>“Fundamentally, computer science is a science of abstraction—creating the right model for a problem and devising the appropriate mechanizable techniques to solve it. Confronted with a problem, we must create an abstraction of that problem that can be represented and manipulated inside a computer. Through these manipulations, we try to find a solution to the original problem.” - Al Aho and Jeff Ullman (1992)</p>
+<p>“Fundamentally, computer science is a science of abstraction—creating the right model for a problem and devising the appropriate mechanizable techniques to solve it. Confronted with a problem, we must create an abstraction of that problem that can be represented and manipulated inside a computer. Through these manipulations, we try to find a solution to the original problem.” — Al Aho and Jeff Ullman (1992)</p>
 </blockquote>
 <section id="chapter-overview" class="level2" data-number="13.1">
 <h2 data-number="13.1" class="anchored" data-anchor-id="chapter-overview"><span class="header-section-number">13.1</span> Chapter Overview</h2>
@@ -717,17 +724,17 @@ window.Quarto = {
 <p>Computer science as a term can be a bit misleading because of the overwhelming association with the physical desktop or laptop machines that we call “computers”. The discipline of computer science is much richer than consumer electronics: at its core, computer science concerns itself with areas of research and answering tough questions:</p>
 <ul>
 <li><strong>Algorithms and Optimization</strong>. How can a problem be solved efficiently? How can that problem be solved <em>at all</em>? Given constraints, how can one find an optimal solution?</li>
-<li><strong>Theory of Computation</strong>. What sorts of questions are even answerable? Is an answer easy to computer or will resolving it require more resources than the entire known universe? Will a computation ever stop calculating?</li>
+<li><strong>Theory of Computation</strong>. What sorts of questions are even answerable? Is an answer easy to compute or will resolving it require more resources than the entire known universe? Will a computation ever stop calculating?</li>
 <li><strong>Data Structures</strong>. How to encode, store, and use data? How does that data relate to each other and what are the trade-offs between different representations of that data?</li>
 <li><strong>Information Theory</strong><a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>. Given limited data, what <em>can</em> be known or inferred from it?</li>
 </ul>
-<p>For a reader in the twenty-first century we hope that it is patently obvious how impactful the <em>applied</em> computer science has been as an end-user of the internet, artificial intelligence, computational photography, safety control systems, etc. have been to our lives. It is a testament to the utility of being able to harness computer science ideas for practical use.</p>
-<p>It’s common for beneficial advances in knowledge and application to occur at the boundary between two disciplines. It’s here in this chapter that we desire to bring together the financial discipline together with computer science and to provide the financial practitioner with the language and concepts to leverage some of computer science’s most relevant ideas.</p>
+<p>For a reader in the twenty-first century we hope that it is patently obvious how impactful the <em>applied</em> computer science has been as end-users of the internet, artificial intelligence, computational photography, safety control systems, etc. have been to our lives. It is a testament to the utility of being able to harness computer science ideas for practical use.</p>
+<p>It’s common for beneficial advances in knowledge and application to occur at the boundary between two disciplines. It’s here in this chapter that we desire to bring together the financial discipline with computer science and to provide the financial practitioner with the language and concepts to leverage some of computer science’s most relevant ideas.</p>
 </section>
 <section id="algorithms" class="level2" data-number="13.3">
 <h2 data-number="13.3" class="anchored" data-anchor-id="algorithms"><span class="header-section-number">13.3</span> Algorithms</h2>
 <p>An <strong>Algorithm</strong> is a general term for a process that transforms an input to an output. It’s the set of instructions dictating how to carry out a process. That process needs to be specified in sufficient detail to be able to call itself an algorithm (versus a <em>heuristic</em> which lacks that specificity).</p>
-<p>An algorithm might be the directions to accomplish the following task: summing a series of consecutive integers integers from <span class="math inline">\(1\)</span> to <span class="math inline">\(n\)</span>. There are multiple ways that this might be accomplished, each one considered a distinct algorithm:</p>
+<p>An algorithm might be the directions to accomplish the following task: summing a series of consecutive integers from <span class="math inline">\(1\)</span> to <span class="math inline">\(n\)</span>. There are multiple ways that this might be accomplished, each one considered a distinct algorithm:</p>
 <ul>
 <li><p>iterating over each number and summing them up (starting with the smallest number)</p></li>
 <li><p>iterating over each number and summing them up (starting with the largest number)</p></li>
@@ -740,12 +747,12 @@ window.Quarto = {
 <h2 data-number="13.4" class="anchored" data-anchor-id="complexity"><span class="header-section-number">13.4</span> Complexity</h2>
 <section id="computational-complexity" class="level3" data-number="13.4.1">
 <h3 data-number="13.4.1" class="anchored" data-anchor-id="computational-complexity"><span class="header-section-number">13.4.1</span> Computational Complexity</h3>
-<p>We can characterize the computational complexity of a problem by looking at how long an algorithm takes to complete a task when given an input of size <span class="math inline">\(n\)</span>. We can then compare two approaches to see which is computationally less complex for a given <span class="math inline">\(n\)</span>. This is a way of systematically evaluating an algorithm to determine it’s efficiency when being computed.</p>
+<p>We can characterize the computational complexity of a problem by looking at how long an algorithm takes to complete a task when given an input of size <span class="math inline">\(n\)</span>. We can then compare two approaches to see which is computationally less complex for a given <span class="math inline">\(n\)</span>. This is a way of systematically evaluating an algorithm to determine its efficiency when being computed.</p>
 <div class="callout-warn">
 <p>Note that computational complexity isn’t quite the same as how fast an algorithm will run on your computer, but it’s a very good guide. Modern computer architectures can sometimes execute multiple instructions in a single cycle of the CPU making an algorithm that is, on paper slower than another, actually run faster in practice. Additionally, sometimes algorithms are able to substantially limit the number of <em>computations</em> to be performed, at the expense of using a lot more <em>memory</em> and thereby trading CPU usage with RAM usage.</p>
 <p>You can think of computational complexity as a measure of how much work is to be performed. Sometimes the computer is able to perform certain kinds of work more efficiently.</p>
 <p>Further, when we analyze an algorithm recall that ultimately our code gets translated into instructions for the computer hardware. Some instructions are implemented in a way that for any type of number (e.g.&nbsp;floating point), it doesn’t matter if the number is <code>1.0</code> or <code>0.41582574300044717</code>, the operation will take the exact same time and number of instructions to execute (e.g.&nbsp;for the addition operation).</p>
-<p>Sometimes a higher level operation is implemented in a way that takes many machine instructions. For example, division instructions may require many CPU cycles when compared to multiplication or division. Sometimes this is an important distinction and sometimes not. For this book we will ignore this granularity of analysis.</p>
+<p>Sometimes a higher level operation is implemented in a way that takes many machine instructions. For example, division instructions may require many CPU cycles when compared to addition or multiplication. Sometimes this is an important distinction and sometimes not. For this book we will ignore this granularity of analysis.</p>
 </div>
 <section id="example-sum-of-consecutive-integers" class="level4" data-number="13.4.1.1">
 <h4 data-number="13.4.1.1" class="anchored" data-anchor-id="example-sum-of-consecutive-integers"><span class="header-section-number">13.4.1.1</span> Example: Sum of Consecutive Integers</h4>
@@ -816,7 +823,7 @@ window.Quarto = {
 <li>…</li>
 <li>When <code>i</code> is <code>n</code> there are <code>n</code> additions in the inner loop</li>
 </ul>
-<p>Therefore, this computation takes <span class="math inline">\(1 + ... + (n-2) + (n-1) + n\)</span> steps to complete. Algebraically, this simplifies down to our constant time formula <span class="math inline">\(n * (n + 1) ÷ 2\)</span> or <span class="math inline">\(n^2 + n ÷ 2\)</span> steps to complete.</p>
+<p>Therefore, this computation takes <span class="math inline">\((1 + 2 + \cdots + n\)</span> steps to complete. Algebraically, this simplifies down to our constant time formula: it requires <span class="math inline">\(n * (n + 1) ÷ 2\)</span> or <span class="math inline">\(n^2 + n ÷ 2\)</span> steps to complete.</p>
 </section>
 </section>
 <section id="comparison" class="level4" data-number="13.4.1.2">
@@ -975,12 +982,12 @@ n^2 + \frac{n}{2} &amp;= (10^6)^2 + \frac{10^6}{2} \\
 </section>
 <section id="empirical-results" class="level5" data-number="13.4.1.2.2">
 <h5 data-number="13.4.1.2.2" class="anchored" data-anchor-id="empirical-results"><span class="header-section-number">13.4.1.2.2</span> Empirical Results</h5>
-<p>The preceding examples of constant, linear, and exponential times are <em>conceptually</em> correct but if we try to run them in practice we see that the description doesn’t seem to hold at all for the linear time version, as it runs as quickly as the constant time version.</p>
+<p>The preceding examples of constant, linear, and quadratic times are <em>conceptually</em> correct but if we try to run them in practice we see that the description doesn’t seem to hold at all for the linear time version, as it runs as quickly as the constant time version.</p>
 <div id="10" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">BenchmarkTools</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">nsum_constant</span>(<span class="fl">10_000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  1.500 ns (0 allocations: 0 bytes)</code></pre>
+<pre><code>  0.833 ns (0 allocations: 0 bytes)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>50005000</code></pre>
@@ -989,7 +996,7 @@ n^2 + \frac{n}{2} &amp;= (10^6)^2 + \frac{10^6}{2} \\
 <div id="12" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">nsum_linear</span>(<span class="fl">10_000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  2.666 ns (0 allocations: 0 bytes)</code></pre>
+<pre><code>  1.500 ns (0 allocations: 0 bytes)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>50005000</code></pre>
@@ -998,7 +1005,7 @@ n^2 + \frac{n}{2} &amp;= (10^6)^2 + \frac{10^6}{2} \\
 <div id="14" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">nsum_quadratic</span>(<span class="fl">10_000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  2.771 μs (0 allocations: 0 bytes)</code></pre>
+<pre><code>  1.104 μs (0 allocations: 0 bytes)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>50005000</code></pre>
@@ -1016,12 +1023,13 @@ n^2 + \frac{n}{2} &amp;= (10^6)^2 + \frac{10^6}{2} \\
 <section id="space-complexity" class="level3" data-number="13.4.2">
 <h3 data-number="13.4.2" class="anchored" data-anchor-id="space-complexity"><span class="header-section-number">13.4.2</span> Space Complexity</h3>
 <p>So far we have focused on computational complexity, however similar analysis could be performed for <strong>space complexity</strong>, which is how much computer memory is required to solve a problem. Sometimes, an algorithm will trade computational complexity for space complexity. That is, we might be able to solve a problem much faster if we have more memory available.</p>
-<p>For example, there has been research to improve the computational efficiency of matrix multiplication which do indeed run faster than traditional techniques. However, those algorithms don’t get implemented on computers because they require way more memory than is available!</p>
+<p>For example, there has been research to improve the computational efficiency of matrix multiplication which do indeed run faster than traditional techniques. However, those algorithms don’t get implemented in general linear algebra libraries because they require way more memory than is available!</p>
 </section>
 <section id="complexity-takeaways" class="level3" data-number="13.4.3">
 <h3 data-number="13.4.3" class="anchored" data-anchor-id="complexity-takeaways"><span class="header-section-number">13.4.3</span> Complexity: Takeaways</h3>
 <p>The idea of algorithmic complexity is important because it grounds us in the harsh truth that some problems are <em>very</em> difficult to compute. It’s in these cases that a lot of the creativity and domain specific heuristics can become the foremost consideration.</p>
 <p>We must remember to be thoughtful about the design of our models. When searching for additional performance to look for the “loops-within-loops” which is where combinatorial explosions tend to happen. Focusing on the places that have large <span class="math inline">\(n\)</span> or poor Big-O order that you can transform the performance of the overall model. Sometimes though, the fundamental complexity of the problem at hand forbids greater efficiency.</p>
+<p>See the end of this chapter, <a href="#sec-portfolio-complexity" class="quarto-xref"><span>Section 13.7</span></a> for an example demonstrating computational complexity in the context of portfolio selection.</p>
 </section>
 </section>
 <section id="data-structures" class="level2" data-number="13.5">
@@ -1049,7 +1057,7 @@ n^2 + \frac{n}{2} &amp;= (10^6)^2 + \frac{10^6}{2} \\
 <a class="code-annotation-anchor" data-target-cell="annotated-cell-9" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-9-3" class="code-annotation-target"><a href="#annotated-cell-9-3" aria-hidden="true" tabindex="-1"></a>    next<span class="op">::</span><span class="dt">Union{Node, Nothing}</span></span>
 <span id="annotated-cell-9-4"><a href="#annotated-cell-9-4" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
 <span id="annotated-cell-9-5"><a href="#annotated-cell-9-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-9-6"><a href="#annotated-cell-9-6" aria-hidden="true" tabindex="-1"></a>z <span class="op">=</span> <span class="fu">Node</span>(<span class="fl">3</span>,<span class="dt">Nothing</span>)</span>
+<span id="annotated-cell-9-6"><a href="#annotated-cell-9-6" aria-hidden="true" tabindex="-1"></a>z <span class="op">=</span> <span class="fu">Node</span>(<span class="fl">3</span>,<span class="cn">nothing</span>)</span>
 <span id="annotated-cell-9-7"><a href="#annotated-cell-9-7" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> <span class="fu">Node</span>(<span class="fl">2</span>,z)</span>
 <span id="annotated-cell-9-8"><a href="#annotated-cell-9-8" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> <span class="fu">Node</span>(<span class="fl">1</span>,y)</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <dl class="code-annotation-container-grid">
@@ -1099,7 +1107,7 @@ n^2 + \frac{n}{2} &amp;= (10^6)^2 + \frac{10^6}{2} \\
 <span data-code-cell="annotated-cell-12" data-code-lines="2" data-code-annotation="2">The bits of <code>100.0</code></span>
 </dd>
 </dl>
-<p>In contrast, the <code>LessSimpleBond</code> uses a <code>String</code> to represent the ID of the bond. Strings are essentially arrays of containers, and the arrays themselves are mutable containers which is by definition not a constant set of bits. In memory, <code>b</code> would look like:</p>
+<p>In contrast, the <code>LessSimpleBond</code> uses a <code>String</code> to represent the ID of the bond. In Julia, String is an immutable type that internally references a buffer of bytes; because it holds a reference, a struct containing a String is not an isbits type.</p>
 <pre id="annotated-cell-13" class="code-annotation-code"><code>.... a pointer ...
 0100000001011001000000000000000000000000000000000000000000000000</code></pre>
 <dl>
@@ -1141,7 +1149,7 @@ Note
 <li>One way so that if someone knows the hashed value, it’s <em>very</em> difficult to guess what the original value was. This is most useful in cryptographic and security applications.</li>
 <li>Creating (probabilistically) unique IDs for a given set of data.</li>
 </ol>
-<p>For example, we can calculate a type of has called an SHA hash on any data:</p>
+<p>For example, we can calculate an <strong>SHA hash</strong> on any data:</p>
 <div id="18" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> <span class="bu">SHA</span></span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span></span>
@@ -1152,7 +1160,7 @@ Note
 <span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9
-d961a401bbfd3b3343ada03afd9028c516e437bd541e04ae27d5be13eedf0f4f</code></pre>
+56c3de699f90b937403501a0c780c960c5057f7de4cac319464d973015a1d9c2</code></pre>
 </div>
 </div>
 <p>We can easily verify that the <code>sha256</code> hash of <code>"hello world"</code> is the same each time, but it’s virtually impossible to guess <code>"hello world"</code> if we are just given the resulting hash. This is the premise of trying to “crack” a password when the stored password hash is stolen.</p>
@@ -1257,14 +1265,27 @@ d961a401bbfd3b3343ada03afd9028c516e437bd541e04ae27d5be13eedf0f4f</code></pre>
 <section id="property-based-testing" class="level3" data-number="13.6.2">
 <h3 data-number="13.6.2" class="anchored" data-anchor-id="property-based-testing"><span class="header-section-number">13.6.2</span> Property Based Testing</h3>
 <p>Testing will be discussed in more detail in <a href="software.html" class="quarto-xref"><span>Chapter 12</span></a>, but an intermediate concept between Formal Verification and typical software testing is <strong>property-based</strong> testing, which tests for general rules instead of specific examples.</p>
-<p>For example, a function which is associative (<span class="math inline">\((a + b) + c = a + (b + c)\)</span>) or commutative (<span class="math inline">\(a + b\)</span> = <span class="math inline">\(b + c\)</span>) can be tested with simple examples like:</p>
+<p>For example, a function which is associative (<span class="math inline">\((a + b) + c = a + (b + c)\)</span>) or commutative (<span class="math inline">\(a + b\)</span> = <span class="math inline">\(b + a\)</span>) can be tested with simple examples like:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb26"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Test</span></span>
 <span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="fu">myadd</span>(a,b) <span class="op">=</span> a <span class="op">+</span> b</span>
 <span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="pp">@test</span> <span class="fu">myadd</span>(<span class="fl">1</span>,<span class="fl">2</span>) <span class="op">==</span> <span class="fu">myadd</span>(<span class="fl">2</span>,<span class="fl">1</span>)</span>
-<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a><span class="pp">@test</span> <span class="fu">myadd</span>(<span class="fu">myadd</span>(<span class="fl">1</span>,<span class="fl">2</span>),<span class="fl">3</span>) <span class="op">==</span> <span class="fu">myadd</span>(<span class="fl">1</span>,<span class="fu">myadd</span>(<span class="fl">2</span>,<span class="fl">3</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="pp">@test</span> <span class="fu">myadd</span>(<span class="fl">1</span>,<span class="fl">2</span>) <span class="op">==</span> <span class="fu">myadd</span>(<span class="fl">2</span>,<span class="fl">1</span>) <span class="co"># commutative</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a><span class="pp">@test</span> <span class="fu">myadd</span>(<span class="fu">myadd</span>(<span class="fl">1</span>,<span class="fl">2</span>),<span class="fl">3</span>) <span class="op">==</span> <span class="fu">myadd</span>(<span class="fl">1</span>,<span class="fu">myadd</span>(<span class="fl">2</span>,<span class="fl">3</span>)) <span class="co"># associative</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>However, we really haven’t proven the associative and commutative properties in general. There are techniques to do this, which is a more comprehensive alternative to testing specific examples above. Packages like <a href="https://github.com/Seelengrab/Supposition.jl">Supposition.jl</a> provide functionality for this. Note that like Formal Verification, property-based testing is a more advanced topic.</p>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Warning
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Property-based testing is also tied in with concepts related to types we talked about in <a href="foundations-of-programming.html#sec-number-types" class="quarto-xref"><span>Section 5.4.1</span></a>: floating point numbers are not associative when summing more than two numbers at a time: the order in which the floats get added affects the accumulated imprecision.</p>
+</div>
+</div>
 </section>
 <section id="fuzzing" class="level3" data-number="13.6.3">
 <h3 data-number="13.6.3" class="anchored" data-anchor-id="fuzzing"><span class="header-section-number">13.6.3</span> Fuzzing</h3>
@@ -1275,16 +1296,231 @@ d961a401bbfd3b3343ada03afd9028c516e437bd541e04ae27d5be13eedf0f4f</code></pre>
 <span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@test</span> <span class="fu">myadd</span>(a,b) <span class="op">==</span> <span class="fu">myadd</span>(b,a)</span>
 <span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>This is a good advancement over the simple <code>@test myadd(1,2) == myadd(2,1)</code>, in terms of checking the correctness of <code>myadd</code>, but it comes at the cost of more computational time and non-deterministic tests.</p>
-
-
+<p>This is a good advancement over the simple <code>@test myadd(1,2) == myadd(2,1)</code>, in terms of checking the correctness of <code>myadd</code>, but it comes at the cost of more computational time and non-deterministic tests. Fuzzing typically seeks to find edge-cases: crashes or unexpected behavior by exploring random/invalid inputs.</p>
 </section>
+</section>
+<section id="sec-portfolio-complexity" class="level2" data-number="13.7">
+<h2 data-number="13.7" class="anchored" data-anchor-id="sec-portfolio-complexity"><span class="header-section-number">13.7</span> Finance Example: Complexity and Portfolio Selection</h2>
+<p>Many real portfolio decisions include discrete choices: buy or skip a lot, include or exclude an ETF, cap the number of names, or enforce minimum ticket sizes. These discrete elements quickly turn an otherwise smooth optimization into a combinatorial search.</p>
+<p>Consider a simplified subset selection problem with <span class="math inline">\(n\)</span> candidate assets. Each asset <span class="math inline">\(i\)</span> has an expected return <span class="math inline">\(r_i\)</span> and a “cost” <span class="math inline">\(c_i\)</span> (e.g., capital required for a minimum lot). We wish to select a subset that maximizes total expected return subject to a budget <span class="math inline">\(B\)</span>. This is the classic 0–1 knapsack problem:</p>
+<p><span class="math display">\[
+\max_{x \in \{0,1\}^n} \sum_{i=1}^{n} r_i\, x_i \quad \text{subject to} \quad \sum_{i=1}^{n} c_i\, x_i \le B
+\]</span></p>
+<ul>
+<li>Brute force enumerates all <span class="math inline">\(2^n\)</span> subsets to find the best feasible one. Complexity: <span class="math inline">\(O(2^n \cdot n)\)</span> work, so it explodes rapidly.</li>
+<li>A greedy heuristic sorts by value-to-cost ratio <span class="math inline">\(r_i/c_i\)</span> and takes items while budget remains. Complexity: <span class="math inline">\(O(n \log n)\)</span>; fast, but not guaranteed optimal.</li>
+<li>Branch-and-bound (B&amp;B) remains worst‑case exponential, but prunes large parts of the search using an optimistic upper bound (here, the fractional knapsack relaxation), often exploring far fewer nodes in practice.</li>
+</ul>
+<p>Rather than relying on wall‑clock times (which depend on your machine), we count “visited” nodes—how many partial solutions each method examines—to illustrate growth in work.</p>
+<div id="20" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Random</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate a synthetic instance. Pass an RNG for reproducibility.</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">synth_instance</span>(rng<span class="op">::</span><span class="dt">AbstractRNG</span>, n<span class="op">::</span><span class="dt">Int</span>; budget_ratio<span class="op">::</span><span class="dt">Float64</span>=<span class="fl">0.35</span>)</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>    r <span class="op">=</span> <span class="fl">0.04</span> <span class="op">.+</span> <span class="fl">0.08</span> <span class="op">.*</span> <span class="fu">rand</span>(rng, n)            <span class="co"># expected returns in [4%, 12%]</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>    c <span class="op">=</span> <span class="fu">Float64</span>.(<span class="fu">rand</span>(rng, <span class="fl">50</span><span class="op">:</span><span class="fl">150</span>, n))          <span class="co"># costs (min lot "sizes"), as reals</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>    B <span class="op">=</span> budget_ratio <span class="op">*</span> <span class="fu">sum</span>(c)                   <span class="co"># budget as a real, not floored</span></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> r, c, B</span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Greedy heuristic: sort by value-to-cost ratio and pack until budget is exhausted.</span></span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">greedy_knapsack</span>(r<span class="op">::</span><span class="dt">AbstractVector{&lt;:Real}</span>,</span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a>    c<span class="op">::</span><span class="dt">AbstractVector{&lt;:Real}</span>,</span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a>    B<span class="op">::</span><span class="dt">Real</span>)</span>
+<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> <span class="fu">length</span>(r)</span>
+<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a>    ratio <span class="op">=</span> r <span class="op">./</span> c</span>
+<span id="cb28-17"><a href="#cb28-17" aria-hidden="true" tabindex="-1"></a>    idx <span class="op">=</span> <span class="fu">sortperm</span>(ratio, rev<span class="op">=</span><span class="cn">true</span>)           <span class="co"># highest ratio first</span></span>
+<span id="cb28-18"><a href="#cb28-18" aria-hidden="true" tabindex="-1"></a>    total <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb28-19"><a href="#cb28-19" aria-hidden="true" tabindex="-1"></a>    cost <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb28-20"><a href="#cb28-20" aria-hidden="true" tabindex="-1"></a>    chosen <span class="op">=</span> <span class="fu">falses</span>(n)</span>
+<span id="cb28-21"><a href="#cb28-21" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@inbounds</span> <span class="cf">for</span> i <span class="kw">in</span> idx</span>
+<span id="cb28-22"><a href="#cb28-22" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> cost <span class="op">+</span> c[i] <span class="op">&lt;=</span> B <span class="op">+</span> <span class="fl">1e-12</span></span>
+<span id="cb28-23"><a href="#cb28-23" aria-hidden="true" tabindex="-1"></a>            chosen[i] <span class="op">=</span> <span class="cn">true</span></span>
+<span id="cb28-24"><a href="#cb28-24" aria-hidden="true" tabindex="-1"></a>            total <span class="op">+=</span> r[i]</span>
+<span id="cb28-25"><a href="#cb28-25" aria-hidden="true" tabindex="-1"></a>            cost <span class="op">+=</span> c[i]</span>
+<span id="cb28-26"><a href="#cb28-26" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb28-27"><a href="#cb28-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb28-28"><a href="#cb28-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> total, chosen</span>
+<span id="cb28-29"><a href="#cb28-29" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb28-30"><a href="#cb28-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-31"><a href="#cb28-31" aria-hidden="true" tabindex="-1"></a><span class="co"># Brute-force: enumerate all 2^n subsets (only feasible for small n).</span></span>
+<span id="cb28-32"><a href="#cb28-32" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">brute_force_knapsack</span>(r<span class="op">::</span><span class="dt">AbstractVector{&lt;:Real}</span>,</span>
+<span id="cb28-33"><a href="#cb28-33" aria-hidden="true" tabindex="-1"></a>    c<span class="op">::</span><span class="dt">AbstractVector{&lt;:Real}</span>,</span>
+<span id="cb28-34"><a href="#cb28-34" aria-hidden="true" tabindex="-1"></a>    B<span class="op">::</span><span class="dt">Real</span>)</span>
+<span id="cb28-35"><a href="#cb28-35" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> <span class="fu">length</span>(r)</span>
+<span id="cb28-36"><a href="#cb28-36" aria-hidden="true" tabindex="-1"></a>    best <span class="op">=</span> <span class="op">-</span><span class="cn">Inf</span></span>
+<span id="cb28-37"><a href="#cb28-37" aria-hidden="true" tabindex="-1"></a>    bestmask <span class="op">=</span> <span class="fl">0</span></span>
+<span id="cb28-38"><a href="#cb28-38" aria-hidden="true" tabindex="-1"></a>    visited <span class="op">=</span> <span class="fl">0</span></span>
+<span id="cb28-39"><a href="#cb28-39" aria-hidden="true" tabindex="-1"></a>    total_subsets <span class="op">=</span> (<span class="fu">Int</span>(<span class="fl">1</span>) <span class="op">&lt;&lt;</span> n)</span>
+<span id="cb28-40"><a href="#cb28-40" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@inbounds</span> <span class="cf">for</span> mask <span class="kw">in</span> <span class="fl">0</span><span class="op">:</span>(total_subsets<span class="op">-</span><span class="fl">1</span>)</span>
+<span id="cb28-41"><a href="#cb28-41" aria-hidden="true" tabindex="-1"></a>        visited <span class="op">+=</span> <span class="fl">1</span></span>
+<span id="cb28-42"><a href="#cb28-42" aria-hidden="true" tabindex="-1"></a>        value <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb28-43"><a href="#cb28-43" aria-hidden="true" tabindex="-1"></a>        cost <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb28-44"><a href="#cb28-44" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>n</span>
+<span id="cb28-45"><a href="#cb28-45" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> ((mask <span class="op">&gt;&gt;&gt;</span> (i <span class="op">-</span> <span class="fl">1</span>)) <span class="op">&amp;</span> <span class="bn">0x1</span>) <span class="op">==</span> <span class="fl">1</span></span>
+<span id="cb28-46"><a href="#cb28-46" aria-hidden="true" tabindex="-1"></a>                value <span class="op">+=</span> r[i]</span>
+<span id="cb28-47"><a href="#cb28-47" aria-hidden="true" tabindex="-1"></a>                cost <span class="op">+=</span> c[i]</span>
+<span id="cb28-48"><a href="#cb28-48" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> cost <span class="op">&gt;</span> B</span>
+<span id="cb28-49"><a href="#cb28-49" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">break</span></span>
+<span id="cb28-50"><a href="#cb28-50" aria-hidden="true" tabindex="-1"></a>                <span class="cf">end</span></span>
+<span id="cb28-51"><a href="#cb28-51" aria-hidden="true" tabindex="-1"></a>            <span class="cf">end</span></span>
+<span id="cb28-52"><a href="#cb28-52" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb28-53"><a href="#cb28-53" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> cost <span class="op">&lt;=</span> B <span class="op">&amp;&amp;</span> value <span class="op">&gt;</span> best</span>
+<span id="cb28-54"><a href="#cb28-54" aria-hidden="true" tabindex="-1"></a>            best <span class="op">=</span> value</span>
+<span id="cb28-55"><a href="#cb28-55" aria-hidden="true" tabindex="-1"></a>            bestmask <span class="op">=</span> mask</span>
+<span id="cb28-56"><a href="#cb28-56" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb28-57"><a href="#cb28-57" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb28-58"><a href="#cb28-58" aria-hidden="true" tabindex="-1"></a>    chosen <span class="op">=</span> <span class="fu">falses</span>(n)</span>
+<span id="cb28-59"><a href="#cb28-59" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>n</span>
+<span id="cb28-60"><a href="#cb28-60" aria-hidden="true" tabindex="-1"></a>        chosen[i] <span class="op">=</span> ((bestmask <span class="op">&gt;&gt;&gt;</span> (i <span class="op">-</span> <span class="fl">1</span>)) <span class="op">&amp;</span> <span class="bn">0x1</span>) <span class="op">==</span> <span class="fl">1</span></span>
+<span id="cb28-61"><a href="#cb28-61" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb28-62"><a href="#cb28-62" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> best, chosen, visited</span>
+<span id="cb28-63"><a href="#cb28-63" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb28-64"><a href="#cb28-64" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-65"><a href="#cb28-65" aria-hidden="true" tabindex="-1"></a><span class="co"># Branch-and-Bound with a fractional-knapsack upper bound (optimistic).</span></span>
+<span id="cb28-66"><a href="#cb28-66" aria-hidden="true" tabindex="-1"></a><span class="co"># The upper bound relaxes x_i ∈ {0,1} to x_i ∈ [0,1] and "fills" the remaining budget fractionally.</span></span>
+<span id="cb28-67"><a href="#cb28-67" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">branch_and_bound_knapsack</span>(r<span class="op">::</span><span class="dt">AbstractVector{&lt;:Real}</span>,</span>
+<span id="cb28-68"><a href="#cb28-68" aria-hidden="true" tabindex="-1"></a>    c<span class="op">::</span><span class="dt">AbstractVector{&lt;:Real}</span>,</span>
+<span id="cb28-69"><a href="#cb28-69" aria-hidden="true" tabindex="-1"></a>    B<span class="op">::</span><span class="dt">Real</span>)</span>
+<span id="cb28-70"><a href="#cb28-70" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> <span class="fu">length</span>(r)</span>
+<span id="cb28-71"><a href="#cb28-71" aria-hidden="true" tabindex="-1"></a>    rs <span class="op">=</span> <span class="fu">Float64</span>.(r)</span>
+<span id="cb28-72"><a href="#cb28-72" aria-hidden="true" tabindex="-1"></a>    cs <span class="op">=</span> <span class="fu">Float64</span>.(c)</span>
+<span id="cb28-73"><a href="#cb28-73" aria-hidden="true" tabindex="-1"></a>    Bf <span class="op">=</span> <span class="fu">float</span>(B)</span>
+<span id="cb28-74"><a href="#cb28-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-75"><a href="#cb28-75" aria-hidden="true" tabindex="-1"></a>    ratio <span class="op">=</span> rs <span class="op">./</span> cs</span>
+<span id="cb28-76"><a href="#cb28-76" aria-hidden="true" tabindex="-1"></a>    order <span class="op">=</span> <span class="fu">sortperm</span>(ratio, rev<span class="op">=</span><span class="cn">true</span>)</span>
+<span id="cb28-77"><a href="#cb28-77" aria-hidden="true" tabindex="-1"></a>    rs <span class="op">=</span> rs[order]</span>
+<span id="cb28-78"><a href="#cb28-78" aria-hidden="true" tabindex="-1"></a>    cs <span class="op">=</span> cs[order]</span>
+<span id="cb28-79"><a href="#cb28-79" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-80"><a href="#cb28-80" aria-hidden="true" tabindex="-1"></a>    best <span class="op">=</span> <span class="fu">Ref</span>(<span class="op">-</span><span class="cn">Inf</span>)            <span class="co"># current best objective</span></span>
+<span id="cb28-81"><a href="#cb28-81" aria-hidden="true" tabindex="-1"></a>    best_choice <span class="op">=</span> <span class="fu">falses</span>(n)     <span class="co"># in sorted order</span></span>
+<span id="cb28-82"><a href="#cb28-82" aria-hidden="true" tabindex="-1"></a>    visited <span class="op">=</span> <span class="fu">Ref</span>(<span class="fl">0</span>)            <span class="co"># node counter</span></span>
+<span id="cb28-83"><a href="#cb28-83" aria-hidden="true" tabindex="-1"></a>    choice <span class="op">=</span> <span class="fu">falses</span>(n)          <span class="co"># current partial choice (sorted order)</span></span>
+<span id="cb28-84"><a href="#cb28-84" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-85"><a href="#cb28-85" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@inline</span> <span class="kw">function</span> <span class="fu">ubound</span>(idx<span class="op">::</span><span class="dt">Int</span>, value<span class="op">::</span><span class="dt">Float64</span>, cost<span class="op">::</span><span class="dt">Float64</span>)</span>
+<span id="cb28-86"><a href="#cb28-86" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> cost <span class="op">&gt;</span> Bf</span>
+<span id="cb28-87"><a href="#cb28-87" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="op">-</span><span class="cn">Inf</span></span>
+<span id="cb28-88"><a href="#cb28-88" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb28-89"><a href="#cb28-89" aria-hidden="true" tabindex="-1"></a>        cap <span class="op">=</span> Bf <span class="op">-</span> cost</span>
+<span id="cb28-90"><a href="#cb28-90" aria-hidden="true" tabindex="-1"></a>        ub <span class="op">=</span> value</span>
+<span id="cb28-91"><a href="#cb28-91" aria-hidden="true" tabindex="-1"></a>        <span class="pp">@inbounds</span> <span class="cf">for</span> j <span class="kw">in</span> idx<span class="op">:</span>n</span>
+<span id="cb28-92"><a href="#cb28-92" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> cs[j] <span class="op">&lt;=</span> cap <span class="op">+</span> <span class="fl">1e-12</span></span>
+<span id="cb28-93"><a href="#cb28-93" aria-hidden="true" tabindex="-1"></a>                ub <span class="op">+=</span> rs[j]</span>
+<span id="cb28-94"><a href="#cb28-94" aria-hidden="true" tabindex="-1"></a>                cap <span class="op">-=</span> cs[j]</span>
+<span id="cb28-95"><a href="#cb28-95" aria-hidden="true" tabindex="-1"></a>            <span class="cf">else</span></span>
+<span id="cb28-96"><a href="#cb28-96" aria-hidden="true" tabindex="-1"></a>                ub <span class="op">+=</span> rs[j] <span class="op">*</span> (cap <span class="op">/</span> cs[j])     <span class="co"># fractional "fill" for bound</span></span>
+<span id="cb28-97"><a href="#cb28-97" aria-hidden="true" tabindex="-1"></a>                <span class="cf">break</span></span>
+<span id="cb28-98"><a href="#cb28-98" aria-hidden="true" tabindex="-1"></a>            <span class="cf">end</span></span>
+<span id="cb28-99"><a href="#cb28-99" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb28-100"><a href="#cb28-100" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> ub</span>
+<span id="cb28-101"><a href="#cb28-101" aria-hidden="true" tabindex="-1"></a>    <span class="kw">end</span></span>
+<span id="cb28-102"><a href="#cb28-102" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-103"><a href="#cb28-103" aria-hidden="true" tabindex="-1"></a>    <span class="kw">function</span> <span class="fu">dfs</span>(idx<span class="op">::</span><span class="dt">Int</span>, value<span class="op">::</span><span class="dt">Float64</span>, cost<span class="op">::</span><span class="dt">Float64</span>)</span>
+<span id="cb28-104"><a href="#cb28-104" aria-hidden="true" tabindex="-1"></a>        visited[] <span class="op">+=</span> <span class="fl">1</span></span>
+<span id="cb28-105"><a href="#cb28-105" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> idx <span class="op">&gt;</span> n</span>
+<span id="cb28-106"><a href="#cb28-106" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> cost <span class="op">&lt;=</span> Bf <span class="op">&amp;&amp;</span> value <span class="op">&gt;</span> best[]</span>
+<span id="cb28-107"><a href="#cb28-107" aria-hidden="true" tabindex="-1"></a>                best[] <span class="op">=</span> value</span>
+<span id="cb28-108"><a href="#cb28-108" aria-hidden="true" tabindex="-1"></a>                best_choice <span class="op">.=</span> choice</span>
+<span id="cb28-109"><a href="#cb28-109" aria-hidden="true" tabindex="-1"></a>            <span class="cf">end</span></span>
+<span id="cb28-110"><a href="#cb28-110" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span></span>
+<span id="cb28-111"><a href="#cb28-111" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb28-112"><a href="#cb28-112" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Prune if even the optimistic bound cannot beat current best.</span></span>
+<span id="cb28-113"><a href="#cb28-113" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="fu">ubound</span>(idx, value, cost) <span class="op">&lt;=</span> best[] <span class="op">+</span> <span class="fl">1e-12</span></span>
+<span id="cb28-114"><a href="#cb28-114" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span></span>
+<span id="cb28-115"><a href="#cb28-115" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb28-116"><a href="#cb28-116" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Branch: include item idx</span></span>
+<span id="cb28-117"><a href="#cb28-117" aria-hidden="true" tabindex="-1"></a>        choice[idx] <span class="op">=</span> <span class="cn">true</span></span>
+<span id="cb28-118"><a href="#cb28-118" aria-hidden="true" tabindex="-1"></a>        <span class="fu">dfs</span>(idx <span class="op">+</span> <span class="fl">1</span>, value <span class="op">+</span> rs[idx], cost <span class="op">+</span> cs[idx])</span>
+<span id="cb28-119"><a href="#cb28-119" aria-hidden="true" tabindex="-1"></a>        <span class="co"># Branch: exclude item idx</span></span>
+<span id="cb28-120"><a href="#cb28-120" aria-hidden="true" tabindex="-1"></a>        choice[idx] <span class="op">=</span> <span class="cn">false</span></span>
+<span id="cb28-121"><a href="#cb28-121" aria-hidden="true" tabindex="-1"></a>        <span class="fu">dfs</span>(idx <span class="op">+</span> <span class="fl">1</span>, value, cost)</span>
+<span id="cb28-122"><a href="#cb28-122" aria-hidden="true" tabindex="-1"></a>    <span class="kw">end</span></span>
+<span id="cb28-123"><a href="#cb28-123" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-124"><a href="#cb28-124" aria-hidden="true" tabindex="-1"></a>    <span class="fu">dfs</span>(<span class="fl">1</span>, <span class="fl">0.0</span>, <span class="fl">0.0</span>)</span>
+<span id="cb28-125"><a href="#cb28-125" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-126"><a href="#cb28-126" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Map best_choice back to the original indexing</span></span>
+<span id="cb28-127"><a href="#cb28-127" aria-hidden="true" tabindex="-1"></a>    selected <span class="op">=</span> <span class="fu">falses</span>(n)</span>
+<span id="cb28-128"><a href="#cb28-128" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@inbounds</span> <span class="cf">for</span> (k, i) <span class="kw">in</span> <span class="fu">pairs</span>(order)</span>
+<span id="cb28-129"><a href="#cb28-129" aria-hidden="true" tabindex="-1"></a>        selected[i] <span class="op">=</span> best_choice[k]</span>
+<span id="cb28-130"><a href="#cb28-130" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb28-131"><a href="#cb28-131" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> best[], selected, visited[]</span>
+<span id="cb28-132"><a href="#cb28-132" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb28-133"><a href="#cb28-133" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-134"><a href="#cb28-134" aria-hidden="true" tabindex="-1"></a><span class="co"># Small demonstration: brute force is feasible at n ≈ 20; for n ≈ 40 we skip brute force.</span></span>
+<span id="cb28-135"><a href="#cb28-135" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span></span>
+<span id="cb28-136"><a href="#cb28-136" aria-hidden="true" tabindex="-1"></a>    rng <span class="op">=</span> <span class="fu">MersenneTwister</span>(<span class="fl">1234</span>)</span>
+<span id="cb28-137"><a href="#cb28-137" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-138"><a href="#cb28-138" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Small instance where brute force is still possible</span></span>
+<span id="cb28-139"><a href="#cb28-139" aria-hidden="true" tabindex="-1"></a>    n_small <span class="op">=</span> <span class="fl">20</span></span>
+<span id="cb28-140"><a href="#cb28-140" aria-hidden="true" tabindex="-1"></a>    r, c, B <span class="op">=</span> <span class="fu">synth_instance</span>(rng, n_small; budget_ratio<span class="op">=</span><span class="fl">0.35</span>)</span>
+<span id="cb28-141"><a href="#cb28-141" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-142"><a href="#cb28-142" aria-hidden="true" tabindex="-1"></a>    bf_val, bf_sel, bf_visited <span class="op">=</span> <span class="fu">brute_force_knapsack</span>(r, c, B)</span>
+<span id="cb28-143"><a href="#cb28-143" aria-hidden="true" tabindex="-1"></a>    bb_val, bb_sel, bb_visited <span class="op">=</span> <span class="fu">branch_and_bound_knapsack</span>(r, c, B)</span>
+<span id="cb28-144"><a href="#cb28-144" aria-hidden="true" tabindex="-1"></a>    gr_val, gr_sel <span class="op">=</span> <span class="fu">greedy_knapsack</span>(r, c, B)</span>
+<span id="cb28-145"><a href="#cb28-145" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-146"><a href="#cb28-146" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">"n = </span><span class="sc">$</span>n_small<span class="st">"</span>)</span>
+<span id="cb28-147"><a href="#cb28-147" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">" total subsets = "</span>, <span class="fl">1</span> <span class="op">&lt;&lt;</span> n_small)                 <span class="co"># 1,048,576</span></span>
+<span id="cb28-148"><a href="#cb28-148" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">" brute force visited = "</span>, bf_visited,</span>
+<span id="cb28-149"><a href="#cb28-149" aria-hidden="true" tabindex="-1"></a>        <span class="st">", optimal value = "</span>, bf_val)</span>
+<span id="cb28-150"><a href="#cb28-150" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">" branch-and-bound visited = "</span>, bb_visited,</span>
+<span id="cb28-151"><a href="#cb28-151" aria-hidden="true" tabindex="-1"></a>        <span class="st">", optimal value = "</span>, bb_val)</span>
+<span id="cb28-152"><a href="#cb28-152" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">" greedy value = "</span>, gr_val,</span>
+<span id="cb28-153"><a href="#cb28-153" aria-hidden="true" tabindex="-1"></a>        <span class="st">", optimality gap = "</span>, bf_val <span class="op">-</span> gr_val)</span>
+<span id="cb28-154"><a href="#cb28-154" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-155"><a href="#cb28-155" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Larger instance—note how the search space explodes (2^40 ≈ 10^12)</span></span>
+<span id="cb28-156"><a href="#cb28-156" aria-hidden="true" tabindex="-1"></a>    n_large <span class="op">=</span> <span class="fl">40</span></span>
+<span id="cb28-157"><a href="#cb28-157" aria-hidden="true" tabindex="-1"></a>    r2, c2, B2 <span class="op">=</span> <span class="fu">synth_instance</span>(rng, n_large; budget_ratio<span class="op">=</span><span class="fl">0.35</span>)</span>
+<span id="cb28-158"><a href="#cb28-158" aria-hidden="true" tabindex="-1"></a>    bb2_val, bb2_sel, bb2_visited <span class="op">=</span> <span class="fu">branch_and_bound_knapsack</span>(r2, c2, B2)</span>
+<span id="cb28-159"><a href="#cb28-159" aria-hidden="true" tabindex="-1"></a>    gr2_val, gr2_sel <span class="op">=</span> <span class="fu">greedy_knapsack</span>(r2, c2, B2)</span>
+<span id="cb28-160"><a href="#cb28-160" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-161"><a href="#cb28-161" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">n = </span><span class="sc">$</span>n_large<span class="st">"</span>)</span>
+<span id="cb28-162"><a href="#cb28-162" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">" total subsets = "</span>, <span class="fu">BigInt</span>(<span class="fl">1</span>) <span class="op">&lt;&lt;</span> n_large)         <span class="co"># ≈ 1.1×10^12</span></span>
+<span id="cb28-163"><a href="#cb28-163" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">" branch-and-bound visited = "</span>, bb2_visited,</span>
+<span id="cb28-164"><a href="#cb28-164" aria-hidden="true" tabindex="-1"></a>        <span class="st">", optimal value = "</span>, bb2_val)</span>
+<span id="cb28-165"><a href="#cb28-165" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">" greedy value = "</span>, gr2_val,</span>
+<span id="cb28-166"><a href="#cb28-166" aria-hidden="true" tabindex="-1"></a>        <span class="st">", optimality gap = "</span>, bb2_val <span class="op">-</span> gr2_val)</span>
+<span id="cb28-167"><a href="#cb28-167" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>n = 20
+ total subsets = 1048576
+ brute force visited = 1048576, optimal value = 0.7605388597519076
+ branch-and-bound visited = 317, optimal value = 0.7605388597519077
+ greedy value = 0.703897494058528, optimality gap = 0.05664136569337963
+
+n = 40
+ total subsets = 1099511627776
+ branch-and-bound visited = 115, optimal value = 1.4909468614490333
+ greedy value = 1.4909468614490333, optimality gap = 0.0</code></pre>
+</div>
+</div>
+<p>What this shows in practice:</p>
+<ul>
+<li>Brute force scales as <span class="math inline">\(2^n\)</span>. At <span class="math inline">\(n=20\)</span>, there are <span class="math inline">\(1{,}048{,}576\)</span> subsets—still manageable. At <span class="math inline">\(n=40\)</span>, there are <span class="math inline">\(\approx 10^{12}\)</span> subsets—completely infeasible to enumerate.</li>
+<li>Greedy is fast and often near‑optimal, especially when ratios <span class="math inline">\(r_i/c_i\)</span> align with the true optimum. However, it can be arbitrarily sub‑optimal in adversarial cases.</li>
+<li>Branch‑and‑bound exploits structure. The fractional‑knapsack bound is optimistic—it assumes you could take fractions of remaining items—so any subtree whose bound cannot beat the current best is safely pruned. Worst‑case complexity remains exponential, but typical search can drop from billions of nodes to thousands or millions.</li>
+</ul>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Financial Modeling Pro-tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>In realistic portfolio construction, practitioners frequently avoid pure subset selection by relaxing to continuous weights (e.g., mean–variance) or by formulating a mixed‑integer model and using modern MILP solvers. These solvers implement sophisticated branch‑and‑bound/branch‑and‑cut strategies, presolve, and cutting planes. When exact optimality is not essential, heuristics (greedy, local search, genetic/evolutionary methods) can deliver high‑quality portfolios quickly under operational constraints (cardinality, sector caps, turnover budgets).</p>
+<p>See <a href="portfolio-optimization.html" class="quarto-xref"><span>Chapter 29</span></a> for more discussion.</p>
+</div>
+</div>
+
+
 </section>
 <section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes">
 <hr>
 <ol>
 <li id="fn1"><p>This topic will be covered in <a href="statistics.html" class="quarto-xref"><span>Chapter 14</span></a>.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn2"><p>“Big-O”, so named because of the “O” in used in <span class="math inline">\(O(1)\)</span>. <span class="math inline">\(O(n)\)</span>, etc. The “O” refers to the “order” of growth for the function.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>“Big-O”, so named because the ‘O’ denotes the order of growth, as in <span class="math inline">\(O(1)\)</span>. <span class="math inline">\(O(n)\)</span>, etc.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn3"><p>The Traveling Salesperson Problem is a classic computer science problem where you need to find the shortest possible route that visits each city in a given set exactly once and returns to the starting city. It’s a seemingly simple problem that becomes computationally intensive very quickly as the number of cities increases.<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn4"><p>In practice, the operating system may have already allocated space for an array that’s larger than what the program is actually using so far, so this step may be ‘quick’ at times, while other times the operating system may actually need to extend the block of memory allocated to the array.<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>

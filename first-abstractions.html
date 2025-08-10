@@ -6,6 +6,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
+<meta name="author" content="Alec Loudenback">
 
 <title>6&nbsp; Functional Abstractions – Modern Financial Modeling</title>
 <style>
@@ -615,7 +616,7 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./other-techniques.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">32</span>&nbsp; <span class="chapter-title">Other Useful Techniques</span></span></a>
+ <span class="menu-text"><span class="chapter-number">32</span>&nbsp; <span class="chapter-title">More Useful Techniques</span></span></a>
   </div>
 </li>
       </ul>
@@ -686,6 +687,12 @@ window.Quarto = {
 
 <div class="quarto-title-meta">
 
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Alec Loudenback </p>
+          </div>
+  </div>
     
   
     
@@ -696,7 +703,6 @@ window.Quarto = {
 </header>
 
 
-<p><em>Alec Loudenback</em></p>
 <blockquote class="blockquote">
 <p>The purpose of abstraction is not to be vague, but to create a new semantic level in which one can be absolutely precise. - Edsger Dijkstra (1972)</p>
 </blockquote>
@@ -706,7 +712,7 @@ window.Quarto = {
 </section>
 <section id="introduction" class="level2" data-number="6.2">
 <h2 data-number="6.2" class="anchored" data-anchor-id="introduction"><span class="header-section-number">6.2</span> Introduction</h2>
-<p>This chapter will center around a simple task: calculate the present value of a portfolio of a single fixed, risk-free, coupon-paying bonds under two different interest rate environments. The focus will be on describing different approaches to this problem, not be adding complexity to the problem (e.g.&nbsp;no getting into credit spreads, settlement timing, etc.).</p>
+<p>This chapter will center around a simple task: calculate the present value of a portfolio of a single fixed, risk-free, coupon-paying bond under two different interest rate environments. The focus will be on describing different approaches to this problem, not complexity to the problem (e.g.&nbsp;no getting into credit spreads, settlement timing, etc.).</p>
 <p>Mathematically, the problem is to determine the <span class="math inline">\(\text{Present Value}\)</span>, where:</p>
 <p><span class="math display">\[
 \text{Present Value} = \sum{\text{Cashflow}_t \times \text{Discount Factor}_t}
@@ -728,7 +734,7 @@ window.Quarto = {
 </div>
 </div>
 <p>We will focus on this first discount vector, and introduce more scenarios later in the chapter.</p>
-<p>We will repeatedly solve the same problem before extending it to more examples. It may feel repetitive but the focus here is not the problem, but rather the variations between the different approaches.</p>
+<p>We will repeatedly solve the same problem before extending it to more examples. It may feel repetitive, but the goal is to highlight variations in approach rather than the problem itself.</p>
 </section>
 <section id="imperative-style" class="level2" data-number="6.3">
 <h2 data-number="6.3" class="anchored" data-anchor-id="imperative-style"><span class="header-section-number">6.3</span> Imperative Style</h2>
@@ -770,13 +776,13 @@ window.Quarto = {
 <h3 data-number="6.3.1" class="anchored" data-anchor-id="iterators"><span class="header-section-number">6.3.1</span> Iterators</h3>
 <p>Note that in the prior code example we defined an index variable <code>i</code> and had to manually define the range over which it would operate (<code>1</code> through the <code>length</code> of the bond’s cashflow vector). A couple of reasons this could be sub-optimal:</p>
 <ol type="1">
-<li>We are making the <em>assumption</em> that the indices of the vectors start with one, when in reality Julia arrays <em>can</em> be defined to start at <code>0</code> or another arbitrary index.</li>
+<li>Julia arrays are 1-indexed by default. Some custom arrays (e.g., via OffsetArrays.jl) can use different starting indices: using <code>eachindex</code> avoids hard-coding index ranges and works for arrays with arbitrary axes.</li>
 <li>We manually perform the lookup of the values within each iteration.</li>
 </ol>
 <p>We can solve the first one (partially) by letting Julia return an iterable set of values corresponding to the indices of the <code>cf_bond</code> vector. This is an example of an <strong>iterator</strong> which is an object upon which we can repeatedly ask for the next value until it tells us to stop.</p>
 <p>By using <code>eachindex</code> we can get the indices of the vector since Julia already knows what they are:</p>
 <div id="6" class="cell" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">eachindex</span>(cf_bond)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">eachindex</span>(cf_bond) <span class="co"># an efficient index iterator</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>Base.OneTo(5)</code></pre>
 </div>
@@ -791,11 +797,11 @@ window.Quarto = {
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>The result, Base.OneTo(5) is a <strong>lazy</strong> object which represents a collection that does not get fully instantiated until asked to (which may not actually be necessary). Many (most?) iterators are lazy but we can interact with them without fully instantiating the data that they represent. <strong>Instantiating</strong> means fully loading the values into memory.</p>
+<p>The result, Base.OneTo(5), returns an efficient iterator over valid indices (e.g., <code>Base.OneTo(5)</code> for a <code>Vector</code>). Iterators represent sequences without allocating per-element containers. You can traverse them directly, or materialize them if needed with collect.</p>
 <p>An analogy is that we can write the “set of all numbers from 1 to 100” without writing out each of the 100 numbers, but we are referring to the same thing.</p>
 <p>An example of operating on a lazy iterator, is that we could find the largest index:</p>
 <div id="8" class="cell" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">maximum</span>(<span class="fu">eachindex</span>(cf_bond))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">maximum</span>(<span class="fu">eachindex</span>(cf_bond)) <span class="co"># operates without materializing all the indices</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>5</code></pre>
 </div>
@@ -803,7 +809,7 @@ window.Quarto = {
 <p>The point is if we have an object that <em>represents</em> a set, we need not actually enumerate each element of the set to interact with it.</p>
 <p>We can fully instantiate an iterator with <code>collect</code></p>
 <div id="10" class="cell" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">collect</span>(<span class="fu">eachindex</span>(cf_bond))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">collect</span>(<span class="fu">eachindex</span>(cf_bond))  <span class="co"># materialize indices as a Vector</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>5-element Vector{Int64}:
  1
@@ -983,8 +989,8 @@ Has a couple of important, optional keyword arguments to note (which also apply 
 <p>This paradigm is very powerful in a few ways:</p>
 <ol type="1">
 <li>It provides a language for talking about what a computation is doing. Instead of “looping over a collection called <code>portfolio</code> and calling a <code>value</code> function” we can more concisely refer to this as <code>mapreduce(value,portfolio)</code>.</li>
-<li>Often times you are forced to think about the design of the program more deeply, recognizing the core calculations and data used within the model.</li>
-<li>The compiler is free to apply more optimizations. For example, with <code>reduce</code>, the compiler could drive the calculation in any order since the operation is associative.</li>
+<li>Often you are forced to think about the design of the program more deeply, recognizing the core calculations and data used within the model.</li>
+<li>The compiler is free to apply more optimizations. For example, with <code>reduce</code>, the compiler could optimize the calculation since the operation is assumed to be associative.</li>
 <li>The lack of mutable state.</li>
 </ol>
 <p>Let’s build a version of the present value calculation using the functional building blocks described above. We will work up to it by discussing the core functional programming building blocks, culminating in combining <code>mapreduce</code> and <code>accumulate</code> to do the bond valuation.</p>
@@ -1212,7 +1218,7 @@ Tip
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb25"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">map</span>(collection) <span class="cf">do</span> x</span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ... do stuff</span></span>
 <span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Not only does this have the advantage of being clearer, more concise, and less work, it also let’s Julia infer the output type of your computation so you don’t have to worry about the type of <code>output</code>.</p>
+<p>Not only does this have the advantage of being clearer, more concise, and less work, it also lets Julia infer the output type of your computation so you don’t have to worry about the type of <code>output</code>.</p>
 </div>
 </div>
 </section>
@@ -1220,7 +1226,10 @@ Tip
 <h3 data-number="6.4.2" class="anchored" data-anchor-id="accumulate"><span class="header-section-number">6.4.2</span> <code>accumulate</code></h3>
 <p><code>accumulate</code> takes an operation and a collection and returns a collection where each element is the cumulative result of applying the operation from the first element to the current one. For example, to calculate the cumulative product of the one-period discount factors:</p>
 <div id="22" class="cell" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">accumulate</span>(<span class="op">*</span>, <span class="fu">map</span>(x <span class="op">-&gt;</span> <span class="fl">1</span> <span class="op">/</span> (<span class="fl">1</span> <span class="op">+</span> x), rate))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>    rates <span class="op">=</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>        <span class="fu">accumulate</span>(<span class="op">*</span>, <span class="fu">map</span>(x <span class="op">-&gt;</span> <span class="fl">1</span> <span class="op">/</span> (<span class="fl">1</span> <span class="op">+</span> x), rate))</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>5-element Vector{Float64}:
  0.9523809523809523
@@ -1745,39 +1754,58 @@ Figure&nbsp;6.3: A diagram showing how <code>reduce</code> applies the given ope
 <section id="do-syntax-for-function-arguments" class="level4" data-number="6.4.6.1">
 <h4 data-number="6.4.6.1" class="anchored" data-anchor-id="do-syntax-for-function-arguments"><span class="header-section-number">6.4.6.1</span> <code>do</code> Syntax for Function Arguments</h4>
 <p>In more complex situations such as with multiple collections or multi-line logic, there is a clearer syntax that is often used. <code>do</code> is a reserved keyword in Julia that creates an anonymous function and passes its arguments to a function like <code>map</code>. For example, this (terrible) code which decides if a number is prime. The anonymous function requires a <code>begin</code> block since the logic of the function is extended into multiple lines.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb41"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="fu">map</span>(x <span class="op">-&gt;</span> <span class="cf">begin</span></span>
-<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> x <span class="op">==</span> <span class="fl">1</span></span>
-<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">"prime"</span></span>
-<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>  <span class="cf">elseif</span> x <span class="op">==</span> <span class="fl">2</span></span>
-<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">"not prime"</span></span>
-<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>  <span class="cf">elseif</span> x <span class="op">==</span> <span class="fl">3</span></span>
-<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">"prime"</span></span>
-<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a>  <span class="cf">elseif</span> x <span class="op">&gt;</span> <span class="fl">4</span></span>
-<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a>  <span class="st">"probably not prime"</span></span>
-<span id="cb41-10"><a href="#cb41-10" aria-hidden="true" tabindex="-1"></a>  <span class="cf">end</span></span>
-<span id="cb41-11"><a href="#cb41-11" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span>, </span>
-<span id="cb41-12"><a href="#cb41-12" aria-hidden="true" tabindex="-1"></a>[<span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">3</span>, <span class="fl">10</span>]</span>
+<div id="38" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="fu">map</span>(x <span class="op">-&gt;</span> <span class="cf">begin</span></span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> x <span class="op">==</span> <span class="fl">1</span></span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>            <span class="st">"prime"</span></span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">elseif</span> x <span class="op">==</span> <span class="fl">2</span></span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>            <span class="st">"not prime"</span></span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">elseif</span> x <span class="op">==</span> <span class="fl">3</span></span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>            <span class="st">"prime"</span></span>
+<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">elseif</span> x <span class="op">&gt;</span> <span class="fl">4</span></span>
+<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a>            <span class="st">"probably not prime"</span></span>
+<span id="cb41-10"><a href="#cb41-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb41-11"><a href="#cb41-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span>,</span>
+<span id="cb41-12"><a href="#cb41-12" aria-hidden="true" tabindex="-1"></a>    [<span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">3</span>, <span class="fl">10</span>]</span>
 <span id="cb41-13"><a href="#cb41-13" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<pre><code>4-element Vector{String}:
+ "prime"
+ "not prime"
+ "prime"
+ "probably not prime"</code></pre>
+</div>
+</div>
 <p>This can be written more cleanly with the <code>do</code> syntax:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb42"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">map</span>([<span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">3</span>, <span class="fl">10</span>]) <span class="cf">do</span> x</span>
-<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> x <span class="op">==</span> <span class="fl">1</span></span>
-<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a><span class="st">"prime"</span></span>
-<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a><span class="cf">elseif</span> x <span class="op">==</span> <span class="fl">2</span></span>
-<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a><span class="st">"not prime"</span></span>
-<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a><span class="cf">elseif</span> x <span class="op">==</span> <span class="fl">3</span></span>
-<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a><span class="st">"prime"</span></span>
-<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a><span class="cf">elseif</span> x <span class="op">&gt;</span> <span class="fl">4</span></span>
-<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a><span class="st">"probably not prime"</span></span>
-<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="40" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">map</span>([<span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">3</span>, <span class="fl">10</span>]) <span class="cf">do</span> x</span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> x <span class="op">==</span> <span class="fl">1</span></span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>        <span class="st">"prime"</span></span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elseif</span> x <span class="op">==</span> <span class="fl">2</span></span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>        <span class="st">"not prime"</span></span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elseif</span> x <span class="op">==</span> <span class="fl">3</span></span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>        <span class="st">"prime"</span></span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elseif</span> x <span class="op">&gt;</span> <span class="fl">4</span></span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a>        <span class="st">"probably not prime"</span></span>
+<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb43-11"><a href="#cb43-11" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<pre><code>4-element Vector{String}:
+ "prime"
+ "not prime"
+ "prime"
+ "probably not prime"</code></pre>
+</div>
+</div>
 </section>
 <section id="multiple-collections" class="level4" data-number="6.4.6.2">
 <h4 data-number="6.4.6.2" class="anchored" data-anchor-id="multiple-collections"><span class="header-section-number">6.4.6.2</span> Multiple Collections</h4>
 <p><code>map</code> and the other functional operators discussed in this section can take multiple arguments. This is convenient if you have multiple arguments to a function:</p>
-<div id="38" class="cell" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>discounts <span class="op">=</span> [<span class="fl">0.9</span>, <span class="fl">0.81</span>, <span class="fl">0.73</span>]</span>
-<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>cashflows <span class="op">=</span> [<span class="fl">10</span>, <span class="fl">10</span>, <span class="fl">10</span>]</span>
-<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a><span class="fu">map</span>((d, c) <span class="op">-&gt;</span> d <span class="op">*</span> c, discounts, cashflows)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="42" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>discounts <span class="op">=</span> [<span class="fl">0.9</span>, <span class="fl">0.81</span>, <span class="fl">0.73</span>]</span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>cashflows <span class="op">=</span> [<span class="fl">10</span>, <span class="fl">10</span>, <span class="fl">10</span>]</span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a><span class="fu">map</span>((d, c) <span class="op">-&gt;</span> d <span class="op">*</span> c, discounts, cashflows)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>3-element Vector{Float64}:
  9.0
@@ -1786,10 +1814,10 @@ Figure&nbsp;6.3: A diagram showing how <code>reduce</code> applies the given ope
 </div>
 </div>
 <p>Or an example with the <code>do</code> syntax:</p>
-<div id="40" class="cell" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="fu">map</span>(discounts, cashflows) <span class="cf">do</span> d, c</span>
-<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>    d <span class="op">*</span> c</span>
-<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="44" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="fu">map</span>(discounts, cashflows) <span class="cf">do</span> d, c</span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>    d <span class="op">*</span> c</span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>3-element Vector{Float64}:
  9.0
@@ -1802,20 +1830,20 @@ Figure&nbsp;6.3: A diagram showing how <code>reduce</code> applies the given ope
 <h4 data-number="6.4.6.3" class="anchored" data-anchor-id="using-more-functions"><span class="header-section-number">6.4.6.3</span> Using More Functions</h4>
 <p>At the risk of sounding obvious, an easy way to make the program more “functional” is to simply use more functions. Do this one thing and it will improve the model’s organization, maintainability, and reduce bugs!</p>
 <p>Take the example from earlier:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb47"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>pv <span class="op">=</span> <span class="fl">0.0</span></span>
-<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>discount <span class="op">=</span> <span class="fl">1.0</span></span>
-<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (cf, r) <span class="kw">in</span> <span class="fu">zip</span>(cf_bond, rate)</span>
-<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a>    discount <span class="op">=</span> discount <span class="op">/</span> (<span class="fl">1</span> <span class="op">+</span> r)</span>
-<span id="cb47-6"><a href="#cb47-6" aria-hidden="true" tabindex="-1"></a>    pv <span class="op">=</span> pv <span class="op">+</span> discount <span class="op">*</span> cf</span>
-<span id="cb47-7"><a href="#cb47-7" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
-<span id="cb47-8"><a href="#cb47-8" aria-hidden="true" tabindex="-1"></a>pv</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>We can easy turn this code into a function so that it can operate on data beyond the single pair of <code>cf_bond</code> and <code>rate</code> previously defined:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb49"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>pv <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>discount <span class="op">=</span> <span class="fl">1.0</span></span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (r,cf) <span class="kw">in</span> <span class="fu">zip</span>(cf_bond, rate)</span>
+<span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a>    discount <span class="op">=</span> discount <span class="op">/</span> (<span class="fl">1</span> <span class="op">+</span> r)</span>
+<span id="cb49-6"><a href="#cb49-6" aria-hidden="true" tabindex="-1"></a>    pv <span class="op">=</span> pv <span class="op">+</span> discount <span class="op">*</span> cf</span>
+<span id="cb49-7"><a href="#cb49-7" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb49-8"><a href="#cb49-8" aria-hidden="true" tabindex="-1"></a>pv</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>We can easily turn this code into a function so that it can operate on data beyond the single pair of <code>cf_bond</code> and <code>rate</code> previously defined:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-21"><pre class="sourceCode julia code-annotation-code code-with-copy code-annotated"><code class="sourceCode julia"><span id="annotated-cell-21-1"><a href="#annotated-cell-21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">pv</span>(rates,cashflows)</span>
 <span id="annotated-cell-21-2"><a href="#annotated-cell-21-2" aria-hidden="true" tabindex="-1"></a>    pv <span class="op">=</span> <span class="fl">0.0</span></span>
 <span id="annotated-cell-21-3"><a href="#annotated-cell-21-3" aria-hidden="true" tabindex="-1"></a>    discount <span class="op">=</span> <span class="fl">1.0</span></span>
 <span id="annotated-cell-21-4"><a href="#annotated-cell-21-4" aria-hidden="true" tabindex="-1"></a></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-21" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-21-5" class="code-annotation-target"><a href="#annotated-cell-21-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (cf, r) <span class="kw">in</span> <span class="fu">zip</span>(rates, cashflows)</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-21" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-21-5" class="code-annotation-target"><a href="#annotated-cell-21-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (r,cf) <span class="kw">in</span> <span class="fu">zip</span>(rates, cashflows)</span>
 <span id="annotated-cell-21-6"><a href="#annotated-cell-21-6" aria-hidden="true" tabindex="-1"></a>        discount <span class="op">=</span> discount <span class="op">/</span> (<span class="fl">1</span> <span class="op">+</span> r)</span>
 <span id="annotated-cell-21-7"><a href="#annotated-cell-21-7" aria-hidden="true" tabindex="-1"></a>        pv <span class="op">=</span> pv <span class="op">+</span> discount <span class="op">*</span> cf</span>
 <span id="annotated-cell-21-8"><a href="#annotated-cell-21-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
@@ -1831,7 +1859,7 @@ Figure&nbsp;6.3: A diagram showing how <code>reduce</code> applies the given ope
 </section>
 <section id="mixing-functional-and-imperative-styles" class="level4" data-number="6.4.6.4">
 <h4 data-number="6.4.6.4" class="anchored" data-anchor-id="mixing-functional-and-imperative-styles"><span class="header-section-number">6.4.6.4</span> Mixing Functional And Imperative Styles</h4>
-<p>One of the best things about Julia is how natural it can be to mix the different styles Sometimes the best is the mix of both styles and that’s one of the benefits of Julia: use the style that’s most natural to the problem.</p>
+<p>One of the best things about Julia is how natural it can be to mix different styles. Sometimes the best approach is a mix of both. That’s one of the benefits of Julia: use the style that’s most natural to the problem.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -1842,9 +1870,9 @@ Figure&nbsp;6.3: A diagram showing how <code>reduce</code> applies the given ope
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p><strong>Lisp</strong> (“list processing”) is another, much older language than Julia (created in the 1950s!). One of it’s claims to fame is how flexible and powerful the tools are within the language to build upon. There’s a couple aspects of this curse that we wish to describe because we can learn from it while Julia is still a relatively young language.</p>
+<p><strong>Lisp</strong> (“list processing”) is another, much older language than Julia (created in the 1950s!). One of its claims to fame is how flexible and powerful the tools are within the language to build upon. There’s a couple aspects of this curse that we wish to describe because we can learn from it while Julia is still a relatively young language.</p>
 <p>Part of the “curse” is that: because there’s so much freedom in what can be expressed in the language, there’s not an obvious “best” way of doing things. This can lead to decision paralysis where you are trying to over-analyze what’s the best way to write part of your code. Our advice: <em>don’t worry about it!</em> A working implementation of something is better than an over-optimized idea.</p>
-<p>The other part of the “curse” is that because is that it’s relatively easy to implement so many things from the building blocks that Julia provides and compose them together to do what you want. This has a downside because the general approach to packages is smaller, standalone pieces that you call as needed. For example, consider Python’s Pandas library, upon which Python’s data science community was built. It came bundled with a CSV reader, Excel reader, Database reader, DataFrame type, visualization library, and statistical functions. In Julia, each of those are separate packages that specialize for the respective topics. This is advantageous in that they can progress independently from one another, you don’t have to include functionality that you don’t need, and you can mix and match libraries depending on your preference.</p>
+<p>The other part of the “curse” is that because it is relatively easy to implement so many things from the building blocks that Julia provides and compose them together to do what you want. This has a downside because the general approach to packages is smaller, standalone pieces that you compose as needed. For example, consider Python’s Pandas library, upon which Python’s data science community was built. It came bundled with a CSV reader, Excel reader, Database reader, DataFrame type, visualization library, and statistical functions. In Julia, each of those are separate packages that specialize for the respective topics. This is advantageous in that they can progress independently from one another, you don’t have to include functionality that you don’t need, and you can mix and match libraries depending on your preference.</p>
 </div>
 </div>
 </section>
@@ -1858,13 +1886,13 @@ Figure&nbsp;6.3: A diagram showing how <code>reduce</code> applies the given ope
 <li>GPU programming</li>
 <li>Python numerical computing</li>
 </ol>
-<p>The former because GPUs want large blocks of similar data to operate in parallel. The latter is because native Python is too slow for many modeling problems so libraries like NumPy,SciPy,and tensor libraries utilize C++ (or similar) libraries for users to call out to.</p>
+<p>The former because GPUs want large blocks of similar data to operate in parallel. The latter is because native Python is too slow for many modeling problems so libraries like NumPy, SciPy,and tensor libraries utilize C++ (or similar) libraries for users to call out to.</p>
 <p>Array-oriented programming is not always natural for financial and actuarial applications. Differences in behavior or timing of underling cashflows can make a set of otherwise similar products difficult to capture in nicely gridded arrays. Nonetheless, certain applications (scenario generation, some valuation routines) fit very naturally into this paradigm. Furthermore, for those that work well it’s often a great way to extract additional performance due to the parallelization offered via CPU or GPU array programming.</p>
 <p><a href="#tbl-array-oriented-example" class="quarto-xref">Table&nbsp;<span>6.2</span></a> shows the bond present value example in this style.</p>
 <div id="tbl-array-oriented-example" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-array-oriented-example-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;6.2: The two code examples demonstrate the same logic using Julia and Numpy (Python’s most popular array package). Julia’s broadcasting facilitate an array-oriented style, similar to the approach that would be used with Python’s NumPy.
+Table&nbsp;6.2: The two code examples demonstrate the same logic using Julia and Numpy (Python’s most popular array package). Julia’s broadcasting facilitates an array-oriented style, similar to the approach that would be used with Python’s NumPy.
 </figcaption>
 <div aria-describedby="tbl-array-oriented-example-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <table class="caption-top table">
@@ -1880,18 +1908,18 @@ Table&nbsp;6.2: The two code examples demonstrate the same logic using Julia and
 </thead>
 <tbody>
 <tr class="odd">
-<td><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb48"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>cf_bond <span class="op">=</span> [<span class="fl">10</span>, <span class="fl">10</span>, <span class="fl">10</span>, <span class="fl">10</span>, <span class="fl">110</span>]</span>
-<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>rate <span class="op">=</span> [<span class="fl">0.05</span>, <span class="fl">0.06</span>, <span class="fl">0.05</span>, <span class="fl">0.04</span>, <span class="fl">0.05</span>]</span>
-<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a>discount_factors <span class="op">=</span> <span class="fu">cumprod</span>(<span class="fl">1</span> <span class="op">./</span> (<span class="fl">1</span> <span class="op">.+</span> rate))</span>
-<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> <span class="fu">sum</span>(cf_bond <span class="op">.*</span> discount_factors)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div></td>
-<td><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb49"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a>cf_bond <span class="op">=</span> np.array([<span class="dv">10</span>, <span class="dv">10</span>, <span class="dv">10</span>, <span class="dv">10</span>, <span class="dv">110</span>])</span>
-<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a>rate <span class="op">=</span> np.array([<span class="fl">0.05</span>, <span class="fl">0.06</span>, <span class="fl">0.05</span>, <span class="fl">0.04</span>, <span class="fl">0.05</span>])</span>
-<span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb49-6"><a href="#cb49-6" aria-hidden="true" tabindex="-1"></a>discount_factors <span class="op">=</span> np.cumprod(<span class="dv">1</span> <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> rate))</span>
-<span id="cb49-7"><a href="#cb49-7" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> np.<span class="bu">sum</span>(cf_bond <span class="op">*</span> discount_factors)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div></td>
+<td><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb50"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>cf_bond <span class="op">=</span> [<span class="fl">10</span>, <span class="fl">10</span>, <span class="fl">10</span>, <span class="fl">10</span>, <span class="fl">110</span>]</span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>rate <span class="op">=</span> [<span class="fl">0.05</span>, <span class="fl">0.06</span>, <span class="fl">0.05</span>, <span class="fl">0.04</span>, <span class="fl">0.05</span>]</span>
+<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a>discount_factors <span class="op">=</span> <span class="fu">cumprod</span>(<span class="fl">1</span> <span class="op">./</span> (<span class="fl">1</span> <span class="op">.+</span> rate))</span>
+<span id="cb50-5"><a href="#cb50-5" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> <span class="fu">sum</span>(cf_bond <span class="op">.*</span> discount_factors)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div></td>
+<td><div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb51"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a>cf_bond <span class="op">=</span> np.array([<span class="dv">10</span>, <span class="dv">10</span>, <span class="dv">10</span>, <span class="dv">10</span>, <span class="dv">110</span>])</span>
+<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a>rate <span class="op">=</span> np.array([<span class="fl">0.05</span>, <span class="fl">0.06</span>, <span class="fl">0.05</span>, <span class="fl">0.04</span>, <span class="fl">0.05</span>])</span>
+<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb51-6"><a href="#cb51-6" aria-hidden="true" tabindex="-1"></a>discount_factors <span class="op">=</span> np.cumprod(<span class="dv">1</span> <span class="op">/</span> (<span class="dv">1</span> <span class="op">+</span> rate))</span>
+<span id="cb51-7"><a href="#cb51-7" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> np.<span class="bu">sum</span>(cf_bond <span class="op">*</span> discount_factors)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div></td>
 </tr>
 </tbody>
 </table>
@@ -1907,29 +1935,29 @@ Table&nbsp;6.2: The two code examples demonstrate the same logic using Julia and
 <section id="recursion" class="level2" data-number="6.6">
 <h2 data-number="6.6" class="anchored" data-anchor-id="recursion"><span class="header-section-number">6.6</span> Recursion</h2>
 <p>A <strong>recursive function</strong> which is a pattern where current steps are defined in a way that depends on previous steps. Typically, an explicit starting condition is also required to be specified.</p>
-<p>The Fibbonaci sequence is a classic example of a recursive algorithm, with the starting conditions of <span class="math inline">\(n\)</span> specified for the first two steps:</p>
+<p>The Fibonacci sequence is a classic example of a recursive algorithm, with the starting conditions of <span class="math inline">\(n\)</span> specified for the first two steps:</p>
 <p><span class="math display">\[F(n) = \begin{cases}
 0, &amp; \text{if } n = 0\\
 1, &amp; \text{if } n = 1\\
 F(n-1) + F(n-2), &amp; \text{if } n &gt; 1
 \end{cases}\]</span></p>
 <p>In code, this translates into a function definition that refers to itself:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb50"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">fibonacci</span>(n)</span>
-<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> n <span class="op">==</span> <span class="fl">0</span></span>
-<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="fl">0</span></span>
-<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elseif</span> n <span class="op">==</span> <span class="fl">1</span></span>
-<span id="cb50-5"><a href="#cb50-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="fl">1</span></span>
-<span id="cb50-6"><a href="#cb50-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span></span>
-<span id="cb50-7"><a href="#cb50-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="fu">fibonacci</span>(n<span class="op">-</span><span class="fl">1</span>) <span class="op">+</span> <span class="fu">fibonacci</span>(n<span class="op">-</span><span class="fl">2</span>)</span>
-<span id="cb50-8"><a href="#cb50-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
-<span id="cb50-9"><a href="#cb50-9" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb52"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">fibonacci</span>(n)</span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> n <span class="op">==</span> <span class="fl">0</span></span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="fl">0</span></span>
+<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elseif</span> n <span class="op">==</span> <span class="fl">1</span></span>
+<span id="cb52-5"><a href="#cb52-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="fl">1</span></span>
+<span id="cb52-6"><a href="#cb52-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span></span>
+<span id="cb52-7"><a href="#cb52-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="fu">fibonacci</span>(n<span class="op">-</span><span class="fl">1</span>) <span class="op">+</span> <span class="fu">fibonacci</span>(n<span class="op">-</span><span class="fl">2</span>)</span>
+<span id="cb52-8"><a href="#cb52-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb52-9"><a href="#cb52-9" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>How could a recursive pattern be defined for valuing our bond? A possible pattern is defining the present value to be the discounted value of:</p>
 <ul>
 <li><p>the current period’s cashflow, <em>plus</em></p></li>
 <li><p>the accumulated cashflows up to that point in time</p></li>
 </ul>
 <p>Here’s how that might be defined:</p>
-<div id="42" class="cell" data-execution_count="1">
+<div id="46" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="annotated-cell-23"><pre class="sourceCode julia code-annotation-code code-with-copy code-annotated"><code class="sourceCode julia"><span id="annotated-cell-23-1"><a href="#annotated-cell-23-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">pv_recursive</span>(rates,cashflows,accumulated_value<span class="op">=</span><span class="fl">0.0</span>,discount_factor<span class="op">=</span><span class="fl">1.0</span>)</span>
 <a class="code-annotation-anchor" data-target-cell="annotated-cell-23" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-23-2" class="code-annotation-target"><a href="#annotated-cell-23-2" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> <span class="fu">isempty</span>(cashflows)</span>
 <span id="annotated-cell-23-3"><a href="#annotated-cell-23-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> accumulated_value</span>
@@ -1966,8 +1994,8 @@ F(n-1) + F(n-2), &amp; \text{if } n &gt; 1
 </div>
 </div>
 <p>And an example of its use:</p>
-<div id="44" class="cell" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb52"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="fu">pv_recursive</span>(rate,cf_bond)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="48" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb54"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="fu">pv_recursive</span>(rate,cf_bond)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>121.48888490821489</code></pre>
 </div>
