@@ -27,46 +27,36 @@ Local and global optimization: A **local optimum** value refers to a solution wh
 ```{julia}
 using CairoMakie
 let
-
     f(x) = x^8 - 3x^4 + x
-
-    # Generate a range of x and y values
-    xs = range(-1.5, 1.5, length=300)
+    xs = range(-1.5, 1.5; length=1001)
     ys = f.(xs)
 
     fig = Figure(resolution=(600, 400))
     ax = Axis(fig[1, 1],
         xlabel="x",
         ylabel="f(x)",
-        title="Function with Local and Global Optima",
-        limits=(-1.5, 1.5, -5, 3)
+        title="Function with Local and Global Optima (over [-1.5, 1.5])",
+        limits=(-1.5, 1.5, minimum(ys) - 0.5, maximum(ys) + 0.5),
     )
 
     lines!(ax, xs, ys, color=:blue)
 
-    x_global_max = -1.1226
+    # Global minimum on the sampled grid
+    i_global = argmin(ys)
+    x_global_min = xs[i_global]
+    y_global_min = ys[i_global]
+    scatter!(ax, [x_global_min], [y_global_min], color=:red, markersize=10, label="Global minimum (on grid)")
 
-    scatter!(ax,
-        [x_global_max],
-        [f(x_global_max)],
-        color=:red,
-        markersize=10,
-        label="Global Minimum"
-    )
+    # Detect local minima by comparing neighbors (simple discrete test)
+    local_min_inds = findall((ys[2:end-1] .< ys[1:end-2]) .& (ys[2:end-1] .< ys[3:end])) .+ 1
+    # Exclude the global index to highlight a different local minimum if present
+    local_min_inds = filter(i -> i != i_global, local_min_inds)
+    if !isempty(local_min_inds)
+        i_local = first(local_min_inds)
+        scatter!(ax, [xs[i_local]], [ys[i_local]], color=:black, markersize=10, label="Local minimum (on grid)")
+    end
 
-    x_local_min = [1.08835]
-
-    scatter!(ax,
-        x_local_min,
-        f.(x_local_min),
-        color=:black,
-        markersize=10,
-        label="Local Minimum"
-    )
-
-    # Add a legend
-    axislegend(ax, position=:ct)
-
+    axislegend(ax, position=:rt)
     fig
 end
 
@@ -105,15 +95,15 @@ Here, `guess` might represent model parameters (or input values), and `target` i
 
 ## Optimization Techniques
 
-### Non-Linear Optimization
+### Nonlinear Optimization
 
-Non-linear optimization refers to problems where the relationship between the inputs and outputs is not constrained to be a linear relationship, which is incredibly common in financial modeling.
+Nonlinear optimization refers to problems where the relationship between the inputs and outputs is not constrained to be a linear relationship, which is incredibly common in financial modeling.
 
-In many financial settings, variables must obey certain bounds or relationships (e.g., portfolios cannot exceed a total budget, a particular risk measure must remain below a threshold). Handling constraints often involves methods like Lagrange multipliers, projected gradient, or analytic penalty functions. We won’t cover these in depth here, but be aware that most general optimization libraries can handle constraints in non-linear problems as well.
+In many financial settings, variables must obey certain bounds or relationships (e.g., portfolios cannot exceed a total budget, a particular risk measure must remain below a threshold). Handling constraints often involves methods like Lagrange multipliers, projected gradient, or analytic penalty functions. We won’t cover these in depth here, but be aware that most general optimization libraries can handle constraints in nonlinear problems as well.
 
 #### Gradient-Based Optimization
 
-The most efficient non-linear optimization algorithms tend to utilize the gradient (i.e. multivariable derivative) in order to make the optimization substantially more efficient. The gradient is useful because it can tell you if you are at a maxima or minima (when the derivative is zero, the function is at a maxima or minima), but also because algorithms can be 'smarter' about searching for a solution using the additional information. The gradient provides the direction of the steepest ascent of a function. Optimization algorithms often iteratively update parameters in the direction opposite to the gradient (for minimization problems), which tends to converge towards a local minimum (or maximum for maximization problems). Besides, computing the gradient is often computationally feasible and relatively inexpensive compared to other methods for determining function behavior, such as higher-order derivatives or finite-difference methods. Beyond just the direction, the magnitude (or norm) of the gradient also indicates how steep the function change is in that direction. This information is used to adjust step sizes in optimization algorithms, balancing between convergence speed and stability.
+The most efficient nonlinear optimization algorithms tend to utilize the gradient (i.e. multivariable derivative) in order to make the optimization substantially more efficient. The gradient is useful because it can tell you if you are at a maxima or minima (when the derivative is zero, the function is at a maxima or minima), but also because algorithms can be 'smarter' about searching for a solution using the additional information. The gradient provides the direction of the steepest ascent of a function. Optimization algorithms often iteratively update parameters in the direction opposite to the gradient (for minimization problems), which tends to converge towards a local minimum (or maximum for maximization problems). Besides, computing the gradient is often computationally feasible and relatively inexpensive compared to other methods for determining function behavior, such as higher-order derivatives or finite-difference methods. Beyond just the direction, the magnitude (or norm) of the gradient also indicates how steep the function change is in that direction. This information is used to adjust step sizes in optimization algorithms, balancing between convergence speed and stability.
 
 Calculating gradients in the context of computer algorithms is discussed at length in @sec-autodiff, but a quick recap of the available approaches:
 
@@ -175,7 +165,7 @@ end
 print("Approximate root: ", x)
 ```
 
-Although it might look different, **root-finding** (solving (g(x)=0)) can be cast as a minimization problem by defining an objective function such as ( (g(x))\^2 ). In this view, driving ( (g(x))\^2 ) to zero compels ( g(x) ) itself to be zero, so the methods and algorithmic ideas from minimization apply naturally to root-finding scenarios as well.
+Although it might look different, **root-finding** (i.e. finding $x$ such that $g(x)=0$) can be cast as a minimization problem by defining an objective function such as $g(x))^2$. In this view, driving $g(x)^2$  to zero compels $g(x)$ itself to be zero, so the methods and algorithmic ideas from minimization apply naturally to root-finding scenarios as well.
 
 ##### BFGS
 
@@ -188,7 +178,7 @@ using Optim
 
 # Define the objective function to minimize
 function objective_function(x)
-    return sum(x .* x)
+    return sum(abs2, x)
 end
 
 # Initial guess for the minimization
@@ -211,6 +201,8 @@ This category includes algorithms that do not rely on gradients or derivative in
 ##### Bracketing Methods
 
 A bracketed search algorithm is a technique used in optimization and numerical methods to confine or "bracket" a minimum or maximum of a function within a specified interval. The primary goal is to reduce the search space systematically until a satisfactory solution or range containing the optimal value is found.
+
+For 1D minimization with bracketing, golden-section search and Brent’s method are standard. The bisection code below is for root finding, not minimization.
 
 ```{julia}
 function bisection_method(f, a, b; tol=1e-6, max_iter=100)
@@ -270,13 +262,13 @@ println("Iterations taken: ", iterations)
 println("Function value at root: ", f(root))
 ```
 
-A popular practical algorithm is called Brent's Method, which uses additional heuristics to accelerate the optimization routhine in most cases.
+A popular practical algorithm is called Brent's Method, which uses additional heuristics to accelerate the optimization routine in most cases.
 
 #### Other Non-Gradient Based Optimization Techniques
 
 ##### Nelder-Mead simplex method
 
-The Nelder-Mead simplex method is a popular optimization algorithm used for minimizing (or maximizing) nonlinear functions that are not necessarily differentiable. It’s particularly useful when gradient-based methods cannot be applied. It is often used in low-dimensional problems due to its simplicity and robustness. We will use the Rosenbrock function which can be useful in certain portfolio optimization problem to illustrate the process.
+The Nelder-Mead simplex method is a popular optimization algorithm used for minimizing (or maximizing) nonlinear functions that are not necessarily differentiable. It’s particularly useful when gradient-based methods cannot be applied. It is often used in low-dimensional problems due to its simplicity and robustness. We will use the Rosenbrock function which can be useful in certain portfolio optimization problems to illustrate the process.
 
 ```{julia}
 using Optim
@@ -470,7 +462,7 @@ fig
 
 ##### Evolutionary Algorithm
 
-An evolutionary algorithm (EA) is a family of optimization algorithms inspired by the principles of biological evolution. They are particularly useful for solving complex optimization problems where traditional gradient-based methods may struggle due to non-linearity, multimodality, or high dimensionality of the search space.
+An evolutionary algorithm (EA) is a family of optimization algorithms inspired by the principles of biological evolution. They are particularly useful for solving complex optimization problems where traditional gradient-based methods may struggle due to nonlinearity, multimodality, or high dimensionality of the search space.
 
 The following shows an example to maximize population fitness in terms of an objective function, with common crossover and mutation processes throughout all generations.
 
@@ -625,7 +617,7 @@ best_x, best_value = bayesian_optimization(objective, (-5.0, 5.0), 10)
 println("Best x found: $best_x, Best value: $best_value")
 ```
 
-While gradient-free methods help optimize complex non-linear or noisy functions, some financial and operational problems are best modeled with linear relationships. The next section shows how to set up such problems, including constraints, using linear and integer programming.
+While gradient-free methods help optimize complex nonlinear or noisy functions, some financial and operational problems are best modeled with linear relationships. The next section shows how to set up such problems, including constraints, using linear and integer programming.
 
 ### Linear optimization
 
@@ -700,7 +692,7 @@ model = Model(GLPK.Optimizer)
 
 # Add constraints
 @constraint(model, 4x₁ + 3x₂ <= 200)  # Labor constraint
-@constraint(model, x₁ + 4x₂ <= 40)   # Material constraint
+@constraint(model, x₁ + 2x₂ <= 40)   # Material constraint
 
 # Solve the model
 optimize!(model)
@@ -716,7 +708,7 @@ else
 end
 ```
 
-## Example: Modeling fitting
+## Example: Model Fitting
 
 In model fitting, the "best fitting curve" refers to the curve or function that best describes the relationship between the independent and dependent variables in the data. The goal of model fitting is to find the parameters of the chosen curve or function that minimize the difference between the observed data points and the values predicted by the model.
 

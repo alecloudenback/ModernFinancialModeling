@@ -29,7 +29,7 @@ As a rule of thumb, the [Discourse forum](https://discourse.julialang.org/) is w
 The most natural starting point to install Julia onto your system is the [Julia downloads page](https://julialang.org/downloads/), which will tell you to use [`juliaup`](https://github.com/JuliaLang/juliaup).
 
 1.  Windows users can download Julia and `juliaup` together from the [Windows Store](https://www.microsoft.com/store/apps/9NJNWW8PVKMN).
-2.  OSX or Linux users can execute the following terminal command:
+2.  MacOS or Linux users can execute the following terminal command:
 
 ``` bash
 curl -fsSL https://install.julialang.org | sh
@@ -211,11 +211,12 @@ If you only have IJulia.jl on your system, you can run this snippet instead:
 ``` julia-repl
 julia> using IJulia
 
-julia> IJulia.notebook()
+julia> IJulia.notebook() # <1>
 ```
+1. Launches classic Jupyter Notebook; for JupyterLab use `IJulia.jupyterlab()` if JupyterLab is installed
 
 ::: callout-tip
-Jupyter notebooks can be opened, modified and run directly from VSCode. Thanks to the Julia extension, you don't even need to install IJulia.jl or Jupyter first.
+Jupyter notebooks can be opened, edited, and run in VS Code via the Jupyter and Julia extensions, without installing Python’s Jupyter or IJulia.jl system-wide.
 :::
 
 [`Pluto.jl`](https://plutojl.org/) is a newer, pure-Julia tool, adding reactivity and interactivity. It is also more amenable to version control than Jupyter notebooks because notebooks are saved as plain Julia scripts. Pluto is unique to Julia because of the language's ability to introspect and analyze dependencies in its own code. Pluto also has built-in package/environment management, meaning that Pluto notebooks contains all the code needed to reproduce results (as long as Julia and Pluto are installed).
@@ -252,7 +253,7 @@ println("hello world")
 
 ### Quarto
 
-[Quarto](https://quarto.org/) "is an open-source scientific and technical publishing system." Quarto makes a plain text markdown file (`.md`) alternative called Quarto markdown file (`.qmd`).
+[Quarto](https://quarto.org/) "is an open-source scientific and technical publishing system." Quarto’s primary authoring format is the `.qmd` (Quarto Markdown) file. Quarto can also render plain `.md` files, but .qmd enables executable code cells and richer metadata.
 
 Quarto markdown files like plain text markdown files also integrate with editors, such as VSCode.
 
@@ -283,10 +284,10 @@ The `(@1.10)` indicates that you are using the global environment for the curren
   Activating new project at `~/MyNewEnv`
 ```
 
-This will... not do anything. Yet! When we add a package to this environment, *then* it will create a `Project.toml` and `Manifest.toml` file in that directory. Now that directory is a full fledged Julia project!
+This will not do anything, yet! When we add a package to this environment, *then* it will create a `Project.toml` and `Manifest.toml` file in that directory. Now that directory is a full fledged Julia project!
 
 ::: callout-tip
-Activate a temporary environment with `activate --temp`. This will give you a temporary environment with a random name, which is very useful for testing out things in a clean, simplified environment (the global environment, like `@1.10` still applies.)
+Activate a temporary environment with `activate --temp`. This will give you a temporary environment with a random name, which is very useful for testing out things in a clean, simplified environment. Note that environment stacking still applies, so the global environment, like `@1.10` will be available inside your temp environment.
 :::
 
 ### Project.toml
@@ -325,7 +326,7 @@ julia = "1.6"
 
 [^julia-writing-1]: When registering a package to a repository, the repository will record the version indicated in the `Project.toml` file to the git commit id of the package when it is registered.
 
-When you `instantiate` a project (see @sec-environments for more), Julia will essentially `add` the packages listed under `deps`, and will **resolve** the compatible versions, generally picking the highest version number for the packages so long as the `compat` section rule are note broken.
+When you `instantiate` a project (see @sec-environments for more), Julia will essentially `add` the packages listed under `deps`, and will **resolve** the compatible versions, generally picking the highest version number for the packages so long as the `compat` section rule are not broken.
 
 When adding the dependencies, those packages themselves likely specify their own set of dependencies and Julia must resolve the entire **dependency graph** or **dependency tree** to allow your current project to work.
 
@@ -371,7 +372,7 @@ weakdeps = ["ChainRulesCore", "Test"]
 ```
 
 ::: callout-note
-Starting in Julia 1.11, Manifest files will include a version indication, making it nicer to work with multiple Julia versions at one time on a single system.
+Starting with Julia 1.11, Manifest files will include a version indication, making it nicer to work with multiple Julia versions at one time on a single system.
 :::
 
 ### Reproducibility
@@ -383,23 +384,24 @@ Since dependencies can have variation between systems (Windows/Mac) and architec
 ::: callout-tip
 ## Artifacts
 
-Julia has a system called **artifacts** which allows specification of a location and hash (a cryptographic key) for data and binaries. The artifact system used to download and verify the contents of a file match the hash. This is designed for more permanent data and less end-user workflows, but we call it out here as another example where Julia takes steps to promote consistency and reproducibility.
+Julia has a system called **artifacts** which allows specification of a location and hash (a cryptographic key) for data and binaries. The artifact system is used to download and verify the contents of a file match the hash. This is designed for more permanent data and less end-user workflows, but we call it out here as another example where Julia takes steps to promote consistency and reproducibility.
 
 For more on data workflows for the end-user, see @sec-software-principles.
 :::
 
 ::: callout-tip
-You can configure the [environment](https://www.julia-vscode.org/docs/stable/userguide/env/) in which a VSCode Julia REPL opens. Just click the `Julia env: ...` button at the bottom. Note however that the Julia version itself will always be the default one from `juliaup`.
+You can configure the [environment](https://www.julia-vscode.org/docs/stable/userguide/env/) in which a VSCode Julia REPL opens. Just click the `Julia env: ...` button at the bottom. By default the Julia extension uses juliaup’s default channel, but you can override the executable path in VS Code settings.
 :::
 
 ## Creating Local packages
 
 Once your code base grows beyond a few scripts, you will want to [create a package](https://pkgdocs.julialang.org/v1/creating-packages/) of your own. The first advantage is that you don't need to specify the path of every file: `using MyPackage` is enough to get access to the names you define and export (or `using MyPackage: myfunc1, myfunc2` to use bring non-exported functions into your environment). Furthermore, by structuring your project as a Pacakge, you can specify versions for your package and its dependencies, making your code easier and safer to reuse.
 
-To create a new package locally, the easy way is to use `]generate` (we will discuss a more sophisticated workflow in the next blog post).
+To create a new package locally, the easy way is to use `]generate` .
 
-``` >generate-package
-Pkg.generate(sitepath("MyPackage"));  # ignore sitepath
+```julia
+using Pkg
+Pkg.generate("MyPackage"); 
 ```
 
 This command initializes a simple folder with a `Project.toml` and a `src` subfolder. As we have seen, the `Project.toml` specifies the dependencies. Meanwhile, the `src` subfolder contains a file `MyPackage.jl`, where a [module](https://docs.julialang.org/en/v1/manual/modules/) called `MyPackage` is defined. It is the heart of your package, and will typically look like this when you're done:
@@ -424,7 +426,7 @@ end
 
 ### PkgTemplates.jl {#sec-pkgtemplates}
 
-[PkgTemplates.jl](https://github.com/JuliaCI/PkgTemplates.jl) is like `]generate` from Pkg.jl but provides a number of options to pre-configure the repository for things such as continuous integration, testing, and compatibiltiy. If you are not yet making use of that more advanced functionality, the `]generate` method will work just fine for you.
+[PkgTemplates.jl](https://github.com/JuliaCI/PkgTemplates.jl) is like `]generate` from Pkg.jl but provides a number of options to pre-configure the repository for things such as continuous integration, testing, and compatibility. If you are not yet making use of that more advanced functionality, the `]generate` method will work just fine for you.
 
 This will walk you through an interactive prompt to create a package in the desired folder. `~/.julia/dev` is a suggested location, but technically any folder will make do:
 
@@ -477,12 +479,12 @@ Now, in the `@mydevenv` environemnt, when you load `PkgB` it will load the versi
 
 ## Configuration {#sec-startup-config}
 
-Julia accepts [startup flags](https://docs.julialang.org/en/v1/manual/command-line-interface/#command-line-interface) to handle settings such as the number of threads available or the environment in which it launches. In addition, most Julia developers also have a [startup file](https://docs.julialang.org/en/v1/manual/command-line-interface/#Startup-file) which is run automatically every time the language is started. It is located at `.julia/config/startup.jl`.
+Julia accepts [startup flags](https://docs.julialang.org/en/v1/manual/command-line-interface/#command-line-interface) to handle settings such as the number of threads available or the environment in which it launches. In addition, most Julia developers also have a [startup file](https://docs.julialang.org/en/v1/manual/command-line-interface/#Startup-file) which is run automatically every time the language is started. It is located at `~/.julia/config/startup.jl`.
 
 The basic component that everyone puts in the startup file is Revise.jl. Users also commonly import packages that affect the REPL experience, as well as esthetic, benchmarking or profiling utilities. A typical example is [OhMyREPL.jl](https://github.com/KristofferC/OhMyREPL.jl) which is widely used for syntax highlighting in the REPL. While other packages are often used, we suggest the following as a minimum:
 
 ``` julia
-# save as a file in /.julia/config/startup.jl
+# save as a file in ~/.julia/config/startup.jl
 try
     using Revise
     using OhMyREPL
@@ -516,7 +518,8 @@ subtypes(Integer)
 ```
 
 ```{julia}
-methodswith(Integer)[1:5] # first five methods that take an integer argument
+# first five methods that take an integer argument
+methodswith(Integer)[1:5]
 ```
 
 ```{julia}
@@ -581,7 +584,7 @@ For floating-point comparisons, you'll often want to use `isapprox` (as a shorte
 ``` julia
 @test 1/3  ≈ 0.33333333333333  # <1>
 @test 1/3  ≈ 0.333 atol = 1e-3  # <2>
-@test 1/3  ≈ 0.333 rtol = 1e-33  # <3>
+@test 1/3  ≈ 0.333 rtol = 1e-3  # <3>
 ```
 
 1.  Passes because the values are sufficiently close.
