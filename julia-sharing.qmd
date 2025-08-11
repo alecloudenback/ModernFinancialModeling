@@ -14,7 +14,7 @@ Applying software engineering best practices (@sec-software-principles) in Julia
 
 A vast majority of Julia packages are hosted on [GitHub](https://github.com/) (although less common, other options like [GitLab](https://gitlab.com/) are also possible). GitHub is a platform for collaborative software development, based on the version control system [Git](https://git-scm.com/) (see @sec-software-principles for an introduction).
 
-The first step is therefore [creating](https://github.com/new) an empty GitHub repository on Github (don't add a README License, etc. at this step).
+The first step is therefore [creating](https://github.com/new) an empty GitHub repository on GitHub (don't add a README License, etc. at this step).
 
 ::: callout-tip
 You should try to follow [package naming guidelines](https://pkgdocs.julialang.org/v1/creating-packages/#Package-naming-guidelines) and add a ".jl" extension at the end, like so: "MyAwesomePackage.jl".
@@ -22,7 +22,17 @@ You should try to follow [package naming guidelines](https://pkgdocs.julialang.o
 
 Locally, use PkgTemplates.jl (see @sec-pkgtemplates) to then create the package's folder locally on your computer, which will create a package with several subfolders (these will be described as the chapter progresses).
 
-To sync this up with the newly created Github repository, you git push this new folder to the remote repository <https://github.com/myuser/MyAwesomePackage.jl> (Github should show you how to do this on the associated repository page).
+To sync this up with the newly created GitHub repository, you git push this new folder to the remote repository <https://github.com/myuser/MyAwesomePackage.jl>. GitHub should show you how to do this on the associated repository page (something like this):
+
+```bash
+# terminal commands from inside your new package directory:
+git init
+git add .
+git commit -m "Initial commit"
+git branch -M main 
+git remote add origin https://github.com/myuser/MyAwesomePackage.jl.git
+git push -u origin main
+```
 
 ## GitHub Actions
 
@@ -34,7 +44,7 @@ A variety of workflows and functionalities are available through optional [plugi
 
 The purpose of the `test` subfolder in your package is [unit testing](https://docs.julialang.org/en/v1/stdlib/Test/): automatically checking that your code behaves the way you want it to. For instance, if you write your own square root function, you may want to test that it gives the correct results for positive numbers, and errors for negative numbers.
 
-``` >sqrt
+```julia
 using Test
 
 @test sqrt(4) ≈ 2
@@ -53,7 +63,6 @@ To test the arguments provided to the functions within your code (for instance t
 That is, avoid this:
 
 ``` julia
-
 function mysqrt(x)
     @assert x >= 0
     ...
@@ -62,8 +71,9 @@ function mysqrt(x)
 And do this instead:
 
 ``` julia
+using ArgCheck
 function mysqrt(x)
-    @argcheck x < 0 DomainError
+    @argcheck x >= 0 DomainError
     ...
 end
 ```
@@ -87,11 +97,15 @@ If you want to have more control over your tests, you can try
 
 ### Code Coverage
 
-Code coverage refers to the fraction of lines in your source code that are covered by tests (described in more detail in @sec-code-coverage). [Codecov](https://about.codecov.io/) is a website that provides easy visualization of this coverage, and many Julia packages use it. It is available as a PkgTemplates.jl plugin, but you have to perform an [additional configuration step](https://docs.codecov.com/docs/adding-the-codecov-token) on the repo for Codecov to communicate with it.
+Code coverage refers to the fraction of lines in your source code that are covered by tests (described in more detail in @sec-code-coverage). [Codecov](https://about.codecov.io/) is a website that provides easy visualization of this coverage, and many Julia packages use it. It is available as a PkgTemplates.jl plugin. For public GitHub repositories using GitHub Actions, uploads are typically token-less. For private repositories or other CI providers, you’ll need to add the CODECOV_TOKEN secret as documented by Codecov.
 
 ## Code Style
 
 To make your code easy to read, it is recommended to follow a consistent set of guidelines. The official [style guide](https://docs.julialang.org/en/v1/manual/style-guide/) is very short, so most people use third party style guides like [BlueStyle](https://github.com/JuliaDiff/BlueStyle) or [SciMLStyle](https://github.com/SciML/SciMLStyle).
+
+### Formatters
+
+#### JuliaFormatter.jl
 
 [JuliaFormatter.jl](https://github.com/domluna/JuliaFormatter.jl) is an automated formatter for Julia files which can help you enforce the style guide of your choice. Just add a file `.JuliaFormatter.toml` at the root of your repository, containing a single line like
 
@@ -101,9 +115,11 @@ style = "blue"
 
 Then, the package directory will be formatted in the BlueStyle whenever you call
 
-``` >format
-using JuliaFormatter
-JuliaFormatter.format(MyAwesomePackage)
+```julia-repl
+import JuliaFormatter
+# run from the package root, and
+# formats according to .JuliaFormatter.toml
+JuliaFormatter.format(".")  
 ```
 
 ::: callout-note
@@ -114,11 +130,17 @@ The [default formatter](https://www.julia-vscode.org/docs/stable/userguide/forma
 You can format code automatically in GitHub pull requests with the [`julia-format` action](https://github.com/julia-actions/julia-format), or add the formatting check directly to your test suite.
 :::
 
+#### Runic.jl
+
+[Runic.jl](https://github.com/fredrikekre/Runic.jl) is a popular choice as well. Like Python's popular Black formatter, there is no configuration to the formatting options when using Runic. The benefit is increased consistency and no time wasted debating formatting decisions. 
+
+ Runic, requires you to set up Runic using Pkg. The instructions are straightforward and available on the [Runic.jl repository](https://github.com/fredrikekre/Runic.jl).
+
 ## Code quality
 
 Of course, there is more to code quality than just formatting. [Aqua.jl](https://github.com/JuliaTesting/Aqua.jl) (Auto QUality Assurance) provides a set of routines that examine other aspects of your package, from ensuring that there are no unused dependencies to catching ambiguous methods statically.
 
-Include the following in your tests to have Aqua.jl run various checks against your code each time tests get run.:
+Include the following in your tests to have Aqua.jl run various checks each time your tests run:
 
 ``` julia
 using Aqua, MyAwesomePackage
@@ -129,7 +151,7 @@ Aqua.test_all(MyAwesomePackage)
 
 You can either use it in report mode (with a nice [VSCode display](https://www.julia-vscode.org/docs/stable/userguide/linter/#Runtime-diagnostics)) or in test mode as follows:
 
-``` >jet
+```julia
 using JET, MyAwesomePackage
 JET.report_package(MyAwesomePackage)
 JET.test_package(MyAwesomePackage)
@@ -141,7 +163,7 @@ Finally, [ExplicitImports.jl](https://github.com/ericphanson/ExplicitImports.jl)
 
 ## Documentation
 
-Refer to for more detail on documentation and its importance in @sec-software-docstrings. Here are some additional workflow tips for setting up documentation for your package.
+Refer to @sec-software-docstrings for more detail on documentation and its importance. Here are some additional workflow tips for setting up documentation for your package.
 
 [DocStringExtensions.jl](https://github.com/JuliaDocs/DocStringExtensions.jl) provides a few shortcuts that can speed up docstring creation by taking care of the obvious parts.
 
@@ -163,7 +185,7 @@ julia> using LiveServer
 julia> servedocs()
 ```
 
-To host the documentation online easily, just select the [`Documenter` plugin](https://juliaci.github.io/PkgTemplates.jl/stable/user/#PkgTemplates.Documenter) from PkgTemplates.jl during creation. Not only will this fill the `docs` subfolder with the appropriate starting files: it will also initialize a [GitHub Actions workflow](https://documenter.juliadocs.org/stable/man/hosting/#gh-pages-Branch) to build and deploy your website on [GitHub pages](https://pages.github.com/). Lastly, [select the `gh-pages` branch as source in the Github settings for your repository](https://documenter.juliadocs.org/stable/man/hosting/#gh-pages-Branch).
+To host the documentation online easily, just select the [`Documenter` plugin](https://juliaci.github.io/PkgTemplates.jl/stable/user/#PkgTemplates.Documenter) from PkgTemplates.jl during creation. Not only will this fill the `docs` subfolder with the appropriate starting files: it will also initialize a [GitHub Actions workflow](https://documenter.juliadocs.org/stable/man/hosting/#gh-pages-Branch) to build and deploy your website on [GitHub pages](https://pages.github.com/). Lastly, [in your repository’s Pages settings, configure deployment from the gh-pages branch (root)](https://documenter.juliadocs.org/stable/man/hosting/#gh-pages-Branch).
 
 ## Literate programming
 
@@ -183,7 +205,7 @@ The Julia community has adopted [semantic versioning](https://semver.org/), whic
 
 To comply with the versioning requirements in Pkg's resolver, you need to specify [compatibility bounds](https://pkgdocs.julialang.org/v1/compatibility/) for your dependencies: this happens in the `[compat]` section of your `Project.toml`. To initialize these bounds with current dependency versions, use the `]compat` command in the Pkg mode of the REPL, or the package [PackageCompatUI.jl](https://github.com/GunnarFarneback/PackageCompatUI.jl).
 
-Over time, new versions of your dependencies will be released. The [CompatHelper.jl](https://github.com/JuliaRegistries/CompatHelper.jl) GitHub Action will help you monitor upstream Julia dependencies and suggest changes to your `Project.toml`'s `[compat]` section accordingly. In addition, [Dependabot](https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuring-dependabot-version-updates#enabling-dependabot-version-updates) can monitor the dependencies... of your GitHub actions themselves. Both of these can are included in the default PkgTemplates setup.
+Over time, new versions of your dependencies will be released. The [CompatHelper.jl](https://github.com/JuliaRegistries/CompatHelper.jl) GitHub Action will help you monitor upstream Julia dependencies and suggest changes to your `Project.toml`'s `[compat]` section accordingly. In addition, [Dependabot](https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuring-dependabot-version-updates#enabling-dependabot-version-updates) can monitor the dependencies... of your GitHub actions themselves. Both of these are included in the default PkgTemplates setup.
 
 ::: callout-tip
 It may also happen that you incorrectly promise compatibility with an old version of a package and not realize it (since Pkg prefers newer versions within the compatibility bounds, not all combinations get tested). To prevent that, the [julia-downgrade-compat](https://github.com/julia-actions/julia-downgrade-compat) GitHub action tests your package with the oldest possible version of every dependency, and verifies that everything still works.
@@ -197,7 +219,7 @@ If your package is useful to others in the community, it may be a good idea to r
 pkg> add MyAwesomePackage  # made possible by registration
 ```
 
-Note that unregistered packages can also be installed by anyone from the GitHub URL, but this a less reproducible solution:
+Note that unregistered packages can also be installed by anyone from the GitHub URL, but this is a less reproducible solution:
 
 ``` julia-repl
 pkg> add https://github.com/myuser/MyAwesomePackage  # not ideal
@@ -223,19 +245,35 @@ Alternatively to a self-hosted local registry, third party services such as [Jul
 
 Obtaining consistent and reproducible results is an essential part of model auditing and compliance. One tool to consider is [DrWatson.jl](https://github.com/JuliaDynamics/DrWatson.jl). It is a general toolbox for running and re-running models in an orderly fashion.
 
-Some specific issues come up in attempting to ensure reproducibility
+Some specific issues come up in attempting to ensure reproducibility:
 
 A first hurdle is [random number generation](https://docs.julialang.org/en/v1/stdlib/Random/), which is not guaranteed to remain stable across Julia versions. To ensure that the random streams remain exactly the same, you need to use [StableRNGs.jl](https://github.com/JuliaRandom/StableRNGs.jl). The downside to this is that the random number generation will be considerably slower than the usual generator.
 
 Another aspect is dataset download and management. The packages [DataDeps.jl](https://github.com/oxinabox/DataDeps.jl), [DataToolkit.jl](https://github.com/tecosaur/DataToolkit.jl) and [ArtifactUtils.jl](https://github.com/JuliaPackaging/ArtifactUtils.jl) can help you bundle non-code elements with your package (some of these rely on artifacts - discussed in @sec-artifacts).
 
+:::callout-tip
+## Financial Modeling Pro Tip
+
+Always version-control both Project.toml and Manifest.toml for regulated (auditable) workflows. Instantiating the environment on another machine ensures identical dependency versions, which is crucial for reproducible risk and valuation reports.
+
+```julia-repl
+julia> using Pkg
+julia> Pkg.activate(".")
+julia> Pkg.instantiate()   # resolves to exact versions recorded in Manifest.toml
+```
+
+Note that for this to fully work, the replicating machine needs to be the same architecture (e.g. `x64`), OS (e.g. Windows), and Julia version (e.g. `v1.10`). If the versions differ, Julia may need to use a different set of dependencies for compatibility reasons. However, it's still a good practice to store the Manifest.toml for important workflows. 
+
+And remember, that with *package* repositories, you generally *do not* want to check in the Manifest.toml. Instead, create scripts for the production workflows that *do* check in the Manifest.toml.
+:::
+
 ## Interoperability
 
 To ensure compatibility with earlier Julia versions, [Compat.jl](https://github.com/JuliaLang/Compat.jl) is your best ally.
 
-Making packages play nice with one another is a key goal of the Julia ecosystem. Since Julia 1.9, this can be done with [package extensions](https://pkgdocs.julialang.org/v1/creating-packages/#Conditional-loading-of-code-in-packages-(Extensions)), which override specific behaviors based on the presence of a given package in the environment. For example, if you want to provide pre-configured plotting, but don't in general need to include a plotting library as part of your package for all users and use cases. [PackageExtensionTools.jl](https://github.com/cjdoris/PackageExtensionTools.jl) eases of setting up extensions for your package.
+Making packages play nice with one another is a key goal of the Julia ecosystem. Since Julia 1.9, this can be done with [package extensions](https://pkgdocs.julialang.org/v1/creating-packages/#Conditional-loading-of-code-in-packages-(Extensions)), which override specific behaviors based on the presence of a given package in the environment. For example, if you want to provide pre-configured plotting, but don't in general need to include a plotting library as part of your package for all users and use cases. [PackageExtensionTools.jl](https://github.com/cjdoris/PackageExtensionTools.jl) eases setting up extensions for your package.
 
-Furthermore, the Julia ecosystem as a whole plays nice with other programming languages too. [C and Fortran](https://docs.julialang.org/en/v1/manual/calling-c-and-fortran-code/) are natively supported. Python can be easily interfaced with the combination of [CondaPkg.jl](https://github.com/cjdoris/CondaPkg.jl) and [PythonCall.jl](https://github.com/cjdoris/PythonCall.jl). Other language compatibility packages can be found in the [JuliaInterop](https://github.com/JuliaInterop) organization, like [RCall.jl](https://github.com/JuliaInterop/RCall.jl).
+Furthermore, the Julia ecosystem plays nice with other programming languages too. [C and Fortran](https://docs.julialang.org/en/v1/manual/calling-c-and-fortran-code/) are natively supported. Python can be easily interfaced with the combination of [CondaPkg.jl](https://github.com/cjdoris/CondaPkg.jl) and [PythonCall.jl](https://github.com/cjdoris/PythonCall.jl). Other language compatibility packages can be found in the [JuliaInterop](https://github.com/JuliaInterop) organization, like [RCall.jl](https://github.com/JuliaInterop/RCall.jl).
 
 ## Customization
 
