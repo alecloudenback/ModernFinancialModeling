@@ -20,69 +20,6 @@ Pkg.instantiate()
 
 How to generate synthetic data for your model using sub-models, with applications to economic scenario generation and portfolio composition.
 
-## Pseudo-Random Number Generators
-
-Modern computers utilize pseudo-random number generators (PRNGs) to generate random-like numbers. PRNGs are algorithms used to generate sequences of numbers that appear to be random but are actually determined by an initial value, known as the seed. These generators are called "pseudo-random" because the sequences they produce are deterministic; if you provide the same seed, you'll get the same sequence of numbers. In addition, they have a finite period, which means that after a certain number of generated values, the sequence will repeat. It's important to choose or design PRNGs with a long enough period for practical applications.
-
-Financial modelers should understand how PRNGs work because many financial models rely on Monte Carlo simulations, risk analysis, and other stochastic modeling techniques that require random sampling. A good PRNG is essential for robust financial modeling. Choosing the right PRNG ensures results with high statistical quality and efficiency, which is critical when making financial decisions. The ability to specify and control the seed of a random number generator is a fundamental requirement in computational modeling, as it enables exact reproducibility of results. By using a fixed seed, simulations can be rerun with identical random sequences, allowing researchers and stakeholders to verify outcomes, conduct consistent sensitivity analyses, and perform rigorous debugging. This reproducibility is critical for transparency, auditability, and compliance with regulatory standards in fields such as quantitative finance, risk management, and scientific computing. Without a seedable PRNG, the inherent randomness of simulations would preclude the possibility of replicating results precisely, undermining confidence in the validity and reliability of the modeling process.
-
-Different choices of random number generators typically have a low impact on the mean outputs of stochastic models, since most generators are designed to approximate uniform distributions adequately. However, they can have a substantial effect on risk measures such as standard deviation, Value-at-Risk (VaR), and tail quantiles, particularly when the PRNG has a short period or exhibits hidden correlations. In such cases, the variability and uncertainty estimates around risk measures can be severely biased or understated, leading to misleading conclusions about the model’s risk profile. For this reason, it is essential to rerun the stochastic model multiple times with different seeds—or even different PRNGs—to test the stability and convergence of the estimated risk measures and ensure that the results are robust to the choice of random number source.
-
-### Common PRNGs
-
-#### Mersenne Twister
-
-For many years, the Mersenne Twister was a standard and highly recommended PRNG for financial modeling purposes. One of its greatest strengths is its exceptionally long period of \(2^{19937} - 1\), which is crucial for applications requiring a large number of independent random numbers. It is also known for its good statistical properties, passing many standard tests for randomness. Moreover, it was designed with features for creating multiple streams, though ensuring their statistical independence in parallel applications requires careful management.
-
-#### Xorshift
-
-Xorshift is a family of PRNGs known for their simplicity and extremely fast operation. The name "xorshift" comes from the bitwise XOR (exclusive or) and bit-shifting operations that are the core of the algorithm. Xorshift generators are often used in applications where speed is a priority and cryptographic-strength randomness is not a strict requirement. One of the main advantages of xorshift is that its core operations can be efficiently implemented in hardware. However, a typical xorshift generator has a relatively short period compared to the Mersenne Twister.
-
-#### Xoshiro
-
-Xoshiro is a family of high-performance PRNGs with excellent statistical properties. The name "Xoshiro" is a portmanteau of the core operations it uses: **XO**R, **SHI**FT, and **RO**TATE. Xoshiro algorithms, including the highly-regarded **Xoshiro256++** variant, use a combination of bitwise XOR, bit-shifting, and addition/rotation operations. They generally have more complex update rules and longer periods than basic Xorshift algorithms.
-
-When selecting seeds at random to initialize multiple instances of the Mersenne Twister generator, there is a significant likelihood of producing streams that are statistically correlated in parallel computations. This arises because the default seeding mechanism may not sufficiently de-correlate the internal states across different instances. In contrast, generators such as Xoshiro256++ offer markedly improved suitability for parallel environments, with carefully managed methodologies for ensuring stream independence.
-
-#### Comparing PRNGs
-
-| Generator | Typical Period | Relative Speed | Parallel Safety |
-| :--- | :--- | :--- | :--- |
-| Mersenne Twister | Very Long (\(2^{19937}-1\)) | Good | Poor (risk of correlation) |
-| Xorshift | Shorter | Very Fast | Poor (not designed for it) |
-| Xoshiro256++ | Very Long (\(2^{256}-1\)) | Excellent | Excellent (designed for it) |
-
-:::callout-note
-Since Julia 1.7, the default random number generator for the language has been **Xoshiro256++**, which replaced an implementation of Mersenne Twister. 
-
-Importantly, Julia's implementation of Xoshiro256++ is thread safe (meaning you can use the RNG in multiple threads without losing RNG quality). 
-:::
-
-### Consistent Interface
-
-Julia offers a consistent interface for random numbers due to its design and multiple dispatch principles. Consider the following random numbers in different data types.
-
-```{julia}
-using Random
-
-rng = MersenneTwister(1234)
-rand(Int, (2, 3))
-```
-
-```{julia}
-using Random
-
-rng = MersenneTwister(1234)
-rand(Float64, (2, 3))
-```
-
-```{julia}
-using Random
-
-rng = Xoshiro(1234)
-rand(Bool, (2, 3))
-```
-
 ## Common Use Cases of Scenario Generators
 
 Scenario generators are widely used in risk management, investment analysis, and regulatory compliance to model potential future outcomes. If the goal is forecasting actual market behavior, real world scenarios (RW) are commonly used. If, on the other hand, pricing financial instruments is needed, risk neutral (RN) scenarios are often used.
