@@ -24,7 +24,7 @@ Fundamentals of parallel workloads, different mechanisms to distribute work: vec
 
 An important ground-truth in computing is that there is an upper limit to how fast a workload can be sped up through distributing the workload among multiple processor units. For example, if there is a modeling workload wherein 90% of the work is independent (say policy or asset level calculations) and the remaining 10% of the workload is an aggregate (say company or portfolio level), then the theoretical maximum speedup of the process is 10x faster (1 / 90% parallelizable load). This is captured in a law known as **Amdahl's Law** and it reflects the *theoretical* maximum speedup a workload could see. In practice, the speedup is worse than this due to overhead of moving data around, scheduling the tasks, and aggregating results. This is why in many cases a good effort in sequential workloads (see @sec-performance-single) is often a more fruitful effort than trying to parallelize some workloads.
 
-That said, there are still many modeling use-cases for parallelization. Modern investment and insurance portfolios can easily contain 100's of thousands or millions of seriatim holdings. In many cases, these can be evaluated independently, though on the often times there is interaction with the total portfolio (contract dividends, non-guaranteed elements, profit sharing, etc.). Further, even if the holdings are not parallelizable across the holdings dimension, we are often interested in independent evaluations across economic scenarios which is amenable to parallelization. $$
+That said, there are still many modeling use-cases for parallelization. Modern investment and insurance portfolios can easily contain 100's of thousands or millions of seriatim holdings. In many cases, these can be evaluated independently, though on the oftentimes there is interaction with the total portfolio (contract dividends, non-guaranteed elements, profit sharing, etc.). Further, even if the holdings are not parallelizable across the holdings dimension, we are often interested in independent evaluations across economic scenarios which is amenable to parallelization. $$
 S(n) = \frac{1}{(1-p) + \frac{p}{n}}
 $$
 
@@ -76,7 +76,7 @@ end
 main()
 ```
 
-A real-world analalogy: imagine building a house. You can hire many workers to frame the walls, install plumbing, and run electrical wires simultaneously (the parallel part). However, all work must stop to wait for the single foundation to be poured and cured (the serial part). No matter how many workers you add, the total project time can never be faster than the time it takes to cure the foundation. This fundamental bottleneck is what Amdahl's Law describes.
+A real-world analogy: imagine building a house. You can hire many workers to frame the walls, install plumbing, and run electrical wires simultaneously (the parallel part). However, all work must stop to wait for the single foundation to be poured and cured (the serial part). No matter how many workers you add, the total project time can never be faster than the time it takes to cure the foundation. This fundamental bottleneck is what Amdahl's Law describes.
 
 With this understanding, we will be able to set expectations and analyze the benefit of parallelization.
 
@@ -136,7 +136,7 @@ end
 In testing the above code, the `allow_simd` version should be several times faster than the `prevent_simd` example. The reason is that `prevent_simd` has a branch (`if x > 0`) where the behavior of the code may change depending on the value in `arr`. Conversely, the behavior of `allow_simd` is always the same in each iteration, no matter the value of `x`. This allows the compiler to generate vectorized code automatically.
 
 ::: callout-tip
-Note that Julia's the compiler is able to identify vectorizable code in many cases, though through some cases may benefit from a more manual hint to the compiler through macro annotations (see `?@simd` for details). See @sec-optimizing-SIMD for more.
+Note that Julia's compiler is able to identify vectorizable code in many cases, though some cases may benefit from a more manual hint to the compiler through macro annotations (see `?@simd` for details). See @sec-optimizing-SIMD for more.
 :::
 
 Other types of parallelism that we will discuss in this chapter have some risk of errors or data corruption if not used correctly. SIMD isn't prone to issues like this because if the code is not SIMD-able then the compiler will not auto-vectorize the code block.
@@ -175,7 +175,8 @@ let
        println("Task 2: ", shared_array)
    end
 
-   schedule(task1); schedule(task2)
+   schedule(task1)
+   schedule(task2)
    wait(task1)
    wait(task2)
 
@@ -448,7 +449,7 @@ As of the mid 2020s, here are the most important GPU vendors and the associated 
 | AMD | Radeon, various Data Center focused hardware | ROCm |
 | Intel | Core, Xeon, Arc processors | OneAPI |
 | Apple | M Series processors | Metal |
-| Google | Tensor processors | TensorFlow |
+| Google | Tensor processors | XLA (via TensorFlow or JAX) |
 
 : Important GPU and TPU vendors and the associated library/interface.
 
@@ -677,9 +678,8 @@ See
 using Distributed
 let
 
-println("here")
     # Add worker processes if not already added
-    if nworkers() == 1
+    if nworkers() == 0
         addprocs(4)  # Add 4 worker processes
     end
     
@@ -740,7 +740,7 @@ Map-Reduce (@sec-map-reduce) operations are inherently parallelizable and variou
 
 ##### OhMyThreads
 
-[ThreadsX.jl](https://github.com/JuliaFolds2/OhMyThreads.jl) provides the threaded versions of essential functions such as `tmap`, `tmapreduce`,`tcollect`, and `tforeach` (see @tbl-funcional-methods). In most cases, the chunking and data sharing is handled automatically for you.
+[OhMyThreads.jl](https://github.com/JuliaFolds2/OhMyThreads.jl) provides the threaded versions of essential functions such as `tmap`, `tmapreduce`,`tcollect`, and `tforeach` (see @tbl-funcional-methods). In most cases, the chunking and data sharing is handled automatically for you.
 
 ```{julia}
 import OhMyThreads
@@ -804,6 +804,8 @@ Distributed array types allow for large datasets to effectively be partitioned a
 
 Loops which don't have race conditions can easily become multi-threaded. Here, we have three versions of updating a collection to square the contained values:
 
+Basic single-threaded:
+
 ```{julia}
 let v = collect(1:10000)
 
@@ -828,11 +830,14 @@ end
 Using multi-processing:
 
 ```{julia}
-let v = collect(1:10000)
-    Distributed.@distributed for i in eachindex(v)
-        v[i] = v[i]^2
+using SharedArrays
+let
+    v = collect(1:10_000)
+    sV = SharedArray{eltype(v)}(length(v))
+    @sync Distributed.@distributed for i in eachindex(v)
+        sV[i] = v[i]^2
     end
-    v[1:3]
+    sV[1:3]
 end
 ```
 
