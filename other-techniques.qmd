@@ -16,11 +16,11 @@ ENV["DATADEPS_ALWAYS_ACCEPT"] = true
 
 ## Chapter Overview
 
-Other useful techniques are surveyed, such as: memoization to avoid repeated computations, psuedo-monte carlo, creating a model office, and tips on modeling a complete balance sheet. Also covered are elements of practical review such as static and dynamic validations, and implied rate analysis. Explanatory vs predictive modeling considerations.
+Other useful techniques are surveyed, such as: memoization to avoid repeated computations, pseudo–Monte Carlo, creating a model office, and tips on modeling a complete balance sheet. Also covered are elements of practical review such as static and dynamic validations, implied rate analysis, and explanatory vs. predictive modeling considerations.
 
 ## Conceptual Techniques
 
-### Taking things to the Extreme
+### Taking Things to the Extreme
 
 Consider what happens if something is taken to an extreme. For example, what happens in the model if we input negative rates? Where should negative rates be allowed and can the model handle them?
 
@@ -40,33 +40,194 @@ We'd then conclude that the value of the house very likely exceeds the outstandi
 
 ### Serialization
 
+**Serialization** is the process of converting a data structure or object state into a format that can be easily stored or transmitted, allowing it to be reconstructed later. 
+
+In most finance workflows, the slowest parts are not the regressions themselves—they are the data prep, calibration, and scenario generation steps that lead up to them. If you are pricing thousands of scenarios, rolling a model office forward month-by-month, or recalibrating prepayment and default curves, rerunning those steps on every iteration wastes time and money and complicates audits. Serialization lets you checkpoint those expensive steps and ship lightweight “artifacts” between notebooks, jobs, and environments.
+
+:::callout-tip
+Why serialize?
+-  Speed and cost: Avoid recomputing expensive steps (e.g., yield curve calibration, Monte Carlo paths) between runs.
+-  Reproducibility and audit: Persist a snapshot of the “model office” (data, parameters, code version, random seeds) so results can be reproduced for validation and regulators.
+-  Deployment: Move model artifacts between environments in a controlled, versioned way.
+:::
+
+What to use when:
+
+| Format/Tool | Pros | Cons | Typical use |
+|:---|:---|:---|:---|
+| Serialization stdlib (.jls) | Fast, no extra dependency, preserves Julia types | Not stable across Julia versions; Julia-only | Short-lived caches, memoization artifacts |
+| JLD2 (.jld2) | Portable binary, stores multiple named arrays/structs, widely used | Extra dependency; still Julia-focused | Persisting model states and results across sessions/machines |
+| Arrow/Parquet | Language-agnostic, columnar, efficient for large tables | Heavier dependency; not for arbitrary Julia structs | Large tabular market/position data for interop |
+| CSV/JSON/TOML | Human-readable, easy diffing/versioning | Larger files, slower, lossy for binary data | Configs, small tables, metadata sidecars |
+
+#### Serialization Principles
+
+Design principles:
+
+- Minimality: Save just enough to reproduce downstream results (parameters, seeds, small derived tables), not entire raw datasets unless necessary.
+- Determinism: Include the random seed and any non-default options so recomputation is bit-for-bit identical when needed.
+- Portability: Prefer concrete, serializable types (structs, arrays, Dict) and stable formats when artifacts will live across Julia versions or be shared with others.
+- Traceability: Attach metadata (model version, code commit, created_at, inputs’ file hashes) so an auditor or colleague can answer “what produced this file?” a year later.
+
+What to serialize vs. recompute:
+
+Serialize: fitted parameters, calibrated curves, scenario indexes, precomputed shocks, and intermediate aggregates that are expensive but compact.
+- Recompute: anything cheap, or large raw inputs you can reload from a columnar format (Arrow/Parquet).
+- Reference big inputs by path and hash in the artifact’s metadata rather than embedding them.
+
+Operational guidance:
+
+-  Version your artifacts: embed minimal metadata (e.g., julia_version, created_at, model_version) and, if possible, a git commit hash for traceability.
+-  Keep configs human-readable: store run configuration in JSON/TOML and reference it from binary artifacts.
+-  Separate data from models: store large tabular datasets in Arrow/Parquet; store small model objects/results in JLD2/Serialization.
+-  Sensitive data: never serialize secrets. Encrypt at rest if files contain PII; control access with OS permissions.
+-  Interop: do not deserialize untrusted files. Prefer Arrow/Parquet/CSV for sharing with non-Julia systems.
+
+#### Example: Snapshot a “Model Office” State
+
+Capture parameters, fitted coefficients, seeds, and minimal metadata. Prefer concrete, serializable structs and plain arrays to keep files portable.
+
+```{julia}
+using Dates, Serialization
+
+struct ModelState
+    θ::Vector{Float64}        # fitted parameters (example)
+    seed::Int64              # RNG seed used for the run
+    timestamp::DateTime       # when the snapshot was created
+    note::String              # short description
+end
+
+# Atomic write to avoid half-written files
+function atomic_serialize(path::AbstractString, obj)
+    dir = dirname(path)
+    mkpath(dir)
+    tmp = tempname(dir)
+    serialize(tmp, obj)
+    mv(tmp, path; force=true)
+    return path
+end
+
+# Example: save/load a state
+θ = [1.0, 2.0]                      # pretend these were estimated
+state = ModelState(θ, 42, now(), "OLS on 2025-08-11")
+
+path = joinpath("artifacts", "model_state.jls")
+atomic_serialize(path, state)
+
+restored = deserialize(path)
+```
+
+Tip: Keep snapshot files small and focused. Store big inputs (e.g., loan-level data) separately in efficient tabular formats and reference them via metadata (e.g., file hashes/paths) in the snapshot.
+
+#### Example:  Cross-session persistence with JLD2
+-  JLD2 stores multiple named variables in one file and is less brittle across Julia versions than raw Serialization. Good default for sharing artifacts with colleagues.
+
+```{julia}
+using JLD2, Random, LinearAlgebra, Dates
+
+X = hcat(ones(100), rand(100))
+y = X * [1.0, 2.0] .+ 0.1 .* randn(100)
+θ = X \ y
+
+meta = (
+    julia_version=string(VERSION),
+    created_at=string(Dates.now()),
+    description="OLS fit for prepayment speed model (toy example)",
+)
+
+mkpath("artifacts")
+file = joinpath("artifacts", "ols_artifact_v2.jld2")
+jldsave(file; θ, meta, X_size=size(X))
+
+# Load (returns a tuple in the same order)
+θ2, meta2, Xsz2 = JLD2.load(file, "θ", "meta", "X_size")
+
+@assert Xsz2 == (100, 2)
+@assert length(θ2) == 2
+
+```
+
+#### Example: Disk-Backed Memoization (Cache Expensive Results)
+-  Cache outputs keyed by inputs to avoid re-running slow steps (e.g., pricing a large scenario set). Include a label and serialize atomically.
+
+```{julia}
+using SHA, Serialization
+
+# Build a stable cache key from a label and arguments
+function cachekey(label::AbstractString, args...; kwargs...)
+    io = IOBuffer()
+    print(io, label, '|', args, '|', kwargs)
+    return bytes2hex(sha1(take!(io)))
+end
+
+function memoize_to_disk(f; label::AbstractString="f", cache_dir::AbstractString="cache")
+    mkpath(cache_dir)
+    return function (args...; kwargs...)
+        key = cachekey(label, args...; kwargs...)
+        path = joinpath(cache_dir, string(key, ".jls"))
+        if isfile(path)
+            return deserialize(path)
+        else
+            res = f(args...; kwargs...)
+            # Atomic write
+            tmp = tempname(cache_dir)
+            serialize(tmp, res)
+            mv(tmp, path; force=true)
+            return res
+        end
+    end
+end
+
+# Example: cache an OLS fit (stand-in for a slow calibration)
+ols = (X, y) -> X \ y
+ols_cached = memoize_to_disk(ols; label="ols_v1")
+
+# First call computes and caches; second call loads from disk
+θa = ols_cached([ones(3) [1.0, 2.0, 3.0]], [1.0, 3.0, 5.0])
+θb = ols_cached([ones(3) [1.0, 2.0, 3.0]], [1.0, 3.0, 5.0])
+@assert θa == θb
+```
+
+:::callout-tip
+## Financial Modeling Pro Tip
+-  For recurring production runs, use a directory convention like artifacts/YYYY-MM-DD/ with consistent filenames, and clean caches on a schedule to control disk use.
+:::
+
 ## Model Validation
 
 ### Static and dynamic validation
 
 Static validation typically involves splitting the dataset into training and testing sets, where the testing set is held out and not used during model training. The model is trained on the training set and then evaluated on the held-out testing set to assess its performance. This approach helps to measure how well the model generalizes to unseen data.
 
-Dynamic validation, on the other hand, involves using a rolling or expanding window to train and test the model iteratively over time. In each iteration, the model is trained on past data and tested on future data, simulating how the model would perform in a real-world scenario where new data becomes available over time. This approach helps to assess the model's ability to adapt to changing patterns and trends in the data.
 
 The following example shows how to do a static validation in Julia.
 
 ```{julia}
-using Statistics
+using Random, Statistics, LinearAlgebra
 
-# Generate synthetic time series data
-num_samples = 100
-data = rand(num_samples)
-X = [ones(num_samples) data]
-y = 2data .+ 1 .+ 0.1 * randn(num_samples, 1)  # dependent variable with noise
-# Train the model on the training set
-θ = X \ y
-# Predictions
-y_pred = θ[2] .* data .+ θ[1]
-# Compute evaluation metrics
-mse = mean((y_pred .- y) .^ 2)
-mae = mean(abs.(y_pred .- y))
+# Synthetic time-indexed data
+T = 200
+x = rand(T)
+y = 1.0 .+ 2.0 .* x .+ 0.1 .* randn(T)  # Vector response
 
-println("Static validation results:")
+# Chronological holdout (static validation)
+cut = 150
+Xtrain = hcat(ones(cut), x[1:cut])
+ytrain = y[1:cut]
+Xtest = hcat(ones(T - cut), x[cut+1:end])
+ytest = y[cut+1:end]
+
+# OLS fit
+θ = Xtrain \ ytrain  # Vector length 2
+
+# Predictions on the holdout
+ŷ = Xtest * θ
+
+# Metrics
+mse = mean((ŷ .- ytest) .^ 2)
+mae = mean(abs.(ŷ .- ytest))
+
+println("Static validation (chronological holdout):")
 println("Mean Squared Error (MSE): ", mse)
 println("Mean Absolute Error (MAE): ", mae)
 ```
@@ -74,31 +235,48 @@ println("Mean Absolute Error (MAE): ", mae)
 The following example shows how to do a dynamic validation in Julia.
 
 ```{julia}
-using Statistics
+using Random, Statistics, LinearAlgebra
 
-# Dynamic validation to update model over time and evaluate
-num_updates = 5
-mse_dyn = Float64[]
-mae_dyn = Float64[]
-for i in 1:num_updates
-    data = rand(num_samples)
-    X = [ones(num_samples) data]
-    y = 2data .+ 1 .+ 0.1 * randn(num_samples, 1)  # dependent variable with noise
-    # Train the model on the training set
-    θ = X \ y
-    # Predictions
-    y_pred = θ[2] .* data .+ θ[1]
-    # Compute evaluation metrics
-    mse = mean((y_pred .- y) .^ 2)
-    mae = mean(abs.(y_pred .- y))
-    push!(mse_dyn, mse)
-    push!(mae_dyn, mae)
+# Reproducibility
+Random.seed!(42)
+
+# Simulate a simple linear data-generating process
+T = 200
+x = rand(T)
+y = 1.0 .+ 2.0 .* x .+ 0.1 .* randn(T)  # y is a Vector (not an n×1 matrix)
+
+# Walk-forward expanding-window validation: 1-step-ahead forecasts
+initial_window = 60
+sqerrs = Float64[]
+abserrs = Float64[]
+
+for t in (initial_window+1):T
+    Xtr = hcat(ones(t - 1), x[1:t-1])
+    ytr = y[1:t-1]
+
+    θ = Xtr \ ytr  # OLS on past data only
+
+    # 1-step-ahead prediction at time t
+    ŷt = [1.0, x[t]]' * θ
+    e = ŷt - y[t]
+
+    push!(sqerrs, e^2)
+    push!(abserrs, abs(e))
 end
 
-println("Dynamic validation results:")
-println("Mean Squared Error (MSE): ", mean(mse_dyn))
-println("Mean Absolute Error (MAE): ", mean(mae_dyn))
+println("Dynamic validation (walk-forward expanding window):")
+println("Mean Squared Error (MSE): ", mean(sqerrs))
+println("Mean Absolute Error (MAE): ", mean(abserrs))
+
 ```
+
+
+:::callout-note
+Sometimes static and dynamic validation of a financial model can refer to the following analysis:
+
+- Static validation: whether the model reproduces time zero prices/balances from the model.
+- Dynamic validation: whether the model reproduces flows (e.g. cashflows, settlements) that are in-trend for historical data.
+::: 
 
 ### Implied rate analysis
 
@@ -152,7 +330,11 @@ for (i, rate) in enumerate(implied_rates)
 end
 ```
 
-## Predictive vs Explanatory Model Assessments {#sec-model-assessment}
+:::callout-tip
+JuliaActuary's [FinanceCore.jl](https://github.com/JuliaActuary/FinanceCore.jl) provides a fast, robust `irr` function. More related utilities (e.g. present value) are found in [ActuaryUtilities.jl](https://github.com/JuliaActuary/ActuaryUtilities.jl).
+:::
+
+## Predictive vs. Explanatory Model Assessments {#sec-model-assessment}
 
 Model assessment should be driven by the model’s purpose. A predictive model is judged by how well it forecasts targets under realistic deployment conditions. An explanatory (or structural) model is judged by how well its parameters are identified, interpretable, and stable under interventions—so that counterfactuals are credible.
 
