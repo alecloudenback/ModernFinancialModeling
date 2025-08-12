@@ -677,7 +677,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="introduction" class="level2" data-number="10.2">
 <h2 data-number="10.2" class="anchored" data-anchor-id="introduction"><span class="header-section-number">10.2</span> Introduction</h2>
-<p>With today’s hardware, the highest throughput computations utilize GPUs for massive parallelization. However, writing parallel code, let alone performant parallel code, typically relies heavily on understanding patterns of non-parallel code. Secondly, many problems are not “massively parallelizable” and a sequential model architecture is required. For these reasons, it’s critical to understand sequential patterns before moving onto parallel code.</p>
+<p>On today’s hardware, the highest-throughput workloads often run on GPUs via massive parallelism. However, writing correct, performant parallel code relies on understanding efficient sequential patterns first. Secondly, many problems are not “massively parallelizable” and a sequential model architecture is required. For these reasons, it’s critical to understand sequential patterns before moving onto parallel code.</p>
 <p>For those coming from fundamentally slower languages (such as R or Python), the common advice to speed things up is often to try to parallelize code or use array-based techniques. With many high level languages the <em>only</em> way to achieve reasonable runtime is to utilize parallelism. In contrast, fast languages like Julia can output surprisingly quick single threaded programs.</p>
 <p>Further, it may be that a simpler, easier to maintain sequential model is preferable to a more complex parallel version if maximum performance is not required. Like the quote that opened the chapter, you may prefer a simpler sequential version of a model to a more complex parallel one.</p>
 <div class="callout callout-style-default callout-tip callout-titled">
@@ -743,36 +743,40 @@ Note
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    (tenor<span class="op">=</span><span class="fu">rand</span>((<span class="fl">3</span>, <span class="fl">5</span>, <span class="fl">10</span>)), rate<span class="op">=</span><span class="fu">rand</span>() <span class="op">/</span> <span class="fl">10</span>)</span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> asset <span class="kw">in</span> par_bonds</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> t <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>end_time</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> t <span class="op">==</span> asset.tenor</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>            cashflow_output[t] <span class="op">+=</span> <span class="fl">1</span> <span class="op">+</span> asset.rate</span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span></span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>            cashflow_output[t] <span class="op">+=</span> asset.rate</span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>cashflow_output</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co"># sum up all of the bond cashflows into cashflow_output</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> asset <span class="kw">in</span> par_bonds</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> t <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>end_time</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> t <span class="op">==</span> asset.tenor</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>            cashflow_output[t] <span class="op">+=</span> <span class="fl">1</span> <span class="op">+</span> asset.rate</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>            cashflow_output[t] <span class="op">+=</span> asset.rate</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>cashflow_output</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>10-element Vector{Float64}:
-  49.8977181087098
-  49.8977181087098
- 364.89771810870997
-  49.8977181087098
- 401.8977181087099
-  49.8977181087098
-  49.8977181087098
-  49.8977181087098
-  49.8977181087098
- 382.8977181087098</code></pre>
+  48.67424713112049
+  48.67424713112049
+ 353.674247131121
+  48.67424713112049
+ 376.674247131121
+  48.67424713112049
+  48.67424713112049
+  48.67424713112049
+  48.67424713112049
+ 415.67424713112104</code></pre>
 </div>
 </div>
 <p>Julia’s&nbsp;<code>@allocated</code> macro will display the number of bytes allocated by an expression, helping you identify and eliminate unnecessary allocations.</p>
 <div id="6" class="cell" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">random_sum</span>() <span class="op">=</span> <span class="fu">sum</span>([<span class="fu">rand</span>() for _ <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">10</span>])</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@allocated</span> <span class="fu">random_sum</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">random_sum_alloc</span>() <span class="op">=</span> <span class="fu">sum</span>([<span class="fu">rand</span>() for _ <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">10</span>])      <span class="co"># allocates</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">random_sum_noalloc</span>() <span class="op">=</span> <span class="fu">sum</span>(<span class="fu">rand</span>() <span class="cf">for</span> _ <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">10</span>)      <span class="co"># generator, no array</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="pp">@allocated</span> <span class="fu">random_sum_alloc</span>()</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="pp">@allocated</span> <span class="fu">random_sum_noalloc</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>144</code></pre>
+<pre><code>0</code></pre>
 </div>
 </div>
 </section>
@@ -804,20 +808,20 @@ Note
 <span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Function for sequential access</span></span>
 <span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">sequential_sum</span>(arr)</span>
-<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    sum <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    total <span class="op">=</span> <span class="fl">0.0</span></span>
 <span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="fu">eachindex</span>(arr)</span>
-<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>        sum <span class="op">+=</span> arr[i].value</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>        total <span class="op">+=</span> arr[i].value</span>
 <span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
-<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    sum</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    total</span>
 <span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
 <span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a><span class="co"># Function for random access</span></span>
 <span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">random_sum</span>(arr, indices)</span>
-<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>    sum <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>    total <span class="op">=</span> <span class="fl">0.0</span></span>
 <span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> indices</span>
-<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>        sum <span class="op">+=</span> arr[i].value</span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>        total <span class="op">+=</span> arr[i].value</span>
 <span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
-<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>    sum</span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>    total</span>
 <span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
 <span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a><span class="co"># Create shuffled indices</span></span>
@@ -831,13 +835,13 @@ Note
 <span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">random_sum</span>(<span class="op">$</span>large_array, <span class="op">$</span>shuffled_indices)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Sequential access:
-  521.792 μs (0 allocations: 0 bytes)
+  506.000 μs (0 allocations: 0 bytes)
 
 Random access:
-  2.328 ms (0 allocations: 0 bytes)</code></pre>
+  2.216 ms (0 allocations: 0 bytes)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>500264.4417107476</code></pre>
+<pre><code>500305.8776795043</code></pre>
 </div>
 </div>
 <p>When the data is accessed in a linear order, it means that the computer can load chunks of data into the cache and it can operate on that cached data for several cycles before new data needs to be loaded into the cache. In contrast, when accessing the data randomly, then the cache frequently needs to be populated with a different set of bits from a completely different part of our array.</p>
@@ -874,31 +878,31 @@ Random access:
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">sum</span>(arr, dims<span class="op">=</span><span class="fl">1</span>) setup <span class="op">=</span> arr <span class="op">=</span> <span class="fu">rand</span>(<span class="fl">1000</span>, <span class="fl">1000</span>)</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">sum</span>(arr, dims<span class="op">=</span><span class="fl">2</span>) setup <span class="op">=</span> arr <span class="op">=</span> <span class="fu">rand</span>(<span class="fl">1000</span>, <span class="fl">1000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  72.250 μs (3 allocations: 8.08 KiB)
-  110.375 μs (3 allocations: 8.08 KiB)</code></pre>
+<pre><code>  71.750 μs (3 allocations: 8.08 KiB)
+  110.167 μs (3 allocations: 8.08 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>1000×1 Matrix{Float64}:
- 501.36483111594544
- 505.99045178901656
- 496.0278423312836
- 489.03297441609044
- 498.4140916811082
- 477.56586005351556
- 486.4808960824888
- 509.4957648820794
- 492.6938950198992
- 506.3904178644645
+ 498.12851699816514
+ 492.5651939267358
+ 508.5408080490933
+ 506.0569801580026
+ 497.0551658879414
+ 511.1538546805099
+ 511.95700394443384
+ 506.9804994904254
+ 496.5712980007822
+ 494.886213620193
    ⋮
- 470.65750019140563
- 509.64669902848425
- 491.7034625148701
- 513.696890905796
- 511.36166329319747
- 507.44799206398307
- 498.3205056721985
- 510.88019442700073
- 492.49813834962725</code></pre>
+ 511.1641210165381
+ 505.1811074929135
+ 511.10349582227116
+ 495.71144899491867
+ 491.07713303426834
+ 513.0959685894588
+ 509.02602096475346
+ 504.13104363084847
+ 501.9999794584621</code></pre>
 </div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -912,7 +916,7 @@ Note
 </div>
 <div class="callout-body-container callout-body">
 <p>In contrast to the prior example, a row-major memory layout would have the associated data stored in memory as:</p>
-<pre><code>[1,4,6,2,5,8,3,6,9]</code></pre>
+<pre><code>[1,4,7,2,5,8,3,6,9]</code></pre>
 <p>The choice between row and column major reflects the historical development of scientific computing and mathematical conventions. Column-major originated in Fortran and LAPACK, cornerstones of high-performance computing and linear algebra. This aligns with mathematical notation where vectors are typically represented as matrix columns.</p>
 <p>Row major languages include:</p>
 <ul>
@@ -937,14 +941,14 @@ Note
 </section>
 <section id="temporal-locality" class="level4" data-number="10.3.2.2">
 <h4 data-number="10.3.2.2" class="anchored" data-anchor-id="temporal-locality"><span class="header-section-number">10.3.2.2</span> Temporal Locality</h4>
-<p>The scheduler and branch prediction will recognize data that is accessed together closely in time and prefetch relevant blocks of data. This is an example of keeping “hot” data more readily accessible to the CPU than “cold” data.</p>
-<p>Sometimes this happens at the operating system level - if you load a dataset that exceeds the available RAM, some of the “active” memory will actually be kept in a space on the persistent disk (e.g.&nbsp;your SSD) to avoid the computer crashing from being out of memory. Segments of the data that have been accessed recently will be in RAM while section of the data not recently accessed are likely to be in the portion stored on the persistent disk.</p>
+<p>Hardware prefetchers (predictors) and the cache hierarchy exploit temporal locality by keeping recently used data ‘hot’ and proactively fetching nearby data based on recent access patterns. This is an example of keeping “hot” data more readily accessible to the CPU than “cold” data.</p>
+<p>When working sets exceed available RAM, the operating system may page memory to a “swap file” on disk. Recently accessed pages tend to remain in RAM, while ‘colder’ pages are more likely to be swapped out.</p>
 </section>
 </section>
 <section id="use-efficient-data-types" class="level3" data-number="10.3.3">
 <h3 data-number="10.3.3" class="anchored" data-anchor-id="use-efficient-data-types"><span class="header-section-number">10.3.3</span> Use Efficient Data Types</h3>
 <p>The right data type can lead to more compact memory representations, better cache utilization, and more efficient CPU instructions. This is another case of where having a smaller memory footprint allows for higher utilization of the CPU since computers tend to be memory-constrained in speed.</p>
-<p>On some CPUs, you may find performance if using the smallest data type that can accurately represent your data. For example, prefer Int32 over Int64 if your values will never exceed 32-bit integer range. For floating-point numbers, use Float32 instead of Float64 if the reduced precision is acceptable for your calculations. These smaller types not only save memory but also allow for more efficient vectorized operations (see <a href="parallelization.html" class="quarto-xref"><span>Chapter 11</span></a>) on modern CPUs.</p>
+<p>On some CPUs, you may find performance by using the smallest data type that can accurately represent your data. For example, prefer Int32 over Int64 if your values will never exceed 32-bit integer range. For floating-point numbers, use Float32 instead of Float64 if the reduced precision is acceptable for your calculations. These smaller types not only save memory but also allow for more efficient vectorized operations (see <a href="parallelization.html" class="quarto-xref"><span>Chapter 11</span></a>) on modern CPUs.</p>
 <div class="callout callout-style-default callout-warning callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -960,7 +964,7 @@ Warning
 </div>
 </div>
 <p>For collections, choose appropriate container types based on your use case. Arrays are efficient for calculations that loop through all or most elements, while Dictionaries are better for sparse look-ups or outside of the “hot loop” portion of a computation.</p>
-<p>Consider using small, statically sized collections when the data is suited for it. Small, fixed-size arrays, (such as StaticArrays.jl in Julia) can be allocated on the stack and lead to better performance in certain scenarios than dynamically sizeable arrays. The trade-off is that the static arrays require more up-front compile time and after a certain point (length in the 50-100 element range) it usually isn’t worth trying to use them.</p>
+<p>Consider using small, statically sized collections when the data is suited for it. Small, fixed-size arrays, (such as StaticArrays.jl in Julia) can be allocated on the stack and lead to better performance in certain scenarios than dynamically sizable arrays. The trade-off is that the static arrays require more up-front compile time and after a certain point (length in the 50-100 element range) it usually isn’t worth trying to use them.</p>
 </section>
 <section id="avoid-type-instabilities" class="level3" data-number="10.3.4">
 <h3 data-number="10.3.4" class="anchored" data-anchor-id="avoid-type-instabilities"><span class="header-section-number">10.3.4</span> Avoid Type Instabilities</h3>
@@ -1000,11 +1004,11 @@ Warning
 </dl>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  10.792 μs (2007 allocations: 53.73 KiB)
-  801.308 ns (9 allocations: 22.52 KiB)</code></pre>
+<pre><code>  10.333 μs (2007 allocations: 53.73 KiB)
+  795.316 ns (9 allocations: 22.52 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>506.5140484744775</code></pre>
+<pre><code>498.904974167776</code></pre>
 </div>
 </div>
 <p>The <code>unstable_example</code> function illustrates a common anti-pattern wherein an <code>Any</code> typed array is created and then elements are added to it. Because any type can be added to an <code>Any</code> array (we happen to just add floats to it) then Julia’s not sure what types to expect inside the container and therefore has to determine it at runtime.</p>
@@ -1058,8 +1062,8 @@ Tip
 <span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">process_data</span>(<span class="op">$</span>rand_data, <span class="fl">0.5</span>)</span>
 <span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">process_data</span>(<span class="op">$</span>sorted_data, <span class="fl">0.5</span>);</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  4.853 ms (0 allocations: 0 bytes)
-  1.613 ms (0 allocations: 0 bytes)</code></pre>
+<pre><code>  4.941 ms (0 allocations: 0 bytes)
+  1.590 ms (0 allocations: 0 bytes)</code></pre>
 </div>
 </div>
 <p>In this example, having sorted data means that the CPU will predict which branch of the <code>if</code> statement is likely to be utilized. By then speculatively executing the code that it thinks will be used, the overall program time is faster when processing <code>sorted_data</code>.</p>

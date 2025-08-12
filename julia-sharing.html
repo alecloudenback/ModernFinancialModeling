@@ -633,7 +633,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul class="collapse">
   <li><a href="#code-coverage" id="toc-code-coverage" class="nav-link" data-scroll-target="#code-coverage"><span class="header-section-number">23.4.1</span> Code Coverage</a></li>
   </ul></li>
-  <li><a href="#code-style" id="toc-code-style" class="nav-link" data-scroll-target="#code-style"><span class="header-section-number">23.5</span> Code Style</a></li>
+  <li><a href="#code-style" id="toc-code-style" class="nav-link" data-scroll-target="#code-style"><span class="header-section-number">23.5</span> Code Style</a>
+  <ul class="collapse">
+  <li><a href="#formatters" id="toc-formatters" class="nav-link" data-scroll-target="#formatters"><span class="header-section-number">23.5.1</span> Formatters</a></li>
+  </ul></li>
   <li><a href="#code-quality" id="toc-code-quality" class="nav-link" data-scroll-target="#code-quality"><span class="header-section-number">23.6</span> Code quality</a></li>
   <li><a href="#documentation" id="toc-documentation" class="nav-link" data-scroll-target="#documentation"><span class="header-section-number">23.7</span> Documentation</a></li>
   <li><a href="#literate-programming" id="toc-literate-programming" class="nav-link" data-scroll-target="#literate-programming"><span class="header-section-number">23.8</span> Literate programming</a></li>
@@ -686,7 +689,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="setup" class="level2" data-number="23.2">
 <h2 data-number="23.2" class="anchored" data-anchor-id="setup"><span class="header-section-number">23.2</span> Setup</h2>
 <p>A vast majority of Julia packages are hosted on <a href="https://github.com/">GitHub</a> (although less common, other options like <a href="https://gitlab.com/">GitLab</a> are also possible). GitHub is a platform for collaborative software development, based on the version control system <a href="https://git-scm.com/">Git</a> (see <a href="software.html" class="quarto-xref"><span>Chapter 12</span></a> for an introduction).</p>
-<p>The first step is therefore <a href="https://github.com/new">creating</a> an empty GitHub repository on Github (don’t add a README License, etc. at this step).</p>
+<p>The first step is therefore <a href="https://github.com/new">creating</a> an empty GitHub repository on GitHub (don’t add a README License, etc. at this step).</p>
 <div class="callout callout-style-default callout-tip callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -701,7 +704,14 @@ Tip
 </div>
 </div>
 <p>Locally, use PkgTemplates.jl (see <a href="julia-writing.html#sec-pkgtemplates" class="quarto-xref"><span>Section 21.10.1</span></a>) to then create the package’s folder locally on your computer, which will create a package with several subfolders (these will be described as the chapter progresses).</p>
-<p>To sync this up with the newly created Github repository, you git push this new folder to the remote repository <a href="https://github.com/myuser/MyAwesomePackage.jl" class="uri">https://github.com/myuser/MyAwesomePackage.jl</a> (Github should show you how to do this on the associated repository page).</p>
+<p>To sync this up with the newly created GitHub repository, you git push this new folder to the remote repository <a href="https://github.com/myuser/MyAwesomePackage.jl" class="uri">https://github.com/myuser/MyAwesomePackage.jl</a>. GitHub should show you how to do this on the associated repository page (something like this):</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># terminal commands from inside your new package directory:</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> init</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add .</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">"Initial commit"</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> branch <span class="at">-M</span> main </span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> remote add origin https://github.com/myuser/MyAwesomePackage.jl.git</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push <span class="at">-u</span> origin main</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="github-actions" class="level2" data-number="23.3">
 <h2 data-number="23.3" class="anchored" data-anchor-id="github-actions"><span class="header-section-number">23.3</span> GitHub Actions</h2>
@@ -711,14 +721,14 @@ Tip
 <section id="testing" class="level2" data-number="23.4">
 <h2 data-number="23.4" class="anchored" data-anchor-id="testing"><span class="header-section-number">23.4</span> Testing</h2>
 <p>The purpose of the <code>test</code> subfolder in your package is <a href="https://docs.julialang.org/en/v1/stdlib/Test/">unit testing</a>: automatically checking that your code behaves the way you want it to. For instance, if you write your own square root function, you may want to test that it gives the correct results for positive numbers, and errors for negative numbers.</p>
-<pre class=">sqrt"><code>using Test
-
-@test sqrt(4) ≈ 2
-
-@testset "Invalid inputs" begin
-    @test_throws DomainError sqrt(-1)
-    @test_throws MethodError sqrt("abc")
-end;</code></pre>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Test</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="pp">@test</span> <span class="fu">sqrt</span>(<span class="fl">4</span>) <span class="op">≈</span> <span class="fl">2</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="pp">@testset</span> <span class="st">"Invalid inputs"</span> <span class="cf">begin</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@test_throws</span> <span class="dt">DomainError</span> <span class="fu">sqrt</span>(<span class="op">-</span><span class="fl">1</span>)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@test_throws</span> <span class="dt">MethodError</span> <span class="fu">sqrt</span>(<span class="st">"abc"</span>)</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span>;</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Such tests belong in <code>test/runtests.jl</code>, and they are executed with the <code>]test</code> command (in the REPL’s Pkg mode). Unit testing may seem rather naive, or even superfluous, but as your code grows more complex, it becomes easier to break something without noticing. Testing each part separately will increase the reliability of the software you write.</p>
 <div class="callout callout-style-default callout-tip callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -732,15 +742,15 @@ Tip
 <div class="callout-body-container callout-body">
 <p>To test the arguments provided to the functions within your code (for instance their sign or value), avoid <code>@assert</code> (which can be deactivated) and use <a href="https://github.com/jw3126/ArgCheck.jl">ArgCheck.jl</a> instead.</p>
 <p>That is, avoid this:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">mysqrt</span>(x)</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@assert</span> x <span class="op">&gt;=</span> <span class="fl">0</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">...</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>And do this instead:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">mysqrt</span>(x)</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@argcheck</span> x <span class="op">&lt;</span> <span class="fl">0</span> <span class="dt">DomainError</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">...</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@assert</span> x <span class="op">&gt;=</span> <span class="fl">0</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">...</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>And do this instead:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">ArgCheck</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">mysqrt</span>(x)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@argcheck</span> x <span class="op">&gt;=</span> <span class="fl">0</span> <span class="dt">DomainError</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">...</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </div>
 <p>At some point, your package may require <a href="https://pkgdocs.julialang.org/v1/creating-packages/#Adding-tests-to-the-package">test-specific dependencies</a>. In essence, you give the <code>test</code> subfolder its own environment and <code>Project.toml</code> file. This often happens when you need to test compatibility with another package, on which you do not depend for the source code itself. Or it may simply be due to testing-specific packages like the ones we will encounter below. For interactive testing work, use <a href="https://github.com/JuliaTesting/TestEnv.jl">TestEnv.jl</a> to activate the full test environment (faster than running <code>]test</code> repeatedly).</p>
@@ -779,17 +789,23 @@ Tip
 </div>
 <section id="code-coverage" class="level3" data-number="23.4.1">
 <h3 data-number="23.4.1" class="anchored" data-anchor-id="code-coverage"><span class="header-section-number">23.4.1</span> Code Coverage</h3>
-<p>Code coverage refers to the fraction of lines in your source code that are covered by tests (described in more detail in <a href="software.html#sec-code-coverage" class="quarto-xref"><span>Section 12.3.2</span></a>). <a href="https://about.codecov.io/">Codecov</a> is a website that provides easy visualization of this coverage, and many Julia packages use it. It is available as a PkgTemplates.jl plugin, but you have to perform an <a href="https://docs.codecov.com/docs/adding-the-codecov-token">additional configuration step</a> on the repo for Codecov to communicate with it.</p>
+<p>Code coverage refers to the fraction of lines in your source code that are covered by tests (described in more detail in <a href="software.html#sec-code-coverage" class="quarto-xref"><span>Section 12.3.2</span></a>). <a href="https://about.codecov.io/">Codecov</a> is a website that provides easy visualization of this coverage, and many Julia packages use it. It is available as a PkgTemplates.jl plugin. For public GitHub repositories using GitHub Actions, uploads are typically token-less. For private repositories or other CI providers, you’ll need to add the CODECOV_TOKEN secret as documented by Codecov.</p>
 </section>
 </section>
 <section id="code-style" class="level2" data-number="23.5">
 <h2 data-number="23.5" class="anchored" data-anchor-id="code-style"><span class="header-section-number">23.5</span> Code Style</h2>
 <p>To make your code easy to read, it is recommended to follow a consistent set of guidelines. The official <a href="https://docs.julialang.org/en/v1/manual/style-guide/">style guide</a> is very short, so most people use third party style guides like <a href="https://github.com/JuliaDiff/BlueStyle">BlueStyle</a> or <a href="https://github.com/SciML/SciMLStyle">SciMLStyle</a>.</p>
+<section id="formatters" class="level3" data-number="23.5.1">
+<h3 data-number="23.5.1" class="anchored" data-anchor-id="formatters"><span class="header-section-number">23.5.1</span> Formatters</h3>
+<section id="juliaformatter.jl" class="level4" data-number="23.5.1.1">
+<h4 data-number="23.5.1.1" class="anchored" data-anchor-id="juliaformatter.jl"><span class="header-section-number">23.5.1.1</span> JuliaFormatter.jl</h4>
 <p><a href="https://github.com/domluna/JuliaFormatter.jl">JuliaFormatter.jl</a> is an automated formatter for Julia files which can help you enforce the style guide of your choice. Just add a file <code>.JuliaFormatter.toml</code> at the root of your repository, containing a single line like</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode toml code-with-copy"><code class="sourceCode toml"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="dt">style</span> <span class="op">=</span> <span class="st">"blue"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode toml code-with-copy"><code class="sourceCode toml"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="dt">style</span> <span class="op">=</span> <span class="st">"blue"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Then, the package directory will be formatted in the BlueStyle whenever you call</p>
-<pre class=">format"><code>using JuliaFormatter
-JuliaFormatter.format(MyAwesomePackage)</code></pre>
+<pre class="julia-repl"><code>import JuliaFormatter
+# run from the package root, and
+# formats according to .JuliaFormatter.toml
+JuliaFormatter.format(".")  </code></pre>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -817,23 +833,30 @@ Tip
 </div>
 </div>
 </section>
+<section id="runic.jl" class="level4" data-number="23.5.1.2">
+<h4 data-number="23.5.1.2" class="anchored" data-anchor-id="runic.jl"><span class="header-section-number">23.5.1.2</span> Runic.jl</h4>
+<p><a href="https://github.com/fredrikekre/Runic.jl">Runic.jl</a> is a popular choice as well. Like Python’s popular Black formatter, there is no configuration to the formatting options when using Runic. The benefit is increased consistency and no time wasted debating formatting decisions.</p>
+<p>Runic, requires you to set up Runic using Pkg. The instructions are straightforward and available on the <a href="https://github.com/fredrikekre/Runic.jl">Runic.jl repository</a>.</p>
+</section>
+</section>
+</section>
 <section id="code-quality" class="level2" data-number="23.6">
 <h2 data-number="23.6" class="anchored" data-anchor-id="code-quality"><span class="header-section-number">23.6</span> Code quality</h2>
 <p>Of course, there is more to code quality than just formatting. <a href="https://github.com/JuliaTesting/Aqua.jl">Aqua.jl</a> (Auto QUality Assurance) provides a set of routines that examine other aspects of your package, from ensuring that there are no unused dependencies to catching ambiguous methods statically.</p>
-<p>Include the following in your tests to have Aqua.jl run various checks against your code each time tests get run.:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Aqua</span>, <span class="bu">MyAwesomePackage</span></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>Aqua.<span class="fu">test_all</span>(MyAwesomePackage)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Include the following in your tests to have Aqua.jl run various checks each time your tests run:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Aqua</span>, <span class="bu">MyAwesomePackage</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>Aqua.<span class="fu">test_all</span>(MyAwesomePackage)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p><a href="https://github.com/aviatesk/JET.jl">JET.jl</a> is tool that is similar to a static linter in other languages. This means that it can inspect your code and ‘understand’ it well enough to catch many types of errors before runtime. It does this by running type inference and figuring out how a given type will flow through the call stack of methods.</p>
 <p>You can either use it in report mode (with a nice <a href="https://www.julia-vscode.org/docs/stable/userguide/linter/#Runtime-diagnostics">VSCode display</a>) or in test mode as follows:</p>
-<pre class=">jet"><code>using JET, MyAwesomePackage
-JET.report_package(MyAwesomePackage)
-JET.test_package(MyAwesomePackage)</code></pre>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">JET</span>, <span class="bu">MyAwesomePackage</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>JET.<span class="fu">report_package</span>(MyAwesomePackage)</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>JET.<span class="fu">test_package</span>(MyAwesomePackage)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Note that both Aqua.jl and JET.jl might pick up false positives: refer to their respective documentations for ways to make them less sensitive.</p>
 <p>Finally, <a href="https://github.com/ericphanson/ExplicitImports.jl">ExplicitImports.jl</a> can help you get rid of generic imports to specify where each of the variables in your package comes from. As a project gets more complex, <code>using SomePackage</code> can bring many, sometimes conflicting symbols into your current namespace. ExplicitImports forces you to either qualify the usage (e.g.&nbsp;<code>SomePackage.somefunction(...)</code>) or explicitly opt into importing certain variables.</p>
 </section>
 <section id="documentation" class="level2" data-number="23.7">
 <h2 data-number="23.7" class="anchored" data-anchor-id="documentation"><span class="header-section-number">23.7</span> Documentation</h2>
-<p>Refer to for more detail on documentation and its importance in <a href="software.html#sec-software-docstrings" class="quarto-xref"><span>Section 12.4.2</span></a>. Here are some additional workflow tips for setting up documentation for your package.</p>
+<p>Refer to <a href="software.html#sec-software-docstrings" class="quarto-xref"><span>Section 12.4.2</span></a> for more detail on documentation and its importance. Here are some additional workflow tips for setting up documentation for your package.</p>
 <p><a href="https://github.com/JuliaDocs/DocStringExtensions.jl">DocStringExtensions.jl</a> provides a few shortcuts that can speed up docstring creation by taking care of the obvious parts.</p>
 <p>In addition to docstrings, <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> allows you to design a website for all of this, based on Markdown files contained in the <code>docs</code> subfolder of your package. Unsurprisingly, its own <a href="https://documenter.juliadocs.org/stable/">documentation</a> is excellent and will teach you a lot. To build the documentation locally, just run</p>
 <pre class="julia-repl"><code>julia&gt; using Pkg
@@ -845,7 +868,7 @@ julia&gt; include("docs/make.jl")</code></pre>
 <pre class="julia-repl"><code>julia&gt; using LiveServer
 
 julia&gt; servedocs()</code></pre>
-<p>To host the documentation online easily, just select the <a href="https://juliaci.github.io/PkgTemplates.jl/stable/user/#PkgTemplates.Documenter"><code>Documenter</code> plugin</a> from PkgTemplates.jl during creation. Not only will this fill the <code>docs</code> subfolder with the appropriate starting files: it will also initialize a <a href="https://documenter.juliadocs.org/stable/man/hosting/#gh-pages-Branch">GitHub Actions workflow</a> to build and deploy your website on <a href="https://pages.github.com/">GitHub pages</a>. Lastly, <a href="https://documenter.juliadocs.org/stable/man/hosting/#gh-pages-Branch">select the <code>gh-pages</code> branch as source in the Github settings for your repository</a>.</p>
+<p>To host the documentation online easily, just select the <a href="https://juliaci.github.io/PkgTemplates.jl/stable/user/#PkgTemplates.Documenter"><code>Documenter</code> plugin</a> from PkgTemplates.jl during creation. Not only will this fill the <code>docs</code> subfolder with the appropriate starting files: it will also initialize a <a href="https://documenter.juliadocs.org/stable/man/hosting/#gh-pages-Branch">GitHub Actions workflow</a> to build and deploy your website on <a href="https://pages.github.com/">GitHub pages</a>. Lastly, <a href="https://documenter.juliadocs.org/stable/man/hosting/#gh-pages-Branch">in your repository’s Pages settings, configure deployment from the gh-pages branch (root)</a>.</p>
 </section>
 <section id="literate-programming" class="level2" data-number="23.8">
 <h2 data-number="23.8" class="anchored" data-anchor-id="literate-programming"><span class="header-section-number">23.8</span> Literate programming</h2>
@@ -860,7 +883,7 @@ julia&gt; servedocs()</code></pre>
 <h3 data-number="23.9.1" class="anchored" data-anchor-id="versions-and-compatibility"><span class="header-section-number">23.9.1</span> Versions and Compatibility</h3>
 <p>The Julia community has adopted <a href="https://semver.org/">semantic versioning</a>, which means every package must have a version, and the version numbering follows strict rules (the concept of versioning was covered in <a href="software.html#sec-software-versioning" class="quarto-xref"><span>Section 12.6.2</span></a>).</p>
 <p>To comply with the versioning requirements in Pkg’s resolver, you need to specify <a href="https://pkgdocs.julialang.org/v1/compatibility/">compatibility bounds</a> for your dependencies: this happens in the <code>[compat]</code> section of your <code>Project.toml</code>. To initialize these bounds with current dependency versions, use the <code>]compat</code> command in the Pkg mode of the REPL, or the package <a href="https://github.com/GunnarFarneback/PackageCompatUI.jl">PackageCompatUI.jl</a>.</p>
-<p>Over time, new versions of your dependencies will be released. The <a href="https://github.com/JuliaRegistries/CompatHelper.jl">CompatHelper.jl</a> GitHub Action will help you monitor upstream Julia dependencies and suggest changes to your <code>Project.toml</code>’s <code>[compat]</code> section accordingly. In addition, <a href="https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuring-dependabot-version-updates#enabling-dependabot-version-updates">Dependabot</a> can monitor the dependencies… of your GitHub actions themselves. Both of these can are included in the default PkgTemplates setup.</p>
+<p>Over time, new versions of your dependencies will be released. The <a href="https://github.com/JuliaRegistries/CompatHelper.jl">CompatHelper.jl</a> GitHub Action will help you monitor upstream Julia dependencies and suggest changes to your <code>Project.toml</code>’s <code>[compat]</code> section accordingly. In addition, <a href="https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuring-dependabot-version-updates#enabling-dependabot-version-updates">Dependabot</a> can monitor the dependencies… of your GitHub actions themselves. Both of these are included in the default PkgTemplates setup.</p>
 <div class="callout callout-style-default callout-tip callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -879,7 +902,7 @@ Tip
 <h3 data-number="23.9.2" class="anchored" data-anchor-id="registration"><span class="header-section-number">23.9.2</span> Registration</h3>
 <p>If your package is useful to others in the community, it may be a good idea to register it, that is, make it part of the pool of packages that can be installed with</p>
 <pre class="julia-repl"><code>pkg&gt; add MyAwesomePackage  # made possible by registration</code></pre>
-<p>Note that unregistered packages can also be installed by anyone from the GitHub URL, but this a less reproducible solution:</p>
+<p>Note that unregistered packages can also be installed by anyone from the GitHub URL, but this is a less reproducible solution:</p>
 <pre class="julia-repl"><code>pkg&gt; add https://github.com/myuser/MyAwesomePackage  # not ideal</code></pre>
 <p>To register your package, check out the <a href="https://github.com/JuliaRegistries/General">general registry</a> guidelines. The <a href="https://github.com/JuliaRegistries/Registrator.jl">Registrator.jl</a> bot can help you automate the process. Another handy bot, provided by default with PkgTemplates.jl, is <a href="https://github.com/JuliaRegistries/TagBot">TagBot</a>: it automatically tags new versions of your package following each registry release. If you have performed the <a href="https://documenter.juliadocs.org/stable/man/hosting/#travis-ssh">necessary SSH configuration</a>, TagBot will also trigger documentation website builds following each release.</p>
 <section id="sec-local-registry" class="level4" data-number="23.9.2.1">
@@ -897,15 +920,33 @@ Tip
 <section id="reproducibility" class="level2" data-number="23.10">
 <h2 data-number="23.10" class="anchored" data-anchor-id="reproducibility"><span class="header-section-number">23.10</span> Reproducibility</h2>
 <p>Obtaining consistent and reproducible results is an essential part of model auditing and compliance. One tool to consider is <a href="https://github.com/JuliaDynamics/DrWatson.jl">DrWatson.jl</a>. It is a general toolbox for running and re-running models in an orderly fashion.</p>
-<p>Some specific issues come up in attempting to ensure reproducibility</p>
+<p>Some specific issues come up in attempting to ensure reproducibility:</p>
 <p>A first hurdle is <a href="https://docs.julialang.org/en/v1/stdlib/Random/">random number generation</a>, which is not guaranteed to remain stable across Julia versions. To ensure that the random streams remain exactly the same, you need to use <a href="https://github.com/JuliaRandom/StableRNGs.jl">StableRNGs.jl</a>. The downside to this is that the random number generation will be considerably slower than the usual generator.</p>
 <p>Another aspect is dataset download and management. The packages <a href="https://github.com/oxinabox/DataDeps.jl">DataDeps.jl</a>, <a href="https://github.com/tecosaur/DataToolkit.jl">DataToolkit.jl</a> and <a href="https://github.com/JuliaPackaging/ArtifactUtils.jl">ArtifactUtils.jl</a> can help you bundle non-code elements with your package (some of these rely on artifacts - discussed in <a href="software.html#sec-artifacts" class="quarto-xref"><span>Section 12.6.3</span></a>).</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Financial Modeling Pro Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Always version-control both Project.toml and Manifest.toml for regulated (auditable) workflows. Instantiating the environment on another machine ensures identical dependency versions, which is crucial for reproducible risk and valuation reports.</p>
+<pre class="julia-repl"><code>julia&gt; using Pkg
+julia&gt; Pkg.activate(".")
+julia&gt; Pkg.instantiate()   # resolves to exact versions recorded in Manifest.toml</code></pre>
+<p>Note that for this to fully work, the replicating machine needs to be the same architecture (e.g.&nbsp;<code>x64</code>), OS (e.g.&nbsp;Windows), and Julia version (e.g.&nbsp;<code>v1.10</code>). If the versions differ, Julia may need to use a different set of dependencies for compatibility reasons. However, it’s still a good practice to store the Manifest.toml for important workflows.</p>
+<p>And remember, that with <em>package</em> repositories, you generally <em>do not</em> want to check in the Manifest.toml. Instead, create scripts for the production workflows that <em>do</em> check in the Manifest.toml.</p>
+</div>
+</div>
 </section>
 <section id="interoperability" class="level2" data-number="23.11">
 <h2 data-number="23.11" class="anchored" data-anchor-id="interoperability"><span class="header-section-number">23.11</span> Interoperability</h2>
 <p>To ensure compatibility with earlier Julia versions, <a href="https://github.com/JuliaLang/Compat.jl">Compat.jl</a> is your best ally.</p>
-<p>Making packages play nice with one another is a key goal of the Julia ecosystem. Since Julia 1.9, this can be done with <a href="https://pkgdocs.julialang.org/v1/creating-packages/#Conditional-loading-of-code-in-packages-(Extensions)">package extensions</a>, which override specific behaviors based on the presence of a given package in the environment. For example, if you want to provide pre-configured plotting, but don’t in general need to include a plotting library as part of your package for all users and use cases. <a href="https://github.com/cjdoris/PackageExtensionTools.jl">PackageExtensionTools.jl</a> eases of setting up extensions for your package.</p>
-<p>Furthermore, the Julia ecosystem as a whole plays nice with other programming languages too. <a href="https://docs.julialang.org/en/v1/manual/calling-c-and-fortran-code/">C and Fortran</a> are natively supported. Python can be easily interfaced with the combination of <a href="https://github.com/cjdoris/CondaPkg.jl">CondaPkg.jl</a> and <a href="https://github.com/cjdoris/PythonCall.jl">PythonCall.jl</a>. Other language compatibility packages can be found in the <a href="https://github.com/JuliaInterop">JuliaInterop</a> organization, like <a href="https://github.com/JuliaInterop/RCall.jl">RCall.jl</a>.</p>
+<p>Making packages play nice with one another is a key goal of the Julia ecosystem. Since Julia 1.9, this can be done with <a href="https://pkgdocs.julialang.org/v1/creating-packages/#Conditional-loading-of-code-in-packages-(Extensions)">package extensions</a>, which override specific behaviors based on the presence of a given package in the environment. For example, if you want to provide pre-configured plotting, but don’t in general need to include a plotting library as part of your package for all users and use cases. <a href="https://github.com/cjdoris/PackageExtensionTools.jl">PackageExtensionTools.jl</a> eases setting up extensions for your package.</p>
+<p>Furthermore, the Julia ecosystem plays nice with other programming languages too. <a href="https://docs.julialang.org/en/v1/manual/calling-c-and-fortran-code/">C and Fortran</a> are natively supported. Python can be easily interfaced with the combination of <a href="https://github.com/cjdoris/CondaPkg.jl">CondaPkg.jl</a> and <a href="https://github.com/cjdoris/PythonCall.jl">PythonCall.jl</a>. Other language compatibility packages can be found in the <a href="https://github.com/JuliaInterop">JuliaInterop</a> organization, like <a href="https://github.com/JuliaInterop/RCall.jl">RCall.jl</a>.</p>
 </section>
 <section id="customization" class="level2" data-number="23.12">
 <h2 data-number="23.12" class="anchored" data-anchor-id="customization"><span class="header-section-number">23.12</span> Customization</h2>
