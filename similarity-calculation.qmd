@@ -111,7 +111,7 @@ using LinearAlgebra
 d₁₃ = (arr_cat[1, :] ⋅ arr_cat[3, :]) / norm(arr_cat[1, :]) / norm(arr_cat[3, :])
 ```
 
-Note how similar the syntax of processing for numerical or categorical data is. Multiple dispatch allows Julia to identify most efficient underlying procedure for different types of data. For categorical data, the $dot$ operation on binary vectors is essentially count of 1's, while for numerical data it is the $dot$ operation for most numerical processing libraries.
+Note how similar the syntax of processing for numerical or categorical data is. Multiple dispatch allows Julia to identify most efficient underlying procedure for different types of data. For categorical data, the $dot$ operation on binary vectors is essentially counts the number of shared 1's (or the number of categories on which two observations match), while for numerical data it is the $dot$ operation for most numerical processing libraries.
 
 ### Jaccard Similarity
 
@@ -127,7 +127,11 @@ d₁₃ = (arr_cat[1, :] ⋅ arr_cat[3, :]) / sum(arr_cat[1, :] .| arr_cat[3, :]
 
 ### Hamming Distance
 
-Hamming distance is defined as d = Number of positions at which w and v differ. The distance is usually meaningful when applied to categorical data. The following Julia code shows the Hamming distance for the first and the third rows in arr_cat.
+Hamming distance is defined as d = Number of positions at which w and v differ.
+$$
+d = \sum_{i=1}^{n} \mathbf{1} {w_i \ne v_i}
+$$
+The distance is usually meaningful when applied to categorical data. The following Julia code shows the Hamming distance for the first and the third rows in arr_cat.
 
 ```{julia}
 d₁₃ = sum(arr_cat[1, :] .⊻ arr_cat[3, :])
@@ -142,7 +146,7 @@ using Random, NearestNeighbors, CairoMakie
 
 # Step 1: Generate synthetic data
 Random.seed!(1234)  # For reproducibility
-data = rand(10, 2)  # 10 points with 2 dimensions
+data = rand(2, 10)  # 10 points with 2 dimensions
 println("Dataset:\n", data)
 
 # Step 2: Create a KD-tree for efficient nearest neighbor search
@@ -153,7 +157,7 @@ query_point = [0.5, 0.5]
 
 # Step 4: Find the nearest neighbors
 # Specify how many neighbors to find
-k = 1
+k = 3
 indices, distances = knn(kdtree, query_point, k)
 
 # Step 5: Display the results
@@ -164,12 +168,13 @@ println("Distances to Nearest Neighbors: ", distances)
 # Step 6: Visualize the points and the query
 f = Figure()
 axis = Axis(f[1, 1], title="Nearest Neighbors Search")
-scatter!(data[:, 1], data[:, 2], label="Data Points", color=:blue)
+scatter!(data[1, :], data[2, :], label="Data Points", color=:blue)
 scatter!([query_point[1]], [query_point[2]], label="Query Point", color=:red, marker=:cross, markersize=10)
 
 # Highlight nearest neighbors
 for idx in indices
-    lines!([query_point[1], data[idx, 1]], [query_point[2], data[idx, 2]], color=:black)
+    lines!([query_point[1], data[1, idx]], [query_point[2], data[2, idx]], color=:black)
 end
 f
 ```
+
