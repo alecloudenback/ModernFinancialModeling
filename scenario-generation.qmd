@@ -22,7 +22,7 @@ How to generate synthetic data for your model using sub-models, with application
 
 ## Common Use Cases of Scenario Generators
 
-Scenario generators are widely used in risk management, investment analysis, and regulatory compliance to model potential future outcomes. If the goal is forecasting actual market behavior, real world scenarios (RW) are commonly used. If, on the other hand, pricing financial instruments is needed, risk neutral (RN) scenarios are often used.
+Scenario generators are widely used in risk management, investment analysis, and regulatory compliance to model potential future outcomes. For forecasting under the real-world (physical) measure P, use real-world (RW) scenarios. For valuation and hedging, use risk‑neutral (RN) scenarios under the martingale measure Q (e.g., with drift adjusted to the short rate minus dividends for equities and to fit the initial curve for interest rates).
 
 ### Risk management, especially Value at Risk (VaR) & Expected Shortfall (ES).
 
@@ -54,17 +54,17 @@ Yield curve modeling uses RN scenarios to value bonds and interest rate derivati
 
 ### Regulatory & Accounting Valuations
 
-IFRS 13 & fair value accounting uses RN models determine the market-consistent value of liabilities. Solvency II for insurers asks valuation of policyholder guarantees using RN scenarios.
+IFRS 13 & fair value accounting uses RN models determine the market-consistent value of liabilities. Solvency II for insurers requires valuation of policyholder guarantees using RN scenarios.
 
 ## Common Economic Scenario Generation Approaches
 
-Economic scenario generation involves the development of plausible future economic scenarios to assess the potential impact on financial portfolios, investments, or decision-making processes. Various approaches are used to generate economic scenarios,such as adapting underlying stochastic differential equations (SDEs) for Monte Carlo scenario generation techniques.
+Economic scenario generation involves the development of plausible future economic scenarios to assess the potential impact on financial portfolios, investments, or decision-making processes. Various approaches are used to generate economic scenarios, such as adapting underlying stochastic differential equations (SDEs) for Monte Carlo scenario generation techniques.
 
 ### Interest Rate Models
 
 #### Vasicek and Cox Ingersoll Ross (CIR)
 
-The Vasicek model is a one-factor model commonly used for simulating interest rate scenarios. It describes the dynamics of short-term interest rates using a stochastic differential equation (SDE). In a Monte Carlo simulation, we can use the Vasicek model to generate multiple interest rate paths. The CIR model is an extension of the Vasicek model with non-constant volatility. It addresses the issue of negative interest rates by ensuring that interest rates remain positive. Vasicek is defined as
+The Vasicek model is a one-factor model commonly used for simulating interest rate scenarios. It describes the dynamics of short-term interest rates using a stochastic differential equation (SDE). In a Monte Carlo simulation, we can use the Vasicek model to generate multiple interest rate paths. The CIR model is an extension of the Vasicek model with non-constant volatility. It is a square‑root diffusion with state‑dependent volatility that helps keep rates positive. It addresses the issue of negative interest rates by ensuring that interest rates remain positive. Vasicek is defined as
 
 $$
 dr(t) = \kappa (\theta - r(t)) \, dt + \sigma \, dW(t)
@@ -101,9 +101,9 @@ using Random, CairoMakie
 Random.seed!(1234)
 
 # CIR model parameters
-κ = 0.2       # Speed of mean reversion
-θ = 0.05      # Long-term mean
-σ = 0.1       # Volatility
+κ = 0.2 # Speed of mean reversion
+θ = 0.05 # Long-term mean
+σ = 0.1 # Volatility
 
 # Initial short-term interest rate
 r₀ = 0.03
@@ -143,7 +143,63 @@ end
 f
 ```
 
-#### Hull White
+The exact CIR process has a non-central chi-squared distribution for $r(t)$ in closed form.
+
+$$
+d &= \frac{4 \kappa \theta}{\sigma^2}
+c &= \frac{\sigma^2 \left( 1 - e^{-\kappa \Delta t} \right)}{4 \kappa}
+\lambda &= \frac{4 \kappa e^{-\kappa \Delta t} r_t}{\sigma^2 \left( 1 - e^{-\kappa \Delta t} \right)}
+r_{t+\Delta t} &\sim c \cdot \chi'^2_{d}(\lambda)
+$$
+
+where $\chi'^2_{d}(\lambda)$ means the non-central chi-square distribution with $d$ degrees of freedom and a non-centrality parameter $λ$. The following code shows an exact implementation of a CIR model.
+
+```
+using Random, Distributions, CairoMakie
+
+# CIR parameters
+κ = 0.5 # mean reversion speed
+θ = 0.04 # long-term mean
+σ = 0.1 # volatility coefficient
+r0 = 0.03 # initial rate
+T = 5.0 # years
+Nsteps = 500 # time steps
+dt = T / Nsteps
+nsim = 5 # number of simulated paths
+
+# Precompute constants
+d = 4 * κ * θ / (σ * σ)
+
+# Time grid
+tgrid = collect(0:dt:T)
+rpaths = zeros(length(tgrid), nsim)
+
+# Seed reproducibility
+Random.seed!(1234)
+
+for path in 1:nsim
+    r = r0
+    rpaths[1, path] = r
+    for i in 2:length(tgrid)
+        # Transition distribution parameters
+        c = (σ * σ * (1 - exp(-κ * dt))) / (4 * κ)
+        λ = (4 * κ * exp(-κ * dt) * r) / (σ * σ * (1 - exp(-κ * dt)))
+        nc_chisq = NoncentralChisq(d, λ)
+        r = c * rand(nc_chisq)
+        rpaths[i, path] = r
+    end
+end
+
+# Plot
+fig = Figure(resolution = (800, 500))
+ax = Axis(fig[1, 1], xlabel = "Time (years)", ylabel = "Short rate", title = "Exact CIR Process Simulation (Non-central Chi-square)")
+for path in 1:nsim
+    lines!(ax, tgrid, rpaths[:, path])
+end
+fig
+```
+
+#### Hull-White
 
 The Hull-White model is a one-factor model that extends the Vasicek model by allowing the mean reversion and volatility parameters to be time-dependent. It is commonly used for pricing interest rate derivatives. Brace-Gatarek-Musiela (BGM) Model extends the Hull-White model to incorporate more factors. It is one of the Libor Market Model (LMM) that describes the evolution of forward rates. It allows for the modeling of both the short-rate and the entire yield curve. It is defined as
 
@@ -154,7 +210,7 @@ $$
 where
 
 -   $r(t)$ is the short-term interest rate at time $t$.
--   $θ$ is the long-term mean or equilibrium level of the interest rate.
+-   $θ(t)$ is the long-term mean or equilibrium level of the interest rate.
 -   $a$ is the speed of mean reversion.
 -   $σ(t)$ is the time-dependent volatility of the interest rate.
 -   $dW(t)$ is a Wiener process or Brownian motion, representing a random shock.
@@ -162,45 +218,44 @@ where
 ```{julia}
 using Random, CairoMakie
 
-# Set seed for reproducibility
+# Parameters
+a = 0.1 # mean reversion speed
+θ(t) = 0.05 + 0.01 * sin(2π * t) # time-dependent mean level, illustrative only
+σ(t) = 0.005 + 0.002 * cos(2π * t) # time-dependent volatility, illustrative only
+r0 = 0.03 # initial short rate
+T = 5.0 # years
+Nsteps = 500 # time steps
+dt = T / Nsteps
+nsim = 5 # number of simulated paths
+
+# Preallocate
+tgrid = collect(0:dt:T)
+rpaths = zeros(length(tgrid), nsim)
+
+# Seed for reproducibility
 Random.seed!(1234)
 
-# Hull-White model parameters
-α = 0.1       # Mean reversion speed
-σ = 0.02      # Volatility
-r₀ = 0.03     # Initial short-term interest rate
-
-# Number of time steps and simulations
-num_steps = 252
-num_simulations = 1_000
-
-# Time increment
-Δt = 1 / 252
-
-# Function to simulate Hull-White process
-function hull_white_simulation(α, σ, r₀, Δt, num_steps, num_simulations)
-    interest_rate_paths = zeros(num_steps, num_simulations)
-    for j in 1:num_simulations
-        interest_rate_paths[1, j] = r₀
-        for i in 2:num_steps
-            dW = randn() * sqrt(Δt)
-            dr = α * (σ - interest_rate_paths[i-1, j]) * Δt + σ * dW
-            interest_rate_paths[i, j] = interest_rate_paths[i-1, j] + dr
-        end
+# Euler–Maruyama simulation
+for path in 1:nsim
+    r = r0
+    rpaths[1, path] = r
+    for i in 2:length(tgrid)
+        t_prev = tgrid[i-1]
+        dW = sqrt(dt) * randn()
+        drift = (θ(t_prev) - a * r) * dt
+        diffusion = σ(t_prev) * dW
+        r += drift + diffusion
+        rpaths[i, path] = r
     end
-    return interest_rate_paths
 end
 
-# Run Hull-White simulation
-hull_white_paths = hull_white_simulation(α, σ, r₀, Δt, num_steps, num_simulations)
-
-# Plot the simulated interest rate paths
-f = Figure()
-Axis(f[1, 1])
-for i in 1:num_simulations
-    lines!(1:num_steps, hull_white_paths[:, i])
+# Plot
+fig = Figure(resolution = (800, 500))
+ax = Axis(fig[1, 1], xlabel = "Time (years)", ylabel = "Short rate", title = "Hull–White Simulation with time-dependent θ(t) and σ(t)")
+for path in 1:nsim
+    lines!(ax, tgrid, rpaths[:, path])
 end
-f
+fig
 ```
 
 ### Equity Models
@@ -227,11 +282,11 @@ using Random, CairoMakie
 Random.seed!(1234)
 
 # GBM parameters
-μ = 0.05       # Drift (expected return)
-σ = 0.2        # Volatility
+μ = 0.05 # Drift (expected return)
+σ = 0.2 # Volatility
 
 # Initial stock price
-S₀ = 100
+S₀ = 100.0
 
 # Number of time steps and simulations
 num_steps = 252
@@ -243,13 +298,12 @@ num_simulations = 1_000
 # Function to simulate GBM
 function gbm_simulation(μ, σ, S₀, Δt, num_steps, num_simulations)
     stock_price_paths = zeros(num_steps, num_simulations)
+    drift = (μ - 0.5 * σ * σ) * Δt
+    vol = σ * sqrt(Δt)
     for j in 1:num_simulations
         stock_price_paths[1, j] = S₀
         for i in 2:num_steps
-            dW = randn() * sqrt(Δt)
-            S = stock_price_paths[i-1, j]
-            dS = μ * S * Δt + σ * S * dW
-            stock_price_paths[i, j] = S + dS
+            stock_price_paths[i, j] = stock_price_paths[i-1, j] * exp(drift + vol * randn())
         end
     end
     return stock_price_paths
@@ -291,9 +345,10 @@ using Random, CairoMakie
 Random.seed!(1234)
 
 # GARCH(1,1) parameters
-α₀ = 0.01      # Constant term
-α₁ = 0.1       # Coefficient for lagged squared returns
-β₁ = 0.8       # Coefficient for lagged conditional volatility
+α₀ = 0.01 # Constant term
+α₁ = 0.1 # Coefficient for lagged squared returns
+β₁ = 0.8 # Coefficient for lagged conditional volatility
+@assert α₁ + β₁ < 1 "Stationarity requires α₁ + β₁ < 1"
 
 # Number of time steps and simulations
 num_steps = 252
@@ -309,7 +364,7 @@ function garch_simulation(α₀, α₁, β₁, num_steps, num_simulations)
         ε = randn(num_steps)
         squared_returns = zeros(num_steps)
         for i in 2:num_steps
-            squared_returns[i] = α₀ + α₁ * ε[i-1]^2 + β₁ * squared_returns[i-1]
+            squared_returns[i] = α₀ + α₁ * ε[i-1] * ε[i-1] + β₁ * squared_returns[i-1]
             volatility_paths[i, j] = sqrt(squared_returns[i])
         end
     end
@@ -333,16 +388,19 @@ f
 Simulating data using copulas involves generating multivariate samples with specified marginal distributions and a copula structure.
 
 ```{julia}
-using Random, CairoMakie, BivariateCopulas
+using Random, CairoMakie, Copulas
 
-# Set seed for reproducibility
 Random.seed!(1234)
 
-# Generate a Gaussian copula
-gaussian_copula = Gaussian(0.8)
-
-# Show simulated copula
-f = scatter(rand(gaussian_copula, 10^4))
+# 2D Gaussian copula with correlation ρ = 0.8
+ρ = 0.8
+Σ = [1.0  ρ;
+     ρ   1.0]
+Cg = GaussianCopula(Σ)
+U = rand(Cg, 10_000)  # n × d matrix with U(0,1) margins
+f = Figure()
+ax = Axis(f[1, 1], xlabel="U₁", ylabel="U₂")
+scatter!(ax, U[1, :], U[2, :], markersize=2, color=:steelblue, alpha=0.4)
 f
 ```
 
@@ -351,14 +409,22 @@ Copulas can also be used to infer combined distributions from data samples.
 ```{julia}
 using Copulas, Distributions, Random
 
-X₁ = Gamma(2, 3)
-X₂ = Pareto()
-X₃ = LogNormal(0, 1)
+X₁ = Gamma(2.0, 3.0)
+X₂ = Pareto(3.0, 1.0)
+X₃ = LogNormal(0.0, 1.0)
 C = ClaytonCopula(3, 0.7) # A 3-variate Clayton Copula with θ = 0.7
 D = SklarDist(C, (X₁, X₂, X₃)) # The final distribution
 
 # Generate a dataset
 simu = rand(D, 1000)
-# We may estimate a copula, or get parameters of underlying distributions, using the `fit` function:
-D̂ = fit(SklarDist{ClaytonCopula,Tuple{Gamma,Normal,LogNormal}}, simu)
+# Estimate marginals by MLE
+d̂1 = fit(Gamma, simu[:, 1])
+d̂2 = fit(Pareto, simu[:, 2])
+d̂3 = fit(LogNormal, simu[:, 3])
+# Probability integral transform to uniforms
+Û = hcat(cdf.(d̂1, simu[:, 1]), cdf.(d̂2, simu[:, 2]), cdf.(d̂3, simu[:, 3]))
+# Fit copula on uniforms
+Ĉ = fit(ClaytonCopula, Û)
+# Compose the estimated Sklar distribution
+D̂ = SklarDist(Ĉ, (d̂1, d̂2, d̂3))
 ```
