@@ -33,7 +33,7 @@ mutable struct Policy
     id::Int
     sex::Sex
     benefit_base::Float64
-    COLA::Float64
+    pir::Float64 # the policy interest rate
     mode::Int
     prem::Float64
     pp::Int
@@ -50,7 +50,7 @@ end
 using MortalityTables
 sample_csv_data =
     IOBuffer(
-        raw"id,sex,benefit_base,COLA,mode,prem,pp,issue_date,issue_age,risk
+        raw"id,sex,benefit_base,pir,mode,prem,pp,issue_date,issue_age,risk
          1,M,100000.0,0.03,1,1000.0,3,1999-12-05,30,Std"
     )
 
@@ -75,7 +75,7 @@ policies = let
             row.id,
             row.sex == "M" ? Male : Female,
             row.benefit_base,
-            row.COLA,
+            row.pir,
             row.mode,
             row.prem,
             row.pp,
@@ -97,9 +97,9 @@ $$
 where
 
 - $mort_t$ is the mortality at age $t$
-- $p_y$ is the survival probability adjusted with COLA, with values of
+- $p_y$ is the survival probability adjusted with the policy interest rate, with values of
     + $p_{y-1} = 1$,
-    + $p_x = p_{x-1} * (1 - mort_{age+y}) / (1 + COLA)$ for $x >= y$, and
+    + $p_x = p_{x-1} * (1 - mort_{age+y}) / (1 + pir)$ for $x >= y$, and
     + 0 for $x < y - 1$ or $age + x >= 120$, or ultimate age of the current mortality table
 - $B_y$ is the level benefit throughout the policy
 - $P_y$ is the level premium within the first 10 policy years which is 0 for policy years after 10
@@ -112,7 +112,7 @@ function sur(y::Int, pol::Policy)
     elseif y < 0 || 120 - y <= pol.issue_age
         0
     else
-        sur(y - 1, pol) * (1 - mort[pol.sex][pol.issue_age+y]) / (1 + pol.COLA)
+        sur(y - 1, pol) * (1 - mort[pol.sex][pol.issue_age+y]) / (1 + pol.pir)
     end
 end
 
@@ -136,13 +136,13 @@ end
 
 ### Finite Differences
 
-Define a customized finite difference function with respect to the COLA, rippled by a small difference.
+Define a customized finite difference function with respect to the interest rate, rippled by a small difference.
 
 ```{julia}
 function res_wrt_r_fd(y::Int, pol::Policy, r::Float64, h=1e-3)
     p₊, p₋ = deepcopy(pol), deepcopy(pol)
-    p₊.COLA, p₋.COLA = r + h, r - h
-    (res(y, p₋) - res(y, p₊)) / (2res(y, pol))
+    p₊.pir, p₋.pir = r + h, r - h
+    (res(y, p₋) - res(y, p₊)) / (2h)
 end
 
 res_wrt_r_fd(2, policies[1], 0.03) # changes in reserve at year 2 when the interest rate at 3% with a perturbation of 0.1%
@@ -155,21 +155,22 @@ using GlobalSensitivity
 
 function r1_wrt_r(r)
     p = deepcopy(policies[1])
-    p.COLA = r[2]
+    p.pir = r[2]
     p.prem = r[3]
     res(Int(floor(r[1])), p)
 end
 
-# reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1
+# reserve @ year 1 or 2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1
 reg_anal = gsa(r1_wrt_r, RegressionGSA(), [[1, 2], [0.029, 0.031], [999.9, 1000.1]], samples=1000)
 @show reg_anal.pearson
+@show reg_anal.spearman
 ```
 
-The Pearson Spearman coefficients show the correlation coefficient matrix between inputs and outputs.
+The Pearson and Spearman coefficients show the correlation coefficient matrix between inputs and outputs.
 
 ### Sobol Indices
 
-Sobol is a variance-based method, and it decomposes the variance of the output of the model or system into fractions which can be attributed to inputs or sets of inputs. This helps to get not just the individual parameter's sensitivities, but also gives a way to quantify the affect and sensitivity from the interaction between the parameters.
+Sobol is a variance-based method, and it decomposes the variance of the output of the model or system into fractions which can be attributed to inputs or sets of inputs. This helps to get not just the individual parameter's sensitivities, but also gives a way to quantify the effect and sensitivity from the interaction between the parameters.
 
 $$
 Y = f_0 + \sum_{i=1}^{d}f_i(X_i) + \sum_{i<j}^{d}f_{ij}(X_i, X_j) + ... + f_{1,2,...,d}(X_1, X_2, ..., X_d)
@@ -275,3 +276,4 @@ Some considerations in incorporating historical data.
 -- Model Limitations: Scenario models are based on assumptions that might not fully capture real-world complexities.
 -- Overfitting: Avoid fine-tuning scenarios to perfectly match historical outcomes, as this reduces their applicability to future events.
 -- Changing Dynamics: Historical events may not fully represent future possibilities due to changes in market conditions, regulations, or technology.
+
