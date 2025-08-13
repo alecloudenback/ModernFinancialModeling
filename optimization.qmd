@@ -124,9 +124,9 @@ x = 2.0
 finite_diff = (f(x + 0.001) - f(x)) / 0.001
 
 println("Value of f(x) at x=", f(x))
-println("Gradient of f(x) at x=", finite_diff) # <1>
-println("Gradient of f(x) at x=", gradient(f, x)) # <2>
-println("Gradient of f(x) at x=", 6 * x + 2) # <3>
+println("Gradient of f(x) at x=", finite_diff)
+println("Gradient of f(x) at x=", gradient(f, x))
+println("Gradient of f(x) at x=", 6 * x + 2)
 ```
 
 1.  A finite-difference approach to determining a gradient. Note that this method required two function calls of `f` to calculate an approximation.
@@ -274,10 +274,7 @@ The Nelder-Mead simplex method is a popular optimization algorithm used for mini
 using Optim
 
 # Define the Rosenbrock function
-function rosenbrock(v)
-    x, y = v[1], v[2]
-    return (1 - x)^2 + 100 * (y - x^2)^2
-end
+rosenbrock(x) = (1 - x[1])^2 + 100 * (x[2] - x[1]^2)^2
 
 # Initial guess for (x, y)
 initial_guess = [-1.5, 2.0]
@@ -303,11 +300,11 @@ using Random
 Random.seed!(1234)
 
 # Parameters
-max_iterations = 1000            # Number of iterations
-T₀ = 100.0                       # Starting temperature
-cooling_rate = 0.99              # Cooling rate (temperature multiplier)
-bounds = (-5.12, 5.12)           # Bounds for the search space
-dimension = 5                    # Number of dimensions in the search space
+max_iterations = 1000 # Number of iterations
+T₀ = 100.0 # Starting temperature
+cooling_rate = 0.99 # Cooling rate (temperature multiplier)
+bounds = (-5.12, 5.12) # Bounds for the search space
+dimension = 5 # Number of dimensions in the search space
 
 # Objective function: Rastrigin function
 rastrigin(x) = 10length(x) + sum(xᵢ * xᵢ - 10cos(2π * xᵢ) for xᵢ in x)
@@ -371,9 +368,7 @@ Particle swarm optimization is a metaheuristic optimization algorithm inspired b
 using Random, CairoMakie
 
 # Define the Rosenbrock function
-function rosenbrock(x)
-    return (1 - x[1])^2 + 100 * (x[2] - x[1]^2)^2
-end
+rosenbrock(x) = (1 - x[1])^2 + 100 * (x[2] - x[1]^2)^2
 
 # PSO Implementation
 function particle_swarm_optimization(objective, n_particles, n_iterations, bounds, dim; vmax = 0.5)
@@ -462,12 +457,12 @@ using Random
 Random.seed!(1234)
 
 # Parameters
-population_size = 50           # Number of individuals in the population
-chromosome_length = 5          # Number of genes in each individual (dimensionality)
-generations = 100              # Number of generations
-mutation_rate = 0.1            # Probability of mutation
-crossover_rate = 0.7           # Probability of crossover
-bounds = (-5.12, 5.12)         # Boundaries for each gene
+population_size = 50 # Number of individuals in the population
+chromosome_length = 5 # Number of genes in each individual (dimensionality)
+generations = 100 # Number of generations
+mutation_rate = 0.1 # Probability of mutation
+crossover_rate = 0.7 # Probability of crossover
+bounds = (-5.12, 5.12) # Boundaries for each gene
 
 # Target function: Rastrigin function
 rastrigin(x) = 10length(x) + sum(xᵢ * xᵢ - 10cos(2π * xᵢ) for xᵢ in x)
@@ -565,39 +560,35 @@ Bayesian Optimization (BO) is a powerful technique for global optimization of ex
 ```{julia}
 using Random
 using Surrogates
-using CairoMakie  # ] add CairoMakie
+using CairoMakie
 
 # reproducible seed
 Random.seed!(12345)
 
-# --- 1) Objective function (Forrester-like, multimodal) ---
+# Forrester-like, multimodal objective function
 f(x) = (6x - 2)^2 * sin(12x - 4)
 lb, ub = 0.0, 1.0
 
-# --- 2) Initial design (Sobol) ---
+# Sobol initialization
 n_init = 6
 x_init = sample(n_init, lb, ub, SobolSample())
 y_init = f.(x_init)
 
-# --- 3) Kriging surrogate model ---
+# Kriging surrogate model
 krig = Kriging(x_init, y_init, lb, ub; p=1.9)
 
-# --- 4) Surrogate optimization loop (Expected Improvement) ---
+# Surrogate optimization loop (Expected Improvement)
 maxiters = 20
 num_new_samples = 200
 best_x, best_f = surrogate_optimize(f, EI(), lb, ub, krig, SobolSample(); maxiters=maxiters, num_new_samples=num_new_samples)
 
-# --- 5) Data for plotting ---
+# Plotting
 xs = collect(range(lb, ub, length=400))
 ys_true = f.(xs)
 ys_pred = krig.(xs)
 
-# --- 6) Makie plot ---
-fig = Figure(resolution = (800, 500))
-ax = Axis(fig[1, 1],
-          title = "Surrogate Optimization (Kriging + EI)",
-          xlabel = "x",
-          ylabel = "f(x)")
+fig = Figure(size = (800, 500))
+ax = Axis(fig[1, 1], title = "Surrogate Optimization (Kriging + EI)", xlabel = "x", ylabel = "f(x)")
 # True function
 lines!(ax, xs, ys_true, color=:black, linewidth=2, label="True f(x)")
 # Surrogate prediction
@@ -722,7 +713,7 @@ using LsqFit, CairoMakie
 
 x_data = 0:0.1:10
 y_data = 2 .* sin.(x_data) .+ 0.5 .* randn(length(x_data))
-# Define the model function
+# Define the model function, using a polynomial function to fit sinusoidal data for illustration purposes
 curve_model(x, p) = p[1] * x .^ 5 + p[2] * x .^ 4 .+ p[3] * x .^ 3 .+ p[4] * x .^ 2 .+ p[5] * x .+ p[6]
 # Initial parameter guess
 p₀ = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
@@ -745,4 +736,5 @@ fig
 The textbook "Algorithms For Optimization" (by Kochenderfer And Wheeler) is a comprehensive introduction to optimization and uses Julia for its examples.
 
 In Julia, [Optimization.jl](https://github.com/SciML/Optimization.jl) provides a unified front-end for all kinds of general optimization problems. [JuMP.jl](https://jump.dev) provides a unified front-end in a specialized optimization mini-domain specific language.
+
 
