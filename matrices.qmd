@@ -114,7 +114,7 @@ using LinearAlgebra
 A = [1 2 3;
     5 10 20;
     7 8 9]
-# Perform matrix determinant calculation
+# Perform matrix trace calculation
 B = tr(A)
 # Display the result
 println("Result of matrix trace:")
@@ -200,7 +200,7 @@ Example: In solving linear systems for equilibrium pricing, obtaining the invers
 # Define a matrix
 A = [1 2; 3 4]
 # Compute the inverse of the matrix
-A_inv = inv(A)
+A_inv = inv(A) # Tip: Prefer solving systems with A \ b instead of inv(A) * b for numerical stability and performance.
 # Display the result
 println("Inverse of matrix A:")
 println(A_inv)
@@ -229,10 +229,10 @@ Eigenvalue decomposition, also known as eigen decomposition, is a matrix factori
 ```{julia}
 using LinearAlgebra
 
-# Create a square matrix
-A = [1 2 3;
-    4 5 6;
-    7 8 9]
+# Use a symmetric matrix so eigenvalues are real and eigenvectors are orthonormal
+A = [4.0 1.0 2.0;
+    1.0 3.0 0.0;
+    2.0 0.0 5.0]
 # Perform eigenvalue decomposition
 eigen_A = eigen(A)
 # Extract eigenvalues and eigenvectors
@@ -299,43 +299,59 @@ Factorization Machines (FM) are a type of supervised machine learning model desi
 Example: In credit scoring or recommendation systems for financial products, these techniques reveal latent factors that influence customer behavior.
 
 ```{julia}
-using Recommendation, SparseArrays, MLDataUtils
+using Recommendation
+using SparseArrays
+using Random
 
-# Generate synthetic user-item interaction data
+# 1. Synthetic events
 num_users = 100
 num_items = 50
 num_ratings = 500
 user_ids = rand(1:num_users, num_ratings)
 item_ids = rand(1:num_items, num_ratings)
-ratings = rand(1:5, num_ratings)
-# Create a sparse user-item matrix
-user_item_matrix = sparse(user_ids, item_ids, ratings)
-# Split data into training and testing sets
-train_data, test_data = splitobs(user_item_matrix, 0.8)
-# Set parameters for matrix factorization
-num_factors = 10
-num_iterations = 10
-# Train matrix factorization model
-data = DataAccessor(user_item_matrix)
-recommender = MF(data) # FactorizationMachines(data) alternatively
-fit!(recommender)
-# Predict ratings for the test set
-rec = Dict()
-for user in 1:num_users
-    rec[user] = recommend(recommender, user, num_items, collect(1:num_items))
+ratings  = rand(1:5, num_ratings)
+
+events = [Event(user_ids[i], item_ids[i], float(ratings[i])) for i in 1:num_ratings]
+
+# 2. Train/test split
+Random.seed!(1234)
+shuffle!(events)
+train_size = round(Int, 0.8 * num_ratings)
+train_events = events[1:train_size]
+test_events  = events[train_size+1:end]
+
+# 3. DataAccessor
+da_train = DataAccessor(train_events, num_users, num_items)
+
+# 4. Instantiate MatrixFactorization recommender
+recommender = MatrixFactorization(da_train)
+
+# 5. Train with hyperparameters
+build!(recommender;
+       reg=0.05,
+       learning_rate=0.007,
+       eps=1e-4,
+       max_iter=20,
+       random_init=true)
+
+# 6. Recommend for a user
+user = 1
+k = 5
+candidates = collect(1:num_items)
+rec_list = recommend(recommender, user, k, candidates)
+println("Recommendations for user $user: ", rec_list)
+
+# 7. Evaluate RMSE
+predicted = Float64[]
+actual = Float64[]
+for ev in test_events
+    pred_rating = Recommendation.predict(recommender, ev.user, ev.item)
+    push!(predicted, pred_rating)
+    push!(actual, ev.value)
 end
-# Evaluate model performance
-predictions = []
-for (i, j, v) in zip(findnz(test_data.data)[1], findnz(test_data.data)[2], findnz(test_data.data)[3])
-    for p in rec[i]
-        if p[1] == j
-            push!(predictions, p[2])
-            break
-        end
-    end
-end
-rmse = measure(RMSE(), predictions, nonzeros(test_data.data))
-println("Root Mean Squared Error (RMSE): ", rmse)
+
+rmse = measure(RMSE(), predicted, actual)
+println("Test RMSE = ", rmse)
 ```
 
 ### Principal component analysis
@@ -348,14 +364,15 @@ Example: Compressing various economic indicators into a handful of principal com
 using MultivariateStats
 
 # Generate some synthetic data
-data = randn(100, 5)  # 100 samples, 5 features
+Random.seed!(1234)
+data = randn(5, 100)  # 100 samples, 5 features
 # Perform PCA
 pca_model = fit(PCA, data; maxoutdim=2)  # Project to 2 principal components
 # Transform the data
 transformed_data = transform(pca_model, data)
 # Access principal components and explained variance ratio
 principal_components = pca_model.prinvars
-explained_variance_ratio = pca_model.prinvars / sum(pca_model.prinvars)
+explained_variance_ratio = pca_model.prinvars ./ sum(pca_model.prinvars)
 
 # Print results
 println("Principal Components:")
@@ -363,3 +380,4 @@ println(principal_components)
 println("Explained Variance Ratio:")
 println(explained_variance_ratio)
 ```
+
