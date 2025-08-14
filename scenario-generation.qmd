@@ -107,8 +107,7 @@ function cir_simulation(κ, θ, σ, r₀, Δt, num_steps, num_simulations)
         interest_rate_paths[1, j] = r₀
         for i in 2:num_steps
             dW = randn() * sqrt(Δt)
-            # for Vasicek
-            # dr = κ * (θ - interest_rate_paths[i-1, j]) * Δt + σ * dW
+            # dr = κ * (θ - interest_rate_paths[i-1, j]) * Δt + σ * dW # for Vasicek
             dr = κ * (θ - interest_rate_paths[i-1, j]) * Δt + σ * sqrt(interest_rate_paths[i-1, j]) * dW
             interest_rate_paths[i, j] = max(interest_rate_paths[i-1, j] + dr, 0)  # Ensure non-negativity
         end
@@ -148,10 +147,12 @@ end
 The exact CIR process has a non-central chi-squared distribution for $r(t)$ in closed form.
 
 $$
+\begin{align*}
 d &= \frac{4 \kappa \theta}{\sigma^2}
 c &= \frac{\sigma^2 \left( 1 - e^{-\kappa \Delta t} \right)}{4 \kappa}
 \lambda &= \frac{4 \kappa e^{-\kappa \Delta t} r_t}{\sigma^2 \left( 1 - e^{-\kappa \Delta t} \right)}
 r_{t+\Delta t} &\sim c \cdot \chi'^2_{d}(\lambda)
+\end{align*}
 $$
 
 where $\chi'^2_{d}(\lambda)$ means the non-central chi-square distribution with $d$ degrees of freedom and a non-centrality parameter $λ$. The following code shows an exact implementation of a CIR model.
