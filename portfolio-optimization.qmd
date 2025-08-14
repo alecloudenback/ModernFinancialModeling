@@ -41,7 +41,7 @@ Mean-variance optimization is a mathematical framework that seeks to maximize ex
 
 \begin{align*}
 \text{minimize} \quad &{w}^{T}\Sigma{w}\\
-\text{subject to} \quad &{R}^{T}\geq{\mu}_{\text{target}}\\
+\text{subject to} \quad &{r}^{T}{w}\geq{\mu}_{\text{target}}\\
 &{1}^{T}{w}={1}\\
 &{w}\geq{0}
 \end{align*}
@@ -64,9 +64,9 @@ model = Model(optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 0))
 optimize!(model)
 w_opt = value.(w)
 # Print results
-@show "Optimal minimum variance portfolio weights:"
+println("Optimal minimum variance portfolio weights:")
 for (i, w_i) in enumerate(w_opt)
-    @show ("Asset ", i, ": ", round(w_i, digits=4))
+    println("Asset ", i, ": ", round(w_i, digits=4))
 end
 ```
 
@@ -104,9 +104,9 @@ r = μ .- λ # risk adjusted returns
 optimize!(model)
 w_opt = value.(w)
 # Print results
-@show "Optimal portfolio weights with RBC-adjusted returns:"
+println("Optimal portfolio weights with RBC-adjusted returns:")
 for (i, w_i) in enumerate(w_opt)
-    @show ("Asset ", i, ": ", round(w_i, digits=4))
+    println("Asset ", i, ": ", round(w_i, digits=4))
 end
 ```
 
@@ -154,22 +154,32 @@ fig
 The Black-Litterman model combines the views of investors with market equilibrium assumptions to generate optimal portfolios. It starts with a market equilibrium portfolio and adjusts it based on investor views and confidence levels. The model incorporates subjective opinions while maintaining diversification and risk management principles.
 
 \begin{align*}
-\text{maximize} \quad & \mu^T w - \lambda \cdot \frac{1}{2} w^T \Sigma w \\
+\text{maximize} \quad & \mu_{BL}^\top w \;-\; \frac{\lambda}{2}\, w^\top \Sigma \, w \\
 \text{subject to} \quad & \sum_{i=1}^{N} w_i = 1 \\
 & w_i \geq 0, \quad \forall i
+
+\tetxt{where}
+\mu_{BL} =
+\Big( (\tau \Sigma)^{-1} + P^\top \Omega^{-1} P \Big)^{-1}
+\Big( (\tau \Sigma)^{-1} \mu + P^\top \Omega^{-1} Q \Big)
 \end{align*}
+
+$μ$ = prior (implied) returns from the market equilibrium.
+$P$ = matrix encoding which assets your views are on.
+$Q$ = your views (expected returns for specific portfolios).
+$Ω$ = uncertainty (covariance) of your views.
+$τ$ = scaling factor for the prior covariance (usually small, like 0.025).
 
 ```{julia}
 using JuMP, Ipopt
 
-λ = 2.5 # risk aversion
-rfr = 0.02 # risk free rate
 # Market equilibrium parameters (prior)
+λ = 2.5 # risk aversion
 μ_market = [0.08, 0.08, 0.08] # Market equilibrium return
 Σ_prior = Σ # Market equilibrium covariance matrix
 # Investor views
 Q = μ # Expected returns on assets according to investor views
-P = Matrix(I, nₐ, nₐ)     # Pick matrix specifying which assets views are on
+P = Matrix(I, nₐ, nₐ) # Pick matrix specifying which assets views are on
 Ω = Diagonal([1e-6, 4e-6, 9e-6])  # Views uncertainty (covariance matrix)
 
 # Create an optimization model
@@ -181,7 +191,7 @@ model = Model(optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 0))
 τ = 0.05 # Scaling factor
 # Calculate the posterior expected returns
 A = Σ_inv / τ + P' * (Ω \ P)
-B = Σ_inv * (μ_market .- rfr) / τ + P' * (Ω \ Q)
+B = Σ_inv * μ_market / τ + P' * (Ω \ Q)
 μ_posterior = A \ B
 # Objective: maximize sharpe ratio
 @objective(model, Max, λ / 2 * dot(w, Σ_prior * w) - dot(μ_posterior, w))
@@ -193,9 +203,9 @@ optimize!(model)
 w_opt = value.(w)
 ret = dot(μ_posterior, w_opt)
 vol = sqrt(dot(w_opt, Σ * w_opt))
-@show "Optimal Portfolio Weights, Expected Portfolio Return, Portfolio Volatility:", ret, vol
+println("Optimal Portfolio Weights, Expected Portfolio Return, Portfolio Volatility:", ret, vol)
 for (i, w_i) in enumerate(w_opt)
-    @show ("Asset ", i, ": ", round(w_i, digits=4))
+    println("Asset ", i, ": ", round(w_i, digits=4))
 end
 ```
 
@@ -204,9 +214,12 @@ end
 Risk parity is an asset allocation strategy that allocates capital based on risk rather than traditional measures such as market capitalization or asset prices. It aims to balance risk contributions across different assets or asset classes to achieve a more stable portfolio. Risk parity portfolios often include assets with different risk profiles, such as stocks, bonds, and commodities.
 
 \begin{align*}
-\text{minimize} \quad & \sum_{i=1}^{N} (w_i \cdot \sqrt{\sigma_i})^2 \\
-\text{subject to} \quad & \sum_{i=1}^{N} w_i = 1 \\
-& w_i \geq 0, \quad \forall i
+\min_{w \in \mathbb{R}^N} \quad & \sum_{i=1}^{N} \left( RC_i - t \right)^2 \\
+\text{subject to} \quad & \sum_{i=1}^{N} w_i = 1, \\
+& w_i \ge 0, \quad i = 1, \dots, N
+
+\text{where} \quad
+RC_i = \frac{w_i (\Sigma w)_i}{w^\top \Sigma w + \epsilon}
 \end{align*}
 
 ```{julia}
@@ -229,9 +242,9 @@ target = 1.0 / nₐ
 optimize!(model)
 w_opt = value.(w)
 # Print results
-@show "Optimal risk parity portfolio weights:"
+println("Optimal risk parity portfolio weights:")
 for (i, w_i) in enumerate(w_opt)
-    @show ("Asset ", i, ": ", round(w_i, digits=4))
+    println("Asset ", i, ": ", round(w_i, digits=4))
 end
 ```
 
@@ -240,7 +253,7 @@ end
 The Sharpe ratio measures the risk-adjusted return of a portfolio and is calculated as the ratio of excess return to volatility. Maximizing the Sharpe ratio involves finding the portfolio allocation that offers the highest risk-adjusted return. This approach focuses on achieving the best tradeoff between risk and return.
 
 \begin{align*}
-\text{maximize} \quad & \frac{E[R_p] - R_f}{\sigma_p} \\
+\text{maximize} \quad & \frac{E[R_p] - rfr}{\sigma_p} \\
 \text{subject to} \quad & \sum_{i=1}^{N} w_i = 1 \\
 & w_i \geq 0, \quad \forall i
 \end{align*}
@@ -261,9 +274,9 @@ rfr = 0.05 # risk free rate
 optimize!(model)
 w_opt = value.(w)
 # Print results
-@show "Optimal portfolio weights using Sharpe Ratio:"
+println("Optimal portfolio weights using Sharpe Ratio:")
 for (i, w_i) in enumerate(w_opt)
-    @show ("Asset ", i, ": ", round(w_i, digits=4))
+    println("Asset ", i, ": ", round(w_i, digits=4))
 end
 ```
 
@@ -297,9 +310,9 @@ w₀ = [0.3, 0.4, 0.3] # expected weights
 optimize!(model)
 w_opt = value.(w)
 # Print results
-@show "Optimal Portfolio Weights:"
+println("Optimal Portfolio Weights:")
 for (i, w_i) in enumerate(w_opt)
-    @show ("Asset ", i, ": ", round(w_i, digits=4))
+    println("Asset ", i, ": ", round(w_i, digits=4))
 end
 ```
 
@@ -310,8 +323,8 @@ end
 | Standard mean variance | [0.33, 0.17, 0.50] |
 | (with RBC costs)       | [0.17, 0.83, 0.00] |
 | Black-Litterman        | [0.00, 0.23, 0.77] |
-| Risk parity            | [0.00, 1.00, 0.00] |
-| Sharpe ratio           | [0.01, 0.54, 0.45] |
+| Risk parity            | [0.50, 0.50, 0.00] |
+| Sharpe ratio           | [0.02, 0.53, 0.45] |
 | Robust                 | [0.31, 0.31, 0.38] |
 : Optimized asset weights from different methodologies {.striped .hover}
 
@@ -346,5 +359,6 @@ There are various ways to implement a penalty factor for a large volume of asset
 - Regularization techniques. Techniques like Lasso (L1 regularization) or Ridge (L2 regularization) regression can penalize small weights or excessive diversification by adding a penalty term to the objective function.
 - Subset selection. Methods that explicitly select a subset of assets based on their contribution to portfolio performance, rather than including all assets indiscriminately.
 - Heuristic adjustments. Introducing heuristic rules or adjustments based on practical portfolio management principles or empirical observations.
+
 
 
