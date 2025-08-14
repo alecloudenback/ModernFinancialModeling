@@ -9,7 +9,7 @@ author:
 
 ## Chapter Overview
 
-Modern software engineering practices such as version control, testing, documentation, and pipelines which makes modeling more robust and automated. Data practices and workflow advice.
+Modern software engineering practices—version control, testing, documentation, and automated pipelines—make modeling more robust and reproducible. This chapter also covers data practices and workflow guidance.
 
 ## Introduction
 
@@ -26,7 +26,7 @@ Financial models often face regulatory requirements around model validation, cha
 There are three essential topics covered in this chapter:
 
 -   **Testing** is the practice of implementing automated checks for desired behavior and outputs in the system.
--   **Documentation** is the practice of writing plain English (or your local language) to compliment the computer code for better human understanding.
+-   **Documentation** is the practice of writing plain English (or your local language) to complement the computer code for better human understanding.
 -   **Version Control** is the systematic practice of tracking changes and facilitating collaborative workflows on projects.
 
 As the chapter progresses, some highly related topics are covered, bridging some of the conceptual ideas into practical implementations for your own code and models.
@@ -35,12 +35,12 @@ As a reminder, this chapter is heavily oriented to concepts that are applicable 
 
 ## Testing {#sec-software-testing}
 
-Testing is a crucial aspect of software engineering that ensures the reliability and correctness of code. In financial modeling, where accuracy is paramount, implementing robust testing practices is essential, and in many cases now legally required by the regulatory body or financial reporting authority. It's good practice regardless of requirements.
+Testing is a crucial aspect of software engineering that ensures the reliability and correctness of code. In financial modeling, where accuracy is paramount, implementing robust testing practices is essential, and in many cases now often required by regulators or financial reporting authorities. It's good practice regardless of requirements.
 
 A test is implemented by writing a boolean expression after a `@test` macro:
 
 ``` julia
-@test model_output = desired_output
+@test model_output == desired_output
 ```
 
 If the expression evaluates to `true`, then the test passes. If the expression is anything else (`false`, or produces an error, or `nothing`, etc.) then the test will fail.
@@ -68,7 +68,7 @@ using Test
 @test present_value(0.05, [10, 20]) ≈ 10 / 1.05 + 20 / 1.05^2
 ```
 
-The above test passes because the expression is true. However, the following will fail because we have defined the function assuming the given `discount_rate` is compounded once per period. This test will fail because the test target presumes a continuous compounding convention. The failing test will show the stacktrace of where the error occurred.
+The above test passes because the expression is true. However, the following will fail because we have defined the function assuming the given `discount_rate` is compounded once per period. This test will fail because the test target presumes a continuous compounding convention. A failing @test reports a test failure (showing actual vs expected). A stacktrace appears only if an error is thrown.
 
 ```{julia}
 #| error: true
@@ -77,7 +77,7 @@ The above test passes because the expression is true. However, the following wil
 ```
 
 ::: callout-tip
-When testing results of floating point math, it's a good idea to use the approximate comparison (`≈`, typed in a Julia editor with by entering `\approx<TAB>`). Recall that floating point math is a discrete, computer representation of continuous real numbers. As perfect precision is not efficient, very small differences can arise depending on the specific numbers involved or the order in which the operations are applied.
+When testing results of floating point math, it's a good idea to use the approximate comparison (`≈`, typed in a Julia editor by entering `\approx<TAB>`). Recall that floating point math is a discrete, computer representation of continuous real numbers. As perfect precision is not efficient, very small differences can arise depending on the specific numbers involved or the order in which the operations are applied.
 
 In tests (as in the `isapprox`/`≈` function), you can also further specify a relative tolerance and an absolute tolerance:
 
@@ -93,9 +93,9 @@ The testing described in this section is sort of a 'sampling' based approach, wh
 More Julia-specific testing workflows are covered in @sec-julia-testing.
 :::
 
-### Test Driven Design
+### Test Driven Development
 
-**Test Driven Design** (TDD) is a software development approach where tests are written before the actual code. The process typically follows these steps:
+**Test Driven Development** (TDD) is a software development approach where tests are written before the actual code. The process typically follows these steps:
 
 1.  Write a test that defines a desired function or improvement.
 2.  Run the test, which should fail since the feature hasn't been implemented.
@@ -156,7 +156,7 @@ end
 @test asset_value(10,11) ≈ 1.5   
 ```
 
-From this, it's possible to determine a score for how well a given set of code is tested. 100% coverage means every line of code has at least one test that double checked its behavior.
+From the coverage statistics, it's possible to determine a score for how well a given set of code is tested. 100% coverage means every line of code has at least one test that double checked its behavior.
 
 ::: callout-warning
 Testing is only as good as the tests that are written. You could have 100% code coverage for a codebase with only a single rudimentary test covering each line. Or the test itself could be wrong! Testing is not a cure-all, but does encourage best practices.
@@ -299,7 +299,7 @@ Specifically, modern docsite tooling generally takes in markdown text pages alon
 
 Typical contents of a docsite include:
 
--   A *Quickstart* guide that introduces the project and provides an essential or common use case that the user can immediately run in their own environment. This helps to convey the scope and capability of a project and showcase how to model is intended to be used.
+-   A *Quickstart* guide that introduces the project and provides an essential or common use case that the user can immediately run in their own environment. This conveys the scope and demonstrates intended usage.
 
 -   *Tutorials* are typically worked examples that introduce basic aspects of a concept or package usage and work up to more complex use cases.
 
@@ -332,7 +332,7 @@ This section will introduce Git related concepts at a level deeper than "here's 
 
 Git is a free and open source software that tracks changes in files using a series of snapshots. Git itself is the underlying software tool and is a command-line tool at its core. However, you will often interact with it through various interfaces (such as a graphical user interface in VS Code, GitKraken, or other tool).
 
-Each snapshot, or **commit**, stores references to the files that have changed[^software-2]. All of this is stored in a `.git/` subfolder of a project, which is automatically created upon initializing a repository. This folder may be hidden by default by your filesystem. You generally never need to modify anything inside the `.git/` folder yourself as Git handles this for you. Git tracks files that are contained in sibling directories to the `.git/` subfolder.
+Each snapshot, or **commit**, stores references to the files that have changed[^software-2]. All of this is stored in a `.git/` subfolder of a project, which is automatically created upon initializing a repository. This folder may be hidden by default by your filesystem. You generally never need to modify anything inside the `.git/` folder yourself as Git handles this for you. Git tracks files in the repository working tree (the directory containing the .git folder and its subdirectories). It does not track directories outside the repository.
 
 [^software-2]: Git uses a content-addressable filesystem, meaning it stores data as key-value pairs. The key is a hash of the content, ensuring data integrity and allowing efficient storage of identical content. For more on hashes, jump to @note-content-hash.
 
@@ -345,7 +345,6 @@ Hashes indicate a verifiable snapshot of a codebase. For example, a full commit 
 A codebase can be **branched**, meaning that two different version of the same codebase can be tracked and switched between. Git lends itself to many different workflows, but a common one is to designate a primary branch (call it `main`) and make modifications in a new, separate branch. This allows for non-linear and controlled changes to occur without potentially tainting the `main` branch. It's common practice to always have the `main` branch be a 'working' version of the code that can always 'run' for users, while branches contain works-in-progress or piecemeal changes that temporarily make the project unable to run.
 
 The commit history forms a directed acyclic graph (DAG) representing the project's history. That is, there is an order to the history: the second commit is dependent on the first commit. From the second commit, two child commits may be created which both have the second commit as their parent. Each one of this commits represents a stored snapshot of the project at the time of the commit.
-
 
 ::: callout-note
 A directory structure demonstrating where git data is stored and what content is tracked after initializing a repository in the `tracked-project` directory. Note how `untracked folder` is not the parent directory of the `.git` directory so it does not get tracked by Git.
@@ -372,7 +371,6 @@ A directory structure demonstrating where git data is stored and what content is
 Under the hood, the Git data stored inside the `.git/` include things such as binary blobs, trees, commits, and tags. Blobs store file contents, trees represent directories, commits point to trees and parent commits, and tags provide human-readable names for specific commits. This structure allows Git to efficiently handle branching, merging, and maintaining project history.
 :::
 
-
 @tbl-git-workflow shows an example workflow for trying to fix an erroneous function `present_value` which was written as part of a hypothetical `FileXYZ.jl` file. This example is trivial, but in a larger project where a 'fix' or 'enhancement' may span many files and take several days or weeks to implement this type of workflow becomes like a superpower compared to traditional, manual version control approaches. It sure beats an approach where you end up with filenames like `FileXYZ v23 July 2022 Final.jl`!
 
 ::: landscape
@@ -385,7 +383,7 @@ Under the hood, the Git data stored inside the `.git/` include things such as bi
 | ``` julia                         | Does not yet exist                        | Write original function which forgets to take into account the `time`. Stage and commit it to the main branch.\            | `main`\                 |
 | function pv(rate,amount,time)     |                                           | \                                                                                                                          | (`...58b`)              |
 |     amount / (1+rate)             |                                           | **Git commands**:\                                                                                                         |                         |
-| end                               |                                           | `git add FileXYZ.jlgit commit -m 'add pv function'`                                                                        |                         |
+| end                               |                                           | `git add FileXYZ.jl`, then `git commit -m 'add pv function'`                                                               |                         |
 | ```                               |                                           |                                                                                                                            |                         |
 +-----------------------------------+-------------------------------------------+----------------------------------------------------------------------------------------------------------------------------+-------------------------+
 | "                                 | ``` julia                                 | Create a new branch `fix_function`.\                                                                                       | `main`\                 |
@@ -507,7 +505,7 @@ The features described here can take modelers many manhours of time - testing, r
 
 ### Data Version Control {#sec-data-version-control}
 
-Git is not well suited for large files (images, videos, datasets) that change regularly. Instead, the approach is to combine git with a **data version control** tool. These tool essentially replace the data (often called binary data or a blob) with a content hash in the git snapshots. The actual content referred to by the hash is then located elsewhere (e.g. a hosted server).
+Git alone is not well suited for large, frequently changing binary files. Instead, the approach is to combine git with a **data version control** tool. These tool essentially replace the data (often called binary data or a blob) with a content hash in the git snapshots. The actual content referred to by the hash is then located elsewhere (e.g. a hosted server).
 
 ::: {#note-content-hash callout-note} \## Content Hashes
 
@@ -516,28 +514,37 @@ Git is not well suited for large files (images, videos, datasets) that change re
 For example, it might look something like this:
 
 ```{julia}
+using SHA
+
 data = "A data file contents 123"
-Base.hash(data)
+bytes2hex(sha256(codeunits(data)))
 ```
 
 If it's run again on the same inputs, you get the same output:
 
 ```{julia}
-Base.hash(data)
+# Same input → same hash
+bytes2hex(sha256(codeunits(data)))
 ```
 
 And if the data is changed even slightly, then the output is markedly different:
 
 ```{julia}
+# Slight change → very different hash
 data2 = "A data file contents 124"
-Base.hash(data2)
+bytes2hex(sha256(codeunits(data2)))
 ```
+
+:::callout-tip
+Use a cryptographic hash (e.g., SHA-256) to derive a stable, deterministic content hash. Base.hash is intentionally randomized for security and is not suitable for content-addressed storage.
+:::
+
 
 This is used in content addressed systems like Data Version Control (@sec-data-version-control) and Artifacts (sec @artifacts) to ask for, and confirm the accuracy of, data instead of trying to address the data by its location. That is, instead of trying to ask to get data from a given URL (e.g. `http://adatasource.com/data.csv`) you can set up a system which keeps track of available locations for the data that matches the content hash. Something like (in Julia-ish pseudocode):
 
 ``` julia
 storage_locations = Dict(
-    0x4d7e8e449afd1c48 => [
+    "0x4d7e8e449afd1c48" => [
         "http://datasets.com/1231234",
         "http://companyintranet.com/admin.csv",
         "C:/Users/your_name/Documents/Data/admin.csv"
@@ -572,7 +579,7 @@ Ones you have created something, the next best feeling after having it working i
 -   Versions of your package that your have made available and the Git hash associated with the that version for provenance and tracking
 -   The location where your package's repository lives so that the user can grab the code from there.
 
-The Julia General Registry ("General") is the default registry that comes loaded as the default registry when installing Julia. From a capability standpoint, there's nothing that separates General from other registries, including ones that you can create yourself. At its core, the registry is can be seen as a Git repository where each new commit just adds information associated with the newly registered package or version of a package.
+The Julia General Registry ("General") is the default registry that comes loaded as the default registry when installing Julia. From a capability standpoint, there's nothing that separates General from other registries, including ones that you can create yourself. At its core, a registry can be seen as a Git repository where each new commit just adds information associated with the newly registered package or version of a package.
 
 For distributing packages in a private, or smaller public group see @sec-local-registry.
 
@@ -659,7 +666,13 @@ Numbers need not roll over to the next digit when they hit 10. That is, it's per
 ::: callout-tip
 Sometimes you'll see a package with a version that starts with zero, such as `v0.23.1`. **We recommend that as soon as you register a package, to make it a `v1`**. `v1` need not indicate the package is "complete" (what software is?), so don't hold back on calling it `v1`. You're letting users install it easily, so you might as well call it the first version and move on!
 
-According to SemVer's rules, there are no patch versions when the major version is zero. This means that you have one less meaningful digit to communicate to users what's going on with a change. Most packages put an upper bound on compatibility so that major or minor changes in upstream packages are less likely to cause issues in their own packages. This can be somewhat painful to depend on a package which has a `v0` and is iterating through 'fixes' but is incrementing the minor version. You have to assume it's making backward incompatible changes and should have skepticism of just upgrading to the new version of the dependency. It takes work on the downstream dependencies to decide if they should upgrade, adding mental and time loads to other authors and users.
+According to SemVer's rules:
+
+> Major version zero (0.y.z) is for initial development. Anything MAY change at any time. The public API SHOULD NOT be considered stable.
+
+Most packages put an upper bound on compatibility so that major or minor changes in upstream packages are less likely to cause issues in their own packages. This can be somewhat painful to depend on a package which has a major version 0 (i.e. `v0.x.x`). You have to assume minor version bumps are backward incompatible changes, but the author might intend it to be a feature release. You should have skepticism of just upgrading to the new version of the dependency. It takes work on the downstream dependencies to decide if they should upgrade, adding mental and time loads to other authors and users. 
+
+This is why once you have anyone else depending on the package, going straight to `v1` is helpful because you have finer-grained control over the release versioning and the meaning behind each new version number.
 :::
 
 ### Artifacts {#sec-artifacts}
@@ -685,6 +698,7 @@ git-tree-sha1 = "6164a6026f108fe95828b689fcd3b992acbff7c3" # <1>
 Then, within the package the data artifact can be referenced and handled by the artifact system rather than needing to manually handle it. That is, the data is reference-able like this:
 
 ``` julia
+using Pkg.Artifacts
 table_dir = artifact"mort.soa.org" # <1>
 ```
 
@@ -716,12 +730,17 @@ Artifacts support `.tar` (uncompressed) and `.tar.gz` because that compression f
 
 ## Example Repository
 
-The is a good example of a repository which shows the organization of files and code, setting up testing, and documentation.
+Here is a good example of a repository which shows the organization of files and code, setting up testing, and documentation.
 
 ## Example Repository Structure
 
-A well-structured Julia package demonstrates key software engineering principles in action. The [JuliaTemplateRepo](https://github.com/bjack205/JuliaTemplateRepo.jl) repository demonstrates best practices for: - Logical file organization and code structure - Comprehensive test coverage and continuous integration - Clear, accessible documentation with examples - Standard tooling configuration for package development
+A well-structured Julia package demonstrates key software engineering principles in action. The [JuliaTemplateRepo](https://github.com/bjack205/JuliaTemplateRepo.jl) repository demonstrates best practices for: 
+
+- Logical file organization and code structure 
+- Comprehensive test coverage and continuous integration 
+- Clear, accessible documentation with examples 
+- Standard tooling configuration for package development
 
 This open-source template serves as a reference implementation.
 
-The [PkgTemplates.jl](https://github.com/JuliaCI/PkgTemplates.jl) package will allow you to create an empty repository with all of the testing, documentation, Git, and continuos integration scaffolding already in place.
+The [PkgTemplates.jl](https://github.com/JuliaCI/PkgTemplates.jl) package will allow you to create an empty repository with all of the testing, documentation, Git, and continuous integration scaffolding already in place.
