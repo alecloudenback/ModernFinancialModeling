@@ -170,7 +170,7 @@ rfr = 0.02 # risk free rate
 # Investor views
 Q = μ # Expected returns on assets according to investor views
 P = Matrix(I, nₐ, nₐ)     # Pick matrix specifying which assets views are on
-Ω = Diagonal([1e-6,4e-6,9e-6])  # Views uncertainty (covariance matrix)
+Ω = Diagonal([1e-6, 4e-6, 9e-6])  # Views uncertainty (covariance matrix)
 
 # Create an optimization model
 model = Model(optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 0))
@@ -181,7 +181,7 @@ model = Model(optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 0))
 τ = 0.05 # Scaling factor
 # Calculate the posterior expected returns
 A = Σ_inv / τ + P' * (Ω \ P)
-B = Σ_inv * (μ_market - rfr) / τ + P' * (Ω \ Q)
+B = Σ_inv * (μ_market .- rfr) / τ + P' * (Ω \ Q)
 μ_posterior = A \ B
 # Objective: maximize sharpe ratio
 @objective(model, Max, λ / 2 * dot(w, Σ_prior * w) - dot(μ_posterior, w))

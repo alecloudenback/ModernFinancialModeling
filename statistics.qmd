@@ -54,7 +54,7 @@ The **information content** of an outcome, $h(x)$ is measured in bits and define
 [^statistics-1]: Log base two turns out to be the most natural representation of information content as it mimics the fundamental 0 or 1 value bit. A more complete introduction is available in "Information Theory, Inference, and Learning Algorithms" by David MacKay.
 
 $$
-h(x_i) = \text{log}_2\frac{1}{p(x_i)}
+h(x_i) = \text{log}_2\frac{1}{p(x_i)} = -\text{log}_2 p(x_i)
 $$ {#eq-information}
 
 Looking at @tbl-digit-information-human, we can see that the information content of an outcome is *lower* when that outcome has a higher probability than the other potential outcomes. Specifically, If the digit was indeed `0`, we have gained less information relative to our expectation than if the missing digit were anything other than `0` .
@@ -66,7 +66,7 @@ The information content is sometimes referred to as a measure of *surprise* that
 We can characterize the entire distribution $X$ via the **entropy,** $H(X)$, of a probability set is the ensemble's average information content:
 
 $$
-H(X) = \sum{p(x_i)\text{log}_2}\frac{1}{p(x_i)} 
+H(X) = \sum{p(x_i)\text{log}_2}\frac{1}{p(x_i)} = -\sum_{i} p(x_i)\,\log_2 p(x_i)
 $$ {#eq-entropy}
 
 The entropy $H(X)$ of the presumed outcomes in @tbl-digit-information-human distribution of outcomes is $0.722 \text{bits}$. In just
@@ -97,7 +97,7 @@ The choice of prior assumption can significantly impact the interpretation and a
 
 In real-world scenarios, the choice of prior assumptions often depends on domain knowledge, available data, and the specific problem at hand. It is important to carefully consider and justify the prior assumptions used in information-theoretic and statistical analyses.
 
-### Example: Classificaiton
+### Example: Classification
 
 In this example, we will determine the optimal splits for a decision tree[^statistics-2] based on the information gained at each node in the tree.
 
@@ -120,7 +120,7 @@ The entropy of the default rate data is, per @eq-entropy:
 H0 = let
     p_default = sum(default_data.default) / nrow(default_data)
     p_good = 1 - p_default
-    p_default * log2(1 / p_default) + p_good * log(1 / p_good)
+    p_default * log2(1 / p_default) + p_good * log2(1 / p_good)
 end
 ```
 
@@ -154,7 +154,7 @@ Let's call its entropy `H_employed`, which should be zero because there is no va
 H_employed = let
     p_default = sum(df_employed.default) / nrow(df_employed)
     p_good = 1 - p_default
-    # p_default * log2(1 / p_default) + p_good * log(1 / p_good) 
+    # p_default * log2(1 / p_default) + p_good * log2(1 / p_good) 
     p_default * log2(1 / p_default) + 0 # <1>
 end
 ```
@@ -167,7 +167,7 @@ And the corresponding candidate leaf is `H_unemployed`:
 H_unemployed = let
     p_default = sum(df_unemployed.default) / nrow(df_unemployed)
     p_good = 1 - p_default
-    p_default * log2(1 / p_default) + p_good * log(1 / p_good)
+    p_default * log2(1 / p_default) + p_good * log2(1 / p_good)
 end
 ```
 
@@ -188,7 +188,7 @@ The information gain for splitting the tree using employment status is the diffe
 IG_employment = H0 - H1_employment
 ```
 
-We could repeat the analysis to determine the information gain if we were to split the tree based on having good credit. However, given that there are only two attributes we can already conclude that `employed` is a better attribute to split the data on. This is because the information gain of `IG_employment` (`{julia} round(IG_employment;digits=3)`) is the majority of the overall entropy `H0` (`{julia} round(H0;digits=3)`). Entropy is always additive and you cannot have negative entropy, therefore no other other attribute could have greater information gain. This also matches our intuition when looking at @tbl-default-data as the eye can spot a higher correlation between `employed` and `default` than `good_credit` and `default`.
+We could repeat the analysis to determine the information gain if we were to split the tree based on having good credit. However, given that there are only two attributes we can already conclude that `employed` is a better attribute to split the data on. This is because the information gain of `IG_employment` (`{julia} round(IG_employment;digits=3)`) is the majority of the overall entropy `H0` (`{julia} round(H0;digits=3)`). Entropy is always additive and you cannot have negative entropy, therefore no other attribute could have greater information gain. This also matches our intuition when looking at @tbl-default-data as the eye can spot a higher correlation between `employed` and `default` than `good_credit` and `default`.
 
 The above example demonstrates how we can use information theory to create more optimal inferences on data.
 
@@ -223,7 +223,7 @@ Some discussion of maximum entropy distributions in the context of risk assessme
 | Mean is finite, two possible values | Binomial |  |  |
 | Mean is finite and positive | Geometric | Exponential |  |
 | Mean is finite and range is \> zero |  | Gamma |  |
-| Mean and Variance is finite |  | Gaussian (Normal) |  |
+| Mean and Variance are finite |  | Gaussian (Normal) |  |
 | Positive and equal mean and variance | Poisson |  |  |
 
 : Maximum Entropy Distributions and the conditions under which they are applicable. For example, if you know that a probability must be continuous and have a positive mean (and can't be normalized), then the MED is the Exponential Distribution. {#tbl-MEDs}
@@ -376,7 +376,7 @@ $$
 
 The Bayes factor then is a statement about the relative probability of two competing models for the given data. We can interpret the results as:
 
--   If $BF > 1$, the data favors model $H_1$ over model $H_2$.
+-   If $BF > 1$, the data favor model $H_1$ over model $H_2$.
 -   If $BF < 1$, the data favor model $H_2$ over model $H_1$.
 -   If $BF = 1$, the data do not provide evidence in favor of either model.
 
@@ -458,41 +458,53 @@ We will show the likelihood of the three models after deriving the **maximum lik
 using StatsBase
 using Distributions
 
-n = fit_mle(Normal, rain)
-ln = fit_mle(Normal, log.(rain))
-lg = fit_mle(Gamma, log.(rain))
-@show n
-@show ln
-@show lg;
+# H1: Normal
+h1_dist = fit_mle(Normal, rain)
+
+# H2: LogNormal - parameters are from fitting a Normal to the log of the data
+h2_params = fit_mle(Normal, log.(rain))
+h2_dist = LogNormal(params(h2_params)...)
+
+# H3: Gamma
+h3_dist = fit_mle(Gamma, rain)
+
+@show h1_dist
+@show h2_dist
+@show h3_dist;
 ```
 
 Let's look at the likelihoods by applying the maximum likelihood distribution to the observed data. For the practical reasons described in @tip-logarithms, we will compare the the log-likelihoods to maintain convention with what you'd likely see or deal with in practice. Taking the log of the likelihood does not change the ranking of the likelihoods.
 
 ```{julia}
- let
-    n_lik = sum(log.(pdf.(n, rain)))
-    ln_lik = sum(log.(pdf.(ln, log.(rain))))
-    lg_lik = sum(log.(pdf.(lg, log.(rain))))
+h1_loglik = sum(log.(pdf.(h1_dist, rain)))
+h2_loglik = sum(log.(pdf.(h2_dist, rain)))
+h3_loglik = sum(log.(pdf.(h3_dist, rain)))
 
-    @show n_lik
-    @show ln_lik
-    @show lg_lik
-end;
+@show h1_loglik
+@show h2_loglik
+@show h3_loglik
 ```
 
-The results indicate that the LogNormal and the Gamma model for rainfall distribution are very superior to the Normal model, consistent with the visual inspection of the quantiles in @fig-rain-cdf. We reach that conclusion by noting how much more likely the latter two are, as the likelihoods of $-42$ and $-44$ is much greater than $-296$[^statistics-9].
+::: callout-note
+Instead of `sum(log.(pdf.(distribution,data)))`, we could call `loglikelihood(distribution,data)`. We show the former for the explicitness of the calculation for pedagogy. In real use, `loglikelihood` should be preferred because it has additional logic to improve numerical stability for floating point operations.
+:::
+
+The results indicate that the LogNormal and the Gamma model for rainfall distribution are very superior to the Normal model, consistent with the visual inspection of the quantiles in @fig-rain-cdf. We reach that conclusion by noting how much more likely the latter two are, as the likelihoods of `{julia} round(h2_loglik,digits=2)` and `{julia} round(h3_loglik,digits=2)` is higher (less negative) than `{julia} round(h1_loglik,digits=2)`[^statistics-9]. Higher (less negative) log-likelihood values indicate a better fit.
 
 [^statistics-9]: The values are negative because we are taking the logarithm of a number less than $1$. The likelihoods are less than $1$ because the likelihood is the joint (multiplicative) probability of observing each of the individual outcomes.
 
 ```{julia}
 #| label: fig-rain-cdf
 let x = rain
-
+    # Use the fitted distributions from the previous step
     range = 1:0.1:100
-    fig, ax, _ = lines(range, cdf.(n, range), label="Normal", axis=(xgridvisible=false, ygridvisible=false,))
-    lines!(ax, range, cdf.(ln, log.(range)), label="LogNormal")
-    lines!(range, cdf.(lg, log.(range)), label="LogGamma")
+    fig, ax, _ = lines(range, cdf.(h1_dist, range), label="Normal", axis=(xgridvisible=false, ygridvisible=false,))
+    lines!(ax, range, cdf.(h2_dist, range), label="LogNormal")
+    lines!(ax, range, cdf.(h3_dist, range), label="Gamma")
+    
+    # Plot empirical CDF of the data
     lines!(quantile.(Ref(x), 0.01:0.01:0.99), 0.01:0.01:0.99, label="Data", color=(:black, 0.6), linewidth=3)
+    
     fig[1, 2] = Legend(fig, ax, "Model", framevisible=false)
     fig
 end
@@ -523,7 +535,7 @@ The FCF is the belief that if you have a $X\%$ confidence interval, that the pro
 
 -   However, once the data is observed we can know with higher probability than $X$ whether the true value lies within that range.
 
-Here's an example taken from the article referenced above: we wish to estimate the mean of a continuous random variable. We observe two data points $y_1$ and $y_2$. If $y_1 < y_2$ then we say our interval is $(-\infty,\infty)$ otherwise the interval is empty. Our credibility procedure creates an interval for which 50% of the time it contains the true value. However, once we've observed the data and created the interval, then "post-data" we can tell with certainty whether our interval contains the variable of interest. We can only say "pre-data", or pre-observations, that the credibility interval is really $X\%$ probable to contain the right value. Similar (and other) issues arises with more "real world" examples of confidence intervals.
+Here's an example taken from the article referenced above: we wish to estimate the mean of a continuous random variable. We observe two data points $y_1$ and $y_2$. If $y_1 < y_2$ then we say our interval is $(-\infty,\infty)$ otherwise the interval is empty. Our credibility procedure creates an interval for which 50% of the time it contains the true value. However, once we've observed the data and created the interval, then "post-data" we can tell with certainty whether our interval contains the variable of interest. We can only say "pre-data", or pre-observations, that the credibile interval is really $X\%$ probable to contain the right value. Similar (and other) issues arises with more "real world" examples of confidence intervals.
 
 In contrast, the Bayesian procedure of estimating an interval using the posterior distribution of the data *can* be interpreted as an interval for which you can say that you believe the true value is contained within the interval. Typically, this is referred to as a credibility *interval* to distinguish from a *confidence interval*.
 :::
@@ -669,7 +681,7 @@ linkxaxes!(ax1,ax2)
 f
 ```
 
-Having generated sample data, we will next define a probability distribution for the random step that we take from the `current_point` on the Markov chain. We choose a 2D Gaussian for this, since the parameter space to explore is two-dimensional ( $\mu$ and $\theta$). The `proposal_std` controls how big of a movement is taken at each step.
+Having generated sample data, we will next define a probability distribution for the random step that we take from the `current_point` on the Markov chain. We choose a 2D Gaussian for this, since the parameter space to explore is two-dimensional ( $\mu$ and $\signma$). The `proposal_std` controls how big of a movement is taken at each step.
 
 ```{julia}
 # Define the proposal step distribution
@@ -686,7 +698,7 @@ burn_in = 500
 
 # Define priors
 μ_prior = Normal(0, 0.25)
-σ_prior = Gamma(0.5)
+σ_prior = Gamma(0.5,1.0)
 
 # Initialize the Markov chain
 μ_current, σ_current =  0.0, 0.25
@@ -694,6 +706,9 @@ current_prob = sum(logpdf(Normal(μ_current, σ_current), r) for r in returns) +
                logpdf(μ_prior, μ_current) + 
                logpdf(σ_prior, σ_current)
 
+
+# The 'chain' will store all samples, including the burn-in phase.
+# We will discard the first 'burn_in' samples later during analysis.
 chain = zeros(num_samples, 2)
 
 count = 0
@@ -817,19 +832,15 @@ Here's what defining the LogNormal model looks like in Turing. We have to specif
 ```{julia}
 using Turing
 
-@model function rainLogNormal(logdata) #<1>
-    
-    # Prior Assumptions for the (Log) Normal Parameters
-    μ ~ Normal(4,1) # <2>
-    σ ~ Exponential(0.5) # <3>
-
-    # Link observations to the random process
-    for i in 1:length(logdata)
-        logdata[i] ~ Normal(μ, σ)
+@model function rain_lognormal(data)
+    μ ~ Normal(4.0, 1.0)
+    σ ~ Exponential(2.0) 
+    for i in eachindex(data)
+        data[i] ~ LogNormal(μ, σ)
     end
 end
 
-m = rainLogNormal(log.(rain));
+m = rain_lognormal(rain)
 ```
 
 1.  Defining the model uses the `@model` macro from Turing.
@@ -871,7 +882,7 @@ Next, we sample the posterior by using the No-U-Turns (NUTS) algorithm and drawi
 #| label: fig-rain-post
 #| fig-cap: "Model output for the sampled posterior."
 
-chain_posterior = sample(m,NUTS(),1000)
+chain_posterior = sample(m, NUTS(), 1000)
 ```
 
 #### Diagnostics
@@ -923,11 +934,11 @@ Let's see how it looks compared to the data first. @fig-rain-mcmc shows 200 samp
 function chn_cdf!(axis,chain,rain)    
     n = 200
     s = sample(chain, n)
-    vals = get(s, [:μ, :σ])
-    ds = Normal.(vals.μ, vals.σ) # ,get(s,:σ)[i])
-    rg = 1:200
-    for (i, d) in enumerate(ds)
-        lines!(axis, rg,cdf.(d,log.(rg)),color=(:gray,0.3))
+    vals = get(sample(chain, 200), [:μ, :σ])
+    ds = LogNormal.(vals.μ, vals.σ)
+    xs = range(1.0, stop=200.0, length=200)
+    for d in ds
+        lines!(axis, xs, cdf.(d, xs), color=(:gray, 0.3))
     end
 
     # plot the actual data
@@ -957,7 +968,7 @@ Comparing to the maximum likelihood analysis from before by plotting the MLE poi
 
 let
     # get the parameters from the earlier MLE approach
-    p = params(ln)
+    p = params(h2_dist)
 
     f = Figure()
 

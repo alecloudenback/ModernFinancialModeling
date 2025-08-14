@@ -100,21 +100,6 @@ using Random, CairoMakie
 # Set seed for reproducibility
 Random.seed!(1234)
 
-# CIR model parameters
-κ = 0.2 # Speed of mean reversion
-θ = 0.05 # Long-term mean
-σ = 0.1 # Volatility
-
-# Initial short-term interest rate
-r₀ = 0.03
-
-# Number of time steps and simulations
-num_steps = 252
-num_simulations = 1_000
-
-# Time increment
-Δt = 1 / 252
-
 # Function to simulate CIR process
 function cir_simulation(κ, θ, σ, r₀, Δt, num_steps, num_simulations)
     interest_rate_paths = zeros(num_steps, num_simulations)
@@ -131,16 +116,33 @@ function cir_simulation(κ, θ, σ, r₀, Δt, num_steps, num_simulations)
     return interest_rate_paths
 end
 
-# Run CIR simulation
-cir_paths = cir_simulation(κ, θ, σ, r₀, Δt, num_steps, num_simulations)
+let
 
-# Plot the simulated interest rate paths
-f = Figure()
-Axis(f[1, 1])
-for i in 1:num_simulations
-    lines!(1:num_steps, cir_paths[:, i])
+    # CIR model parameters
+    κ = 0.2 # Speed of mean reversion
+    θ = 0.05 # Long-term mean
+    σ = 0.1 # Volatility
+
+    # Initial short-term interest rate
+    r₀ = 0.03
+
+    # Number of time steps and simulations
+    num_steps = 252
+    num_simulations = 1_000
+
+    # Time increment
+    Δt = 1 / 252
+    # Run CIR simulation
+    cir_paths = cir_simulation(κ, θ, σ, r₀, Δt, num_steps, num_simulations)
+
+    # Plot the simulated interest rate paths
+    f = Figure()
+    Axis(f[1, 1])
+    for i in 1:num_simulations
+        lines!(1:num_steps, cir_paths[:, i])
+    end
+    f
 end
-f
 ```
 
 The exact CIR process has a non-central chi-squared distribution for $r(t)$ in closed form.
@@ -154,49 +156,52 @@ $$
 
 where $\chi'^2_{d}(\lambda)$ means the non-central chi-square distribution with $d$ degrees of freedom and a non-centrality parameter $λ$. The following code shows an exact implementation of a CIR model.
 
-```
-using Random, Distributions, CairoMakie
+```{julia}
+using Distributions
 
-# CIR parameters
-κ = 0.5 # mean reversion speed
-θ = 0.04 # long-term mean
-σ = 0.1 # volatility coefficient
-r0 = 0.03 # initial rate
-T = 5.0 # years
-Nsteps = 500 # time steps
-dt = T / Nsteps
-nsim = 5 # number of simulated paths
+let
 
-# Precompute constants
-d = 4 * κ * θ / (σ * σ)
+    # CIR parameters
+    κ = 0.5 # mean reversion speed
+    θ = 0.04 # long-term mean
+    σ = 0.1 # volatility coefficient
+    r0 = 0.03 # initial rate
+    T = 5.0 # years
+    Nsteps = 500 # time steps
+    dt = T / Nsteps
+    nsim = 5 # number of simulated paths
 
-# Time grid
-tgrid = collect(0:dt:T)
-rpaths = zeros(length(tgrid), nsim)
+    # Precompute constants
+    d = 4 * κ * θ / (σ * σ)
 
-# Seed reproducibility
-Random.seed!(1234)
+    # Time grid
+    tgrid = collect(0:dt:T)
+    rpaths = zeros(length(tgrid), nsim)
 
-for path in 1:nsim
-    r = r0
-    rpaths[1, path] = r
-    for i in 2:length(tgrid)
-        # Transition distribution parameters
-        c = (σ * σ * (1 - exp(-κ * dt))) / (4 * κ)
-        λ = (4 * κ * exp(-κ * dt) * r) / (σ * σ * (1 - exp(-κ * dt)))
-        nc_chisq = NoncentralChisq(d, λ)
-        r = c * rand(nc_chisq)
-        rpaths[i, path] = r
+    # Seed reproducibility
+    Random.seed!(1234)
+
+    for path in 1:nsim
+        r = r0
+        rpaths[1, path] = r
+        for i in 2:length(tgrid)
+            # Transition distribution parameters
+            c = (σ * σ * (1 - exp(-κ * dt))) / (4 * κ)
+            λ = (4 * κ * exp(-κ * dt) * r) / (σ * σ * (1 - exp(-κ * dt)))
+            nc_chisq = NoncentralChisq(d, λ)
+            r = c * rand(nc_chisq)
+            rpaths[i, path] = r
+        end
     end
-end
 
-# Plot
-fig = Figure(resolution = (800, 500))
-ax = Axis(fig[1, 1], xlabel = "Time (years)", ylabel = "Short rate", title = "Exact CIR Process Simulation (Non-central Chi-square)")
-for path in 1:nsim
-    lines!(ax, tgrid, rpaths[:, path])
+    # Plot
+    fig = Figure(resolution=(800, 500))
+    ax = Axis(fig[1, 1], xlabel="Time (years)", ylabel="Short rate", title="Exact CIR Process Simulation (Non-central Chi-square)")
+    for path in 1:nsim
+        lines!(ax, tgrid, rpaths[:, path])
+    end
+    fig
 end
-fig
 ```
 
 #### Hull-White
@@ -216,46 +221,46 @@ where
 -   $dW(t)$ is a Wiener process or Brownian motion, representing a random shock.
 
 ```{julia}
-using Random, CairoMakie
+let
+    # Parameters
+    a = 0.1 # mean reversion speed
+    θ(t) = 0.05 + 0.01 * sin(2π * t) # time-dependent mean level, illustrative only
+    σ(t) = 0.005 + 0.002 * cos(2π * t) # time-dependent volatility, illustrative only
+    r0 = 0.03 # initial short rate
+    T = 5.0 # years
+    Nsteps = 500 # time steps
+    dt = T / Nsteps
+    nsim = 5 # number of simulated paths
 
-# Parameters
-a = 0.1 # mean reversion speed
-θ(t) = 0.05 + 0.01 * sin(2π * t) # time-dependent mean level, illustrative only
-σ(t) = 0.005 + 0.002 * cos(2π * t) # time-dependent volatility, illustrative only
-r0 = 0.03 # initial short rate
-T = 5.0 # years
-Nsteps = 500 # time steps
-dt = T / Nsteps
-nsim = 5 # number of simulated paths
+    # Preallocate
+    tgrid = collect(0:dt:T)
+    rpaths = zeros(length(tgrid), nsim)
 
-# Preallocate
-tgrid = collect(0:dt:T)
-rpaths = zeros(length(tgrid), nsim)
+    # Seed for reproducibility
+    Random.seed!(1234)
 
-# Seed for reproducibility
-Random.seed!(1234)
-
-# Euler–Maruyama simulation
-for path in 1:nsim
-    r = r0
-    rpaths[1, path] = r
-    for i in 2:length(tgrid)
-        t_prev = tgrid[i-1]
-        dW = sqrt(dt) * randn()
-        drift = (θ(t_prev) - a * r) * dt
-        diffusion = σ(t_prev) * dW
-        r += drift + diffusion
-        rpaths[i, path] = r
+    # Euler–Maruyama simulation
+    for path in 1:nsim
+        r = r0
+        rpaths[1, path] = r
+        for i in 2:length(tgrid)
+            t_prev = tgrid[i-1]
+            dW = sqrt(dt) * randn()
+            drift = (θ(t_prev) - a * r) * dt
+            diffusion = σ(t_prev) * dW
+            r += drift + diffusion
+            rpaths[i, path] = r
+        end
     end
-end
 
-# Plot
-fig = Figure(resolution = (800, 500))
-ax = Axis(fig[1, 1], xlabel = "Time (years)", ylabel = "Short rate", title = "Hull–White Simulation with time-dependent θ(t) and σ(t)")
-for path in 1:nsim
-    lines!(ax, tgrid, rpaths[:, path])
+    # Plot
+    fig = Figure(resolution=(800, 500))
+    ax = Axis(fig[1, 1], xlabel="Time (years)", ylabel="Short rate", title="Hull–White Simulation with time-dependent θ(t) and σ(t)")
+    for path in 1:nsim
+        lines!(ax, tgrid, rpaths[:, path])
+    end
+    fig
 end
-fig
 ```
 
 ### Equity Models
@@ -276,49 +281,49 @@ where
 -   $dW(t)$ is a Wiener process or Brownian motion, representing a random shock.
 
 ```{julia}
-using Random, CairoMakie
+let
+    # Set seed for reproducibility
+    Random.seed!(1234)
 
-# Set seed for reproducibility
-Random.seed!(1234)
+    # GBM parameters
+    μ = 0.05 # Drift (expected return)
+    σ = 0.2 # Volatility
 
-# GBM parameters
-μ = 0.05 # Drift (expected return)
-σ = 0.2 # Volatility
+    # Initial stock price
+    S₀ = 100.0
 
-# Initial stock price
-S₀ = 100.0
+    # Number of time steps and simulations
+    num_steps = 252
+    num_simulations = 1_000
 
-# Number of time steps and simulations
-num_steps = 252
-num_simulations = 1_000
+    # Time increment
+    Δt = 1 / 252
 
-# Time increment
-Δt = 1 / 252
-
-# Function to simulate GBM
-function gbm_simulation(μ, σ, S₀, Δt, num_steps, num_simulations)
-    stock_price_paths = zeros(num_steps, num_simulations)
-    drift = (μ - 0.5 * σ * σ) * Δt
-    vol = σ * sqrt(Δt)
-    for j in 1:num_simulations
-        stock_price_paths[1, j] = S₀
-        for i in 2:num_steps
-            stock_price_paths[i, j] = stock_price_paths[i-1, j] * exp(drift + vol * randn())
+    # Function to simulate GBM
+    function gbm_simulation(μ, σ, S₀, Δt, num_steps, num_simulations)
+        stock_price_paths = zeros(num_steps, num_simulations)
+        drift = (μ - 0.5 * σ * σ) * Δt
+        vol = σ * sqrt(Δt)
+        for j in 1:num_simulations
+            stock_price_paths[1, j] = S₀
+            for i in 2:num_steps
+                stock_price_paths[i, j] = stock_price_paths[i-1, j] * exp(drift + vol * randn())
+            end
         end
+        return stock_price_paths
     end
-    return stock_price_paths
-end
 
-# Run GBM simulation
-gbm_paths = gbm_simulation(μ, σ, S₀, Δt, num_steps, num_simulations)
+    # Run GBM simulation
+    gbm_paths = gbm_simulation(μ, σ, S₀, Δt, num_steps, num_simulations)
 
-# Plot the simulated stock price paths
-f = Figure()
-Axis(f[1, 1])
-for i in 1:num_simulations
-    lines!(1:num_steps, gbm_paths[:, i])
+    # Plot the simulated stock price paths
+    f = Figure()
+    Axis(f[1, 1])
+    for i in 1:num_simulations
+        lines!(1:num_steps, gbm_paths[:, i])
+    end
+    f
 end
-f
 ```
 
 #### Generalized Autoregressive Conditional Heteroskedasticity (GARCH)
@@ -339,48 +344,48 @@ $$
 -   $\omega$, $\alpha_1$, $\beta_1$ are model parameters
 
 ```{julia}
-using Random, CairoMakie
+let
+    # Set seed for reproducibility
+    Random.seed!(1234)
 
-# Set seed for reproducibility
-Random.seed!(1234)
+    # GARCH(1,1) parameters
+    α₀ = 0.01 # Constant term
+    α₁ = 0.1 # Coefficient for lagged squared returns
+    β₁ = 0.8 # Coefficient for lagged conditional volatility
+    @assert α₁ + β₁ < 1 "Stationarity requires α₁ + β₁ < 1"
 
-# GARCH(1,1) parameters
-α₀ = 0.01 # Constant term
-α₁ = 0.1 # Coefficient for lagged squared returns
-β₁ = 0.8 # Coefficient for lagged conditional volatility
-@assert α₁ + β₁ < 1 "Stationarity requires α₁ + β₁ < 1"
+    # Number of time steps and simulations
+    num_steps = 252
+    num_simulations = 1_000
 
-# Number of time steps and simulations
-num_steps = 252
-num_simulations = 1_000
+    # Time increment
+    Δt = 1 / 252
 
-# Time increment
-Δt = 1 / 252
-
-# Function to simulate GARCH(1,1) volatility
-function garch_simulation(α₀, α₁, β₁, num_steps, num_simulations)
-    volatility_paths = zeros(num_steps, num_simulations)
-    for j in 1:num_simulations
-        ε = randn(num_steps)
-        squared_returns = zeros(num_steps)
-        for i in 2:num_steps
-            squared_returns[i] = α₀ + α₁ * ε[i-1] * ε[i-1] + β₁ * squared_returns[i-1]
-            volatility_paths[i, j] = sqrt(squared_returns[i])
+    # Function to simulate GARCH(1,1) volatility
+    function garch_simulation(α₀, α₁, β₁, num_steps, num_simulations)
+        volatility_paths = zeros(num_steps, num_simulations)
+        for j in 1:num_simulations
+            ε = randn(num_steps)
+            squared_returns = zeros(num_steps)
+            for i in 2:num_steps
+                squared_returns[i] = α₀ + α₁ * ε[i-1] * ε[i-1] + β₁ * squared_returns[i-1]
+                volatility_paths[i, j] = sqrt(squared_returns[i])
+            end
         end
+        return volatility_paths
     end
-    return volatility_paths
-end
 
-# Run GARCH simulation
-garch_paths = garch_simulation(α₀, α₁, β₁, num_steps, num_simulations)
+    # Run GARCH simulation
+    garch_paths = garch_simulation(α₀, α₁, β₁, num_steps, num_simulations)
 
-# Plot the simulated volatility paths
-f = Figure()
-Axis(f[1, 1])
-for i in 1:num_simulations
-    lines!(1:num_steps, garch_paths[:, i])
+    # Plot the simulated volatility paths
+    f = Figure()
+    Axis(f[1, 1])
+    for i in 1:num_simulations
+        lines!(1:num_steps, garch_paths[:, i])
+    end
+    f
 end
-f
 ```
 
 ### Copulas
@@ -388,43 +393,45 @@ f
 Simulating data using copulas involves generating multivariate samples with specified marginal distributions and a copula structure.
 
 ```{julia}
-using Random, CairoMakie, Copulas
+using Copulas
 
-Random.seed!(1234)
+let
+    Random.seed!(1234)
 
-# 2D Gaussian copula with correlation ρ = 0.8
-ρ = 0.8
-Σ = [1.0  ρ;
-     ρ   1.0]
-Cg = GaussianCopula(Σ)
-U = rand(Cg, 10_000)  # n × d matrix with U(0,1) margins
-f = Figure()
-ax = Axis(f[1, 1], xlabel="U₁", ylabel="U₂")
-scatter!(ax, U[1, :], U[2, :], markersize=2, color=:steelblue, alpha=0.4)
-f
+    # 2D Gaussian copula with correlation ρ = 0.8
+    ρ = 0.8
+    Σ = [1.0 ρ;
+        ρ 1.0]
+    Cg = GaussianCopula(Σ)
+    U = rand(Cg, 10_000)  # n × d matrix with U(0,1) margins
+    f = Figure()
+    ax = Axis(f[1, 1], xlabel="U₁", ylabel="U₂")
+    scatter!(ax, U[1, :], U[2, :], markersize=2, color=:steelblue, alpha=0.4)
+    f
+end
 ```
 
 Copulas can also be used to infer combined distributions from data samples.
 
 ```{julia}
-using Copulas, Distributions, Random
+let
+    X₁ = Gamma(2.0, 3.0)
+    X₂ = Pareto(3.0, 1.0)
+    X₃ = LogNormal(0.0, 1.0)
+    C = ClaytonCopula(3, 0.7) # A 3-variate Clayton Copula with θ = 0.7
+    D = SklarDist(C, (X₁, X₂, X₃)) # The final distribution
 
-X₁ = Gamma(2.0, 3.0)
-X₂ = Pareto(3.0, 1.0)
-X₃ = LogNormal(0.0, 1.0)
-C = ClaytonCopula(3, 0.7) # A 3-variate Clayton Copula with θ = 0.7
-D = SklarDist(C, (X₁, X₂, X₃)) # The final distribution
-
-# Generate a dataset
-simu = rand(D, 1000)
-# Estimate marginals by MLE
-d̂1 = fit(Gamma, simu[:, 1])
-d̂2 = fit(Pareto, simu[:, 2])
-d̂3 = fit(LogNormal, simu[:, 3])
-# Probability integral transform to uniforms
-Û = hcat(cdf.(d̂1, simu[:, 1]), cdf.(d̂2, simu[:, 2]), cdf.(d̂3, simu[:, 3]))
-# Fit copula on uniforms
-Ĉ = fit(ClaytonCopula, Û)
-# Compose the estimated Sklar distribution
-D̂ = SklarDist(Ĉ, (d̂1, d̂2, d̂3))
+    # Generate a dataset
+    simu = rand(D, 1000)
+    # Estimate marginals by MLE
+    d̂1 = fit(Gamma, simu[:, 1])
+    d̂2 = fit(Pareto, simu[:, 2])
+    d̂3 = fit(LogNormal, simu[:, 3])
+    # Probability integral transform to uniforms
+    Û = hcat(cdf.(d̂1, simu[:, 1]), cdf.(d̂2, simu[:, 2]), cdf.(d̂3, simu[:, 3]))
+    # Fit copula on uniforms
+    Ĉ = fit(ClaytonCopula, Û)
+    # Compose the estimated Sklar distribution
+    D̂ = SklarDist(Ĉ, (d̂1, d̂2, d̂3))
+end
 ```
