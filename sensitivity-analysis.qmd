@@ -41,7 +41,6 @@ mutable struct Policy
     issue_age::Int
     risk::Risk
 end
-
 ```
 
 ## The Data
@@ -51,12 +50,12 @@ using MortalityTables
 sample_csv_data =
     IOBuffer(
         raw"id,sex,benefit_base,pir,mode,prem,pp,issue_date,issue_age,risk
-         1,M,100000.0,0.03,1,1000.0,3,1999-12-05,30,Std"
+         1,M,100000.0,0.03,1,1000.0,10,1999-12-05,30,Std"
     )
 
 mort = Dict(
-    Male => MortalityTables.table(988).ultimate,
-    Female => MortalityTables.table(992).ultimate,
+    Male => MortalityTables.table(262).ultimate, # assuming no issue ages < 2 or > 120
+    Female => MortalityTables.table(261).ultimate, # assuming no issue ages < 2 or > 120
 )
 ```
 
@@ -88,48 +87,48 @@ policies = let
 end
 ```
 
-Given a basic insurance product, a pure whole of life (WOL) policy with level benefits and level premiums payable within the first 10 years, the reserve at the end of the $y^{th}$ policy year is defined by
+Given a basic insurance product, a pure whole of life (WOL) policy with level benefits and level premiums payable within the first 10 years, the reserve in-force at the end of the $y^{th}$ ($y$ >= 0) policy year is defined by
 
 $$
-res(y) = \sum_{t=age+y}^{120} (sur_{t-age-y} * mort_t * B_y * \sqrt{1 + r}) - (P_y * sur_{t-age-y})
+res(y) = \sum_{t=age+y}^{120} (sur_{t-age-y} * mort_t * B_y * \sqrt{1 + pir}) - (P_y * sur_{t-age-y})
 $$
 
 where
 
 - $mort_t$ is the mortality at age $t$
-- $p_y$ is the survival probability adjusted with the policy interest rate, with values of
-    + $p_{y-1} = 1$,
-    + $p_x = p_{x-1} * (1 - mort_{age+y}) / (1 + pir)$ for $x >= y$, and
+- $sur_y$ is the survival probability adjusted with the policy interest rate, with values of
+    + $sur_0 = 1$,
+    + $sur_x = sur_{x-1} * (1 - mort_{age+y}) / (1 + pir)$ for $x >= y$, and
     + 0 for $x < y - 1$ or $age + x >= 120$, or ultimate age of the current mortality table
 - $B_y$ is the level benefit throughout the policy
 - $P_y$ is the level premium within the first 10 policy years which is 0 for policy years after 10
-- $r$ is the level interest rate throughout the policy
+- $pir$ is the level policy interest rate throughout the policy
 
 ```{julia}
-function sur(y::Int, pol::Policy)
+# Can be made more efficient by storing values in a pre-calculated table. The recursive calculation here is for illustrative purposes.
+function sur(y::Int, pol::Policy; Ω=120)
     if y == 0
-        1
-    elseif y < 0 || 120 - y <= pol.issue_age
-        0
+        1.0
+    elseif y < 0 || Ω - y <= pol.issue_age
+        0.0
     else
-        sur(y - 1, pol) * (1 - mort[pol.sex][pol.issue_age+y]) / (1 + pol.pir)
+        sur(y - 1, pol) * (1 - mort[pol.sex][pol.issue_age+y-1]) / (1 + pol.pir)
     end
 end
 
-function res(y::Int, pol::Policy)
+function res(y::Int, pol::Policy; Ω=120)
     s = 0.0
-    if y >= 1 && y <= 120 - pol.issue_age
-        for t in (pol.issue_age+y):120
+    if y >= 1 && y <= Ω - pol.issue_age
+        for t in (pol.issue_age+y):Ω
             prem = 0.0
             if y <= pol.pp
                 prem = pol.prem
             end
-            s += sur(t - pol.issue_age - y, pol) * mort[pol.sex][t] * pol.benefit_base - prem * sur(t - pol.issue_age - y, pol)
+            s += sur(t - pol.issue_age, pol) * mort[pol.sex][t] * pol.benefit_base / sqrt(1 + pol.pir) - prem * sur(t - pol.issue_age, pol)
         end
     end
     s
 end
-
 ```
 
 ## Common Sensitivity Analysis Methodologies
@@ -142,10 +141,10 @@ Define a customized finite difference function with respect to the interest rate
 function res_wrt_r_fd(y::Int, pol::Policy, r::Float64, h=1e-3)
     p₊, p₋ = deepcopy(pol), deepcopy(pol)
     p₊.pir, p₋.pir = r + h, r - h
-    (res(y, p₋) - res(y, p₊)) / (2h)
+    (res(y, p₋) - res(y, p₊)) / (2 * res(y, pol))
 end
 
-res_wrt_r_fd(2, policies[1], 0.03) # changes in reserve at year 2 when the interest rate at 3% with a perturbation of 0.1%
+res_wrt_r_fd(2, policies[1], 0.03) # percentage changes in reserve at year 2 when the interest rate at 3% with a perturbation of 0.1%
 ```
 
 ### Regression Analyses
@@ -162,7 +161,7 @@ end
 
 # reserve @ year 1 or 2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1
 reg_anal = gsa(r1_wrt_r, RegressionGSA(), [[1, 2], [0.029, 0.031], [999.9, 1000.1]], samples=1000)
-@show reg_anal.pearson
+println(reg_anal.pearson)
 ```
 
 The Pearson coefficients show the correlation coefficient matrix between inputs and outputs.
@@ -187,8 +186,8 @@ using QuasiMonteCarlo, GlobalSensitivity
 # reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1
 L, U = QuasiMonteCarlo.generate_design_matrices(1000, [1, 0.029, 999.9], [2, 0.031, 1000.1], SobolSample())
 s = gsa(r1_wrt_r, Sobol(), L, U)
-@show s.S1
-@show s.ST
+println(s.S1)
+println(s.ST)
 ```
 
 The output shows the first order and total order of variations in different input parameters.
@@ -210,8 +209,8 @@ using GlobalSensitivity
 
 # reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1
 m = gsa(r1_wrt_r, Morris(), [[1, 2], [0.029, 0.031], [999.9, 1000.1]])
-@show m.means
-@show m.variances
+println(m.means)
+println(m.variances)
 ```
 
 From the means it can be observed which variables are more important, and the variances imply higher degree of nonlinearity or interactions with other variables.
@@ -231,8 +230,8 @@ using GlobalSensitivity
 
 # reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1
 fast = gsa(r1_wrt_r, eFAST(), [[1, 2], [0.029, 0.031], [999.9, 1000.1]], samples=1000)
-@show fast.S1
-@show fast.ST
+println(fast.S1)
+println(fast.ST)
 ```
 
 The output shows the first order and total order of variations in different input parameters.
@@ -275,4 +274,5 @@ Some considerations in incorporating historical data.
 -- Model Limitations: Scenario models are based on assumptions that might not fully capture real-world complexities.
 -- Overfitting: Avoid fine-tuning scenarios to perfectly match historical outcomes, as this reduces their applicability to future events.
 -- Changing Dynamics: Historical events may not fully represent future possibilities due to changes in market conditions, regulations, or technology.
+
 
