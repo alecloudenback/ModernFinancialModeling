@@ -13,13 +13,13 @@ We motivate the use of Julia as a preferred language for financial modeling.
 
 ## Introduction
 
-Julia is a relatively new[^why-julia-1], productive, and fast programming language. It is evident in its pragmatic, productivity-focused design choices, pleasant syntax, rich ecosystem, thriving communities, and its ability to be both very general purpose and power cutting edge computing.
+Julia is a relatively new[^why-julia-1], productive, and fast programming language. It is evident in its pragmatic, productivity-focused design choices, pleasant syntax, rich ecosystem, thriving communities, and its ability to be both very general purpose and power cutting-edge computing.
 
 [^why-julia-1]: Python first appeared in 1990. R is an implementation of S, which was created in 1976, though depending on when you want to place the start of an independent R project varies (1993, 1995, and 2000 are alternate dates). The history of these languages is long and substantial changes have occurred since these dates.
 
 With Julia: math-heavy code looks like math; it's easy to pick up, and quick to prototype. Packages are well-integrated, with excellent visualization libraries and pragmatic design choices.
 
-Julia’s popularity continues to grow across many fields and there's a growing body of online references and tutorials, videos, and print media to learn from.
+Julia’s popularity continues to grow across many fields and there is a growing body of online references and tutorials, videos, and print media to learn from.
 
 Large financial services organizations have already started realizing gains: BlackRock's Aladdin portfolio modeling, the Federal Reserve's economic simulations, and Aviva's Solvency II-compliant modeling[^why-julia-2]. The last of these has a [great talk on YouTube](https://www.youtube.com/watch?v=__gMirBBNXY) by Aviva's Tim Thornham, which showcases an on-the-ground view of what difference the right choice of technology and programming language can make. Moving from their vendor-supplied modeling solution was **1000x faster, took 1/10 the amount of code, and was implemented 10x faster**.
 
@@ -39,7 +39,7 @@ A similar, related dichotomy is the **two culture problem** wherein domain exper
 
 Julia is introduced insofar that a basic understanding is necessary to illustrate certain concepts. Julia is ideal in this context, because it is generally straightforward and concise, allowing the presented idea to have the spotlight (as opposed to language boiler plate or obtuse keywords and variables). The point of structuring the book like this is to allow us to introduce a wide variety of computer science concepts to the financial professional, *not* to introduce Julia as a programming language (there are many other resources which do that just fine).
 
-This chapter seeks to motivate to the skeptical professional why we choose Julia for teaching and for work. Then, in @sec-elements-programming we provide an introduction to core language concepts and syntax. After this chapter,the content is focused on illustrating a number of key concepts, with Julia taking a secondary role, serving simply as a backdrop. It's not until @sec-julia-writing where Julia regains the spotlight and we discuss particulars which generally matter only to those heavily using Julia more vigorously.
+This chapter seeks to motivate to the skeptical professional why we choose Julia for teaching and for work. Then, in @sec-elements-programming we provide an introduction to core language concepts and syntax. After this chapter, the content is focused on illustrating a number of key concepts, with Julia taking a secondary role, serving simply as a backdrop. It's not until @sec-julia-writing where Julia regains the spotlight and we discuss particulars which generally matter only to those heavily using Julia more vigorously.
 
 ## Expressiveness and Syntax
 
@@ -56,7 +56,7 @@ Expressiveness can be hard to explain, but perhaps two short examples will illus
 
 ### Example 1: Retention Analysis
 
-This is a really simple example relating `Cession`s, `Policy`s, and `Live`s to do simple retention analysis. Retention is a measure of how much risk an insurance company holds on a policy after its own reinsurance risk transfer (ceded amount of coverage are called "cessions").
+This is a really simple example relating `Cession`s, `Policy`s, and `Live`s to do simple retention analysis. Retention is a measure of how much risk an insurance company holds on a policy after its own reinsurance risk transfer (ceded amounts of coverage are called "cessions").
 
 First, let's define our data:
 
@@ -90,11 +90,11 @@ And then what retention means for a `Life`:
 
 ```{julia}
 function retained(l::Life)
-    sum(retained(policy) for policy in life.policies)
+    sum(retained(policy) for policy in l.policies)
 end
 ```
 
-It's almost exactly how you'd specify it English. No joins, no boilerplate, no fiddling with complicated syntax. You can express ideas and concepts the way that you think of them, not, for example, as a series of dataframe joins or as row/column coordinates on a spreadsheet.
+It's almost exactly how you'd specify it in English. No joins, no boilerplate, no fiddling with complicated syntax. You can express ideas and concepts the way that you think of them, not, for example, as a series of dataframe joins or as row/column coordinates on a spreadsheet.
 
 We defined `retained` and adapted it to mean related, but different things depending on the specific context. That is, we didn't have to define `retained_life(...)` and `retained_pol(...)` because Julia can **dispatch** based on what you give it (this is a more powerful, generalized version of method dispatch commonly used in object-oriented programming, see @sec-data-types for more).
 
@@ -117,7 +117,7 @@ retained(pol_1)
 retained(life)
 ```
 
-And for the last trick, something called "broadcasting", which automatically vectorizes any function you write, no need to write loops or create `if` statements to handle a single vs repeated case:
+Finally, something called "broadcasting", which automatically vectorizes any function you write over the given collection(s), no need to write loops or create `if` statements to handle a single vs repeated case:
 
 ```{julia}
 retained.(life.policies) # retained amount for each policy
@@ -131,7 +131,7 @@ We generate 100:
 
 -   Uniform random numbers
 -   Standard normal random numbers
--   Bernoulli random number
+-   Bernoulli random numbers
 -   Random samples with a given set
 
 ::: column-page
@@ -154,7 +154,7 @@ We generate 100:
 : A comparison of random outcome generation in Julia, R, and Python. {#tbl-code-compare}
 :::
 
-By understanding the different types of things passed to `rand()`, it maintains the same syntax across a variety of different scenarios. We could define `rand(Cession)` and have it generate a random `Cession` like we used above.
+In Julia, rand dispatches on the argument’s type: arrays, distributions, and collections all work with the same function, illustrating multiple dispatch. By understanding the different types of things passed to `rand()`, it maintains the same syntax across a variety of different scenarios. We could define `rand(Cession)` and have it generate a random `Cession` like we used above.
 
 ## The Speed
 
@@ -248,17 +248,17 @@ Call(S,K,t,r,sig) # 58.81977
 
 We find in @tbl-bsm-benchmark that despite the syntactic similarity, Julia is much faster than the other two.
 
-+-------------+------------------------------------------+----------------------+---------------+
-| Language    | Median *(nanoseconds)*                   | Mean *(nanoseconds)* | Relative Mean |
-+=============+==========================================+======================+===============+
-| Python      | *not calculated by benchmarking library* | 817000.0             | 19926.0       |
-+-------------+------------------------------------------+----------------------+---------------+
-| R           | 3649.0                                   | 3855.2               | 92.7          |
-+-------------+------------------------------------------+----------------------+---------------+
-| Julia       | 41.0                                     | 41.6                 | 1.0           |
-+-------------+------------------------------------------+----------------------+---------------+
++-------------+---------------------------------------------------------+----------------------+---------------+
+| Language    | Median *(nanoseconds)*                                  | Mean *(nanoseconds)* | Relative Mean |
++=============+=========================================================+======================+===============+
+| Python      | N/A: Python's `timeit` library doesn't calculate median | 817000.0             | 19926.0       |
++-------------+---------------------------------------------------------+----------------------+---------------+
+| R           | 3649.0                                                  | 3855.2               | 92.7          |
++-------------+---------------------------------------------------------+----------------------+---------------+
+| Julia       | 41.0                                                    | 41.6                 | 1.0           |
++-------------+---------------------------------------------------------+----------------------+---------------+
 
-: Julia is nearly 20,000 times faster than Python, and two orders of magnitude faster than R. {#tbl-bsm-benchmark}
+: On our test machine, a scalar BSM pricing function implemented in idiomatic Julia ran in tens of nanoseconds per call after JIT warmup. Comparable R code ran in a few microseconds, and a pure-Python version (without vectorized NumPy) ran orders of magnitude slower. Exact numbers vary by hardware and implementation choices; the key point is that you can write high-level Julia and still get C-like performance. {#tbl-bsm-benchmark}
 
 ### Development Speed
 
@@ -312,8 +312,8 @@ Julia is fast because it's compiled, unlike R and Python where (loosely speaking
 
 A hypothetical example: running 10,000 stochastic projections where Julia needs to pre-compile but then runs each 10x faster:
 
--   Julia runs in 2 minutes: the first projection takes 1 second to compile and run, but each 9,999 remaining projections only take 10ms.
--   Python runs in 17 minutes: 100ms of a second for each computation.
+-   Julia runs in 2 minutes: the first projection takes 1 second to compile and run; the remaining 9,999 remaining projections only take 10 ms.
+-   Python runs in 17 minutes: 100 ms of a second for each computation.
 
 Typically, the compilation is very fast (milliseconds), but in the most complicated cases it can be several seconds. One of these is the "time-to-first-plot" issue because it's the most common one users encounter: super-flexible plotting libraries have a lot of things to pre-compile. So in the case of plotting, it can take several seconds to display the first plot after starting Julia, but then it's remarkably quick and easy to create an animation of your model results. The time-to-first plot is a solvable problem that's receiving a lot of attention from the core developers and will get better with future Julia releases.
 
@@ -321,7 +321,7 @@ For users working with a lot of data or complex calculations (like actuaries!), 
 
 ### Static Binaries
 
-Static binaries are self contained executable programs which can run very specific bits of code. Simple programs which can compile down to small (in terms of size on disk) binaries which accomplish just their pre-programmed tasks. Another use case for this is to create shared libraries which could be called from other languages (this can already be done, but again requires bundling the runtime).
+Static binaries are self contained executable programs which can run very specific bits of code. Simple programs which can compile down to small (in terms of size on disk) binaries which accomplish just their pre-programmed tasks. Another use case for this is to create shared libraries which could be called from other languages. You can create self-contained artifacts via PackageCompiler.jl that bundle the Julia runtime; truly minimal static binaries are an active area of research.
 
 Julia's dynamic nature means that it needs to include the supporting infrastructure in order to run general code, similar to how running Python code needs to be bundled with the Python runtime.
 
@@ -335,7 +335,7 @@ For each project, you can track the exact set of dependencies and replicate the 
 
 There are thousands of publicly available packages already published. It's also straightforward to share privately, such as proprietary packages hosted internally behind a firewall.
 
-Another powerful aspect of the package ecosystem is that due to the language design, packages can be combined/extended in ways that are difficult for other common languages. This means that Julia packages often interoperable without any additional coordination.
+Another powerful aspect of the package ecosystem is that due to the language design, packages can be combined/extended in ways that are difficult for other common languages. This means that Julia packages are often interoperable without any additional coordination.
 
 For example, packages that operate on data tables work without issue together in Julia. In R/Python, many features tend to come bundled in a giant singular package like Python’s Pandas which has Input/Output, Date manipulation, plotting, resampling, and more. There’s a new Consortium for Python Data API Standards which seeks to harmonize the different packages in Python to make them more consistent (R’s Tidyverse plays a similar role in coordinating their subset of the package ecosystem).
 
@@ -347,4 +347,4 @@ Looking at other great tools like R and Python, it can be difficult to summarize
 
 That said, Julia shouldn't be the only tool in your toolkit. SQL will remain an important way to interact with databases. R and Python aren't going anywhere in the short term and will always offer a different perspective on things!
 
-Being a productive financial profession means being proficient in the language of computers so that you could build and implement great things. In a large way, the choice of tools and paradigms shape your focus. Productivity is one aspect, expressiveness is another, speed one more. There are many reasons to think about what tools you use and trying out different ones is probably the best way to find what works best for you.
+Being a productive financial professional means being proficient in the language of computers so that you could build and implement great things. In a large way, the choice of tools and paradigms shape your focus. Productivity is one aspect, expressiveness is another, speed one more. There are many reasons to think about what tools you use and trying out different ones is probably the best way to find what works best for you.

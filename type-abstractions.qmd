@@ -10,17 +10,21 @@ author:
 
 ## Chapter Overview
 
-The powerful benefits that using assigning types to data has within the model's system, some examples of utilizing types to simplify a programs logic, and comparing aspects of different type related program organization (such as object oriented design versus composition).
+Using Julia’s type system lets us express financial instruments and valuation logic cleanly and efficiently. In this chapter we will:
+-  model assets as concrete types within a simple hierarchy,
+-  define valuation functions using multiple dispatch,
+-  show how to aggregate portfolio value succinctly,
+-  compare this data-oriented approach with common object-oriented patterns.
 
 ## Using Types to Value a Portfolio
 
-We will assemble the tools and terminology to value a portfolio of assets by leverage types (\@sec-data-types). Using the constructs introduced in the prior chapter, we can describe the portfolio valuation as additively reducing the mapped value of assets in the portfolio. If `value` is our valuation function), we are trying to do the following:
+We will assemble the tools and terminology to value a portfolio of assets by leverage types (@sec-data-types). Using the constructs introduced in the prior chapter, we can describe the portfolio valuation as additively reducing the mapped value of assets in the portfolio. We aim to compute the total portfolio value by applying a valuation function to each asset and summing up the individual valuations:
 
 ``` julia
 mapreduce(value,+,portfolio)
 ```
 
-The challenge is how do design an all-purpose `value` function? In `portfolio`, the assets may be heterogeneous, so we will need to define what the valuation semantics are for the different kinds of assets. To get to our end goal, we will need to:
+The challenge is how to design an all-purpose `value` function? In `portfolio`, the assets may be heterogeneous, so we will need to define what the valuation semantics are for the different kinds of assets. To get to our end goal, we will need to:
 
 1.  Define the different kinds of assets within our portfolio
 2.  How the assets are to be valued.
@@ -41,10 +45,10 @@ With these benefits in mind, let's start by defining the types for our assets. W
 
 ## Defining Types for Portfolio Valuation
 
-We will define five types of assets in this simplified universe:
+We will define two types of assets in this simplified universe:
 
 -   Cash
--   Risk Free Bonds (coupon and zero-coupon varieties)
+-   Risk-free Bonds (coupon and zero-coupon varieties)
 
 To do the valuation of these, we need some economic parameters as well: risk free rates for discounting.
 
@@ -96,11 +100,10 @@ This is a parametric type because later on we will vary what objects we use for 
 econ_baseline = EconomicAssumptions(0.05)
 ```
 
-Now on to defining the valuation for `Cash` and `AbstractBonds`. Cash is always equal to it's balance:
+Now on to defining the valuation for `Cash` and `AbstractBonds`. Cash is always equal to its balance:
 
 ```{julia}
-
-value(asset::Cash, ea::EconomicAssumptions) = asset.balance
+value(asset::Cash, econ::EconomicAssumptions) = asset.balance
 ```
 
 Risk free bonds are the discounted present value of the riskless cashflows. We first define a method that generically operates on any fixed bond, all that's left to do is for different types of bonds to define how much cashflow occurs at the given point in time by defining `cashflow` for the associated type.
@@ -108,12 +111,12 @@ Risk free bonds are the discounted present value of the riskless cashflows. We f
 ```{julia}
 function value(asset::AbstractBond, r::Float64) # <2>
     discount_factor = 1.0
-    value = 0.0
+    pv = 0.0
     for t in 1:asset.tenor
         discount_factor /= (1 + r) # <1>
-        value += discount_factor * cashflow(asset, t)
+        pv += discount_factor * cashflow(asset, t)
     end
-    return value
+    return pv
 end
 
 function cashflow(bond::CouponBond, time)
@@ -233,7 +236,7 @@ This code:
 mapreduce(asset-> value(asset,econ_baseline), +, portfolio)
 ```
 
-is more verbose than what we set out do at the start (`mapreduce(value,+,portfolio)`) due to the two-argument `value` function requiring a second argument for the economic variables. This works well! However, there is a way to define it which avoids the anonymous function, which in some cases will end up needing to be compiled more frequently than you want it to. Sometime we want a lightweight, okay-to-compile-on-the-fly function. Other times, we know it's something that will be passed around in compute-intensive parts of the code. A technique in this situation is to define an object which "locks in" one of the arguments but behaves like the anonymous version. There is a pair of types in the Base module, `Fix1` and `Fix2`, which represent partially-applied versions of the two-argument function f, with the first or second argument fixed to the value "x".
+is more verbose than what we set out do at the start (`mapreduce(value,+,portfolio)`) due to the two-argument `value` function requiring a second argument for the economic variables. This works well! However, there is a way to define it which avoids the anonymous function, which in some cases will end up needing to be compiled more frequently than you want it to. Sometimes we want a lightweight, okay-to-compile-on-the-fly function. Other times, we know it's something that will be passed around in compute-intensive parts of the code. A technique in this situation is to define an object which "locks in" one of the arguments but behaves like the anonymous version. There is a pair of types in the Base module, `Fix1` and `Fix2`, which represent partially-applied versions of the two-argument function f, with the first or second argument fixed to the value "x".
 
 This is, `Base.Fix1(f, x)` behaves like `y->f(x, y)` and `Base.Fix2(f, x)` behaves like `y->f(y, x)`.
 
@@ -505,17 +508,17 @@ Composition looks like this:
 
 ``` julia
 struct CUSIP
-    code::string
+    code::String
 end
 
 struct FixedBond
     coupon::Float64
-    tenor::Float64
+    tenor::Int64
 end
 
 struct FloatingBond
     spread::Float64
-    tenor::Float64
+    tenor::Int64
 end
 
 struct MunicipalBond

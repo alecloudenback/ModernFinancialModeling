@@ -55,7 +55,7 @@ let d = anscombe_data
 
         # calculate summary statistics
         mean_x, mean_y = mean(x), mean(y)
-        intercept, slope = ([ones(size(y)) x] \ y)
+        intercept, slope = ([ones(size(y)) x] \ y) # a one-line OLS regression
         correlation = cor(x, y)
 
         (; mean_x, mean_y, intercept, slope, correlation)
@@ -68,28 +68,31 @@ Analytical summarization alone is not enough to understand the data. We need to 
 ```{julia}
 using CairoMakie
 
+fig = Figure()
 
-# Create the plots
-fig = Figure(resolution=(800, 800))
+pairs = [(:x1, :y1), (:x2, :y2), (:x3, :y3), (:x4, :y4)]
+titles = ["Dataset 1", "Dataset 2", "Dataset 3", "Dataset 4"]
 
-ax1 = Axis(fig[1, 1], title="Dataset 1")
-scatter!(ax1, anscombe_data.x1, anscombe_data.y1)
-lines!(ax1, 2:14, x -> 3 + 0.5x, color=:red)
+for (i, (xsym, ysym)) in enumerate(pairs)
+    row = i ≤ 2 ? 1 : 2
+    col = i % 2 == 1 ? 1 : 2
+    ax = Axis(fig[row, col], title=titles[i], xlabel="x", ylabel="y")
 
-ax2 = Axis(fig[1, 2], title="Dataset 2")
-scatter!(ax2, anscombe_data.x2, anscombe_data.y2)
-lines!(ax2, 2:14, x -> 3 + 0.5x, color=:red)
+    x = anscombe_data[!, xsym]
+    y = anscombe_data[!, ysym]
+    scatter!(ax, x, y, color=:black)
 
-ax3 = Axis(fig[2, 1], title="Dataset 3")
-scatter!(ax3, anscombe_data.x3, anscombe_data.y3)
-lines!(ax3, 2:14, x -> 3 + 0.5x, color=:red)
+    intercept, slope = ([ones(size(y)) x] \ y)
+    xs = range(minimum(x) - 0.5, stop=maximum(x) + 0.5, length=100)
+    ys = intercept .+ slope .* xs
+    lines!(ax, xs, ys, color=:red)
 
-ax4 = Axis(fig[2, 2], title="Dataset 4")
-scatter!(ax4, anscombe_data.x4, anscombe_data.y4)
-lines!(ax4, 2:14, x -> 3 + 0.5x, color=:red)
+    # Keep comparable axes to highlight differences
+    xlims!(ax, 2, 20)
+    ylims!(ax, 2, 14)
+end
 
 fig
-
 ```
 
 This dataset is known as Anscombe's Quartet and is a famous statistical example which is used here to underscore the importance of visualization when seeking to understand or communicate data. However, there are more reasons to refine your experience in the art and science of data visualization which we list in @tbl-viz-reasons.
@@ -320,16 +323,22 @@ end
 
 
 # Radar Chart (2,1)
-ax3 = Axis(f[2, 1], title="Radar Chart", aspect=1)
-angles = range(0, 2π, length=length(radar_data) + 1)
-r = [radar_data; radar_data[1]]
-arc!(ax3, Point2f(0), 0.5, -π, π, color=:grey90)
-arc!(ax3, Point2f(0), 1, -π, π, color=:grey90)
-lines!(ax3, cos.(angles) .* r, sin.(angles) .* r, color=:green)
-poly!(ax3, cos.(angles) .* r, sin.(angles) .* r, color=(:blue, 0.2))
-scatter!(ax3, cos.(angles) .* r, sin.(angles) .* r, color=:red)
-hidedecorations!(ax3)
-hidespines!(ax3)
+n = length(radar_data)
+angles = range(0, 2π, length=n + 1)
+r = vcat(radar_data, radar_data[1])
+
+
+for ρ in (0.25, 0.5, 0.75, 1.0)
+    arc!(ax3, Point2f(0), ρ, 0, 2π, color=:grey90) # light radial grid
+end
+
+xs = cos.(angles) .* r
+ys = sin.(angles) .* r
+poly!(ax3, xs, ys, color=(:steelblue, 0.25), strokecolor=:steelblue)
+lines!(ax3, xs, ys, color=:steelblue)
+scatter!(ax3, xs, ys, color=:steelblue)
+hidedecorations!(ax3);
+hidespines!(ax3);
 
 # Bubble Plot (2,2)
 ax4 = Axis(f[2, 2], title="Bubble Plot")

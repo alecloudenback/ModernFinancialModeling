@@ -27,7 +27,7 @@ The general structure of the example is:
 2.  Define the core logic that governs the projected outcomes for the modeled policies
 3.  Evaluate a few ways to structure the simulation, including:
 4.  allocating and non-allocating approaches
-5.  single threaded and mutli-threaded approaches
+5.  single threaded and multi-threaded approaches
 
 As will be shown, the number of simulations able to be completed on modern CPU hardware is really remarkable!
 
@@ -46,7 +46,7 @@ using CairoMakie
 
 ### `@enums` and the `Policy` Type
 
-Our core unit of simulation with be a single life insurance `Policy`. Important characteristics include: the age a policy was issued at, the sex of the insured, and risk class to determine the assumed mortality rate. To make the example more realistic and demonstrate how it might look for a real block of inforce policies, additional fields have been included such as ID (not really used, but a common identifier) and `COLA` which is a cost-of-living-adjustment, used to modify the policy benefit through time. To be clear: the `Policy` type has more fields than will actually be used in the calculations, with the purpose to show how typical fields used in practice might be defined.
+Our core unit of simulation will be a single life insurance `Policy`. Important characteristics include: the age a policy was issued at, the sex of the insured, and risk class to determine the assumed mortality rate. To make the example more realistic and demonstrate how it might look for a real block of inforce policies, additional fields have been included such as ID (not really used, but a common identifier) and `COLA` which is a cost-of-living-adjustment, used to modify the policy benefit through time. To be clear: the `Policy` type has more fields than will actually be used in the calculations, with the purpose to show how typical fields used in practice might be defined.
 
 Before we define the core `Policy` type, there's a couple of types we might consider defining that would subsequently get used by `Policy`: types representing sex and risk class. A typical approach might be to simply define associated types, like this:
 
@@ -138,7 +138,7 @@ sample_csv_data =
     )
 ```
 
-We will not load the sample data using a common pattern:
+We will now load the sample data using a common pattern:
 
 1.  Load the source file into a `DataFrame`
 2.  `map` over each row of the dataframe, and return an instantiated `Policy` object
@@ -253,9 +253,9 @@ Note that the unit of the core model logic is a single policy. This simplifies t
 
 ### Threading
 
-The simulations is using a threaded parallelism approach where it could be operating on any of the computer's available threads. Multi-processor (multi-machine) or GPU-based computation would require some modifications see (@sec-parallelization). For the scale and complexity of this example, thread-based parallelism on a single CPU is all one should need for compute.
+The simulation is using a threaded parallelism approach where it could be operating on any of the computer's available threads. Multi-processor (multi-machine) or GPU-based computation would require some modifications see (@sec-parallelization). For the scale and complexity of this example, thread-based parallelism on a single CPU is all one should need for compute.
 
-The threads are handled by distributed the work across threads (this is done by `ThreadsX` in the `foreach` loop below), but we need to write the appropriate place in the matrix so that threads do not compete for the same column in the output data. Therefore, when we create the `lives` and `benefits` matrices we need to have them sized so that the number of rows is the number of projection periods and the number of columns is the number of threads.
+The threads are handled by distributing the work across threads (this is done by `ThreadsX` in the `foreach` loop below), but we need to write the appropriate place in the matrix so that threads do not compete for the same column in the output data. Therefore, when we create the `lives` and `benefits` matrices we need to have them sized so that the number of rows is the number of projection periods and the number of columns is the number of threads.
 
 ### Simulation Control
 
