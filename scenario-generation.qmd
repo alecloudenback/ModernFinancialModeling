@@ -148,10 +148,10 @@ The exact CIR process has a non-central chi-squared distribution for $r(t)$ in c
 
 $$
 \begin{align*}
-d &= \frac{4 \kappa \theta}{\sigma^2}
-c &= \frac{\sigma^2 \left( 1 - e^{-\kappa \Delta t} \right)}{4 \kappa}
-\lambda &= \frac{4 \kappa e^{-\kappa \Delta t} r_t}{\sigma^2 \left( 1 - e^{-\kappa \Delta t} \right)}
-r_{t+\Delta t} &\sim c \cdot \chi'^2_{d}(\lambda)
+d &= \frac{4 \kappa \theta}{\sigma^2} \\
+c &= \frac{\sigma^2 \left( 1 - e^{-\kappa \Delta t} \right)}{4 \kappa} \\
+\lambda &= \frac{4 \kappa e^{-\kappa \Delta t} r_t}{\sigma^2 \left( 1 - e^{-\kappa \Delta t} \right)} \\
+r_{t+\Delta t} &\sim c \cdot \chi'^2_{d}(\lambda) \\
 \end{align*}
 $$
 
@@ -170,7 +170,7 @@ let
     T = 5.0 # years
     Nsteps = 500 # time steps
     dt = T / Nsteps
-    nsim = 5 # number of simulated paths
+    nsim = 1000 # number of simulated paths
 
     # Precompute constants
     d = 4 * κ * θ / (σ * σ)
@@ -196,7 +196,7 @@ let
     end
 
     # Plot
-    fig = Figure(resolution=(800, 500))
+    fig = Figure(size=(800, 500))
     ax = Axis(fig[1, 1], xlabel="Time (years)", ylabel="Short rate", title="Exact CIR Process Simulation (Non-central Chi-square)")
     for path in 1:nsim
         lines!(ax, tgrid, rpaths[:, path])
@@ -222,20 +222,69 @@ where
 -   $dW(t)$ is a Wiener process or Brownian motion, representing a random shock.
 
 ```{julia}
+using Interpolations, Dierckx, Random, CairoMakie
+
+function hull_white_theta_timevar_sigma(years, prices, σt; a::Float64)
+    @assert length(years) == length(prices) == length(σt) "times and prices and sigmas must have same length"
+
+    # Interpolate logP for smooth derivatives (cubic spline)
+    logP = log.(prices)
+    interp_logP = Spline1D(years, logP, k=3)  # cubic spline
+
+    # instantaneous forward f(0,t) = -∂_t log P(0,t)
+    f0(t) = -derivative(interp_logP, t)
+    df0(t) = -derivative(interp_logP, t, 2)
+
+    # Precompute Δs_j (left Riemann widths). assumes years[1] == 0 or handles first width as years[1].
+    Δs = Vector{Float64}(undef, length(years))
+    Δs[1] = years[1] # if years[1]==0 this is zero; else left interval from 0
+    for j in 2:length(years)
+        Δs[j] = years[j] - years[j-1]
+    end
+
+    # Compute integral term I(t_i) = 1/2 * ∫_0^{t_i} e^{-2a(t_i - s)} σ(s)^2 ds
+    I = zeros(length(years))
+    for i in 1:length(years)
+        ti = years[i]
+        s = 0.0
+        acc = 0.0
+        # left Riemann: use sigma at s = years[j] for interval [years[j], years[j+1])
+        for j in 1:i
+            sj = years[j]
+            # width Δs[j] approximates length of [sj, sj+1) (or [0, years[1]] for j=1)
+            w = Δs[j]
+            if w <= 0
+                # if grid is pure points (years[1]==0 and Δs[1]==0), skip zero-width
+                continue
+            end
+            # integrand evaluated at left point sj
+            integrand = exp(-2a * (ti - sj)) * (σt[j]^2)
+            acc += integrand * w
+        end
+        I[i] = 0.5 * acc
+    end
+
+    # theta vector: df0 + a*f0 + I
+    θt = [ df0(years[i]) + a * f0(years[i]) + I[i] for i in 1:length(years) ]
+
+    return θt, f0, df0
+end
+
 let
+    # Market curve setup (synthetic)
+    years = collect(0.0:0.1:10.0)
+    yields = 0.02 .+ 0.002 .* years
+    prices = exp.(-yields .* years)
+
     # Parameters
     a = 0.1 # mean reversion speed
-    θ(t) = 0.05 + 0.01 * sin(2π * t) # time-dependent mean level, illustrative only
-    σ(t) = 0.005 + 0.002 * cos(2π * t) # time-dependent volatility, illustrative only
+    σt = 0.008 .+ 0.004 .* sin.(0.5 .* years) # sinusoidal time-varying sigma
+    θt, f0, df0 = hull_white_theta_timevar_sigma(years, prices, σt; a=a)
     r0 = 0.03 # initial short rate
-    T = 5.0 # years
-    Nsteps = 500 # time steps
-    dt = T / Nsteps
-    nsim = 5 # number of simulated paths
+    nsim = 1000 # number of simulated paths
 
     # Preallocate
-    tgrid = collect(0:dt:T)
-    rpaths = zeros(length(tgrid), nsim)
+    rpaths = zeros(length(years), nsim)
 
     # Seed for reproducibility
     Random.seed!(1234)
@@ -244,21 +293,21 @@ let
     for path in 1:nsim
         r = r0
         rpaths[1, path] = r
-        for i in 2:length(tgrid)
-            t_prev = tgrid[i-1]
+        for i in 2:length(years)
+            dt = years[i] - years[i-1]
             dW = sqrt(dt) * randn()
-            drift = (θ(t_prev) - a * r) * dt
-            diffusion = σ(t_prev) * dW
+            drift = (θt[i-1] - a * r) * dt
+            diffusion = σt[i-1] * dW
             r += drift + diffusion
             rpaths[i, path] = r
         end
     end
 
     # Plot
-    fig = Figure(resolution=(800, 500))
+    fig = Figure(size=(800, 500))
     ax = Axis(fig[1, 1], xlabel="Time (years)", ylabel="Short rate", title="Hull–White Simulation with time-dependent θ(t) and σ(t)")
     for path in 1:nsim
-        lines!(ax, tgrid, rpaths[:, path])
+        lines!(ax, years, rpaths[:, path])
     end
     fig
 end
