@@ -719,7 +719,7 @@ window.Quarto = {
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    id<span class="op">::</span><span class="dt">Int</span></span>
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    sex<span class="op">::</span><span class="dt">Sex</span></span>
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    benefit_base<span class="op">::</span><span class="dt">Float64</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    COLA<span class="op">::</span><span class="dt">Float64</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    pir<span class="op">::</span><span class="dt">Float64 </span><span class="co"># the policy interest rate</span></span>
 <span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    mode<span class="op">::</span><span class="dt">Int</span></span>
 <span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    prem<span class="op">::</span><span class="dt">Float64</span></span>
 <span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    pp<span class="op">::</span><span class="dt">Int</span></span>
@@ -735,18 +735,18 @@ window.Quarto = {
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">MortalityTables</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>sample_csv_data <span class="op">=</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">IOBuffer</span>(</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>        <span class="st">raw"id,sex,benefit_base,COLA,mode,prem,pp,issue_date,issue_age,risk</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>         <span class="fl">1</span>,M,<span class="fl">100000.0</span>,<span class="fl">0.03</span>,<span class="fl">1</span>,<span class="fl">1000.0</span>,<span class="fl">3</span>,<span class="fl">1999</span><span class="op">-</span><span class="fl">12</span><span class="op">-</span><span class="fl">05</span>,<span class="fl">30</span>,Std<span class="st">"</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>        <span class="st">raw"id,sex,benefit_base,pir,mode,prem,pp,issue_date,issue_age,risk</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>         <span class="fl">1</span>,M,<span class="fl">100000.0</span>,<span class="fl">0.03</span>,<span class="fl">1</span>,<span class="fl">1000.0</span>,<span class="fl">10</span>,<span class="fl">1999</span><span class="op">-</span><span class="fl">12</span><span class="op">-</span><span class="fl">05</span>,<span class="fl">30</span>,Std<span class="st">"</span></span>
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    )</span>
 <span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>mort <span class="op">=</span> <span class="fu">Dict</span>(</span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    Male <span class="op">=&gt;</span> MortalityTables.<span class="fu">table</span>(<span class="fl">988</span>).ultimate,</span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    Female <span class="op">=&gt;</span> MortalityTables.<span class="fu">table</span>(<span class="fl">992</span>).ultimate,</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    Male <span class="op">=&gt;</span> MortalityTables.<span class="fu">table</span>(<span class="fl">262</span>).ultimate, <span class="co"># assuming no issue ages &lt; 2 or &gt; 120</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    Female <span class="op">=&gt;</span> MortalityTables.<span class="fu">table</span>(<span class="fl">261</span>).ultimate, <span class="co"># assuming no issue ages &lt; 2 or &gt; 120</span></span>
 <span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>Dict{Sex, OffsetArrays.OffsetVector{Float64, Vector{Float64}}} with 2 entries:
-  Male   =&gt; [0.022571, 0.022571, 0.022571, 0.022571, 0.022571, 0.022571, 0.0225…
-  Female =&gt; [0.00745, 0.00745, 0.00745, 0.00745, 0.00745, 0.00745, 0.00745, 0.0…</code></pre>
+  Male   =&gt; [0.00051, 0.00038, 0.00035, 0.00032, 0.0003, 0.00027, 0.00025, 0.00…
+  Female =&gt; [0.00045, 0.00031, 0.00025, 0.00022, 0.0002, 0.00019, 0.00019, 0.00…</code></pre>
 </div>
 </div>
 <div id="8" class="cell" data-execution_count="1">
@@ -764,7 +764,7 @@ window.Quarto = {
 <span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>            row.id,</span>
 <span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>            row.sex <span class="op">==</span> <span class="st">"M"</span> ? Male <span class="op">:</span> Female,</span>
 <span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>            row.benefit_base,</span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>            row.COLA,</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>            row.pir,</span>
 <span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>            row.mode,</span>
 <span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>            row.prem,</span>
 <span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>            row.pp,</span>
@@ -777,50 +777,51 @@ window.Quarto = {
 <span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>1-element Vector{Policy}:
- Policy(1, Male, 100000.0, 0.03, 1, 1000.0, 3, Date("1999-12-05"), 30, Standard)</code></pre>
+ Policy(1, Male, 100000.0, 0.03, 1, 1000.0, 10, Date("1999-12-05"), 30, Standard)</code></pre>
 </div>
 </div>
-<p>Given a basic insurance product, a pure whole of life (WOL) policy with level benefits and level premiums payable within the first 10 years, the reserve at the end of the <span class="math inline">\(y^{th}\)</span> policy year is defined by</p>
+<p>Given a basic insurance product, a pure whole of life (WOL) policy with level benefits and level premiums payable within the first 10 years, the reserve in-force at the end of the <span class="math inline">\(y^{th}\)</span> (<span class="math inline">\(y\)</span> &gt;= 0) policy year is defined by</p>
 <p><span class="math display">\[
-res(y) = \sum_{t=age+y}^{120} (sur_{t-age-y} * mort_t * B_y * \sqrt{1 + r}) - (P_y * sur_{t-age-y})
+res(y) = \sum_{t=age+y}^{120} (sur_{t-age-y} * mort_t * B_y * \sqrt{1 + pir}) - (P_y * sur_{t-age-y})
 \]</span></p>
 <p>where</p>
 <ul>
 <li><span class="math inline">\(mort_t\)</span> is the mortality at age <span class="math inline">\(t\)</span></li>
-<li><span class="math inline">\(p_y\)</span> is the survival probability adjusted with COLA, with values of
+<li><span class="math inline">\(sur_y\)</span> is the survival probability adjusted with the policy interest rate, with values of
 <ul>
-<li><span class="math inline">\(p_{y-1} = 1\)</span>,</li>
-<li><span class="math inline">\(p_x = p_{x-1} * (1 - mort_{age+y}) / (1 + COLA)\)</span> for <span class="math inline">\(x &gt;= y\)</span>, and</li>
+<li><span class="math inline">\(sur_0 = 1\)</span>,</li>
+<li><span class="math inline">\(sur_x = sur_{x-1} * (1 - mort_{age+y}) / (1 + pir)\)</span> for <span class="math inline">\(x &gt;= y\)</span>, and</li>
 <li>0 for <span class="math inline">\(x &lt; y - 1\)</span> or <span class="math inline">\(age + x &gt;= 120\)</span>, or ultimate age of the current mortality table</li>
 </ul></li>
 <li><span class="math inline">\(B_y\)</span> is the level benefit throughout the policy</li>
 <li><span class="math inline">\(P_y\)</span> is the level premium within the first 10 policy years which is 0 for policy years after 10</li>
-<li><span class="math inline">\(r\)</span> is the level interest rate throughout the policy</li>
+<li><span class="math inline">\(pir\)</span> is the level policy interest rate throughout the policy</li>
 </ul>
 <div id="10" class="cell" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">sur</span>(y<span class="op">::</span><span class="dt">Int</span>, pol<span class="op">::</span><span class="dt">Policy</span>)</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> y <span class="op">==</span> <span class="fl">0</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>        <span class="fl">1</span></span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elseif</span> y <span class="op">&lt;</span> <span class="fl">0</span> <span class="op">||</span> <span class="fl">120</span> <span class="op">-</span> y <span class="op">&lt;=</span> pol.issue_age</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>        <span class="fl">0</span></span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span></span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>        <span class="fu">sur</span>(y <span class="op">-</span> <span class="fl">1</span>, pol) <span class="op">*</span> (<span class="fl">1</span> <span class="op">-</span> mort[pol.sex][pol.issue_age<span class="op">+</span>y]) <span class="op">/</span> (<span class="fl">1</span> <span class="op">+</span> pol.COLA)</span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">res</span>(y<span class="op">::</span><span class="dt">Int</span>, pol<span class="op">::</span><span class="dt">Policy</span>)</span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    s <span class="op">=</span> <span class="fl">0.0</span></span>
-<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> y <span class="op">&gt;=</span> <span class="fl">1</span> <span class="op">&amp;&amp;</span> y <span class="op">&lt;=</span> <span class="fl">120</span> <span class="op">-</span> pol.issue_age</span>
-<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> t <span class="kw">in</span> (pol.issue_age<span class="op">+</span>y)<span class="op">:</span><span class="fl">120</span></span>
-<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>            prem <span class="op">=</span> <span class="fl">0.0</span></span>
-<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> y <span class="op">&lt;=</span> pol.pp</span>
-<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>                prem <span class="op">=</span> pol.prem</span>
-<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>            <span class="cf">end</span></span>
-<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>            s <span class="op">+=</span> <span class="fu">sur</span>(t <span class="op">-</span> pol.issue_age <span class="op">-</span> y, pol) <span class="op">*</span> mort[pol.sex][t] <span class="op">*</span> pol.benefit_base <span class="op">-</span> prem <span class="op">*</span> <span class="fu">sur</span>(t <span class="op">-</span> pol.issue_age <span class="op">-</span> y, pol)</span>
-<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
-<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
-<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>    s</span>
-<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Can be made more efficient by storing values in a pre-calculated table. The recursive calculation here is for illustrative purposes.</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">sur</span>(y<span class="op">::</span><span class="dt">Int</span>, pol<span class="op">::</span><span class="dt">Policy</span>; Ω<span class="op">=</span><span class="fl">120</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> y <span class="op">==</span> <span class="fl">0</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>        <span class="fl">1.0</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elseif</span> y <span class="op">&lt;</span> <span class="fl">0</span> <span class="op">||</span> Ω <span class="op">-</span> y <span class="op">&lt;=</span> pol.issue_age</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>        <span class="fl">0.0</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>        <span class="fu">sur</span>(y <span class="op">-</span> <span class="fl">1</span>, pol) <span class="op">*</span> (<span class="fl">1</span> <span class="op">-</span> mort[pol.sex][pol.issue_age<span class="op">+</span>y<span class="op">-</span><span class="fl">1</span>]) <span class="op">/</span> (<span class="fl">1</span> <span class="op">+</span> pol.pir)</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">res</span>(y<span class="op">::</span><span class="dt">Int</span>, pol<span class="op">::</span><span class="dt">Policy</span>; Ω<span class="op">=</span><span class="fl">120</span>)</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    s <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> y <span class="op">&gt;=</span> <span class="fl">1</span> <span class="op">&amp;&amp;</span> y <span class="op">&lt;=</span> Ω <span class="op">-</span> pol.issue_age</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> t <span class="kw">in</span> (pol.issue_age<span class="op">+</span>y)<span class="op">:</span>Ω</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>            prem <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> y <span class="op">&lt;=</span> pol.pp</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>                prem <span class="op">=</span> pol.prem</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>            <span class="cf">end</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>            s <span class="op">+=</span> <span class="fu">sur</span>(t <span class="op">-</span> pol.issue_age, pol) <span class="op">*</span> mort[pol.sex][t] <span class="op">*</span> pol.benefit_base <span class="op">/</span> <span class="fu">sqrt</span>(<span class="fl">1</span> <span class="op">+</span> pol.pir) <span class="op">-</span> prem <span class="op">*</span> <span class="fu">sur</span>(t <span class="op">-</span> pol.issue_age, pol)</span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>    s</span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>res (generic function with 1 method)</code></pre>
 </div>
@@ -830,17 +831,17 @@ res(y) = \sum_{t=age+y}^{120} (sur_{t-age-y} * mort_t * B_y * \sqrt{1 + r}) - (P
 <h2 data-number="28.4" class="anchored" data-anchor-id="common-sensitivity-analysis-methodologies"><span class="header-section-number">28.4</span> Common Sensitivity Analysis Methodologies</h2>
 <section id="finite-differences" class="level3" data-number="28.4.1">
 <h3 data-number="28.4.1" class="anchored" data-anchor-id="finite-differences"><span class="header-section-number">28.4.1</span> Finite Differences</h3>
-<p>Define a customized finite difference function with respect to the COLA, rippled by a small difference.</p>
+<p>Define a customized finite difference function with respect to the interest rate, rippled by a small difference.</p>
 <div id="12" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">res_wrt_r_fd</span>(y<span class="op">::</span><span class="dt">Int</span>, pol<span class="op">::</span><span class="dt">Policy</span>, r<span class="op">::</span><span class="dt">Float64</span>, h<span class="op">=</span><span class="fl">1e-3</span>)</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    p₊, p₋ <span class="op">=</span> <span class="fu">deepcopy</span>(pol), <span class="fu">deepcopy</span>(pol)</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    p₊.COLA, p₋.COLA <span class="op">=</span> r <span class="op">+</span> h, r <span class="op">-</span> h</span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    (<span class="fu">res</span>(y, p₋) <span class="op">-</span> <span class="fu">res</span>(y, p₊)) <span class="op">/</span> (<span class="fl">2</span><span class="fu">res</span>(y, pol))</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    p₊.pir, p₋.pir <span class="op">=</span> r <span class="op">+</span> h, r <span class="op">-</span> h</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    (<span class="fu">res</span>(y, p₋) <span class="op">-</span> <span class="fu">res</span>(y, p₊)) <span class="op">/</span> (<span class="fl">2</span> <span class="op">*</span> <span class="fu">res</span>(y, pol))</span>
 <span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
 <span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="fu">res_wrt_r_fd</span>(<span class="fl">2</span>, policies[<span class="fl">1</span>], <span class="fl">0.03</span>) <span class="co"># changes in reserve at year 2 when the interest rate at 3% with a perturbation of 0.1%</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="fu">res_wrt_r_fd</span>(<span class="fl">2</span>, policies[<span class="fl">1</span>], <span class="fl">0.03</span>) <span class="co"># percentage changes in reserve at year 2 when the interest rate at 3% with a perturbation of 0.1%</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>0.021366520936389077</code></pre>
+<pre><code>0.18602131593930354</code></pre>
 </div>
 </div>
 </section>
@@ -851,27 +852,23 @@ res(y) = \sum_{t=age+y}^{120} (sur_{t-age-y} * mort_t * B_y * \sqrt{1 + r}) - (P
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">r1_wrt_r</span>(r)</span>
 <span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    p <span class="op">=</span> <span class="fu">deepcopy</span>(policies[<span class="fl">1</span>])</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    p.COLA <span class="op">=</span> r[<span class="fl">2</span>]</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    p.pir <span class="op">=</span> r[<span class="fl">2</span>]</span>
 <span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    p.prem <span class="op">=</span> r[<span class="fl">3</span>]</span>
 <span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">res</span>(<span class="fu">Int</span>(<span class="fu">floor</span>(r[<span class="fl">1</span>])), p)</span>
 <span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
 <span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="co"># reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="co"># reserve @ year 1 or 2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1</span></span>
 <span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>reg_anal <span class="op">=</span> <span class="fu">gsa</span>(r1_wrt_r, <span class="fu">RegressionGSA</span>(), [[<span class="fl">1</span>, <span class="fl">2</span>], [<span class="fl">0.029</span>, <span class="fl">0.031</span>], [<span class="fl">999.9</span>, <span class="fl">1000.1</span>]], samples<span class="op">=</span><span class="fl">1000</span>)</span>
-<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="pp">@show</span> reg_anal.pearson</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(reg_anal.pearson)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>reg_anal.pearson = [0.002266826033036182 -0.9999603237826435 -0.003255946696849575]</code></pre>
-</div>
-<div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>1×3 Matrix{Float64}:
- 0.00226683  -0.99996  -0.00325595</code></pre>
+<pre><code>[0.0022567189580152192 -0.9998838789971553 -0.004550632511995584]</code></pre>
 </div>
 </div>
-<p>The Pearson Spearman coefficients show the correlation coefficient matrix between inputs and outputs.</p>
+<p>The Pearson coefficients show the correlation coefficient matrix between inputs and outputs.</p>
 </section>
 <section id="sobol-indices" class="level3" data-number="28.4.3">
 <h3 data-number="28.4.3" class="anchored" data-anchor-id="sobol-indices"><span class="header-section-number">28.4.3</span> Sobol Indices</h3>
-<p>Sobol is a variance-based method, and it decomposes the variance of the output of the model or system into fractions which can be attributed to inputs or sets of inputs. This helps to get not just the individual parameter’s sensitivities, but also gives a way to quantify the affect and sensitivity from the interaction between the parameters.</p>
+<p>Sobol is a variance-based method, and it decomposes the variance of the output of the model or system into fractions which can be attributed to inputs or sets of inputs. This helps to get not just the individual parameter’s sensitivities, but also gives a way to quantify the effect and sensitivity from the interaction between the parameters.</p>
 <p><span class="math display">\[
 Y = f_0 + \sum_{i=1}^{d}f_i(X_i) + \sum_{i&lt;j}^{d}f_{ij}(X_i, X_j) + ... + f_{1,2,...,d}(X_1, X_2, ..., X_d)
 \]</span></p>
@@ -880,28 +877,22 @@ Var(Y) = \sum_{i=1}^{d}V_i + \sum_{i&lt;j}^{d}V_{ij} + ... + V_{1,2,...,d}
 \]</span></p>
 <p>The Sobol Indices are “ordered”, the first order indices given by <span class="math inline">\(S_i = \dfrac{V_i}{Var(Y)}\)</span>, the contribution to the output variance of the main effect of <span class="math inline">\(X_i\)</span>. Therefore, it measures the effect of varying <span class="math inline">\(X_i\)</span> alone, but averaged over variations in other input parameters. It is standardized by the total variance to provide a fractional contribution. Higher-order interaction indices <span class="math inline">\(S_{ij}, S_{ijk}\)</span> and so on can be formed by dividing other terms in the variance decomposition by <span class="math inline">\(Var(Y)\)</span>.</p>
 <div id="16" class="cell" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">QuasiMonteCarlo</span>, <span class="bu">GlobalSensitivity</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co"># reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1</span></span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>L, U <span class="op">=</span> QuasiMonteCarlo.<span class="fu">generate_design_matrices</span>(<span class="fl">1000</span>, [<span class="fl">1</span>, <span class="fl">0.029</span>, <span class="fl">999.9</span>], [<span class="fl">2</span>, <span class="fl">0.031</span>, <span class="fl">1000.1</span>], <span class="fu">SobolSample</span>())</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>s <span class="op">=</span> <span class="fu">gsa</span>(r1_wrt_r, <span class="fu">Sobol</span>(), L, U)</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="pp">@show</span> s.S1</span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="pp">@show</span> s.ST</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">QuasiMonteCarlo</span>, <span class="bu">GlobalSensitivity</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co"># reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>L, U <span class="op">=</span> QuasiMonteCarlo.<span class="fu">generate_design_matrices</span>(<span class="fl">1000</span>, [<span class="fl">1</span>, <span class="fl">0.029</span>, <span class="fl">999.9</span>], [<span class="fl">2</span>, <span class="fl">0.031</span>, <span class="fl">1000.1</span>], <span class="fu">SobolSample</span>())</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>s <span class="op">=</span> <span class="fu">gsa</span>(r1_wrt_r, <span class="fu">Sobol</span>(), L, U)</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(s.S1)</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(s.ST)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <div class="ansi-escaped-output">
 <pre><span class="ansi-yellow-fg ansi-bold">┌ </span><span class="ansi-yellow-fg ansi-bold">Warning: </span>The `generate_design_matrices(n, d, sampler, R = NoRand(), num_mats)` method does not produces true and independent QMC matrices, see [this doc warning](https://docs.sciml.ai/QuasiMonteCarlo/stable/design_matrix/) for more context. 
 <span class="ansi-yellow-fg ansi-bold">│ </span>    Prefer using randomization methods such as `R = Shift()`, `R = MatousekScrambling()`, etc., see [documentation](https://docs.sciml.ai/QuasiMonteCarlo/stable/randomization/)
 <span class="ansi-yellow-fg ansi-bold">└ </span><span class="ansi-bright-black-fg">@ QuasiMonteCarlo ~/.julia/packages/QuasiMonteCarlo/KvLfb/src/RandomizedQuasiMonteCarlo/iterators.jl:255</span>
-s.S1 = [0.0, 1.2308143537488936, -0.00010730838653271882]
-s.ST = [0.0, 1.0014202549551285, 5.83151055643934e-6]
+[0.0, 1.0207707461946909, -2.1406196791444575e-5]
+[0.0, 1.0014104679541778, 1.3708293198388621e-5]
 </pre>
 </div>
-</div>
-<div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>3-element Vector{Float64}:
- 0.0
- 1.0014202549551285
- 5.83151055643934e-6</code></pre>
 </div>
 </div>
 <p>The output shows the first order and total order of variations in different input parameters.</p>
@@ -915,19 +906,15 @@ EE_i = \frac{f(x_1, x_2, ...x_i + \Delta, ...x_k) - y}{\Delta}
 <p>We calculate local sensitivity measures known as “elementary effects”, which are calculated by measuring the perturbation in the output of the model on changing one parameter.</p>
 <p>These are evaluated at various points in the input chosen such that a wide “spread” of the parameter space is explored and considered in the analysis, to provide an approximate global importance measure. The mean and variance of these elementary effects is computed. A high value of the mean implies that a parameter is important, a high variance implies that its effects are non-linear or the result of interactions with other inputs. This method does not evaluate separately the contribution from the interaction and the contribution of the parameters individually and gives the effects for each parameter which takes into consideration all the interactions and its individual contribution.</p>
 <div id="18" class="cell" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">GlobalSensitivity</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co"># reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1</span></span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>m <span class="op">=</span> <span class="fu">gsa</span>(r1_wrt_r, <span class="fu">Morris</span>(), [[<span class="fl">1</span>, <span class="fl">2</span>], [<span class="fl">0.029</span>, <span class="fl">0.031</span>], [<span class="fl">999.9</span>, <span class="fl">1000.1</span>]])</span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="pp">@show</span> m.means</span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="pp">@show</span> m.variances</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">GlobalSensitivity</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co"># reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>m <span class="op">=</span> <span class="fu">gsa</span>(r1_wrt_r, <span class="fu">Morris</span>(), [[<span class="fl">1</span>, <span class="fl">2</span>], [<span class="fl">0.029</span>, <span class="fl">0.031</span>], [<span class="fl">999.9</span>, <span class="fl">1000.1</span>]])</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(m.means)</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(m.variances)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>m.means = [0.0 -718932.6297036522 -17.298407348875823]
-m.variances = [0.0 7.208809723977634e7 0.005810711356193134]</code></pre>
-</div>
-<div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>1×3 Matrix{Float64}:
- 0.0  7.20881e7  0.00581071</code></pre>
+<pre><code>[0.0 -655361.5591866194 -24.231504991513404]
+[0.0 2.611546662711629e8 0.04024070599425008]</code></pre>
 </div>
 </div>
 <p>From the means it can be observed which variables are more important, and the variances imply higher degree of nonlinearity or interactions with other variables.</p>
@@ -940,19 +927,15 @@ EE_i = \frac{f(x_1, x_2, ...x_i + \Delta, ...x_k) - y}{\Delta}
 \]</span></p>
 <p>where <span class="math inline">\(s\)</span> is a scalar variable varying over the range <span class="math inline">\(−∞ &lt; s &lt; +∞\)</span>, <span class="math inline">\(G_i\)</span> are transformation functions and <span class="math inline">\(w_i, ∀i=1,2,…,N\)</span> is a set of different (angular) frequencies, to be properly selected, associated with each factor for all <span class="math inline">\(N\)</span> (samples) number of parameter sets.</p>
 <div id="20" class="cell" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">GlobalSensitivity</span></span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="co"># reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1</span></span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>fast <span class="op">=</span> <span class="fu">gsa</span>(r1_wrt_r, <span class="fu">eFAST</span>(), [[<span class="fl">1</span>, <span class="fl">2</span>], [<span class="fl">0.029</span>, <span class="fl">0.031</span>], [<span class="fl">999.9</span>, <span class="fl">1000.1</span>]], samples<span class="op">=</span><span class="fl">1000</span>)</span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="pp">@show</span> fast.S1</span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="pp">@show</span> fast.ST</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">GlobalSensitivity</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co"># reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>fast <span class="op">=</span> <span class="fu">gsa</span>(r1_wrt_r, <span class="fu">eFAST</span>(), [[<span class="fl">1</span>, <span class="fl">2</span>], [<span class="fl">0.029</span>, <span class="fl">0.031</span>], [<span class="fl">999.9</span>, <span class="fl">1000.1</span>]], samples<span class="op">=</span><span class="fl">1000</span>)</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(fast.S1)</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(fast.ST)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>fast.S1 = [4.6241081415743115e-12 0.9976898967399184 5.795270630721111e-6]
-fast.ST = [6.602921726051036e-7 0.9999937138229795 0.0023124856279279626]</code></pre>
-</div>
-<div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>1×3 Matrix{Float64}:
- 6.60292e-7  0.999994  0.00231249</code></pre>
+<pre><code>[1.3615785544803975e-11 0.997683796221837 1.3622073687954465e-5]
+[7.177845547934325e-7 0.9999854208103248 0.002319843651146014]</code></pre>
 </div>
 </div>
 <p>The output shows the first order and total order of variations in different input parameters.</p>
