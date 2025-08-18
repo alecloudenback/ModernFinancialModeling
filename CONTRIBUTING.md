@@ -1,0 +1,1 @@
+By submitting feedback, issues, or pull requests, you represent that you have the right to do so and you grant the maintainers a perpetual, worldwide, irrevocable, royalty-free license to use, modify, reproduce, and distribute your contributions. You also waive any copyright, moral rights, or other IP claims to the fullest extent permitted by law.
