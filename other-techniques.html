@@ -669,10 +669,7 @@ window.Quarto = {
   <li><a href="#static-and-dynamic-validation" id="toc-static-and-dynamic-validation" class="nav-link" data-scroll-target="#static-and-dynamic-validation"><span class="header-section-number">32.4.1</span> Static and dynamic validation</a></li>
   <li><a href="#implied-rate-analysis" id="toc-implied-rate-analysis" class="nav-link" data-scroll-target="#implied-rate-analysis"><span class="header-section-number">32.4.2</span> Implied rate analysis</a></li>
   </ul></li>
-  <li><a href="#sec-model-assessment" id="toc-sec-model-assessment" class="nav-link" data-scroll-target="#sec-model-assessment"><span class="header-section-number">32.5</span> Predictive vs.&nbsp;Explanatory Model Assessments</a>
-  <ul class="collapse">
-  <li><a href="#counterfactuals" id="toc-counterfactuals" class="nav-link" data-scroll-target="#counterfactuals"><span class="header-section-number">32.5.1</span> Counterfactuals</a></li>
-  </ul></li>
+  <li><a href="#sec-model-assessment" id="toc-sec-model-assessment" class="nav-link" data-scroll-target="#sec-model-assessment"><span class="header-section-number">32.5</span> Predictive vs.&nbsp;Explanatory Model Assessments</a></li>
   </ul>
 </nav>
     </div>
@@ -839,7 +836,7 @@ Tip
 <span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>restored <span class="op">=</span> <span class="fu">deserialize</span>(path)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>ModelState([1.0, 2.0], 42, DateTime("2025-08-11T15:46:54.755"), "OLS on 2025-08-11")</code></pre>
+<pre><code>ModelState([1.0, 2.0], 42, DateTime("2025-08-18T21:21:38.316"), "OLS on 2025-08-11")</code></pre>
 </div>
 </div>
 <p>Tip: Keep snapshot files small and focused. Store big inputs (e.g., loan-level data) separately in efficient tabular formats and reference them via metadata (e.g., file hashes/paths) in the snapshot.</p>
@@ -951,8 +948,8 @@ Tip
 <span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>cut <span class="op">=</span> <span class="fl">150</span></span>
 <span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>Xtrain <span class="op">=</span> <span class="fu">hcat</span>(<span class="fu">ones</span>(cut), x[<span class="fl">1</span><span class="op">:</span>cut])</span>
 <span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>ytrain <span class="op">=</span> y[<span class="fl">1</span><span class="op">:</span>cut]</span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>Xtest <span class="op">=</span> <span class="fu">hcat</span>(<span class="fu">ones</span>(T <span class="op">-</span> cut), x[cut<span class="op">+</span><span class="fl">1</span><span class="op">:</span><span class="kw">end</span>])</span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>ytest <span class="op">=</span> y[cut<span class="op">+</span><span class="fl">1</span><span class="op">:</span><span class="kw">end</span>]</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>Xtest <span class="op">=</span> <span class="fu">hcat</span>(<span class="fu">ones</span>(T <span class="op">-</span> cut), x[(cut<span class="op">+</span><span class="fl">1</span>)<span class="op">:</span><span class="kw">end</span>])</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>ytest <span class="op">=</span> y[(cut<span class="op">+</span><span class="fl">1</span>)<span class="op">:</span><span class="kw">end</span>]</span>
 <span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="co"># OLS fit</span></span>
 <span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>θ <span class="op">=</span> Xtrain <span class="op">\</span> ytrain  <span class="co"># Vector length 2</span></span>
@@ -969,8 +966,8 @@ Tip
 <span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Mean Absolute Error (MAE): "</span>, mae)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Static validation (chronological holdout):
-Mean Squared Error (MSE): 0.008635168139088349
-Mean Absolute Error (MAE): 0.07685118593200958</code></pre>
+Mean Squared Error (MSE): 0.008267067643781285
+Mean Absolute Error (MAE): 0.0707896587375999</code></pre>
 </div>
 </div>
 <p>The following example shows how to do a dynamic validation in Julia.</p>
@@ -991,8 +988,8 @@ Mean Absolute Error (MAE): 0.07685118593200958</code></pre>
 <span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>abserrs <span class="op">=</span> <span class="dt">Float64</span>[]</span>
 <span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> t <span class="kw">in</span> (initial_window<span class="op">+</span><span class="fl">1</span>)<span class="op">:</span>T</span>
-<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>    Xtr <span class="op">=</span> <span class="fu">hcat</span>(<span class="fu">ones</span>(t <span class="op">-</span> <span class="fl">1</span>), x[<span class="fl">1</span><span class="op">:</span>t<span class="op">-</span><span class="fl">1</span>])</span>
-<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>    ytr <span class="op">=</span> y[<span class="fl">1</span><span class="op">:</span>t<span class="op">-</span><span class="fl">1</span>]</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>    Xtr <span class="op">=</span> <span class="fu">hcat</span>(<span class="fu">ones</span>(t <span class="op">-</span> <span class="fl">1</span>), x[<span class="fl">1</span><span class="op">:</span>(t<span class="op">-</span><span class="fl">1</span>)])</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>    ytr <span class="op">=</span> y[<span class="fl">1</span><span class="op">:</span>(t<span class="op">-</span><span class="fl">1</span>)]</span>
 <span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>    θ <span class="op">=</span> Xtr <span class="op">\</span> ytr  <span class="co"># OLS on past data only</span></span>
 <span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a></span>
@@ -1059,7 +1056,7 @@ Note
 <span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Define an initial value</span></span>
 <span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>    x <span class="op">=</span> <span class="fl">0.05</span></span>
 <span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>    <span class="co"># tolerance of difference in value</span></span>
-<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>    tol <span class="op">=</span> <span class="fl">1e-6</span></span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>    tol <span class="op">=</span> <span class="fl">1.0e-6</span></span>
 <span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>    <span class="co"># maximum number of iteration of the algorithm</span></span>
 <span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>    max_iter <span class="op">=</span> <span class="fl">100</span></span>
 <span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>    iter <span class="op">=</span> <span class="fl">0</span></span>
@@ -1180,19 +1177,8 @@ Tip
 <p>Align the loss you optimize in estimation with the metric you report in evaluation. If your risk committee cares about 99% tail losses, train and evaluate on quantile/tail losses, not just RMSE.</p>
 </div>
 </div>
-<section id="counterfactuals" class="level3" data-number="32.5.1">
-<h3 data-number="32.5.1" class="anchored" data-anchor-id="counterfactuals"><span class="header-section-number">32.5.1</span> Counterfactuals</h3>
-<p>A <strong>counterfactual</strong> asks: “What would the outcome have been if we had made a different decision or if a policy/input had taken a different value?” It is a “what if” exercise where we deliberately change one input and keep the model’s underlying relationships the same.</p>
-<p>The key idea is to separate two questions: - What we typically observe when an input is high or low (patterns in past data). - What would have happened if we had actively set that input to a new level (a deliberate change).</p>
-<p>To run a counterfactual analysis in practice: 1. Pick the specific change (e.g., raise a capital ratio from 8% to 10%; lower mortgage rates by 100 bps; cap deposit betas at 0.30). 2. Hold the model’s mechanism the same (the estimated relationships and parameters do not change because of the thought experiment). 3. Recompute the outcomes under the new input and compare to the original (baseline) outcomes. 4. Report the difference as the counterfactual effect, along with uncertainty or sensitivity to key assumptions.</p>
-<p>When to trust a counterfactual: - Parameters are interpretable and align with finance intuition (signs, magnitudes, units). - Relationships are reasonably stable across time and regimes. - Results are robust to plausible alternative specifications and samples.</p>
-<p>Finance examples - Capital policy: “If the Tier 1 capital requirement were 10% instead of 8%, how would loan growth and ROE have changed?” - Mortgages: “If mortgage rates were 100 bps lower last quarter, holding credit standards fixed, what would prepayment speeds have been?” - ALM: “If deposit betas were capped at 0.30, how would net interest margin and the liquidity coverage ratio have evolved?”</p>
-<p>Tip: Be explicit about what you changed, what you held fixed, and why the model’s relationships should remain valid under the proposed change.</p>
-<p>Change Log - Rewrote the counterfactual definition in plain language without causal notation or equations. - Added a simple, repeatable checklist for conducting counterfactual analyses. - Included concise finance-focused examples consistent with the chapter’s tone and audience.</p>
-<p>Recommendations - When you first introduce counterfactuals in later chapters, show a small worked example: baseline vs counterfactual run, side-by-side, with a sentence on what was held fixed and why.</p>
 
 
-</section>
 </section>
 
 </main> <!-- /main -->
