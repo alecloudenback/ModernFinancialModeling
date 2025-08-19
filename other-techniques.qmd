@@ -40,21 +40,18 @@ We'd then conclude that the value of the house very likely exceeds the outstandi
 
 ### Serialization
 
-**Serialization** is the process of converting a data structure or object state into a format that can be easily stored or transmitted, allowing it to be reconstructed later. 
+**Serialization** is the process of converting a data structure or object state into a format that can be easily stored or transmitted, allowing it to be reconstructed later.
 
 In most finance workflows, the slowest parts are not the regressions themselves—they are the data prep, calibration, and scenario generation steps that lead up to them. If you are pricing thousands of scenarios, rolling a model office forward month-by-month, or recalibrating prepayment and default curves, rerunning those steps on every iteration wastes time and money and complicates audits. Serialization lets you checkpoint those expensive steps and ship lightweight “artifacts” between notebooks, jobs, and environments.
 
-:::callout-tip
-Why serialize?
--  Speed and cost: Avoid recomputing expensive steps (e.g., yield curve calibration, Monte Carlo paths) between runs.
--  Reproducibility and audit: Persist a snapshot of the “model office” (data, parameters, code version, random seeds) so results can be reproduced for validation and regulators.
--  Deployment: Move model artifacts between environments in a controlled, versioned way.
+::: callout-tip
+Why serialize? - Speed and cost: Avoid recomputing expensive steps (e.g., yield curve calibration, Monte Carlo paths) between runs. - Reproducibility and audit: Persist a snapshot of the “model office” (data, parameters, code version, random seeds) so results can be reproduced for validation and regulators. - Deployment: Move model artifacts between environments in a controlled, versioned way.
 :::
 
 What to use when:
 
 | Format/Tool | Pros | Cons | Typical use |
-|:---|:---|:---|:---|
+|:-----------------|:-----------------|:-----------------|:-----------------|
 | Serialization stdlib (.jls) | Fast, no extra dependency, preserves Julia types | Not stable across Julia versions; Julia-only | Short-lived caches, memoization artifacts |
 | JLD2 (.jld2) | Portable binary, stores multiple named arrays/structs, widely used | Extra dependency; still Julia-focused | Persisting model states and results across sessions/machines |
 | Arrow/Parquet | Language-agnostic, columnar, efficient for large tables | Heavier dependency; not for arbitrary Julia structs | Large tabular market/position data for interop |
@@ -64,24 +61,22 @@ What to use when:
 
 Design principles:
 
-- Minimality: Save just enough to reproduce downstream results (parameters, seeds, small derived tables), not entire raw datasets unless necessary.
-- Determinism: Include the random seed and any non-default options so recomputation is bit-for-bit identical when needed.
-- Portability: Prefer concrete, serializable types (structs, arrays, Dict) and stable formats when artifacts will live across Julia versions or be shared with others.
-- Traceability: Attach metadata (model version, code commit, created_at, inputs’ file hashes) so an auditor or colleague can answer “what produced this file?” a year later.
+-   Minimality: Save just enough to reproduce downstream results (parameters, seeds, small derived tables), not entire raw datasets unless necessary.
+-   Determinism: Include the random seed and any non-default options so recomputation is bit-for-bit identical when needed.
+-   Portability: Prefer concrete, serializable types (structs, arrays, Dict) and stable formats when artifacts will live across Julia versions or be shared with others.
+-   Traceability: Attach metadata (model version, code commit, created_at, inputs’ file hashes) so an auditor or colleague can answer “what produced this file?” a year later.
 
 What to serialize vs. recompute:
 
-Serialize: fitted parameters, calibrated curves, scenario indexes, precomputed shocks, and intermediate aggregates that are expensive but compact.
-- Recompute: anything cheap, or large raw inputs you can reload from a columnar format (Arrow/Parquet).
-- Reference big inputs by path and hash in the artifact’s metadata rather than embedding them.
+Serialize: fitted parameters, calibrated curves, scenario indexes, precomputed shocks, and intermediate aggregates that are expensive but compact. - Recompute: anything cheap, or large raw inputs you can reload from a columnar format (Arrow/Parquet). - Reference big inputs by path and hash in the artifact’s metadata rather than embedding them.
 
 Operational guidance:
 
--  Version your artifacts: embed minimal metadata (e.g., julia_version, created_at, model_version) and, if possible, a git commit hash for traceability.
--  Keep configs human-readable: store run configuration in JSON/TOML and reference it from binary artifacts.
--  Separate data from models: store large tabular datasets in Arrow/Parquet; store small model objects/results in JLD2/Serialization.
--  Sensitive data: never serialize secrets. Encrypt at rest if files contain PII; control access with OS permissions.
--  Interop: do not deserialize untrusted files. Prefer Arrow/Parquet/CSV for sharing with non-Julia systems.
+-   Version your artifacts: embed minimal metadata (e.g., julia_version, created_at, model_version) and, if possible, a git commit hash for traceability.
+-   Keep configs human-readable: store run configuration in JSON/TOML and reference it from binary artifacts.
+-   Separate data from models: store large tabular datasets in Arrow/Parquet; store small model objects/results in JLD2/Serialization.
+-   Sensitive data: never serialize secrets. Encrypt at rest if files contain PII; control access with OS permissions.
+-   Interop: do not deserialize untrusted files. Prefer Arrow/Parquet/CSV for sharing with non-Julia systems.
 
 #### Example: Snapshot a “Model Office” State
 
@@ -119,8 +114,9 @@ restored = deserialize(path)
 
 Tip: Keep snapshot files small and focused. Store big inputs (e.g., loan-level data) separately in efficient tabular formats and reference them via metadata (e.g., file hashes/paths) in the snapshot.
 
-#### Example:  Cross-session persistence with JLD2
--  JLD2 stores multiple named variables in one file and is less brittle across Julia versions than raw Serialization. Good default for sharing artifacts with colleagues.
+#### Example: Cross-session persistence with JLD2
+
+-   JLD2 stores multiple named variables in one file and is less brittle across Julia versions than raw Serialization. Good default for sharing artifacts with colleagues.
 
 ```{julia}
 using JLD2, Random, LinearAlgebra, Dates
@@ -148,7 +144,8 @@ jldsave(file; θ, meta, X_size=size(X))
 ```
 
 #### Example: Disk-Backed Memoization (Cache Expensive Results)
--  Cache outputs keyed by inputs to avoid re-running slow steps (e.g., pricing a large scenario set). Include a label and serialize atomically.
+
+-   Cache outputs keyed by inputs to avoid re-running slow steps (e.g., pricing a large scenario set). Include a label and serialize atomically.
 
 ```{julia}
 using SHA, Serialization
@@ -188,9 +185,10 @@ ols_cached = memoize_to_disk(ols; label="ols_v1")
 @assert θa == θb
 ```
 
-:::callout-tip
+::: callout-tip
 ## Financial Modeling Pro Tip
--  For recurring production runs, use a directory convention like artifacts/YYYY-MM-DD/ with consistent filenames, and clean caches on a schedule to control disk use.
+
+-   For recurring production runs, use a directory convention like artifacts/YYYY-MM-DD/ with consistent filenames, and clean caches on a schedule to control disk use.
 :::
 
 ## Model Validation
@@ -198,7 +196,6 @@ ols_cached = memoize_to_disk(ols; label="ols_v1")
 ### Static and dynamic validation
 
 Static validation typically involves splitting the dataset into training and testing sets, where the testing set is held out and not used during model training. The model is trained on the training set and then evaluated on the held-out testing set to assess its performance. This approach helps to measure how well the model generalizes to unseen data.
-
 
 The following example shows how to do a static validation in Julia.
 
@@ -214,8 +211,8 @@ y = 1.0 .+ 2.0 .* x .+ 0.1 .* randn(T)  # Vector response
 cut = 150
 Xtrain = hcat(ones(cut), x[1:cut])
 ytrain = y[1:cut]
-Xtest = hcat(ones(T - cut), x[cut+1:end])
-ytest = y[cut+1:end]
+Xtest = hcat(ones(T - cut), x[(cut+1):end])
+ytest = y[(cut+1):end]
 
 # OLS fit
 θ = Xtrain \ ytrain  # Vector length 2
@@ -251,8 +248,8 @@ sqerrs = Float64[]
 abserrs = Float64[]
 
 for t in (initial_window+1):T
-    Xtr = hcat(ones(t - 1), x[1:t-1])
-    ytr = y[1:t-1]
+    Xtr = hcat(ones(t - 1), x[1:(t-1)])
+    ytr = y[1:(t-1)]
 
     θ = Xtr \ ytr  # OLS on past data only
 
@@ -270,13 +267,12 @@ println("Mean Absolute Error (MAE): ", mean(abserrs))
 
 ```
 
-
-:::callout-note
+::: callout-note
 Sometimes static and dynamic validation of a financial model can refer to the following analysis:
 
-- Static validation: whether the model reproduces time zero prices/balances from the model.
-- Dynamic validation: whether the model reproduces flows (e.g. cashflows, settlements) that are in-trend for historical data.
-::: 
+-   Static validation: whether the model reproduces time zero prices/balances from the model.
+-   Dynamic validation: whether the model reproduces flows (e.g. cashflows, settlements) that are in-trend for historical data.
+:::
 
 ### Implied rate analysis
 
@@ -307,7 +303,7 @@ function rootassign(f, l, u)
     # Define an initial value
     x = 0.05
     # tolerance of difference in value
-    tol = 1e-6
+    tol = 1.0e-6
     # maximum number of iteration of the algorithm
     max_iter = 100
     iter = 0
@@ -330,7 +326,7 @@ for (i, rate) in enumerate(implied_rates)
 end
 ```
 
-:::callout-tip
+::: callout-tip
 JuliaActuary's [FinanceCore.jl](https://github.com/JuliaActuary/FinanceCore.jl) provides a fast, robust `irr` function. More related utilities (e.g. present value) are found in [ActuaryUtilities.jl](https://github.com/JuliaActuary/ActuaryUtilities.jl).
 :::
 
@@ -338,77 +334,27 @@ JuliaActuary's [FinanceCore.jl](https://github.com/JuliaActuary/FinanceCore.jl) 
 
 Model assessment should be driven by the model’s purpose. A predictive model is judged by how well it forecasts targets under realistic deployment conditions. An explanatory (or structural) model is judged by how well its parameters are identified, interpretable, and stable under interventions—so that counterfactuals are credible.
 
-Predictive assessment
--  Define the forecast target and loss explicitly (point, quantile, probability, or full distribution).
--  Point forecasts (levels/returns): prioritize scale-aware losses such as RMSE and MAE.
-$$
+Predictive assessment - Define the forecast target and loss explicitly (point, quantile, probability, or full distribution). - Point forecasts (levels/returns): prioritize scale-aware losses such as RMSE and MAE. $$
 \mathrm{RMSE} = \sqrt{\frac{1}{T}\sum_{t=1}^{T}(\hat{y}_t - y_t)^2}, \quad \mathrm{MAE} = \frac{1}{T}\sum_{t=1}^{T}|\hat{y}_t - y_t|
-$$
-  Avoid MAPE when values can be near zero; consider symmetric MAPE variants if needed.
--  Quantile forecasts (e.g., VaR at level $\tau$): use pinball (quantile) loss.
-$$
+$$ Avoid MAPE when values can be near zero; consider symmetric MAPE variants if needed. - Quantile forecasts (e.g., VaR at level $\tau$): use pinball (quantile) loss. $$
   L_\tau(\hat{q}_t, y_t) = \left(\tau - \mathbf{1}\{y_t < \hat{q}_t\}\right)(y_t - \hat{q}_t)
-$$
--  Probabilistic forecasts (default probabilities, loss distributions): use log score (negative log-likelihood), Brier score for binary events, CRPS for full distributions; evaluate calibration (reliability curves, PIT uniformity) and sharpness (narrowness of distributions).
--  Interval forecasts: evaluate coverage vs nominal and average interval width (or Winkler score).
--  Classification tasks (e.g., downgrade prediction): use AUROC/PR, calibration error, expected utility with cost-sensitive thresholds.
--  Validation design: for time series, use walk-forward (rolling-origin) evaluation with realistic feature availability; guard against leakage; include transaction costs/slippage where applicable.
+$$ - Probabilistic forecasts (default probabilities, loss distributions): use log score (negative log-likelihood), Brier score for binary events, CRPS for full distributions; evaluate calibration (reliability curves, PIT uniformity) and sharpness (narrowness of distributions). - Interval forecasts: evaluate coverage vs nominal and average interval width (or Winkler score). - Classification tasks (e.g., downgrade prediction): use AUROC/PR, calibration error, expected utility with cost-sensitive thresholds. - Validation design: for time series, use walk-forward (rolling-origin) evaluation with realistic feature availability; guard against leakage; include transaction costs/slippage where applicable.
 
-Explanatory assessment
--  Parameter interpretability: signs, magnitudes, and units align with theory and domain knowledge; elasticities and risk premia within plausible ranges.
--  Identification: demonstrate that parameters are uniquely recoverable from the data/design (e.g., instrument relevance/exogeneity for IV; rank conditions for GMM); report overidentification tests where applicable (e.g., Hansen’s J).
--  Stability/invariance: test parameter constancy across regimes (structural break tests such as Chow; rolling/CUSUM diagnostics); assess sensitivity to alternative samples/specifications.
--  Counterfactual validity: show that the model’s structural relationships remain invariant under contemplated interventions (policy changes, shocks); evaluate out-of-sample counterfactual predictions when historical policy variation exists.
--  Moment fit for structural models: report distance between empirical and model-implied moments; assess which moments are well matched and which are not.
--  Sensitivity/uncertainty analysis: local and global parameter sensitivity (e.g., Sobol indices), posterior uncertainty where Bayesian, and scenario robustness for key assumptions.
+Explanatory assessment - Parameter interpretability: signs, magnitudes, and units align with theory and domain knowledge; elasticities and risk premia within plausible ranges. - Identification: demonstrate that parameters are uniquely recoverable from the data/design (e.g., instrument relevance/exogeneity for IV; rank conditions for GMM); report overidentification tests where applicable (e.g., Hansen’s J). - Stability/invariance: test parameter constancy across regimes (structural break tests such as Chow; rolling/CUSUM diagnostics); assess sensitivity to alternative samples/specifications. - Counterfactual validity: show that the model’s structural relationships remain invariant under contemplated interventions (policy changes, shocks); evaluate out-of-sample counterfactual predictions when historical policy variation exists. - Moment fit for structural models: report distance between empirical and model-implied moments; assess which moments are well matched and which are not. - Sensitivity/uncertainty analysis: local and global parameter sensitivity (e.g., Sobol indices), posterior uncertainty where Bayesian, and scenario robustness for key assumptions.
 
 Summary mapping
 
-| Goal          | Primary metrics/loss                     | Validation design                           | Finance examples                                      |
-|:---|:---|:---|:---|
-| Predict point | RMSE, MAE, MAPE (with caution)          | Walk-forward CV; leakage checks             | Forecast next-month returns, prepayment speeds        |
-| Predict quantile | Pinball loss at τ                     | Rolling quantile backtests                   | VaR at 99%                                            |
-| Predict probability/distribution | Log score, Brier, CRPS; calibration and sharpness | Time-stamped splits; reliability/PIT checks | Default probability, loss distribution for stress     |
-| Classification | AUROC/PR, calibration error, expected utility | Cost-sensitive thresholds; class imbalance handling | Downgrade/watchlist prediction                        |
-| Explanatory (structural) | Identification tests, parameter plausibility, moment fit | Stability/structural-break tests; sensitivity analysis | Term-structure model, demand/supply elasticities       |
-| Counterfactual | Invariance under intervention; policy simulation accuracy | Natural experiments; out-of-sample policy periods | Impact of capital requirement change on lending       |
+| Goal | Primary metrics/loss | Validation design | Finance examples |
+|:-----------------|:-----------------|:-----------------|:-----------------|
+| Predict point | RMSE, MAE, MAPE (with caution) | Walk-forward CV; leakage checks | Forecast next-month returns, prepayment speeds |
+| Predict quantile | Pinball loss at τ | Rolling quantile backtests | VaR at 99% |
+| Predict probability/distribution | Log score, Brier, CRPS; calibration and sharpness | Time-stamped splits; reliability/PIT checks | Default probability, loss distribution for stress |
+| Classification | AUROC/PR, calibration error, expected utility | Cost-sensitive thresholds; class imbalance handling | Downgrade/watchlist prediction |
+| Explanatory (structural) | Identification tests, parameter plausibility, moment fit | Stability/structural-break tests; sensitivity analysis | Term-structure model, demand/supply elasticities |
+| Counterfactual | Invariance under intervention; policy simulation accuracy | Natural experiments; out-of-sample policy periods | Impact of capital requirement change on lending |
 
-:::callout-tip
+::: callout-tip
 ## Finance Modeling Pro-tip
+
 Align the loss you optimize in estimation with the metric you report in evaluation. If your risk committee cares about 99% tail losses, train and evaluate on quantile/tail losses, not just RMSE.
 :::
-
-### Counterfactuals
-
-A **counterfactual** asks: “What would the outcome have been if we had made a different decision or if a policy/input had taken a different value?” It is a “what if” exercise where we deliberately change one input and keep the model’s underlying relationships the same.
-
-The key idea is to separate two questions:
--  What we typically observe when an input is high or low (patterns in past data).
--  What would have happened if we had actively set that input to a new level (a deliberate change).
-
-To run a counterfactual analysis in practice:
-1. Pick the specific change (e.g., raise a capital ratio from 8% to 10%; lower mortgage rates by 100 bps; cap deposit betas at 0.30).
-2. Hold the model’s mechanism the same (the estimated relationships and parameters do not change because of the thought experiment).
-3. Recompute the outcomes under the new input and compare to the original (baseline) outcomes.
-4. Report the difference as the counterfactual effect, along with uncertainty or sensitivity to key assumptions.
-
-When to trust a counterfactual:
--  Parameters are interpretable and align with finance intuition (signs, magnitudes, units).
--  Relationships are reasonably stable across time and regimes.
--  Results are robust to plausible alternative specifications and samples.
-
-Finance examples
-- Capital policy: “If the Tier 1 capital requirement were 10% instead of 8%, how would loan growth and ROE have changed?”
-- Mortgages: “If mortgage rates were 100 bps lower last quarter, holding credit standards fixed, what would prepayment speeds have been?”
-- ALM: “If deposit betas were capped at 0.30, how would net interest margin and the liquidity coverage ratio have evolved?”
-
-Tip: Be explicit about what you changed, what you held fixed, and why the model’s relationships should remain valid under the proposed change.
-
-Change Log
-- Rewrote the counterfactual definition in plain language without causal notation or equations.
-- Added a simple, repeatable checklist for conducting counterfactual analyses.
-- Included concise finance-focused examples consistent with the chapter’s tone and audience.
-
-Recommendations
-- When you first introduce counterfactuals in later chapters, show a small worked example: baseline vs counterfactual run, side-by-side, with a sentence on what was held fixed and why.
-
