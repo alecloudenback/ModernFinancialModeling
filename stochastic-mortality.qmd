@@ -36,7 +36,7 @@ As will be shown, the number of simulations able to be completed on modern CPU h
 using CSV, DataFrames
 using MortalityTables, FinanceCore
 using Dates
-using ThreadsX
+using ChunkSplitters
 using BenchmarkTools
 using Random
 using CairoMakie
@@ -213,10 +213,6 @@ function pol_project!(out, policy, params)
     # get the right mortality vector
     qs = mortality(policy, params)
 
-    # grab the current thread's id to write to results container 
-    # without conflicting with other threads
-    tid = Threads.threadid()
-
     ω = lastindex(qs)
 
     @inbounds for t in 1:min(params.proj_length, ω - start_age) # <1>
@@ -225,11 +221,11 @@ function pol_project!(out, policy, params)
 
         if (rand() < q)
             # if dead then just return and don't increment the results anymore
-            out.benefits[t, tid] += cur_benefit # <2>
+            out.benefits[t] += cur_benefit # <2>
             return
         else
             # pay benefit, add a life to the output count, and increment the benefit for next year
-            out.lives[t, tid] += 1
+            out.lives[t] += 1
             cur_benefit *= COLA_factor
         end
     end
@@ -243,7 +239,7 @@ end
 
 #### Inputs
 
-The general approach for non-allocating model runs is to provide a previously instantiated container for the function to write the results to. Here, the incoming argument `out`(put) will be a named tuple with associated matrices as the `lives` and `benefits` fields. We know how many periods the model will simulate for and can therefore size the array appropriately at creation.
+The general approach for non-allocating model runs is to provide a previously instantiated container for the function to write the results to. Here, the incoming argument `out`(put) will be a named tuple with associated vectors as the `lives` and `benefits` fields. We know how many periods the model will simulate for and can therefore size the array appropriately at creation.
 
 Other inputs include: `params` which defines some global-like parameters and `policy` which is a single `Policy` object.
 
@@ -253,9 +249,13 @@ Note that the unit of the core model logic is a single policy. This simplifies t
 
 ### Threading
 
-The simulation is using a threaded parallelism approach where it could be operating on any of the computer's available threads. Multi-processor (multi-machine) or GPU-based computation would require some modifications see (@sec-parallelization). For the scale and complexity of this example, thread-based parallelism on a single CPU is all one should need for compute.
+The simulation uses a threaded parallelism approach with `ChunkSplitters` to divide work across available CPU threads. This pattern ensures thread safety by:
 
-The threads are handled by distributing the work across threads (this is done by `ThreadsX` in the `foreach` loop below), but we need to write the appropriate place in the matrix so that threads do not compete for the same column in the output data. Therefore, when we create the `lives` and `benefits` matrices we need to have them sized so that the number of rows is the number of projection periods and the number of columns is the number of threads.
+1.  Splitting the policy array into chunks, one per thread
+2.  Each thread maintains its own local output buffer
+3.  Results are safely combined after all threads complete
+
+Multi-processor (multi-machine) or GPU-based computation would require some modifications see (@sec-parallelization). For the scale and complexity of this example, thread-based parallelism on a single CPU is all one should need for compute.
 
 ### Simulation Control
 
@@ -271,24 +271,44 @@ params = (
 
 Having defined the model behavior at the unit of the policy above, we now need to define how the model should iterate over the entire population of interest. Given a vector of `Policy`s in the `policies` argument, the `project` function will:
 
-1.  Create output containers, keeping in mind the projection length and number of threads being used.
-2.  Loop over each policy, letting `ThreadsX.foreach` distribute the work across different threads.
-3.  Sum up the results across threads via `reduce`.
+1.  Create output containers for each thread chunk.
+2.  Split work across threads using `ChunkSplitters`, with each thread processing its chunk independently.
+3.  Spawn tasks for parallel execution and safely combine results.
 
 ```{julia}
 function project(policies, params)
-    threads = Threads.nthreads()
-    benefits = zeros(params.proj_length, threads)
-    lives = zeros(Int, params.proj_length, threads)
-    out = (; benefits, lives)
-    ThreadsX.foreach(policies) do pol
-        pol_project!(out, pol, params)
+    # Split policies into chunks, one per thread
+    tasks = map(chunks(policies; n=Threads.nthreads())) do chunk
+        Threads.@spawn begin
+            # Each thread gets its own output buffer
+            thread_out = (
+                benefits=zeros(params.proj_length),
+                lives=zeros(Int, params.proj_length)
+            )
+            # Process all policies in this chunk
+            for pol in chunk
+                pol_project!(thread_out, pol, params)
+            end
+            thread_out
+        end
     end
-    map(x -> vec(reduce(+, x, dims=2)), out) # <1>
+
+    # Initialize final output
+    output = (
+        benefits=zeros(params.proj_length),
+        lives=zeros(Int, params.proj_length)
+    )
+
+    # Safely combine results from all threads
+    for task in tasks
+        thread_result = fetch(task)
+        output.benefits .+= thread_result.benefits
+        output.lives .+= thread_result.lives
+    end
+
+    output
 end
 ```
-
-1.  `vec` turns the result into a 1D vector instead of a 1D matrix for later convenience.
 
 ## Running the projection
 
@@ -306,10 +326,20 @@ This defines a loop to calculate the results `n` times (this is only running the
 
 ```{julia}
 function stochastic_proj(policies, params, n)
-
-    ThreadsX.map(1:n) do i
-        project(policies, params)
+    # Split scenarios into chunks for parallel processing
+    tasks = map(chunks(1:n; n=Threads.nthreads())) do chunk
+        Threads.@spawn begin
+            [project(policies, params) for _ in chunk]
+        end
     end
+
+    # Collect all results
+    results = []
+    for task in tasks
+        append!(results, fetch(task))
+    end
+
+    results
 end
 ```
 
@@ -336,11 +366,13 @@ end
 
 ## Benchmarking
 
-Using a 2024 Macbook Air M3 laptop, about 45 million policies able to be stochastically projected per second:
+Many million of policies able to be stochastically projected per second using a laptop computer[^stochastic-mortality-1]:
+
+[^stochastic-mortality-1]: See @sec-colophon for details on the hardware used to render this book.
 
 ```{julia}
 #| column: page-inset-right
-policies_to_benchmark = 4_500_000
+policies_to_benchmark = 10_000_000
 # adjust the `repeat` depending on how many policies are already in the array
 # to match the target number for the benchmark
 n = policies_to_benchmark ÷ length(policies)
@@ -350,4 +382,10 @@ n = policies_to_benchmark ÷ length(policies)
 
 ## Conclusion
 
-This example has worked through a recommended pattern of setting up and running a stochastic simulation using a threaded approach to parallelism. The results show that quite a bit of simulation power is available using even consumer laptop hardware!
+This example has worked through a recommended pattern of setting up and running a stochastic simulation using a threaded approach to parallelism with proper thread safety guarantees. The `ChunkSplitters` pattern ensures that:
+
+-   Each thread works on its own data without conflicts
+-   Results are safely combined after parallel execution completes
+-   The code is maintainable and follows Julia best practices
+
+The results show that quite a bit of simulation power is available using even consumer laptop hardware!
