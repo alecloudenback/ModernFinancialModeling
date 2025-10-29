@@ -17,8 +17,9 @@ Pkg.instantiate()
 Asset liability modeling requires computing derivatives of portfolio values with respect to yield curve changes. Traditional approaches use finite difference methods or analytical approximations, but automatic differentiation ("autodiff" or "AD") provides exact derivatives with minimal additional computation. This chapter demonstrates how to implement ALM workflows using autodiff in Julia.
 
 ```{julia}
-using FinanceCore              # provides Cashflow object
-using DifferentiationInterface # autodiff 
+using FinanceCore: Cashflow    # provides Cashflow object
+using DifferentiationInterface # autodiff
+using DifferentiationInterface: AutoForwardDiff, gradient, hessian, value_gradient_and_hessian
 import ForwardDiff             # specific autodiff technique
 using CairoMakie               # plotting
 using DataInterpolations       # yield curve interpolation
@@ -37,9 +38,8 @@ The `curve` function creates a discount factor curve from zero rates and time po
 
 ```{julia}
 
-zero_rates = [0.01, 0.02, 0.02, 0.03, 0.05, 0.055] #continuous
-
-times = [1., 2., 3., 5., 10., 20.]
+zero_rates = [0.01, 0.02, 0.02, 0.03, 0.05, 0.055] # continuous, annualised
+times = [1.0, 2.0, 3.0, 5.0, 10.0, 20.0]
 
 function curve(zero_rates, times)
     DataInterpolations.CubicSpline([1.0; exp.(-zero_rates .* times)], [0.; times])
@@ -65,19 +65,20 @@ For fixed bonds, we create a structure that generates periodic coupon payments:
 
 ```{julia}
 #| output: false
-struct FixedBond{A,B,C}
-    coupon::A
-    tenor::B
-    periodicity::C
+struct FixedBond{T<:Real}
+    coupon::T
+    tenor::Int
+    periodicity::Int
 end
+
 function (b::FixedBond)(curve)
     map(1//b.periodicity:1//b.periodicity:b.tenor) do t
         Cashflow(b.coupon / b.periodicity + (t == b.tenor ? 1. : 0.), t)
     end
 end
 
-function par_yield(curve, tenor, periodicity)
-    dfs = curve.(1//periodicity:1//periodicity:tenor)
+function par_yield(discount_curve, tenor, periodicity)
+    dfs = discount_curve.(1//periodicity:1//periodicity:tenor)
 
     (1 - last(dfs)) / sum(dfs) * periodicity
 end
@@ -115,8 +116,12 @@ begin
     function (d::DeferredAnnuity)(curve)
         av = 1.
         map(1//12:1//12:d.tenor) do t
-            mkt_rate = -log(curve(d.tenor) / curve(t)) / (d.tenor - t)
+
+            # apply interest credit
             av *= exp(d.rate / 12)
+
+            #determine market comparable rate and surrender rate
+            mkt_rate = -log(curve(d.tenor) / curve(t)) / (d.tenor - t)
             rate_diff = mkt_rate - d.rate
             sr = t == d.tenor ? 1.0 : surrender_rate(rate_diff) / 12
             av_surr = av * sr
@@ -130,15 +135,15 @@ begin
         1 / (1 + exp(3 - rate_diff * 60))
     end
     function annuities(rates, portfolio)
-        times = [1., 2., 3., 5., 10., 20.]
-
+        times = [1.0, 2.0, 3.0, 5.0, 10.0, 20.0]
         c = curve(rates, times)
-
-        # threaded map-reduce for more speed
-        OhMyThreads.tmapreduce(+, 1:length(portfolio); ntasks=Threads.nthreads()) do i
+        OhMyThreads.tmapreduce(
+            +,
+            1:length(portfolio);
+            ntasks=Threads.nthreads(),
+        ) do i
             value(c, portfolio[i])
         end
-        # mapreduce(l -> value(c,l),+,portfolio)
     end
 
 end
@@ -161,6 +166,10 @@ let
 end
 
 ```
+
+::: callout-note
+In production ALM runs, one may typically evaluate hundreds of thousands of in-force contracts.  The threaded `annuities` aggregator mirrors that setup: it delivers the same projected liability present value while keeping the code path fully differentiable.
+:::
 
 
 We model a large portfolio of these annuities with random tenors:
@@ -376,39 +385,31 @@ function optimize_portfolio(assets, vgh_assets, liabs, vgh_liabs, constraints)
 
     @constraint(model, w .>= 0)  # Long-only constraint
     # Budget/asset value constraint
-    budget_sum = sum(w .* [a[1] for a in vgh_assets]) + vgh_liabs[1]
-    @constraint(model, budget_sum <= 1e2)
-    @constraint(model, budget_sum >= -1e2)
+    @constraint(model, sum(w[i] * vgh_assets[i][1] for i in 1:n) + vgh_liabs[1] == 0)
 
     # Objective: Maximize total yield
     @objective(model, Max, sum(w[i] * assets[i].coupon for i in 1:n))
 
     # Gradient component (krd) constraints
     for j in 1:length(vgh_liabs[2])
-        gradient_sum = sum(w[i] * vgh_assets[i][2][j] for i in 1:n) - sum(vgh_liabs[2][j])
-
-        @constraint(model, gradient_sum >= constraints[:krd][:lower])
-        @constraint(model, gradient_sum <= constraints[:krd][:upper])
+        gradient_gap = sum(w[i] * vgh_assets[i][2][j] for i in 1:n) + vgh_liabs[2][j]
+        @constraint(model, gradient_gap >= constraints[:krd][:lower])
+        @constraint(model, gradient_gap <= constraints[:krd][:upper])
     end
 
     # total duration constraint 
     duration_gap = sum(w[i] * sum(vgh_assets[i][2]) for i in 1:n) + sum(vgh_liabs[2])
-    @constraint(model, duration_gap <= constraints[:krd][:upper])
-    @constraint(model, duration_gap >= constraints[:krd][:lower])
+    @constraint(model, duration_gap <= constraints[:duration][:upper])
+    @constraint(model, duration_gap >= constraints[:duration][:lower])
 
     # Solve
     optimize!(model)
 
-    # Return results
-    if termination_status(model) == MOI.OPTIMAL
-        return (
-            status=:optimal,
-            weights=JuMP.value.(w),
-            objective_value=objective_value(model),
-        )
-    else
-        return (status=termination_status(model), weights=nothing)
-    end
+    status = termination_status(model)
+    success = string(status) == "OPTIMAL"
+    weights = success ? JuMP.value.(w) : nothing
+    obj = success ? objective_value(model) : missing
+    return (status = status, weights = weights, objective_value = obj)
 end
 
 
@@ -488,6 +489,10 @@ end
 ```
 
 The first plot shows the distribution of asset cashflows over time. The second compares the key rate duration profiles of the optimized asset portfolio and the liability portfolio, demonstrating how well the hedge performs across different points on the yield curve.
+
+::: callout-note
+Production risk teams could rerun this optimization after every major market move.  Having gradients and Hessians on tap means the optimizer converges in seconds, so traders can rebalance hedges intra-day without resorting to coarse stress grids.
+:::
 
 
 ## Computational Benefits

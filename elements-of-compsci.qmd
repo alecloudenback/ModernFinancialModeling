@@ -20,10 +20,10 @@ Adapting computer science concepts to work for financial professionals. Computab
 
 ## Computer Science for Financial Professionals
 
-Computer science as a term can be a bit misleading because of the overwhelming association with the physical desktop or laptop machines that we call "computers". The discipline of computer science is much richer than consumer electronics: at its core, computer science concerns itself with areas of research and answering tough questions:
+Computer science as a term can be a bit misleading because of the overwhelming association with the physical desktop or laptop machines that we call "computers". The discipline of computer science is much richer than consumer electronics: at its core, computer science concerns itself with areas of research and answering tough questions—many of which surface immediately in quantitative finance:
 
--   **Algorithms and Optimization**. How can a problem be solved efficiently? How can that problem be solved *at all*? Given constraints, how can one find an optimal solution?
--   **Theory of Computation**. What sorts of questions are even answerable? Is an answer easy to compute or will resolving it require more resources than the entire known universe? Will a computation ever stop calculating?
+-   **Algorithms and Optimization**. How can a problem be solved efficiently? How can that problem be solved *at all*? Given constraints, how can one find an optimal solution for rebalance schedules, scenario selection, or funding plans?
+-   **Theory of Computation**. What sorts of questions are even answerable? Is an answer easy to compute or will resolving it require more resources than the entire known universe? Will a computation ever stop calculating? 
 -   **Data Structures**. How to encode, store, and use data? How does that data relate to each other and what are the trade-offs between different representations of that data?
 -   **Information Theory**[^elements-of-compsci-1]. Given limited data, what *can* be known or inferred from it?
 
@@ -205,7 +205,7 @@ For example, there has been research to improve the computational efficiency of 
 
 The idea of algorithmic complexity is important because it grounds us in the harsh truth that some problems are *very* difficult to compute. It's in these cases that a lot of the creativity and domain specific heuristics can become the foremost consideration.
 
-We must remember to be thoughtful about the design of our models. When searching for additional performance to look for the "loops-within-loops" which is where combinatorial explosions tend to happen. Focusing on the places that have large $n$ or poor Big-O order that you can transform the performance of the overall model. Sometimes though, the fundamental complexity of the problem at hand forbids greater efficiency.
+We must remember to be thoughtful about the design of our models. When searching for additional performance, hunt for the "loops-within-loops"—that is where combinatorial explosions tend to happen. Focusing on the places that have large $n$ or poor Big-O order can transform the performance of the overall model. Sometimes the fundamental complexity of the problem forbids greater efficiency, but many finance workflows benefit from reframing the problem (e.g. relaxing binary constraints or using approximation algorithms) before brute force becomes unavoidable.
 
 See the end of this chapter, @sec-portfolio-complexity for an example demonstrating computational complexity in the context of portfolio selection.
 
@@ -227,7 +227,7 @@ In Julia, an array is a very common data structure and is implemented with a sim
 x = [1,2,3]
 ```
 
-In memory, the integers are stored as consecutive bits representing the integer values of `1`, `2`, and `3`, and would look like this (with the different integers shown on new lines for clarity):
+In memory, the integers are stored as consecutive bits representing the integer values of `1`, `2`, and `3`. The actual bits in memory would look like this (with the different integers shown on new lines for clarity):
 
 ```         
 0000000000000000000000000000000000000000000000000000000000000001
@@ -243,17 +243,17 @@ This is great for accessing the values one-by-one or in consecutive groups, but 
 
 A **linked list** is a chain of nodes where each node contains a value and a pointer to the next node. Linked lists allow for efficient insertion and deletion but slower random access compared to arrays.
 
-In Julia, a simple linked list node could be implemented as:
+In Julia, a simple linked list node can be implemented generically so it remains type-stable:
 
 ``` julia
-mutable struct Node
-    value::Any
-    next::Union{Node, Nothing} # <1>
+mutable struct Node{T}
+    value::T
+    next::Union{Node{T}, Nothing} # <1>
 end
 
-z = Node(3,nothing)
-y = Node(2,z)
-x = Node(1,y)
+z = Node(3, nothing)
+y = Node(2, z)
+x = Node(1, y)
 ```
 
 1.  `Nothing` represents the end of the linked list.
@@ -261,7 +261,7 @@ x = Node(1,y)
 Inserting a new node between existing nodes is efficient - if we wanted to insert a new node between the ones with value `2` and `3`, we could do this:
 
 ``` julia
-a = Node(0,z) # <1> Create a new `Node` with `next` equal to `z`
+a = Node(0, z) # <1> Create a new `Node` with `next` equal to `z`
 y.next = a # <2> Set the reference to `next` in `y` to be the new `Node` `a`.
 ```
 
@@ -344,7 +344,7 @@ let
 end
 ```
 
-We can easily verify that the `sha256` hash of `"hello world"` is the same each time, but it's virtually impossible to guess `"hello world"` if we are just given the resulting hash. This is the premise of trying to "crack" a password when the stored password hash is stolen.
+We can easily verify that the `sha256` hash of `"hello world"` is the same each time, but it's virtually impossible to guess `"hello world"` if we are just given the resulting hash. This is the premise of trying to "crack" a password when the stored password hash is stolen (real systems "salt" and "stretch" hashes to make the attack even harder - these topics are out of scope here).
 
 One way to check if two sets of data are the same is to compute the hash and see if the resulting hashes are equal. For example, maybe you want to see if two data files with different names contain the same data - comparing the hashes is a sure way to determine if they contain the same data.
 
@@ -378,16 +378,16 @@ A **graph** is a collection of nodes (also called vertices) connected by *edges*
 In Julia, a simple graph could be implemented using a dictionary where keys are nodes and values are lists of connected nodes:
 
 ``` julia
-struct Graph
-    nodes::Dict{Any, Vector{Any}}
+struct Graph{T}
+    nodes::Dict{T, Vector{T}}
 end
 
-function add_edge!(graph::Graph, node1, node2)
-    push!(get!(graph.nodes, node1, []), node2)
-    push!(get!(graph.nodes, node2, []), node1)
+function add_edge!(graph::Graph{T}, node1::T, node2::T) where {T}
+    push!(get!(graph.nodes, node1, T[]), node2)
+    push!(get!(graph.nodes, node2, T[]), node1)
 end
 
-g = Graph(Dict())
+g = Graph(Dict{Int, Vector{Int}}())
 add_edge!(g, 1, 2)
 add_edge!(g, 2, 3)
 add_edge!(g, 1, 3)
@@ -406,16 +406,16 @@ A tree is a hierarchical data structure with a root node and child subtrees. Eac
 A simple binary tree node in Julia could be implemented as:
 
 ``` julia
-mutable struct TreeNode
-    value::Any
-    left::Union{TreeNode, Nothing}
-    right::Union{TreeNode, Nothing}
+mutable struct TreeNode{T}
+    value::T
+    left::Union{TreeNode{T}, Nothing}
+    right::Union{TreeNode{T}, Nothing}
 end
 
 # Creating a simple binary tree
-root = TreeNode(1, 
-    TreeNode(2, 
-        TreeNode(4, nothing, nothing), 
+root = TreeNode(1,
+    TreeNode(2,
+        TreeNode(4, nothing, nothing),
         TreeNode(5, nothing, nothing)
     ), 
     TreeNode(3, 
