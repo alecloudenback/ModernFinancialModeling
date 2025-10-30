@@ -34,13 +34,17 @@ $$
 
 We can approximate the result by simply choosing a small $\epsilon$.
 
-There's also flavors of finite differentiation to approximate derivatives to be aware of:
+There are three common finite-difference formulas to be aware of:
 
--   forward difference is as defined in the above equation, where $\epsilon$ is *added* to $x_0$
--   reverse difference is as defined in the above equation, where $\epsilon$ is *subtracted* from $x_0$
--   central difference is where we evaluate at $x_0 \pm \epsilon$ and then divide by $2\epsilon$
+| Method | Notes |
+|----|----|
+| **Forward difference** | $\displaystyle \frac{f(x_0+\epsilon) - f(x_0)}{\epsilon}$, where the step is taken above $x_0$. |
+| **Backward difference** | $\displaystyle \frac{f(x_0) - f(x_0-\epsilon)}{\epsilon}$, where the step is taken below $x_0$. |
+| **Central difference** | $\displaystyle \frac{f(x_0+\epsilon) - f(x_0-\epsilon)}{2\epsilon}$, which averages the two one-sided slopes. |
 
-The benefit of the central difference is that it limits issues around minima and maxima where the trough or peak respectively would seem much steeper if using forward or reverse. Here's a picture of this:
+: Three different methods for calculating a finite difference.
+
+The central difference often balances the information from both sides of the evaluation point and avoids some issues in areas where the derivative is changing rapidly. The plot below compares the three estimates for $f(x)=x^2$ around $x_0 = 0$:
 
 ```{julia}
 #| echo: false
@@ -52,19 +56,23 @@ let
     ϵ = 0.1
     x0 = 0.0
 
-    fwd_tangent = (f(x0 + ϵ) - f(x0)) / ϵ
-    rev_tangent = (f(x0) - f(x0 + ϵ)) / ϵ
-    central_tangent = (f(x0 + ϵ) - f(x0 - ϵ)) / 2ϵ
-    lines(x, fwd_tangent .* x, color=:red, linewidth=1, linestyle=:dash, label="Forward Difference")
+    fwd_slope = (f(x0 + ϵ) - f(x0)) / ϵ
+    back_slope = (f(x0) - f(x0 - ϵ)) / ϵ
+    cent_slope = (f(x0 + ϵ) - f(x0 - ϵ)) / (2ϵ)
+
+    forward_line(x) = f(x0) .+ fwd_slope .* (x .- x0)
+    backward_line(x) = f(x0) .+ back_slope .* (x .- x0)
+    central_line(x) = f(x0) .+ cent_slope .* (x .- x0)
 
     let
         fig = Figure()
-        ax = Axis(fig[1, 1], limits=((-0.25, 0.25), (-0.05, 0.1)))
-        lines!(ax, x, f.(x), color=:blue, linewidth=2, label="x^2")
-        lines!(ax, x, fwd_tangent .* x, color=:red, linewidth=1, linestyle=:dash, label="Forward Difference")
-        lines!(ax, x, rev_tangent .* x, color=:green, linewidth=1, linestyle=:dash, label="Reverse Difference")
-        lines!(ax, x, central_tangent .* x, color=:orange, linewidth=1, linestyle=:dash, label="Central Difference")
-        vlines!(ax, [x0 + ϵ, x0 - ϵ], color=:gray, linewidth=1, linestyle=:dash, label="Epsilon")
+        ax = Axis(fig[1, 1], limits=((-0.25, 0.25), (-0.05, 0.1)), xgridvisible=false, ygridvisible=false)
+        lines!(ax, x, f.(x), color=:steelblue, linewidth=2, label="f(x) = x^2")
+        lines!(ax, x, forward_line(x), color=:red, linewidth=1, linestyle=:dash, label="Forward difference")
+        lines!(ax, x, backward_line(x), color=:forestgreen, linewidth=1, linestyle=:dash, label="Backward difference")
+        lines!(ax, x, central_line(x), color=:orange, linewidth=1, linestyle=:dash, label="Central difference")
+        vlines!(ax, [x0 + ϵ, x0 - ϵ], color=:gray, linewidth=1, linestyle=:dot, label="±ϵ")
+        scatter!(ax, [x0], [f(x0)], color=:black, markersize=6, label="x₀")
         axislegend(ax)
 
         fig
@@ -73,11 +81,11 @@ let
 end
 ```
 
-One benefit of the central difference method is that is often more accurate than forward or reverse differences. However, it comes at the cost of needing an additional function evaluation/computation in many circumstances. Take, for example, the process of optimizing a function to find a maxima or minima.
+Central differences usually beat forward or backward differences in accuracy, but the extra evaluation can matter when the underlying function is expensive. Take, for example, the process of optimizing a function to find a maxima or minima.
 
-Maxima-finding algorithms usually involve guessing an initial point, evaluating the function at that point, and determining what the derivative of the function is at that point. Both items are used to update the guess to one that's closer to the solution. This approach is used in many optimization algorithms such as Newton's Method. At each step you need to evaluate the function three times: for $x$, $x+\epsilon$, and $x-\epsilon$. With forward or reverse finite differences, you can reuse the prior function evaluation of the prior guess $x$. As one of the components in the estimation of the derivative, thereby saving an evaluation of the function for each iteration.
+Maxima-finding algorithms usually involve guessing an initial point, evaluating the function at that point, and determining what the derivative of the function is at that point. Both items are used to update the guess to one that's closer to the solution. This approach is used in many optimization algorithms such as Newton's Method. At each step you need to evaluate the function three times: at $x$, $x+\epsilon$, and $x-\epsilon$. With forward (or backward) finite differences, you can often reuse the prior evaluation at $x$ from the previous iteration, thereby saving an expensive computation.
 
-There are additional challenges with the finite differentiation method. In practice, we are often interested in much more complex functions than $x^2$. For example, we may actually be interested in the sum of a series that is many elements long or contains more complex operations than basic algebra. In the prior example, the $\epsilon$ is set unusually wide for demonstration purposes. As $\epsilon$ grow smaller generally, the accuracy of all three finite different methods increases. However, that's not always the case due to both the complexity of the function that you may be trying to differentiate or due to numerical inaccuracies of floating point math.
+There are additional challenges with the finite differentiation method. In practice, we are often interested in much more complex functions than $x^2$. For example, we may actually be interested in the sum of a series that is many elements long or contains more complex operations than basic algebra. In the prior example, the $\epsilon$ is set unusually wide for demonstration purposes. As $\epsilon$ grows smaller, the accuracy of all three finite difference methods generally improves. However, it is not always the case: for sufficiently small $\epsilon$ the subtraction $f(x_0+\epsilon) - f(x_0)$ can lose significant digits due to floating-point round-off, corrupting the derivative estimate.
 
 To demonstrate, here is a more complex example using an arbitrary function
 
@@ -256,6 +264,10 @@ derivative(f3, 0)
 
 We have demonstrated that through the clever use of dual numbers and the chain rule that complex expressions can be automatically differentiated by a computer to an exact level, limited only by the same machine precision that applies to our primary function of interest as well.
 
+::: callout-tip
+The demonstration above re-implements dual numbers for pedagogical purposes. In production code you would typically rely on `ForwardDiff.Dual` (from ForwardDiff.jl), which already provides these algebraic rules along with extensive coverage of transcendental functions.
+:::
+
 Libraries exist (such as ChainRules.jl) which define large numbers of predefined rules for many more operations, even beyond basic algebraic functions. This allows complex programs to be differentiated automatically.
 
 ## Performance of Automatic Differentiation
@@ -334,12 +346,12 @@ eurocall(params)
 ::: callout-tip
 Some terminology in differentiation:
 
-- **Scalar-valued function:** A function whose output is a single scalar.  
-- **Vector-valued (array-valued) function:** A function whose output is a vector or array.  
-- **Derivative (or partial derivative):** The (instantaneous) rate of change of the output with respect to one input variable. In a multivariate context, these are partial derivatives, e.g., $\frac{\partial}{\partial x} f(x,y,z)$.  
-- **Gradient:** For a scalar-valued function of several variables, the gradient is the vector of all first partial derivatives, e.g. $\nabla f(x,y,z) = \bigl[\frac{\partial f}{\partial x}, \frac{\partial f}{\partial y}, \frac{\partial f}{\partial z}\bigr]^T$.  
-- **Jacobian:** For a vector-valued function, the Jacobian is the matrix of first partial derivatives. If  $f:R^n \to R^m $, its Jacobian is an $m \times n$ matrix.  
-- **Hessian:** For a scalar-valued function of several variables, the Hessian is the matrix of all second partial derivatives (i.e., it’s an $n \times n$ matrix).
+-   **Scalar-valued function:** A function whose output is a single scalar.\
+-   **Vector-valued (array-valued) function:** A function whose output is a vector or array.\
+-   **Derivative (or partial derivative):** The (instantaneous) rate of change of the output with respect to one input variable. In a multivariate context, these are partial derivatives, e.g., $\frac{\partial}{\partial x} f(x,y,z)$.\
+-   **Gradient:** For a scalar-valued function of several variables, the gradient is the vector of all first partial derivatives, e.g. $\nabla f(x,y,z) = \bigl[\frac{\partial f}{\partial x}, \frac{\partial f}{\partial y}, \frac{\partial f}{\partial z}\bigr]^T$.\
+-   **Jacobian:** For a vector-valued function, the Jacobian is the matrix of first partial derivatives. If \$f:R\^n \to R\^m \$, its Jacobian is an $m \times n$ matrix.\
+-   **Hessian:** For a scalar-valued function of several variables, the Hessian is the matrix of all second partial derivatives (i.e., it’s an $n \times n$ matrix).
 :::
 
 With the above code, now we can get the partial derivatives with respect to each parameter. The first, third, fourth, fifth, and sixth correspond to the common "greeks" *delta*, *theta*, *rho*, *vega*, and *epsilon* respectively. The second term is the partial derivative with respect to the strike price:
@@ -348,18 +360,22 @@ With the above code, now we can get the partial derivatives with respect to each
 ForwardDiff.gradient(eurocall, params)
 ```
 
--  Entry 1: delta $\partial C / \partial S$
--  Entry 2: sensitivity to strike $\partial C / \partial K$ (no standard Greek)
--  Entry 3: $\partial C / \partial \tau$, which is the negative of the market convention “theta” ($\Theta = \partial C / \partial t = -\partial C / \partial \tau$)
--  Entry 4: rho $\partial C / \partial r$
--  Entry 5: vega $\partial C / \partial \sigma$
--  Entry 6: dividend rho (often denoted “phi”) $\partial C / \partial q$
+-   Entry 1: delta $\partial C / \partial S$
+-   Entry 2: sensitivity to strike $\partial C / \partial K$ (no standard Greek)
+-   Entry 3: $\partial C / \partial \tau$, which is the negative of the market convention “theta” ($\Theta = \partial C / \partial t = -\partial C / \partial \tau$)
+-   Entry 4: rho $\partial C / \partial r$
+-   Entry 5: vega $\partial C / \partial \sigma$
+-   Entry 6: dividend rho (often denoted “phi”) $\partial C / \partial q$
 
 We can also get the second order greeks with another call. This includes many uncommon second order partial derivatives, but the popular *gamma* is in the `[1,1]` position for example:
 
 ```{julia}
 ForwardDiff.hessian(eurocall, params)
 ```
+
+::: callout-note
+Tip from practice: desks that run daily risk charge calculations often rely on AD to refresh Greeks after every market data cut. A forward finite-difference grid of six inputs would require at least seven full revaluations of the pricing stack. With AD you obtain the same sensitivities (and, if needed, the Hessian) in a single pass, freeing up time for scenario analysis and stress testing.
+:::
 
 ### Performance
 
@@ -392,8 +408,8 @@ Here are a few practical tips to keep in mind.
 
 Forward mode is more efficient when the number of outputs is much larger than the number inputs. When the number of inputs is much larger than the number of outputs, then reverse mode will generally be more efficient. Examples of the number of inputs being larger than the outputs might be in a statistical analysis where many features are used to predict a limited number of outcome variables or a complex model with a lot of parameters.
 
--  Use forward mode when the number of inputs is small relative to the number of outputs.
--  Use reverse mode when the number of inputs is large and the number of outputs is small (e.g., loss functions).
+-   Use forward mode when the number of inputs is small relative to the number of outputs.
+-   Use reverse mode when the number of inputs is large and the number of outputs is small (e.g., loss functions).
 
 ### Mutation
 
