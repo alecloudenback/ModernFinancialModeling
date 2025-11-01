@@ -24,6 +24,8 @@ Pkg.instantiate()
 
 ### Understand the problem and define goals
 
+Learning begins with a crisp articulation of the business question.
+
 - Clarify objectives: What we want to achieve with the data (e.g., prediction, classification, clustering, or insight extraction).
 - Identify key metrics: Determine how success will be measured (accuracy, RMSE, precision, etc.).
 - Know the context: Understand the domain and business problem one is addressing to shape the data analysis process.
@@ -31,6 +33,7 @@ Pkg.instantiate()
 ### Collect data
 
 Various data may be available in different formats.
+
 - Ensure data relevance: The data should be relevant to the problem.
 - Consider data quality: Collect data with high accuracy, completeness, and consistency.
 
@@ -54,7 +57,7 @@ EDA helps discover patterns, relationships, and insights within the data. One ca
 
 ### Select and engineer features
 
-Feature selection and engineering help improve model performance by focusing on the most relevant information.
+Feature engineering encodes domain knowledge (e.g., yield curve slopes, option moneyness, claim severity ratios) and reduces noise. Techniques range from manual transformations to automated selection (recursive feature elimination, embedded methods, mutual information), keeping parsimony in mind to avoid brittle models.
 
 ### Choose the right algorithm or model
 
@@ -134,10 +137,28 @@ model_sarima = SARIMA(log_air_passengers; order=(0, 1, 1), seasonal_order=(0, 1,
 fit!(model_sarima)
 forec_sarima = forecast(model_sarima, steps_ahead)
 
+forecast_mean = [μ[1] for μ in forec_sarima.expected_value]
+forecast_std = [sqrt(Σ[1, 1]) for Σ in forec_sarima.covariance]
+future_idx = collect(steps_existing + 1:steps_existing + steps_ahead)
+
+
 f = Figure()
-axis = Axis(f[1, 1], title="SARIMA")
-scatter!(1:steps_existing, log_air_passengers)
-scatter!(steps_existing+1:steps_existing+steps_ahead, map(x -> x[1], forec_sarima.expected_value), color=:red, markersize=map(x -> x[1] * 1000, forec_sarima.covariance))
+ax = Axis(f[1, 1],
+    title = "SARIMA forecast on log passengers",
+    xlabel = "Month index",
+    ylabel = "log(passengers)"
+)
+lines!(ax, 1:steps_existing, log_air_passengers, label = "history")
+lines!(ax, future_idx, forecast_mean, color = :red, label = "forecast mean")
+band!(ax,
+    future_idx,
+    forecast_mean .- 1.96 .* forecast_std,
+    forecast_mean .+ 1.96 .* forecast_std,
+    color = (:red, 0.2),
+    label = "95% interval"
+)
+axislegend(ax, position = :lt)
 f
 ```
 
+The model is fit on log-transformed passengers to stabilise variance; exponentiating the forecast mean and interval endpoints returns predictions on the original passenger scale.
