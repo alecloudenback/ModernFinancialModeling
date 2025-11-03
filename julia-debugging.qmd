@@ -10,13 +10,13 @@ author:
 
 ## Chapter Overview
 
-Debugging in Julia involves a mix of strategies, including using print statements, the Debugger package for step-by-step inspection, logging with the Logging module, and interactive debugging with Infiltrator. These tools and techniques can help you identify and fix issues in your code efficiently.
+Debugging in Julia involves a mix of strategies, including using print statements, the Debugger package for step-by-step inspection, logging with the Logging module, and interactive debugging with Infiltrator. These tools and techniques help uncover why a pricing routine blew up at 3 a.m., which scenario caused a risk run to stall, or why yesterday’s valuation disagreed with the trading desk. The sections below highlight patterns that show up frequently in financial-model code.
 
 ## Error Messages and Stack Traces
 
 Julia’s error messages and stack traces can be quite informative. When an error occurs, Julia provides a traceback that shows the function call stack leading to the error, which helps in identifying where things went wrong.
 
-```julia
+``` julia
 #| error: true
 function mysqrt(x)
     return sqrt(x)
@@ -31,17 +31,18 @@ The **stacktrace** will show us the sequence of function calls that led to the e
 
 Notice that errors are given specific types and not just result in a generic `Error`. This aids in understanding for the user: if a `DomainError` then you know that you passed the right type (e.g. a `Float64` to a function that takes a number), just that the value was not acceptable (as in the example above). Contrast that with a `MethodError` which will tell you that you've passed an invalid kind of thing to the function, not just that its value was off:
 
-```julia
+``` julia
 #| error: true
 mysqrt("a string isn't OK")
 ```
 
+Make it a habit to read both the error type and the offending signature—they usually point directly to the place that needs attention.
 
 ## Logging
 
 When you encounter a problem in your code or want to track progress, a common reflex is to add `print` statements everywhere.
 
-``` {julia}
+```{julia}
 function printing_func(n)
     for i in 1:n
         println(i^2)
@@ -89,9 +90,8 @@ warning_func(3)
 
 Refer to the logging [documentation](https://docs.julialang.org/en/v1/stdlib/Logging/) for more information.
 
-:::callout-note
-In particular, note that `@debug` messages are suppressed by default.
-You can enable them through the `JULIA_DEBUG` environment variable if you specify the source module name, typically `Main` or your package module.
+::: callout-note
+In particular, note that `@debug` messages are suppressed by default. You can enable them through the `JULIA_DEBUG` environment variable if you specify the source module name, typically `Main` or your package module.
 :::
 
 Beyond the built-in logging utilities, [ProgressLogging.jl](https://github.com/JuliaLogging/ProgressLogging.jl) has a macro `@progress`, which interfaces nicely with VSCode and Pluto to display progress bars. And [Suppressor.jl](https://github.com/JuliaIO/Suppressor.jl) can sometimes be handy when you need to suppress warnings or other bothersome messages (use at your own risk).
@@ -101,7 +101,7 @@ Beyond the built-in logging utilities, [ProgressLogging.jl](https://github.com/J
 Aside from those mentioned in the context of Logging, there are a number of different useful macros, many of which are highlighted in the following table:
 
 | Macro | Description |
-|------------------|-------------------------------------------|
+|----------------------|--------------------------------------------------|
 | `BenchmarkTools.@benchmark` | Runs the given expression multiple times, collecting timing and memory allocation statistics. Useful for benchmarking and performance analysis. |
 | `BenchmarkTools.@btime` | Similar to `@benchmark`, but focuses on the minimum execution time and provides a more concise output. |
 | `@edit` | Opens the source code of a function or module in an editor for inspection or modification. |
@@ -115,9 +115,11 @@ Aside from those mentioned in the context of Logging, there are a number of diff
 | `@fastmath` | Enables aggressive floating-point optimizations within a block, potentially sacrificing strict IEEE compliance for performance. Avoid in numerically sensitive code unless you understand the implications for IEEE semantics. |
 | `@inbounds` | Disables bounds checking for array accesses within a block, improving performance but removing safety checks. |
 | `@inline` | Suggests to the compiler that a function should be inlined at its call sites, potentially improving performance by reducing function call overhead. |
+| `@profview` | Used alongside VS Code to monitor performance and produce a visual indication of code sections that take a lot of time to run. |
 
 : Useful macros for modeling work. There are others related to parallelism which will be covered in @sec-parallelization.
 
+Two favourites for performance tuning financial models are `@code_warntype` (to ensure valuation functions stay type-stable) and `BenchmarkTools.@btime` (to confirm a refactor actually sped things up before you check it in).
 
 ## Debugging
 
@@ -150,7 +152,7 @@ Unfortunately, $F_4 = 65537$ is the largest known Fermat prime, which means $F_6
 
 [Infiltrator.jl](https://github.com/JuliaDebug/Infiltrator.jl) is a lightweight inspection package, which will not slow down your code at all. Its `@infiltrate` macro allows you to directly set breakpoints in your code. Calling a function which hits a breakpoint will activate the Infiltrator REPL-mode and change the prompt to `infil>`. Typing `?` in this mode will summarize available commands. For example, typing `@locals` in Infiltrator-mode will print local variables:
 
-```julia
+``` julia
 using Infiltrator
 
 function fermat_prime_infil(n)
@@ -200,6 +202,8 @@ And the solution is to call our function on "big" integers with an arbitrary num
 fermat_prime(big(6))
 ```
 
+Stashing intermediate values in the `safehouse` is particularly handy when a failing scenario only shows up deep in a parallel risk run—you can capture local state from the worker and inspect it later without rerunning the full job.
+
 ### Debugger.jl
 
 [Debugger.jl](https://github.com/JuliaDebug/Debugger.jl) allows us to interrupt code execution anywhere we want, even in functions we did not write. Using its `@enter` macro, we can enter a function call and walk through the call stack, at the cost of reduced performance.
@@ -234,15 +238,8 @@ About to run: (^)(2, 64)
 64
 ```
 
-:::callout-tip
+::: callout-tip
+VSCode offers a nice [graphical interface for debugging](https://www.julia-vscode.org/docs/stable/userguide/debugging/). Click left of a line number in an editor pane to add a *breakpoint*, which is represented by a red circle. In the debugging pane of the Julia extension, click `Run and Debug` to start the debugger. The program will automatically halt when it hits a breakpoint. Using the toolbar at the top of the editor, you can then *continue*, *step over*, *step into* and *step out* of your code. The debugger will open a pane showing information about the code such as local variables inside of the current function, their current values and the full call stack.
 
-VSCode offers a nice [graphical interface for debugging](https://www.julia-vscode.org/docs/stable/userguide/debugging/).
-Click left of a line number in an editor pane to add a _breakpoint_, which is represented by a red circle.
-In the debugging pane of the Julia extension, click `Run and Debug` to start the debugger.
-The program will automatically halt when it hits a breakpoint.
-Using the toolbar at the top of the editor, you can then _continue_, _step over_, _step into_ and _step out_ of your code.
-The debugger will open a pane showing information about the code such as local variables inside of the current function, their current values and the full call stack.
-
-The debugger can be [sped up](https://www.julia-vscode.org/docs/dev/userguide/debugging/#Settings-to-speed-up-the-debugger) by selectively compiling modules that you will not need to step into via the `+` symbol at the bottom of the debugging pane.
-It is often easiest to start by adding `ALL_MODULES_EXCEPT_MAIN` to the compiled list, and then selectively remove the modules you need to have interpreted.
+The debugger can be [sped up](https://www.julia-vscode.org/docs/dev/userguide/debugging/#Settings-to-speed-up-the-debugger) by selectively compiling modules that you will not need to step into via the `+` symbol at the bottom of the debugging pane. It is often easiest to start by adding `ALL_MODULES_EXCEPT_MAIN` to the compiled list, and then selectively remove the modules you need to have interpreted.
 :::
