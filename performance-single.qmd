@@ -17,18 +17,18 @@ Pkg.instantiate()
 
 ## Chapter Overview
 
-Understanding single-threaded performance, strategies for efficient sequential code, recognizing when parallelization is needed, practical comparisons of single-threaded and parallel approaches, optimizing code in Julia.
+Understand single-threaded performance by focusing on memory access, type stability, and branch prediction; profile and benchmark before reaching for parallelism; learn how to upgrade hot loops and data structures in Julia so that parallel versions start from a solid baseline.
 
 ## Introduction
 
-On today’s hardware, the highest-throughput workloads often run on GPUs via massive parallelism. However, writing correct, performant parallel code relies on understanding efficient sequential patterns first. Secondly, many problems are not "massively parallelizable" and a sequential model architecture is required. For these reasons, it's critical to understand sequential patterns before moving onto parallel code.
+On today's hardware, the highest-throughput workloads often run on GPUs via massive parallelism. However, writing correct, performant parallel code relies on understanding efficient sequential patterns first. Secondly, many problems are not "massively parallelizable" and a sequential model architecture is required. For these reasons, it's critical to understand sequential patterns before moving onto parallel code.
 
-For those coming from fundamentally slower languages (such as R or Python), the common advice to speed things up is often to try to parallelize code or use array-based techniques. With many high level languages the *only* way to achieve reasonable runtime is to utilize parallelism. In contrast, fast languages like Julia can output surprisingly quick single threaded programs.
+For those coming from fundamentally slower languages (such as R or Python), the common advice to speed things up is often to try to parallelize code or use array-based techniques. With many high level languages the only way to achieve reasonable runtime is to utilize parallelism. In contrast, fast languages like Julia can produce surprisingly quick single-threaded programs when you keep an eye on allocations, types, and cache behavior.
 
 Further, it may be that a simpler, easier to maintain sequential model is preferable to a more complex parallel version if maximum performance is not required. Like the quote that opened the chapter, you may prefer a simpler sequential version of a model to a more complex parallel one.
 
 ::: callout-tip
-Developer time (your time) is often more expensive than runtime, so be prepared to accept a good-enough but sub-optimal code instead of spending a lot of time optimizing every last nanosecond out of it!
+Developer time (your time) is often more expensive than wall-clock runtime, so be prepared to accept a good-enough but sub-optimal implementation instead of spending days chasing microseconds that the business will never notice.
 :::
 
 ::: callout-note
@@ -55,7 +55,7 @@ Allocating memory onto the Heap takes a lot more time than (1) not using interme
 **Tight loops** or **hot loops** are the performance critical section of the code that are performed many times during a computation. They are often the "inner-most" loop of a nested loop algorithm.
 :::
 
-A general rule of thumb is that dynamically sizable or mutable objects (arrays, mutable structs) will be heap allocated while small fixed size objects can be stack allocated. For mutable objects, a common technique is to pre-allocate an array and then re-use that array for subsequent calculations. In the following example, note how we pre-allocate the output vector instead of creating vectors for each bond *and then* summing the vectors together at the end:
+A general rule of thumb is that dynamically sizable or mutable objects (arrays, mutable structs) will be heap allocated while small fixed size objects can be stack allocated. For mutable objects, a common technique is to pre-allocate an array and then re-use that array for subsequent calculations. In the following stylized example we accumulate bond-level cashflows into a shared vector rather than constructing (**pre-allocating**) intermediate arrays and summing them later:
 
 ```{julia}
 end_time = 10
@@ -79,7 +79,7 @@ cashflow_output
 
 ```
 
-Julia's `@allocated` macro will display the number of bytes allocated by an expression, helping you identify and eliminate unnecessary allocations.
+Julia's `@allocated` macro will display the number of bytes allocated by an expression, helping you identify and eliminate unnecessary allocations.
 
 ```{julia}
 random_sum_alloc() = sum([rand() for _ in 1:10])      # allocates
@@ -91,7 +91,7 @@ random_sum_noalloc() = sum(rand() for _ in 1:10)      # generator, no array
 
 ### Optimize Memory Access Patterns
 
-Optimizing memory access patterns is essential for leveraging the CPU's cache hierarchy effectively. Modern CPUs have multiple levels of cache (L1, L2, L3), each with different sizes and access speeds. By structuring your code to access memory in a cache-friendly manner, you can significantly reduce memory latency and improve overall performance.
+Optimizing memory access patterns is essential for leveraging the CPU's cache hierarchy effectively. Modern CPUs have multiple levels of cache (L1, L2, L3), each with different sizes and access speeds. By structuring your code to access memory in a cache-friendly manner, you can significantly reduce memory latency and improve overall performance. For finance this shows up when you value a matrix of policy projections or simulate thousands of Monte Carlo paths: the order in which you touch memory dominates runtime once the arithmetic becomes trivial.
 
 What is cache-friendly memory access? Essentially it boils down to spatial and temporal locality.
 
@@ -99,7 +99,7 @@ What is cache-friendly memory access? Essentially it boils down to spatial and t
 
 Spatial locality refers to accessing data that is physically near each other in memory (e..g contiguous blocks of data in an array).
 
-For example, it's better to access data in a linear order rather than random order. For example, if we sum up the elements of an array in order it will be significantly faster than if we do it randomly:
+For example, it is better to access data in a linear order rather than random order. In actuarial projections we often sum along policy-by-policy arrays; keeping the loop aligned with the storage order avoids cache misses. The benchmark below highlights the gap:
 
 ```{julia}
 using BenchmarkTools, Random
@@ -170,7 +170,7 @@ end
 
 When working with arrays, prefer accessing elements in column-major order (the default in Julia) to maximize spatial locality. This allows the CPU to prefetch data more effectively.
 
-You can see how summing up values across the first (column) dimension is much faster than summing across rows:
+You can see how summing up values across the first (column) dimension is much faster than summing across rows, because column-major storage keeps column elements contiguous in memory:
 
 ```{julia}
 @btime sum(arr, dims=1) setup = arr = rand(1000, 1000)
@@ -195,7 +195,7 @@ Row major languages include:
 -   JavaScript
 -   Rust
 
-Column major languages:
+Column major languages (and libraries):
 
 -   Julia
 -   MATLAB/Octave
@@ -206,9 +206,9 @@ Column major languages:
 
 #### Temporal Locality
 
-Hardware prefetchers (predictors) and the cache hierarchy exploit temporal locality by keeping recently used data ‘hot’ and proactively fetching nearby data based on recent access patterns. This is an example of keeping "hot" data more readily accessible to the CPU than "cold" data.
+Hardware prefetchers (predictors) and the cache hierarchy exploit temporal locality by keeping recently used data "hot" and proactively fetching nearby data based on recent access patterns. This is an example of keeping "hot" data more readily accessible to the CPU than "cold" data.
 
-When working sets exceed available RAM, the operating system may page memory to a "swap file" on disk. Recently accessed pages tend to remain in RAM, while ‘colder’ pages are more likely to be swapped out.
+When working sets exceed available RAM, the operating system may page memory to a "swap file" on disk. Recently accessed pages tend to remain in RAM, while "colder" pages are more likely to be swapped out.
 
 ### Use Efficient Data Types
 
@@ -217,18 +217,18 @@ The right data type can lead to more compact memory representations, better cach
 On some CPUs, you may find performance by using the smallest data type that can accurately represent your data. For example, prefer Int32 over Int64 if your values will never exceed 32-bit integer range. For floating-point numbers, use Float32 instead of Float64 if the reduced precision is acceptable for your calculations. These smaller types not only save memory but also allow for more efficient vectorized operations (see @sec-parallelization) on modern CPUs.
 
 ::: callout-warning
-When choosing data types, consider that on modern 64-bit architectures, using smaller integer or floating-point types doesn’t always improve performance. In fact, many operations are optimized for 64-bit (or even larger SIMD) registers, and using smaller data types may introduce unnecessary overhead due to conversions or misalignment.
+When choosing data types, consider that on modern 64-bit architectures, using smaller integer or floating-point types does not always improve performance. In fact, many operations are optimized for 64-bit (or even larger SIMD) registers, and using smaller data types may introduce unnecessary overhead due to conversions or misalignment.
 
-As a rough guideline, if your data naturally fits within 64 bits (e.g. Float64 or Int64), starting there is often the best balance of performance and simplicity. You can experiment with smaller types if you know your values never exceed certain ranges and memory footprint is critical. However, always benchmark to confirm any gains—simply using a smaller type does not guarantee improved throughput on modern CPUs.
+As a rough guideline, if your data naturally fits within 64 bits (e.g. Float64 or Int64), starting there is often the best balance of performance and simplicity. You can experiment with smaller types if you know your values never exceed certain ranges and memory footprint is critical. However, always benchmark to confirm any gains - simply using a smaller type does not guarantee improved throughput on modern CPUs.
 :::
 
 For collections, choose appropriate container types based on your use case. Arrays are efficient for calculations that loop through all or most elements, while Dictionaries are better for sparse look-ups or outside of the "hot loop" portion of a computation.
 
-Consider using small, statically sized collections when the data is suited for it. Small, fixed-size arrays, (such as StaticArrays.jl in Julia) can be allocated on the stack and lead to better performance in certain scenarios than dynamically sizable arrays. The trade-off is that the static arrays require more up-front compile time and after a certain point (length in the 50-100 element range) it usually isn't worth trying to use them.
+Consider using small, statically sized collections when the data is suited for it. Small, fixed-size arrays, (such as StaticArrays.jl in Julia) can be allocated on the stack and lead to better performance in certain scenarios than dynamically sizable arrays. The trade-off is that the static arrays require more up-front compile time and after a certain point (length in the 50-100 element range) it usually is not worth trying to use them.
 
 ### Avoid Type Instabilities
 
-**Type instability** occurs when Julia’s compiler cannot infer a concrete result type for a variable or expression; this inhibits specialization and often triggers performance degredation through dynamic dispatch. A separate but related performance trap is using abstractly typed containers (e.g., `Vector{Any}`) in hot loops, which forces dynamic dispatch on each element even if the function’s overall return type is inferrable.
+**Type instability** occurs when Julia's compiler cannot infer a concrete result type for a variable or expression; this inhibits specialization and often triggers performance degradation through dynamic dispatch. A separate but related performance trap is using abstractly typed containers (e.g., `Vector{Any}`) in hot loops, which forces dynamic dispatch on each element even if the function's overall return type is inferrable.
 
 To avoid type instabilities, ensure that functions have inferrable, concrete types across all code paths. For example:
 
@@ -260,8 +260,8 @@ data = rand(1000)
 
 The `unstable_example` function illustrates a common anti-pattern wherein an `Any` typed array is created and then elements are added to it. Because any type can be added to an `Any` array (we happen to just add floats to it) then Julia's not sure what types to expect inside the container and therefore has to determine it at runtime.
 
-:::callout-note
-Heterogeneous return types is not the same thing as type instability. In the example above, the return type is not unstable: the compiler recognizes that the single parametric type `Union{Float64,Int64}` will be returned. While Julia can optimize some unions with a small number of elements, you should prefer concrete, predictable types in hot code.
+::: callout-note
+Heterogeneous return types are not the same thing as type instability. In the example above, the return type is not unstable: the compiler recognizes that the single parametric type `Union{Float64,Int64}` will be returned. While Julia can optimize some unions with a small number of elements, you should prefer concrete, predictable types in hot code.
 :::
 
 ::: callout-tip
@@ -312,12 +312,19 @@ sorted_data = sort(rand(1_000_000))
 
 ```
 
-In this example, having sorted data means that the CPU will predict which branch of the `if` statement is likely to be utilized. Sorting makes the branch outcome highly predictable for long stretches (all below-threshold values, then all above), improving the effectiveness of the branch predictor. By then speculatively executing the code that it thinks will be used, the overall program time is faster when processing `sorted_data`.
+In this example, having sorted data means that the CPU will predict which branch of the `if` statement is likely to be utilized. Sorting makes the branch outcome highly predictable for long stretches (all below-threshold values, then all above), improving the effectiveness of the branch predictor. By speculatively executing the code that it thinks will be used, the overall program time is faster when processing `sorted_data`.
 
 Remember that optimizing for branch prediction often involves trade-offs. The benefits can vary depending on the specific hardware and the nature of your data. If performance critical, profile your code to ensure that your optimizations are actually improving performance in your specific use case. Over-optimizing on one set of hardware (e.g. local computer) may not translate the same on another set of hardware (e.g. server deployment).
 
 ### Further Reading
 
 -   [What scientists must know about hardware to write fast code](https://viralinstruction.com/posts/hardware/)
-
 -   [Optimizing Serial Code, ScIML Book](https://book.sciml.ai/notes/02-Optimizing_Serial_Code/)
+
+### Key Takeaways
+
+- Measure first: use `@btime`, `@allocated`, and profiling tools to find hot loops before redesigning algorithms.
+- Favor cache-friendly access patterns; touching memory in the order it is stored often doubles throughput for actuarial grids or scenario cubes.
+- Keep containers concrete and preallocate buffers in tight loops to avoid hidden heap allocations and dynamic dispatch.
+- Start with `Float64`/`Int64` unless memory pressure forces a smaller type; benchmark any change.
+- Make branches predictable when you can and sort or bucket data if it helps align sequential behavior.
