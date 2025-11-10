@@ -215,6 +215,12 @@ Random noise represents unpredictable random fluctuations that can affect the ou
 
 These types of models are evaluated simply by running them many times until the measure of interest converges on a stable result: for example, we might run a model until the mean of the results no longer varies materially as we add more scenarios.
 
+In practice we watch the **standard error** of the estimate,
+$$
+\text{SE}(\hat{\mu}) = \frac{s}{\sqrt{N}},
+$$
+where $s$ is the sample standard deviation and $N$ the scenario count. Doubling accuracy therefore requires roughly four times as many runs. Plotting running estimates (mean, VaR, CTE) versus scenario count is an easy convergence diagnostic; once the curve flattens relative to your materiality threshold, stop the Monte Carlo.
+
 #### Expectation and variance
 
 The expected value (mean) represents the average or mean outcome of a random variable over many trials or realizations. The variance measures the spread or variability of outcomes around the expected value. These statistical measures provide insights into the central tendency and the uncertainty or risk in a stochastic model.
@@ -324,8 +330,10 @@ We won't re-implement the logic here, but here's a very simple example demonstra
 
 ```{julia}
 using ActuaryUtilities
+using Random
 
-let outcomes = rand(1000)
+Random.seed!(1234)
+let outcomes = rand(LogNormal(0.0, 0.5), 10_000)
 
     @show VaR(0.9)(outcomes)
     @show CTE(0.9)(outcomes)
@@ -338,13 +346,12 @@ end
 We will generate a random outcome and show how the risk measures behave:
 
 ```{julia}
-using Distributions
-using ActuaryUtilities
-using CairoMakie
+using Distributions, Random, ActuaryUtilities, CairoMakie
 
 # the assumed distribution of outcomes
 outcomes = Weibull(1, 5)
 
+Random.seed!(2024)
 
 αs = range(0.0, 0.99; length=100)
 
@@ -457,7 +464,7 @@ shock_distribution = Normal(0, σ)
 rng_gen = Xoshiro(1234)
 
 # Function to simulate the model
-function simulate_stochastic_solow(T, α, δ, s, n, g, σ, K0, A0)
+function simulate_stochastic_solow(rng, T, α, δ, s, n, g, σ, K0, A0)
     K = zeros(T)        # Capital over time
     Y = zeros(T)        # Output over time
     A = zeros(T)        # Productivity shocks over time
@@ -466,7 +473,7 @@ function simulate_stochastic_solow(T, α, δ, s, n, g, σ, K0, A0)
 
     for t in 1:(T-1)
         # Apply random productivity shock
-        ε_t = rand(rng_gen, shock_distribution)
+        ε_t = rand(rng, shock_distribution)
         A[t+1] = A[t] * exp(ε_t)  # Productivity evolves stochastically
 
         # Output based on Cobb-Douglas production function
@@ -484,7 +491,7 @@ function simulate_stochastic_solow(T, α, δ, s, n, g, σ, K0, A0)
 end
 
 # Simulate the model
-K, Y, A = simulate_stochastic_solow(T, α, δ, s, n, g, σ, K0, A0)
+K, Y, A = simulate_stochastic_solow(rng_gen, T, α, δ, s, n, g, σ, K0, A0)
 
 # Plot the results
 f = Figure()
@@ -547,22 +554,24 @@ Julia offers a consistent interface for random numbers due to its design and mul
 using Random
 
 rng = MersenneTwister(1234)
-rand(Int, (2, 3))
+rand(rng, Int, (2, 3))
 ```
 
 ```{julia}
 using Random
 
 rng = MersenneTwister(1234)
-rand(Float64, (2, 3))
+rand(rng, Float64, (2, 3))
 ```
 
 ```{julia}
 using Random
 
 rng = Xoshiro(1234)
-rand(Bool, (2, 3))
+rand(rng, Bool, (2, 3))
 ```
+
+Passing the RNG explicitly is a good habit; it guarantees reproducibility, keeps multi-threaded simulations thread-safe, and makes it trivial to swap PRNG families when performing robustness checks.
 
 
 

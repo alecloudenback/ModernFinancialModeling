@@ -209,7 +209,7 @@ The most important part of code for maintenance purposes is plainly written note
 
 ### Comments
 
-Comments are meant for the developer to aid in understanding a certain bit of code. A bit of time-tested wisdom is that after several weeks, months, or years away from a piece of code, something that seemed 'obvious' at the time tends to become perplexing at a later time. Writing comments is as much for yourself as it is your colleagues or successors.
+Comments are meant for the developer to aid in understanding a certain bit of code. A bit of time-tested wisdom is that after several weeks, months, or years away from a piece of code, something that seemed 'obvious' at the time tends to become perplexing at a later time. Writing comments is as much for yourself as it is your colleagues or successors. Focus comments on **why** something is done (business constraints, regulatory rules, data quirks) rather than restating the next line of code.
 
 Here's an example of documentation with single-line comments (indicated with the preceding `#`) and multi-line comments (enclosed by `#=` and `=#`):
 
@@ -290,6 +290,8 @@ end
 3.  The *Extended help* section is a place to put additional detail that's available on generated docsites and in help tools like the REPL help mode.
 
 The last point, the *Extended help* section is shown when using help mode in the REPL and including an extra `?`. For example, in the REPL, typing `?calculate_bond_price` will show the docstring up through the examples. Typing `??calculate_bond_price` will show the docstring in its entirety.
+
+Docstrings become even more valuable when you hook them into automated documentation generators such as [Documenter.jl](https://github.com/JuliaDocs/Documenter.jl). Documenter ingests Markdown pages plus in-code docstrings, renders math, runs doctests, and publishes a searchable site every time CI runs. Writing rich docstrings up front means your docsite, help mode, and notebook snippets stay perfectly in sync.
 
 ### Docsites
 
@@ -433,6 +435,16 @@ fix_function branch :  ...58b → ...6ac
 
 The "staging" aspect will be explained next.
 
+### Change governance checklist
+
+Most teams wrap the branch workflow inside a pull-request (PR) or merge-request process. A typical cadence for an actuarial change is:
+
+1. Open a PR from your feature branch with a concise summary (`fix: correct PV logic for monthly products`) and a link to the model-change ticket or associated Github Issue number.
+2. Request a peer review so another actuary/developer confirms the implementation, assumptions, and data lineage.
+3. Once tests are green and approvals recorded, merge the branch; the PR becomes part of the model-change audit trail.
+
+Writing clear commit messages (e.g., [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)) and using PR templates that ask for “risk assessment” or “validation evidence” makes it easy to satisfy SOX/CECL/Solvency documentation requirements without a separate Word document.
+
 #### Git Staging
 
 Staging (sometimes called the "staging area" or "index") is an intermediate step between making changes to files and recording those changes in a commit. Think of staging as preparing a snapshot - you're choosing which modified files (or even which specific changes within files) should be included in your next commit. When you modify files in your Git repository, those changes are initially "unstaged." Using the git add command (or your Git GUI's staging interface) moves changes into the staging area. This two-step process - staging followed by committing - gives you precise control over which changes get recorded together. Here's a typical workflow:
@@ -502,6 +514,16 @@ Referencing @fig-pull-request, several elements are worth highlighting. In this 
 The features described here can take modelers many manhours of time - testing, review of changes, sign-off tracking, etc. In this Git-based workflow, the workflow above happens frictionlessly and much of it is automated. This is such a powerful paradigm that should be adopted within the financial industry and especially amongst modelers.
 
 ![A diff shows a file-by-file and line-by-line comparison of what has changed between commits in a codebase. Red indicates something was removed or changed, and green shows what replaced it. Note that even within a line, there's extra green highlighting to show the newly added text while the unchanged text remains a lighter shade.](images/Diff.png){#fig-pr-diff}
+
+#### Continuous integration (CI)
+
+CI pipelines turn “remember to rerun the model” into code. A minimal Julia CI workflow usually runs:
+
+1. `julia --project -e 'using Pkg; Pkg.instantiate(); Pkg.test()'`
+2. Optional data validation scripts (e.g., confirm new market data falls within sanity bands).
+3. Documentation builds (`docs/make.jl`) and style checks (`using JuliaFormatter; format(".")`).
+
+Because GitHub Actions, GitLab CI, and Azure Pipelines capture logs and artifacts automatically, each pull request carries a timestamped record of which Julia version, OS, and dependency set produced the numbers. Regulators can accept these logs as part of model change evidence because they are immutable and repeatable.
 
 ### Data Version Control {#sec-data-version-control}
 
