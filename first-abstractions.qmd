@@ -83,7 +83,7 @@ eachindex(cf_bond) # an efficient index iterator
 
 The result, `{julia} eachindex(cf_bond)`, returns an efficient iterator over valid indices (e.g., `Base.OneTo(5)` for a `Vector`). Iterators represent sequences without allocating per-element containers. You can traverse them directly, or materialize them if needed with collect.
 
-An analogy is that we can write the "set of all numbers from 1 to 100" without writing out each of the 100 numbers, but we are referring to the same thing.
+An analogy is that we can write the "set of all numbers from 1 to 100" without writing out each of the 100 numbers, but we are referring to the same thing. In practice this means we can iterate over scenario paths, coupon dates, or bucketized tenors without allocating temporary arrays, which keeps the garbage collector quiet during valuation runs.
 
 An example of operating on a lazy iterator, is that we could find the largest index:
 
@@ -221,7 +221,7 @@ This paradigm is very powerful in a few ways:
 3.  The compiler is free to apply more optimizations. For example, with `reduce`, the compiler could optimize the calculation since the operation is assumed to be associative.
 4.  The lack of mutable state.
 
-Let's build a version of the present value calculation using the functional building blocks described above. We will work up to it by discussing the core functional programming building blocks, culminating in combining `mapreduce` and `accumulate` to do the bond valuation.
+Let's build a version of the present value calculation using the functional building blocks described above. In practice these patterns show up when aggregating P&L across books, summing hedges across currencies, or transforming raw trades into risk factors. We will work up to the bond example by discussing the core building blocks—`map`, `accumulate`, `reduce`—and culminate in combining them with `mapreduce`.
 
 ### `map`
 
@@ -233,7 +233,7 @@ First, we will use `map` to compute the one-period discount factors:
 map(x -> 1 / (1 + x), rate)
 ```
 
-`map` transforms the `rate` collection by applying the anonymous function `x -> 1 / (1 + x)`, which is the single period discount factor. This operation is conveyed visually in @fig-map-diagram.
+`map` transforms the `rate` collection by applying the anonymous function `x -> 1 / (1 + x)`, which is the single period discount factor used in discount curve construction. This operation is conveyed visually in @fig-map-diagram.
 
 ```{dot}
 //| label: fig-map-diagram

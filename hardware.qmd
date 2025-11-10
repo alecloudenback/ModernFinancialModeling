@@ -19,7 +19,7 @@ In this chapter, we’ll explore why a basic understanding of computing hardware
 
 The quote that opens the chapter is a silly way of describing that most modern computers are made with silicon, a common mineral found in rocks. However, we will not concern ourselves with the raw materials of computers and instead will focus on the key architectural aspect.
 
-A computer handles data at rest (in memory) or data being acted upon (processed). This chapter will try to explain both of those processes in a way that reveals key reasons why different approaches to programming can yield different results in terms of processing speed, memory usage, and compiled outputs.
+A computer handles data at rest (in memory) or data being acted upon (processed). This chapter will try to explain both of those processes in a way that reveals key reasons why different approaches to programming can yield different results in terms of processing speed, memory usage, and compiled outputs. The goal is not to turn you into a hardware designer, but to help you reason about why one valuation run takes seconds while another takes hours.
 
 ## Memory and Moving Data Around
 
@@ -73,6 +73,13 @@ Sitting within the RAM region of memory are two sections called Stack and Heap. 
 -   The **stack** stores small, fixed-size (known bit length), data and program components. The stack is a last-in-first-out queue of data that is able to be written to and read from very quickly. The stack is CPU cache friendly.
 
 -   The **heap** is a region which can be dynamically sized and has random read/write (you need not access the data in a particular order). The heap is much slower but more flexible. The heap is not very CPU cache friendly.
+
+::: callout-tip
+## Why this matters for models
+
+When a Monte Carlo engine allocates a new vector for every inner-loop step, it is hitting the heap repeatedly and inviting garbage-collector work. Reusing buffers or preallocating arrays keeps data on the stack and in caches, which can reduce runtimes by an order of magnitude. See @sec-julia-optimizing for tips on how to optimize Julia code.
+
+:::
 
 #### Garbage Collector
 
@@ -176,6 +183,8 @@ To obtain increasing performance, two main strategies have been employed in lieu
 
 We will cover techniques to utilize concurrent/parallel processing in @sec-parallelization. As for the second technique, it is capable of very impressive accelerations (on the order 2x to 100x faster than a naive implementation. However, it has sometimes caused issues. There have been some famous security vulnerabilities such as Spectre and Meltdown, which exploited speculative execution – a technique used to optimize CPU performance which will execute code *before being explicitly asked to* because the scheduler *anticipates* the next steps (with very good, but imperfect accuracy).
 
+For practitioners this means: expect hardware vendors to keep adding cores, vector units, and specialised instructions (AVX, SVE, BF16) while single-thread speed inches forward. Models that parallelise cleanly—scenario loops, policy seriatim projections, P&L explain—will benefit automatically from newer CPUs. Models that rely on single-core performance or constantly move data back and forth to main memory will hit a wall regardless of silicon improvements.
+
 ## Logistics Warehouse Analogy
 
 The problem is analogous to a logistics warehouse (persistent data) which needs to package up orders (processor instructions). There's a conveyor belt of items being constantly routed to the packaging station. In order to keep the packing station working at full capacity, the intermediate systems (RAM & CPU caches) are funneling items they *think* will be needed to the packager (data that's *expected* to be used in the processor). Most of the time, the necessary item (data) is optimally brought to the packaging station (process), or a nearby holding spot (CPU cache).
@@ -189,6 +198,8 @@ There are a lot more optimizations along the way:
 -   If an item usually ordered after another one is, the conveyor system will start to bring that second item as soon as the first one is ordered (prefetching).
 
 -   Different types of packaging stations might be used for specialized items (e.g. vector processing or cryptography instructions in the CPU).
+
+For finance workloads you control the pick list: structuring arrays so related fields are adjacent, batching valuation requests by product type, and avoiding random “walks” through large scenario tables all help the warehouse keep its conveyor belts full.
 
 :::callout-tip
 ## Financial Modeling Pro Tip

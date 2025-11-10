@@ -16,13 +16,15 @@ Pkg.instantiate()
 
 ## Chapter Overview
 
-Installing and setting up your Julia environment. Text editor and REPL editing environments. Setting up your global environment for development. Creating packages. Logging and debugging code.
+Installing and setting up your Julia environment. Text editor and REPL editing environments. Setting up your global environment for development. Creating packages. Logging and debugging code. The focus is on building reproducible, auditable modelling workflows that satisfy finance and actuarial governance demands.
 
 ## Getting help
 
 Before you write any line of code, it's good to know where to find help. The official [help page](https://julialang.org/about/help/) is a good place to start. In particular, the Julia [community](https://julialang.org/community/) is always happy to guide beginners.
 
 As a rule of thumb, the [Discourse forum](https://discourse.julialang.org/) is where you should ask your questions to make the answers discoverable for future users. If you just want to chat with someone, you have a choice between the open source [Zulip](https://julialang.zulipchat.com/register/) and the closed source [Slack](https://julialang.org/slack/).
+
+For internal work, mirror this habit in your own organization: create an internal forum/wiki where modelling teams can document solutions, common stacktraces, and environment setup steps so regulatory reviews and onboarding go faster.
 
 ## Installation
 
@@ -65,6 +67,8 @@ When new versions are tagged, the version associated with a given channel can ch
 juliaup update
 ```
 :::
+
+Keeping `juliaup` channels pinned (e.g., `+lts` for long-term support, or a specific version like `+1.10`) is a good idea for production workflows. With good model governance, you want to control the exact compiler/runtime version rather than silently jumping to the next release mid-quarter.
 
 ## REPL
 
@@ -179,7 +183,7 @@ You can execute a Julia script from your terminal, but in most cases that is not
 julia myfile.jl  # avoid this
 ```
 
-Julia has a rather high startup and compilation latency. If you only use scripts, you will pay this cost every time you run a slightly modified version of your code. That is why many Julia developers fire up a REPL at the beginning of the day and run all of their code there, chunk by chunk, in an interactive way. Full files can be run interactively from the REPL with the `include` function.
+Julia has a rather high startup and compilation latency. If you only use scripts, you will pay this cost every time you run a slightly modified version of your code. That is why many Julia developers fire up a REPL at the beginning of the day and run all of their code there, chunk by chunk, in an interactive way. Full files can be run interactively from the REPL with the `include` function. In production pipelines, wrap your script logic in a module so that `include` loads it once and you can iterate without recompiling on every run.
 
 ``` julia-repl
 julia> include("myfile.jl")
@@ -288,7 +292,7 @@ The `(@1.10)` indicates that you are using the global environment for the curren
 This will not do anything, yet! When we add a package to this environment, *then* it will create a `Project.toml` and `Manifest.toml` file in that directory. Now that directory is a full fledged Julia project!
 
 ::: callout-tip
-Activate a temporary environment with `activate --temp`. This will give you a temporary environment with a random name, which is very useful for testing out things in a clean, simplified environment. Note that environment stacking still applies, so the global environment, like `@1.10` will be available inside your temp environment.
+Activate a temporary environment with `activate --temp`. This will give you a temporary environment with a random name, which is very useful for testing out things in a clean, simplified environment. Note that environment stacking still applies, so the global environment, like `@1.10` will be available inside your temp environment. For auditability, always capture your Project/Manifest files and store them alongside model deliverables so results can be reproduced months later.
 :::
 
 ### Project.toml
@@ -638,3 +642,4 @@ Here's the default behavior for `isapprox`, excerpted from its docstring:
 The testing workflow in Julia supports both test-driven development and continuous integration seamlessly. Tests can be run locally during development, and services like GitHub Actions can automatically run your test suite on multiple Julia versions and operating systems when you push changes.
 
 Good testing practices in Julia involve testing edge cases, using appropriate numerical tolerances, organizing tests logically, and ensuring adequate coverage of your code's functionality. It's also important to write tests that are clear and maintainable - each test should have a specific purpose and test one thing well.
+

@@ -446,3 +446,16 @@ All but the most obscure data structures can be found in the packages from the [
 ### Bits types
 
 When you create custom `struct`s, keeping the fields as simple, concrete types makes it more likely that the compiler will be able to allocate these objects on the stack instead of the heap. An example of this was shown in @sec-struct-bits.
+
+### Putting it into practice
+
+In day-to-day modelling work you typically pull these threads together:
+
+1.  **Measure** with `@btime` or `@benchmark` on representative data (e.g., a block of policies or a slice of scenarios).
+2.  **Profile** the slow sections (runtime and allocations) to see where time is spent.
+3.  **Inspect types** with `@code_warntype`, JET, or Cthulhu to ensure the hot paths remain type-stable.
+4.  **Refactor** data structures (make concrete, preallocate, use StaticArrays where small shapes are common) and loop order to improve cache locality.
+5.  **Repeat** until the code meets SLA requirements—whether that’s a daily risk report before 6 a.m. or a pricing request that must return within seconds.
+
+Keeping these steps in mind turns optimization from “mysterious black art” into a deliberate process aligned with business deadlines.
+

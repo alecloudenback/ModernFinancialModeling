@@ -23,7 +23,7 @@ Adapting computer science concepts to work for financial professionals. Computab
 Computer science as a term can be a bit misleading because of the overwhelming association with the physical desktop or laptop machines that we call "computers". The discipline of computer science is much richer than consumer electronics: at its core, computer science concerns itself with areas of research and answering tough questions—many of which surface immediately in quantitative finance:
 
 -   **Algorithms and Optimization**. How can a problem be solved efficiently? How can that problem be solved *at all*? Given constraints, how can one find an optimal solution for rebalance schedules, scenario selection, or funding plans?
--   **Theory of Computation**. What sorts of questions are even answerable? Is an answer easy to compute or will resolving it require more resources than the entire known universe? Will a computation ever stop calculating? 
+-   **Theory of Computation**. What sorts of questions are even answerable? Is an answer easy to compute or will resolving it require more resources than the entire known universe? Will a computation ever stop calculating (e.g., will a nested capital calculation or Monte Carlo loop converge in time)?
 -   **Data Structures**. How to encode, store, and use data? How does that data relate to each other and what are the trade-offs between different representations of that data?
 -   **Information Theory**[^elements-of-compsci-1]. Given limited data, what *can* be known or inferred from it?
 
@@ -373,7 +373,7 @@ assets["037833AH4"] # gives the General Electric Bond
 
 ### Graphs
 
-A **graph** is a collection of nodes (also called vertices) connected by *edges* to represent relationships or connections between entities. Graphs are versatile data structures that can model various real-world scenarios such as social networks, transportation systems, or computer networks.
+A **graph** is a collection of nodes (also called vertices) connected by *edges* to represent relationships or connections between entities. Graphs are versatile data structures that can model exposure networks, clearing relationships, or counterparty dependencies, in addition to classics like social networks or transportation systems.
 
 In Julia, a simple graph could be implemented using a dictionary where keys are nodes and values are lists of connected nodes:
 
@@ -394,6 +394,8 @@ add_edge!(g, 1, 3)
 ```
 
 This implementation represents an undirected graph. For a directed graph, you would only add the edge in one direction.
+
+To make graphs a bit more concreate in the financial context: an example might be in risk analytics you might treat each node as a legal entity and each edge as an exposure or collateral link. Once the network is encoded, running BFS from a failed counterparty highlights potential contagion paths; centrality measures help identify “too-connected-to-fail” hubs.
 
 Graphs can be traversed using various algorithms such as depth-first search (DFS) or breadth-first search (BFS). These traversals are useful for finding paths, detecting cycles, or exploring connected components.
 
@@ -438,6 +440,8 @@ Trees support efficient operations like insertion, deletion, and searching, ofte
 
 Data structures have strengths and weakness depending on whether you want to prioritize computational efficiency, memory (space) efficiency, code simplicity, and/or mutability. Due to the complexity of real world modeling needs, it can be the case that different representations of the data are more natural or more efficient for the use case at hand.
 
+A good rule of thumb is to map the question to the access pattern: sequential valuation → arrays, hierarchical reporting → trees or dictionaries, network relationships → graphs. Picking the right shape for the data often matters more than micro-optimising the code.
+
 ## Verification and Advanced Testing
 
 ### Formal Verification {#sec-formal-verification}
@@ -450,7 +454,7 @@ In formal verification, we use mathematical methods to:
 2.  Specify the desired properties or behaviors
 3.  Prove that the model satisfies these properties
 
-This process can be automated using specialized software tools called theorem provers or model checkers.
+This process can be automated using specialized software tools called theorem provers or model checkers. In finance, formal methods appear in high-assurance corners such as core valuation libraries, exchange protocols, or regulatory reporting engines—areas where a production bug could have systemic consequences.
 
 #### Formal Verification in Practice
 
@@ -478,7 +482,7 @@ myadd(a,b) = a + b
 @test myadd(myadd(1,2),3) == myadd(1,myadd(2,3)) # associative
 ```
 
-However, we really haven't proven the associative and commutative properties in general. There are techniques to do this, which is a more comprehensive alternative to testing specific examples above. Packages like [Supposition.jl](https://github.com/Seelengrab/Supposition.jl) provide functionality for this. Note that like Formal Verification, property-based testing is a more advanced topic.
+However, we really haven't proven the associative and commutative properties in general. There are techniques to do this, which is a more comprehensive alternative to testing specific examples above. Packages like [Supposition.jl](https://github.com/Seelengrab/Supposition.jl) provide functionality for this. In actuarial practice you might encode invariants such as “present value is non-negative under positive discount rates” or “portfolio Greeks add up across sub-portfolios” and let the library hammer your code with random inputs. Note that like Formal Verification, property-based testing is a more advanced topic.
 
 :::callout-warning
 Property-based testing is also tied in with concepts related to types we talked about in @sec-number-types: floating point numbers are not associative when summing more than two numbers at a time: the order in which the floats get added affects the accumulated imprecision.
@@ -497,7 +501,7 @@ Fuzzing is kind of like property based testing, but instead of testing general r
 end
 ```
 
-This is a good advancement over the simple `@test myadd(1,2) == myadd(2,1)`, in terms of checking the correctness of `myadd`, but it comes at the cost of more computational time and non-deterministic tests. Fuzzing typically seeks to find edge-cases: crashes or unexpected behavior by exploring random/invalid inputs.
+This is a good advancement over the simple `@test myadd(1,2) == myadd(2,1)`, in terms of checking the correctness of `myadd`, but it comes at the cost of more computational time and non-deterministic tests. Fuzzing typically seeks to find edge-cases: crashes or unexpected behavior by exploring random/invalid inputs. It is especially useful for feeds that ingest external data (e.g., vendor trade files) where malformed records are a bigger threat than pure numerical error.
 
 ## Finance Example: Complexity and Portfolio Selection {#sec-portfolio-complexity}
 
