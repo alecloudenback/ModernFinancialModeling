@@ -17,7 +17,7 @@ Pkg.instantiate()
 
 ## Chapter Overview
 
-Matrices and their myriad uses: reframing problems through the eyes of linear algebra, an intuitive refreshing on applicable maths, and recurring patterns of matrix operations in financial modeling.
+Linear algebra is the workhorse behind portfolio construction, risk decomposition, scenario generation, and many other financial workflows. This chapter revisits essential matrix operations, connects each to a realistic finance task.
 
 ## Matrix manipulation
 
@@ -27,7 +27,7 @@ We first review basic matrix manipulation routines before going into more advanc
 
 Think of each matrix as a data grid (like a spreadsheet). Adding or subtracting values element by element is analogous to combining two sets of financial figures—such as merging cash inflows and outflows.
 
-Example: Combining variations in A and B where each element represents a specific scenario's impact when doing cash flow projections. We would like to see combined variations of A and B, and we also would like to know the difference in variations between A and B.
+Example: Combining variations in `A` and `B` where each element represents a specific scenario's impact when doing cash flow projections. We would like to see combined variations of `A` and `B`, and we also would like to know the difference in variations between `A` and `B`.
 
 ```{julia}
 # Define two matrices with returns across 3 assets over 4 scenarios
@@ -53,7 +53,7 @@ println(D)
 
 Transposing a matrix is akin to flipping a dataset over its diagonal—turning rows into columns. This operation is useful when aligning data for regression or matching dimensions in financial models.
 
-Example: Converting a time-series (rows as time points) in A into a format suitable for cross-sectional analysis (columns as different variables) in B.
+Example: Converting a time-series (rows as time points) in `A` into a format suitable for cross-sectional analysis (columns as different variables) in `B`.
 
 ```{julia}
 # Define a matrix with variable values at all time points
@@ -66,6 +66,10 @@ B = A'
 println("Result of matrix transpose:")
 println(B)
 ```
+
+::: callout-tip
+For real-valued data `transpose(A)` and `A'` give the same result. The explicit `transpose` keeps intent clear and avoids accidentally taking the complex conjugate when your data later includes complex numbers (for example when working with Fourier transforms).
+:::
 
 ### Determinant
 
@@ -151,6 +155,8 @@ println("Result of matrix norm:")
 println(B)
 ```
 
+Julia’s `norm` defaults to the Frobenius norm for matrices. Specify `norm(A, 2)` for the operator (spectral) norm if you need the largest singular value instead.
+
 ### Multiplication
 
 Matrix multiplication (non-element-wise) represents the composition of linear transformations. It's like applying a sequence of financial adjustments—first transforming the data with one factor and then modifying it with another. Other applications include:
@@ -204,6 +210,8 @@ Matrix inversion "reverses" a transformation. If a matrix transforms one set of 
 
 Example: In solving linear systems for equilibrium pricing, obtaining the inverse of the coefficient matrix allows you to revert to the original asset prices.
 
+That said, production code typically avoids forming the inverse explicitly; instead, we solve systems with the matrix factorization that underlies the inverse.
+
 ```{julia}
 # Define a linear system
 A = [1 -0.2 0; -0.1 1 -0.1; 0 -0.3 1]
@@ -213,6 +221,10 @@ A_inv = inv(A) # Tip: Prefer solving systems with A \ b instead of inv(A) * b fo
 println("Inverse of matrix A:")
 println(A_inv)
 ```
+
+::: callout-tip
+In numerical work we usually solve systems with `A \ b` instead of computing `inv(A)` explicitly. Forming the inverse is slower and amplifies rounding error, whereas the backslash operator reuses a factorization and gives better numerical stability.
+:::
 
 ::: callout-note
 For a matrix to be inverted, it must meet several important criteria.
@@ -296,6 +308,8 @@ println("\nRight Singular Vectors:")
 println(V)
 println("\nReconstructed Matrix:")
 println(A_reconstructed)
+println("\nReconstructed Matrix matches Original Matrix:")
+println(A_reconstructed ≈ A)
 ```
 
 ### Matrix Factorization and Factorization Machines
@@ -319,7 +333,7 @@ user_ids = rand(1:num_users, num_ratings)
 item_ids = rand(1:num_items, num_ratings)
 ratings  = rand(1:5, num_ratings)
 
-events = [Event(user_ids[i], item_ids[i], float(ratings[i])) for i in 1:num_ratings]
+events = [Event(user_ids[i], item_ids[i], Float64(ratings[i])) for i in 1:num_ratings]
 
 # 2. Train/test split
 Random.seed!(1234)
@@ -362,6 +376,8 @@ rmse = measure(RMSE(), predicted, actual)
 println("Test RMSE = ", rmse)
 ```
 
+Lower RMSE indicates better out-of-sample accuracy. In production you would also monitor business metrics — such as product uptake or credit conversion — but RMSE is a good sanity check that the latent factors are capturing the signal.
+
 ### Principal component analysis
 
 Principal Component Analysis (PCA) is a widely used technique in various fields for dimensionality reduction, data visualization, feature extraction, and noise reduction. PCA can also be applied to detect anomalies or outliers in the data by identifying data points that deviate significantly from the normal patterns captured by the principal components. Anomalies may appear as data points with large reconstruction errors or as outliers in the low-dimensional space spanned by the principal components.
@@ -389,3 +405,4 @@ println("Explained Variance Ratio:")
 println(explained_variance_ratio)
 ```
 
+`MultivariateStats` expects variables on the rows and observations in the columns. The reported variance ratios guide how many components to retain; in many market datasets the first few components align with broad risk factors such as market, curve, and credit spreads.
