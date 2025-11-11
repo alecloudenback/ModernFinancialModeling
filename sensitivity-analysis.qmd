@@ -9,7 +9,7 @@ author:
 
 ## Chapter Overview
 
-Different approaches to understanding the sensitivity of a model to changes in its inputs: derivatives, finite differences, global sensitivity analysis approaches, and statistical approaches.
+Sensitivity analysis tells us how fragile our valuation or risk metrics are once key drivers shift. We will move from **local techniques** (derivatives, finite differences, automatic differentiation) that explain the effect of tiny shocks to **global techniques** (regression-based screening, Sobol, Morris, FAST) that summarize how entire distributions of inputs ripple through a model. The chapter closes with practical scenario-analysis guidance so you can turn the math into board-ready stress narratives.
 
 ```{julia}
 #| echo: false
@@ -42,6 +42,8 @@ mutable struct Policy
     risk::Risk
 end
 ```
+
+The fields give us everything we need to project reserves: demographic attributes, benefit base, the policy interest rate (`pir`), premium pattern, and risk class. Real models would store many more underwriting features, but this toy structure is enough to showcase the techniques.
 
 ## The Data
 
@@ -135,7 +137,7 @@ end
 
 ### Finite Differences
 
-Define a customized finite difference function with respect to the interest rate, rippled by a small difference.
+Central finite differences approximate derivatives by shocking one input up and down while holding everything else fixed. The result can be interpreted as a "delta" (absolute change per unit of input) or as an elasticity if we scale by the base reserve.
 
 ```{julia}
 function res_wrt_r_fd(y::Int, pol::Policy, r::Float64, h=1e-3)
@@ -148,6 +150,8 @@ res_wrt_r_fd(2, policies[1], 0.03) # percentage changes in reserve at year 2 whe
 ```
 
 ### Regression Analyses
+
+Regression-based sensitivity (also called standardized regression coefficients) fits a metamodel between sampled inputs and the resulting reserves, then reports correlations and partial correlations as quick importance scores.
 
 ```{julia}
 using GlobalSensitivity
@@ -242,9 +246,7 @@ By applying the chain rule repeatedly on elementary operations of computer calcu
 
 ### Scenario Analyses
 
-Scenarios can be generated following scenario generation methodologies to evaluate impacts. More details in @sec-scenario-generation on scenario generation.
-
-When scenarios are generated to evaluate sensitivities, one may need to take the following into consideration.
+Quantitative sensitivities are only half the story. Boards and regulators still expect named scenarios that link narrative shocks to financial impacts. Use the techniques from @sec-scenario-generation to build the paths, then layer on the following practices.
 
 - Reverse stress testing. Reverse stress testing in scenario analysis involves identifying extreme scenarios that could potentially lead to catastrophic outcomes for a financial institution or a system. Unlike traditional sensitivity testing to simulate the impact of adverse events on the system, reverse stress testing starts with a catastrophic outcome and works backwards to determine the combination of events or circumstances that could lead to such an outcome.
 
@@ -274,5 +276,3 @@ Some considerations in incorporating historical data.
 -- Model Limitations: Scenario models are based on assumptions that might not fully capture real-world complexities.
 -- Overfitting: Avoid fine-tuning scenarios to perfectly match historical outcomes, as this reduces their applicability to future events.
 -- Changing Dynamics: Historical events may not fully represent future possibilities due to changes in market conditions, regulations, or technology.
-
-
