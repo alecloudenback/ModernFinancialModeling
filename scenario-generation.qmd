@@ -18,11 +18,11 @@ Pkg.instantiate()
 
 ## Chapter Overview
 
-How to generate synthetic data for your model using sub-models, with applications to economic scenario generation and portfolio composition.
+Scenario generation is the discipline of simulating coherent paths for the economic and market variables that feed valuation, risk, and planning models. You will often combine several stochastic sub-models (interest rates, equity returns, credit spreads, inflation, demographics) to create realistic joint scenarios. This chapter reviews commonly used building blocks and illustrates their Julia implementations so you can stitch together scenario engines for portfolio analytics, risk transfer pricing, or asset-liability management (ALM).
 
 ## Common Use Cases of Scenario Generators
 
-Scenario generators are widely used in risk management, investment analysis, and regulatory compliance to model potential future outcomes. For forecasting under the real-world (physical) measure P, use real-world (RW) scenarios. For valuation and hedging, use risk‑neutral (RN) scenarios under the martingale measure Q (e.g., with drift adjusted to the short rate minus dividends for equities and to fit the initial curve for interest rates).
+Scenario generators are widely used in risk management, investment analysis, and regulatory compliance to model potential future outcomes. For forecasting under the real-world (physical) measure `P`, use real-world (RW) scenarios. For valuation and hedging, use risk‑neutral (RN) scenarios under the martingale measure `Q` (e.g., with drift adjusted to the short rate minus dividends for equities and to fit the initial curve for interest rates).
 
 ### Risk management, especially Value at Risk (VaR) & Expected Shortfall (ES).
 
@@ -62,6 +62,8 @@ Economic scenario generation involves the development of plausible future econom
 
 ### Interest Rate Models
 
+Short-rate models produce positive, mean-reverting simulated rates that can be bootstrapped into full yield curves. They remain popular in ALM where projecting discount curves, reinvestment rates, and collateral flows is critical.
+
 #### Vasicek and Cox Ingersoll Ross (CIR)
 
 The Vasicek model is a one-factor model commonly used for simulating interest rate scenarios. It describes the dynamics of short-term interest rates using a stochastic differential equation (SDE). In a Monte Carlo simulation, we can use the Vasicek model to generate multiple interest rate paths. The CIR model is an extension of the Vasicek model with non-constant volatility. It is a square‑root diffusion with state‑dependent volatility that helps keep rates positive. It addresses the issue of negative interest rates by ensuring that interest rates remain positive. Vasicek is defined as
@@ -97,25 +99,26 @@ The following code shows a simplified implementation of a CIR model. The specifi
 ```{julia}
 using Random, CairoMakie
 
-# Set seed for reproducibility
-Random.seed!(1234)
-
 # Function to simulate CIR process
-function cir_simulation(κ, θ, σ, r₀, Δt, num_steps, num_simulations)
+function cir_simulation(rng::AbstractRNG, κ, θ, σ, r₀, Δt, num_steps, num_simulations)
     interest_rate_paths = zeros(num_steps, num_simulations)
+    st = sqrt(Δt)
     for j in 1:num_simulations
+        shocks = randn(rng, num_steps - 1)
         interest_rate_paths[1, j] = r₀
         for i in 2:num_steps
-            dW = randn() * sqrt(Δt)
             # dr = κ * (θ - interest_rate_paths[i-1, j]) * Δt + σ * dW # for Vasicek
-            dr = κ * (θ - interest_rate_paths[i-1, j]) * Δt + σ * sqrt(interest_rate_paths[i-1, j]) * dW
-            interest_rate_paths[i, j] = max(interest_rate_paths[i-1, j] + dr, 0)  # Ensure non-negativity
+            dr = κ * (θ - interest_rate_paths[i-1, j]) * Δt + σ * sqrt(max(interest_rate_paths[i-1, j], 0.0)) * st * shocks[i - 1]
+            interest_rate_paths[i, j] = max(interest_rate_paths[i-1, j] + dr, 0.0)  # Ensure non-negativity
         end
     end
     return interest_rate_paths
 end
 
 let
+    # Set seed for reproducibility
+    rng = MersenneTwister(1234)
+
 
     # CIR model parameters
     κ = 0.2 # Speed of mean reversion
@@ -132,13 +135,14 @@ let
     # Time increment
     Δt = 1 / 252
     # Run CIR simulation
-    cir_paths = cir_simulation(κ, θ, σ, r₀, Δt, num_steps, num_simulations)
+    cir_paths = cir_simulation(rng, κ, θ, σ, r₀, Δt, num_steps, num_simulations)
 
     # Plot the simulated interest rate paths
     f = Figure()
-    Axis(f[1, 1])
+    ax = Axis(f[1, 1], xlabel="Trading days", ylabel="Short rate", tital="CIR paths")
+    ti = 0:(num_steps-1)
     for i in 1:num_simulations
-        lines!(1:num_steps, cir_paths[:, i])
+        lines!(ax, ti, cir_paths[:, i], color=:steelblue, linewidth=0.8)
     end
     f
 end
@@ -160,46 +164,43 @@ where $\chi'^2_{d}(\lambda)$ means the non-central chi-square distribution with 
 ```{julia}
 using Distributions
 
+function cir_exact_paths(rng::AbstractRNG, κ, θ, σ, r₀; horizon::Float64, steps::Int, sims::Int)
+    dt = horizon / steps
+    d = 4 * κ * θ / (σ * σ)
+    c = (σ * σ * (1 - exp(-κ * dt))) / (4 * κ)
+    rates = zeros(Float64, steps + 1, sims)
+    time = range(0, horizon; length=steps + 1)
+    rates[1, :] .= r₀
+    for j in 1:sims
+        r = r₀
+        for i in 2:length(time)
+            λ = (4 * κ * exp(-κ * dt) * r) / (σ * σ * (1 - exp(-κ * dt)))
+            r = c * rand(rng, NoncentralChisq(d, λ))
+            rates[i, j] = r
+        end
+    end
+    return time, rates
+end
+
 let
+    rng = MersenneTwister(1234)
 
     # CIR parameters
     κ = 0.5 # mean reversion speed
     θ = 0.04 # long-term mean
     σ = 0.1 # volatility coefficient
-    r0 = 0.03 # initial rate
+    r₀ = 0.03 # initial rate
     T = 5.0 # years
-    Nsteps = 500 # time steps
-    dt = T / Nsteps
-    nsim = 1000 # number of simulated paths
+    nsteps = 500 # time steps
+    nsims = 1000 # number of simulated paths
 
-    # Precompute constants
-    d = 4 * κ * θ / (σ * σ)
-
-    # Time grid
-    tgrid = collect(0:dt:T)
-    rpaths = zeros(length(tgrid), nsim)
-
-    # Seed reproducibility
-    Random.seed!(1234)
-
-    for path in 1:nsim
-        r = r0
-        rpaths[1, path] = r
-        for i in 2:length(tgrid)
-            # Transition distribution parameters
-            c = (σ * σ * (1 - exp(-κ * dt))) / (4 * κ)
-            λ = (4 * κ * exp(-κ * dt) * r) / (σ * σ * (1 - exp(-κ * dt)))
-            nc_chisq = NoncentralChisq(d, λ)
-            r = c * rand(nc_chisq)
-            rpaths[i, path] = r
-        end
-    end
-
+    t, rpaths = cir_exact_paths(rng, κ, θ, σ, r₀; horizon=T, steps=nsteps, sims=nsims)
+    
     # Plot
     fig = Figure(size=(800, 500))
     ax = Axis(fig[1, 1], xlabel="Time (years)", ylabel="Short rate", title="Exact CIR Process Simulation (Non-central Chi-square)")
     for path in 1:nsim
-        lines!(ax, tgrid, rpaths[:, path])
+        lines!(ax, tgrid, rpaths[:, path], color=:steelblue, linewidth=0.8)
     end
     fig
 end
@@ -271,6 +272,9 @@ function hull_white_theta_timevar_sigma(years, prices, σt; a::Float64)
 end
 
 let
+    # Seed for reproducibility
+    rng = MersenneTwister(1234)
+
     # Market curve setup (synthetic)
     years = collect(0.0:0.1:10.0)
     yields = 0.02 .+ 0.002 .* years
@@ -286,16 +290,13 @@ let
     # Preallocate
     rpaths = zeros(length(years), nsim)
 
-    # Seed for reproducibility
-    Random.seed!(1234)
-
     # Euler–Maruyama simulation
     for path in 1:nsim
         r = r0
         rpaths[1, path] = r
         for i in 2:length(years)
             dt = years[i] - years[i-1]
-            dW = sqrt(dt) * randn()
+            dW = sqrt(dt) * randn(rng)
             drift = (θt[i-1] - a * r) * dt
             diffusion = σt[i-1] * dW
             r += drift + diffusion
@@ -315,6 +316,8 @@ end
 
 ### Equity Models
 
+Equity scenario blocks usually mix a diffusion for price levels with a separate volatility process (to match option smiles) or with fat-tailed jump structures. We start with GBM for its closed-form intuition and then add a simple GARCH(1,1) volatility process.
+
 #### Geometric Brownian Motion (GBM)
 
 GBM is a stochastic process commonly used to model the price movement of financial instruments, including stocks. It assumes constant volatility and is characterized by a log-normal distribution. It is defined as
@@ -331,9 +334,26 @@ where
 -   $dW(t)$ is a Wiener process or Brownian motion, representing a random shock.
 
 ```{julia}
+using Statistics
+
+# Function to simulate GBM
+function gbm_simulation(rng::AbstractRNG, μ, σ, S₀, Δt, num_steps, num_simulations)
+    stock_price_paths = zeros(num_steps, num_simulations)
+    drift = (μ - 0.5 * σ * σ) * Δt
+    vol = σ * sqrt(Δt)
+    for j in 1:num_simulations
+        stock_price_paths[1, j] = S₀
+        shocks = randn(rng, steps - 1)
+        for i in 2:num_steps
+            stock_price_paths[i, j] = stock_price_paths[i-1, j] * exp(drift + vol * shocks[i - 1])
+        end
+    end
+    return stock_price_paths
+end
+
 let
     # Set seed for reproducibility
-    Random.seed!(1234)
+    rng = MersenneTwister(1234)
 
     # GBM parameters
     μ = 0.05 # Drift (expected return)
@@ -349,28 +369,14 @@ let
     # Time increment
     Δt = 1 / 252
 
-    # Function to simulate GBM
-    function gbm_simulation(μ, σ, S₀, Δt, num_steps, num_simulations)
-        stock_price_paths = zeros(num_steps, num_simulations)
-        drift = (μ - 0.5 * σ * σ) * Δt
-        vol = σ * sqrt(Δt)
-        for j in 1:num_simulations
-            stock_price_paths[1, j] = S₀
-            for i in 2:num_steps
-                stock_price_paths[i, j] = stock_price_paths[i-1, j] * exp(drift + vol * randn())
-            end
-        end
-        return stock_price_paths
-    end
-
     # Run GBM simulation
-    gbm_paths = gbm_simulation(μ, σ, S₀, Δt, num_steps, num_simulations)
+    gbm_paths = gbm_simulation(rng, μ, σ, S₀, Δt, num_steps, num_simulations)
 
     # Plot the simulated stock price paths
     f = Figure()
-    Axis(f[1, 1])
+    ax = Axis(f[1, 1], xlabel="Year", ylabel="Price", title="GBM price scenarios")
     for i in 1:num_simulations
-        lines!(1:num_steps, gbm_paths[:, i])
+        lines!(ax, 1:num_steps, gbm_paths[:, i])
     end
     f
 end
@@ -394,9 +400,25 @@ $$
 -   $\omega$, $\alpha_1$, $\beta_1$ are model parameters
 
 ```{julia}
+# Function to simulate GARCH(1,1) volatility
+function garch_simulation(rng::AbstractRNG, α₀, α₁, β₁, num_steps, num_simulations)
+    volatility_paths = zeros(num_steps, num_simulations)
+    σ²_ss = ω / (1 - α₁ - β₁)
+    returns = zeros(Float64, steps, sims)
+    for j in 1:num_simulations
+        returns[1, j] = volatility_paths[1, j] * randn(rng)
+        for i in 2:num_steps
+            σ² = α₀ + α₁ * returns[i - 1, j] * returns[i - 1, j] + β₁ * volatility_paths[i - 1, j] * volatility_paths[i - 1, j]
+            volatility_paths[i, j] = sqrt(σ²)
+            returns[i, j] = volatility_paths[i, j] * randn(rng)
+        end
+    end
+    return volatility_paths
+end
+
 let
     # Set seed for reproducibility
-    Random.seed!(1234)
+    rng = MersenneTwister(1234)
 
     # GARCH(1,1) parameters
     α₀ = 0.01 # Constant term
@@ -411,28 +433,14 @@ let
     # Time increment
     Δt = 1 / 252
 
-    # Function to simulate GARCH(1,1) volatility
-    function garch_simulation(α₀, α₁, β₁, num_steps, num_simulations)
-        volatility_paths = zeros(num_steps, num_simulations)
-        for j in 1:num_simulations
-            ε = randn(num_steps)
-            squared_returns = zeros(num_steps)
-            for i in 2:num_steps
-                squared_returns[i] = α₀ + α₁ * ε[i-1] * ε[i-1] + β₁ * squared_returns[i-1]
-                volatility_paths[i, j] = sqrt(squared_returns[i])
-            end
-        end
-        return volatility_paths
-    end
-
     # Run GARCH simulation
-    garch_paths = garch_simulation(α₀, α₁, β₁, num_steps, num_simulations)
+    garch_paths = garch_simulation(rng, α₀, α₁, β₁, num_steps, num_simulations)
 
     # Plot the simulated volatility paths
     f = Figure()
-    Axis(f[1, 1])
+    ax = Axis(f[1, 1], xlabel="Trading days", ylabel="Volatility", title="GARCH(1, 1) conditional volatility")
     for i in 1:num_simulations
-        lines!(1:num_steps, garch_paths[:, i])
+        lines!(ax, 1:num_steps, garch_paths[:, i])
     end
     f
 end
@@ -488,3 +496,6 @@ let
 end
 ```
 
+## Where to Go Next
+
+Realistic enterprise scenario engines incorporate macro regime switches, stochastic volatility surfaces, credit migration, and balance-sheet feedback loops. Julia's multiple dispatch and composability make it straightforward to encapsulate each component (e.g., `AbstractInterestRateProcess`, `EquityBlock`, `CopulaLink`) and then assemble them into reproducible scenario trees or Monte Carlo streams. In subsequent chapters we will look at calibrating these models and feeding the resulting scenarios into portfolio analytics and ALM dashboards.
