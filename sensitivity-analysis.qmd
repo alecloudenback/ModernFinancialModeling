@@ -21,7 +21,7 @@ Pkg.instantiate()
 
 ## Setup
 
-Let's assume there are certain insurance policies throughout the chapter.
+To keep the examples concrete we will work with a simplified block of participating whole life policies.
 
 ```{julia}
 using Dates
@@ -89,6 +89,8 @@ policies = let
 end
 ```
 
+For example, `res(2, policies[1])` returns the reserve at the end of policy year 2 for our sample contract. We will refer to `policies[1]` when we need a concrete contract for the sensitivity examples.
+
 Given a basic insurance product, a pure whole of life (WOL) policy with level benefits and level premiums payable within the first 10 years, the reserve in-force at the end of the $y^{th}$ ($y$ >= 0) policy year is defined by
 
 $$
@@ -149,6 +151,8 @@ end
 res_wrt_r_fd(2, policies[1], 0.03) # percentage changes in reserve at year 2 when the interest rate at 3% with a perturbation of 0.1%
 ```
 
+Use a smaller `h` when `pir` is quoted in decimals (e.g., 3%) and a larger `h` if you work in basis points. Always sanity check that the perturbation stays within practical limits (no negative credited rates).
+
 ### Regression Analyses
 
 Regression-based sensitivity (also called standardized regression coefficients) fits a metamodel between sampled inputs and the resulting reserves, then reports correlations and partial correlations as quick importance scores.
@@ -194,7 +198,7 @@ println(s.S1)
 println(s.ST)
 ```
 
-The output shows the first order and total order of variations in different input parameters.
+`S1` reports how much of the reserve variance comes from each input alone, while `ST` shows the total contribution including interaction terms. If rate and premium interact strongly, the gap `ST - S1` will be large, signaling non-linear cross-effects.
 
 ### Morris Method
 
@@ -238,7 +242,7 @@ println(fast.S1)
 println(fast.ST)
 ```
 
-The output shows the first order and total order of variations in different input parameters.
+Interpretation mirrors Sobol: `S1` is the main effect and `ST` the total effect. Differences between Sobol and FAST estimates mostly reflect Monte Carlo noise; agreement across both methods boosts confidence in your ranking.
 
 ### Automatic Differentiation
 
@@ -248,31 +252,28 @@ By applying the chain rule repeatedly on elementary operations of computer calcu
 
 Quantitative sensitivities are only half the story. Boards and regulators still expect named scenarios that link narrative shocks to financial impacts. Use the techniques from @sec-scenario-generation to build the paths, then layer on the following practices.
 
-- Reverse stress testing. Reverse stress testing in scenario analysis involves identifying extreme scenarios that could potentially lead to catastrophic outcomes for a financial institution or a system. Unlike traditional sensitivity testing to simulate the impact of adverse events on the system, reverse stress testing starts with a catastrophic outcome and works backwards to determine the combination of events or circumstances that could lead to such an outcome.
+#### Reverse stress testing
 
-One typically follows these steps to do reverse stress testing.
--- Define a critical failure point (e.g., bankruptcy, system outage, regulatory breach).
--- Analyze the combinations of events or variables that could cause the failure.
--- Model the path from normal conditions to the adverse outcome.
+Reverse stress tests start from an unacceptable outcome (e.g., statutory RBC < 250%) and work backward to the combination of market, actuarial, and operational events that would trigger it.
 
-Potential benefits that reverse stress testing could bring include:
--- Focusing on Vulnerabilities: Highlights specific scenarios to avoid at all costs.
--- Enhancing Resilience: Strengthens systems against extreme risks.
--- Regulatory Compliance: Often required in highly regulated industries like banking and energy.
+1. Define the failure point in business terms.
+2. Enumerate the drivers that could push the system there (rate shocks, mass lapses, cyber loss).
+3. Build a trajectory that connects today's state to the failure and quantify the cumulative impact.
 
-- Stylistic scenarios. Developing stylistic scenarios in scenario analysis involves creating narratives or storylines that describe plausible future states or situations. These scenarios are crafted to capture key uncertainties, trends, and factors that could significantly impact the organization, industry, or environment under study.
+Benefits include clearer vulnerability maps, stronger contingency plans, and alignment with supervisory expectations.
 
-- Backtesting against historical data. Backtesting in scenario analysis involves an iterative process of using past data to validate the effectiveness and accuracy of scenarios developed for forecasting future outcomes. Scenarios are first defined and applied on selective historical data, and refined after any discrepancies of scenario outcomes versus historical results are identified.
+#### Stylistic scenarios
 
-Some considerations in incorporating historical data.
--- Data Quality: Ensure historical data is accurate, complete, and relevant to the scenarios being tested.
--- Model Limitations: Scenario models are based on assumptions that might not fully capture real-world complexities.
--- Overfitting: Avoid fine-tuning scenarios to perfectly match historical outcomes, as this reduces their applicability to future events.
--- Changing Dynamics: Historical events may not fully represent future possibilities due to changes in market conditions, regulations, or technology.
+Stylistic (narrative) scenarios translate technical shocks into stories that executives recognize ("Higher-for-longer inflation with elevated credit spreads"). Describe the macro setting, policy responses, and customer behavior, then map those story elements to the stochastic blocks in your engine. This makes it easier to compare sensitivities across business units that may not share the same quantitative models.
 
-One typically follows these steps to do backtesting against historical data.
--- Define Scenarios: Establish hypothetical scenarios (e.g., market crashes, changes in interest rates, or operational disruptions), and ensure scenarios cover a range of possibilities, such as best-case, base-case, and worst-case scenarios.
--- Collect Historical Data: Gather relevant historical data for key variables (e.g., stock prices, interest rates, production metrics), and ensure data spans periods where similar events occurred in the past.
--- Model Scenario Impacts: Use historical data to simulate the impacts of the scenarios on key metrics or performance indicators.
--- Compare Results: Compare the modeled results of the scenarios with the actual historical outcomes, and assess how well the scenarios predict or explain the observed data.
--- Adjust and Refine: If the scenarios do not align with historical outcomes, refine the assumptions or parameters in the scenario models, and incorporate lessons learned from historical patterns to improve future scenario analyses.
+#### Backtesting scenarios
+
+Before anchoring capital plans on a scenario set, test whether similar historical episodes would have produced the modeled impacts.
+
+1. Define the scenario family (base/up/down, climate pathways, liquidity crunch).
+2. Pull historical periods that resemble each narrative and compute the actual KPI movements.
+3. Run the scenario through your model for those historical start dates.
+4. Compare modeled vs. realized outcomes and reconcile gaps.
+5. Adjust assumptions or document why the future is expected to differ (structural breaks, new hedging programs).
+
+Key reminders when using history: validate data quality, resist overfitting scenarios to the past, and note that structural changes (regulation, product mix, technology) can limit comparability.
