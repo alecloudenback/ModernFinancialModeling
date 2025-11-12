@@ -46,7 +46,7 @@ Central banks and institutions (e.g., IMF, World Bank) use RW scenario generator
 
 ### Asset Pricing & Hedging
 
-RN scenario generators help value options using stochastic models (e.g., Black-Scholes, Heston model). They can help simulate future stock price movements under different volatility conditions. They can also be used for hedging purposes to test how a portfolio performs under different inflation, interest rate, or commodity price scenarios.
+RN scenario generators help value options using stochastic models (e.g., Black-Scholes model). They can help simulate future stock price movements under different volatility conditions. They can also be used for hedging purposes to test how a portfolio performs under different inflation, interest rate, or commodity price scenarios.
 
 ### Fixed Income & Interest Rate Modeling
 
@@ -66,7 +66,9 @@ Short-rate models produce positive, mean-reverting simulated rates that can be b
 
 #### Vasicek and Cox Ingersoll Ross (CIR)
 
-The Vasicek model is a one-factor model commonly used for simulating interest rate scenarios. It describes the dynamics of short-term interest rates using a stochastic differential equation (SDE). In a Monte Carlo simulation, we can use the Vasicek model to generate multiple interest rate paths. The CIR model is an extension of the Vasicek model with non-constant volatility. It is a square‑root diffusion with state‑dependent volatility that helps keep rates positive. It addresses the issue of negative interest rates by ensuring that interest rates remain positive. Vasicek is defined as
+The Vasicek model is a one-factor model commonly used for simulating interest rate scenarios. It describes the dynamics of short-term interest rates using a stochastic differential equation (SDE). In a Monte Carlo simulation, we can use the Vasicek model to generate multiple interest rate paths. The CIR model is an extension of the Vasicek model with non-constant volatility. It is a square‑root diffusion with state‑dependent volatility that helps keep rates positive. It addresses the issue of negative interest rates by ensuring that interest rates remain positive.
+
+Vasicek is defined as
 
 $$
 dr(t) = \kappa (\theta - r(t)) \, dt + \sigma \, dW(t)
@@ -100,10 +102,10 @@ The following code shows a simplified implementation of a CIR model. The specifi
 using Random, CairoMakie
 
 # Function to simulate CIR process
-function cir_simulation(rng::AbstractRNG, κ, θ, σ, r₀, Δt, num_steps, num_simulations)
-    interest_rate_paths = zeros(num_steps, num_simulations)
+function cir_simulation(rng::AbstractRNG, κ, θ, σ, r₀, Δt, num_steps, num_sims)
+    interest_rate_paths = zeros(num_steps, num_sims)
     st = sqrt(Δt)
-    for j in 1:num_simulations
+    for j in 1:num_sims
         shocks = randn(rng, num_steps - 1)
         interest_rate_paths[1, j] = r₀
         for i in 2:num_steps
@@ -118,7 +120,6 @@ end
 let
     # Set seed for reproducibility
     rng = MersenneTwister(1234)
-
 
     # CIR model parameters
     κ = 0.2 # Speed of mean reversion
@@ -139,7 +140,7 @@ let
 
     # Plot the simulated interest rate paths
     f = Figure()
-    ax = Axis(f[1, 1], xlabel="Trading days", ylabel="Short rate", tital="CIR paths")
+    ax = Axis(f[1, 1], xlabel="Trading days", ylabel="Short rate", title="CIR paths")
     ti = 0:(num_steps-1)
     for i in 1:num_simulations
         lines!(ax, ti, cir_paths[:, i], color=:steelblue, linewidth=0.8)
@@ -162,19 +163,19 @@ $$
 where $\chi'^2_{d}(\lambda)$ means the non-central chi-square distribution with $d$ degrees of freedom and a non-centrality parameter $λ$. The following code shows an exact implementation of a CIR model.
 
 ```{julia}
-using Distributions
+using Random, CairoMakie, Distributions
 
-function cir_exact_paths(rng::AbstractRNG, κ, θ, σ, r₀; horizon::Float64, steps::Int, sims::Int)
-    dt = horizon / steps
+function cir_exact_paths(rng::AbstractRNG, κ, θ, σ, r₀, T, num_steps, num_sims)
+    Δt = T / num_steps
     d = 4 * κ * θ / (σ * σ)
-    c = (σ * σ * (1 - exp(-κ * dt))) / (4 * κ)
-    rates = zeros(Float64, steps + 1, sims)
-    time = range(0, horizon; length=steps + 1)
+    c = (σ * σ * (1 - exp(-κ * Δt))) / (4 * κ)
+    rates = zeros(Float64, num_steps + 1, num_sims)
+    time = range(0, T; length=num_steps + 1)
     rates[1, :] .= r₀
-    for j in 1:sims
+    for j in 1:num_sims
         r = r₀
         for i in 2:length(time)
-            λ = (4 * κ * exp(-κ * dt) * r) / (σ * σ * (1 - exp(-κ * dt)))
+            λ = (4 * κ * exp(-κ * Δt) * r) / (σ * σ * (1 - exp(-κ * Δt)))
             r = c * rand(rng, NoncentralChisq(d, λ))
             rates[i, j] = r
         end
@@ -194,12 +195,12 @@ let
     nsteps = 500 # time steps
     nsims = 1000 # number of simulated paths
 
-    t, rpaths = cir_exact_paths(rng, κ, θ, σ, r₀; horizon=T, steps=nsteps, sims=nsims)
+    tgrid, rpaths = cir_exact_paths(rng, κ, θ, σ, r₀, T, nsteps, nsims)
     
     # Plot
     fig = Figure(size=(800, 500))
     ax = Axis(fig[1, 1], xlabel="Time (years)", ylabel="Short rate", title="Exact CIR Process Simulation (Non-central Chi-square)")
-    for path in 1:nsim
+    for path in 1:nsims
         lines!(ax, tgrid, rpaths[:, path], color=:steelblue, linewidth=0.8)
     end
     fig
@@ -295,10 +296,10 @@ let
         r = r0
         rpaths[1, path] = r
         for i in 2:length(years)
-            dt = years[i] - years[i-1]
+            dt = years[i] - years[i - 1]
             dW = sqrt(dt) * randn(rng)
-            drift = (θt[i-1] - a * r) * dt
-            diffusion = σt[i-1] * dW
+            drift = (θt[i - 1] - a * r) * dt
+            diffusion = σt[i - 1] * dW
             r += drift + diffusion
             rpaths[i, path] = r
         end
@@ -334,7 +335,7 @@ where
 -   $dW(t)$ is a Wiener process or Brownian motion, representing a random shock.
 
 ```{julia}
-using Statistics
+using Random, CairoMakie
 
 # Function to simulate GBM
 function gbm_simulation(rng::AbstractRNG, μ, σ, S₀, Δt, num_steps, num_simulations)
@@ -343,7 +344,7 @@ function gbm_simulation(rng::AbstractRNG, μ, σ, S₀, Δt, num_steps, num_simu
     vol = σ * sqrt(Δt)
     for j in 1:num_simulations
         stock_price_paths[1, j] = S₀
-        shocks = randn(rng, steps - 1)
+        shocks = randn(rng, num_steps - 1)
         for i in 2:num_steps
             stock_price_paths[i, j] = stock_price_paths[i-1, j] * exp(drift + vol * shocks[i - 1])
         end
@@ -400,15 +401,17 @@ $$
 -   $\omega$, $\alpha_1$, $\beta_1$ are model parameters
 
 ```{julia}
+using Random, CairoMakie
+
 # Function to simulate GARCH(1,1) volatility
-function garch_simulation(rng::AbstractRNG, α₀, α₁, β₁, num_steps, num_simulations)
-    volatility_paths = zeros(num_steps, num_simulations)
+function garch_simulation(rng::AbstractRNG, ω, α₁, β₁, num_steps, num_sims)
+    volatility_paths = zeros(num_steps, num_sims)
     σ²_ss = ω / (1 - α₁ - β₁)
-    returns = zeros(Float64, steps, sims)
-    for j in 1:num_simulations
+    returns = zeros(Float64, num_steps, num_sims)
+    for j in 1:num_sims
         returns[1, j] = volatility_paths[1, j] * randn(rng)
         for i in 2:num_steps
-            σ² = α₀ + α₁ * returns[i - 1, j] * returns[i - 1, j] + β₁ * volatility_paths[i - 1, j] * volatility_paths[i - 1, j]
+            σ² = ω + α₁ * returns[i - 1, j] * returns[i - 1, j] + β₁ * volatility_paths[i - 1, j] * volatility_paths[i - 1, j]
             volatility_paths[i, j] = sqrt(σ²)
             returns[i, j] = volatility_paths[i, j] * randn(rng)
         end
@@ -421,7 +424,7 @@ let
     rng = MersenneTwister(1234)
 
     # GARCH(1,1) parameters
-    α₀ = 0.01 # Constant term
+    ω = 0.01 # Constant term
     α₁ = 0.1 # Coefficient for lagged squared returns
     β₁ = 0.8 # Coefficient for lagged conditional volatility
     @assert α₁ + β₁ < 1 "Stationarity requires α₁ + β₁ < 1"
@@ -434,7 +437,7 @@ let
     Δt = 1 / 252
 
     # Run GARCH simulation
-    garch_paths = garch_simulation(rng, α₀, α₁, β₁, num_steps, num_simulations)
+    garch_paths = garch_simulation(rng, ω, α₁, β₁, num_steps, num_simulations)
 
     # Plot the simulated volatility paths
     f = Figure()
@@ -453,7 +456,7 @@ Copulas give us a flexible way to model dependence structures between random var
 Simulating data using copulas involves generating multivariate samples with specified marginal distributions and a copula structure.
 
 ```{julia}
-using Copulas
+using Random, Copulas, CairoMakie
 
 let
     Random.seed!(1234)
@@ -474,6 +477,8 @@ end
 Copulas can also be used to infer combined distributions from data samples.
 
 ```{julia}
+using Random, Copulas, Distributions
+
 let
     X₁ = Gamma(2.0, 3.0)
     X₂ = Pareto(3.0, 1.0)
