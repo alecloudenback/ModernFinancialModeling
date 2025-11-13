@@ -10,7 +10,7 @@ author:
 
 ## Chapter Overview
 
-Optimization as root finding or minimization/maximization of defined objectives. Differentiable programming and the benefits to optimization problems. Other non-gradient based optimization approaches. Model fitting as an optimization problem.
+Optimization lies at the heart of every quantitative finance workflow: calibrating pricing models, allocating portfolios, fitting yield curves, or matching liability cash flows all boil down to choosing inputs that minimize (or maximize) a well-defined metric. This chapter surveys the objective functions we typically optimize, contrasts gradient-based and gradient-free techniques, and illustrates how Julia's differentiable programming ecosystem accelerates financial calibration and model fitting.
 
 ```{julia}
 #| echo: false
@@ -83,15 +83,15 @@ Below is an expanded version of the section that aims to be more thorough while 
 
 ## Objective and Loss Functions
 
-Any optimization algorithm needs to know what is being optimized. We call this function the **objective function**. Usually, the objective function is something we want to minimize—though maximizing a function is mathematically equivalent to minimizing its negative. Concretely, if you want to maximize $f(x)$, you can minimize $-f(x)$. The **optimal point** (also known as the $\arg\min$) is simply the input value that produces the smallest objective value.
+Any optimization algorithm needs to know what is being optimized. We call this function the **objective function**. Usually, the objective function is something we want to minimize — though maximizing a function is mathematically equivalent to minimizing its negative. Concretely, if you want to maximize $f(x)$, you can minimize $-f(x)$. The **optimal point** (also known as the $\arg\min$) is simply the input value that produces the smallest objective value.
 
-In many practical situations—especially those with noisy or uncertain data—the function we want to optimize is called a **loss function**. This term is common in statistical modeling and machine learning, where the aim is to measure how far a model’s predictions deviate from real observations. For instance, the following squared loss function computes the sum of squared errors between a model’s predictions and the targets:
+In many practical situations — especially those with noisy or uncertain data — the function we want to optimize is called a **loss function**. This term is common in statistical modeling and machine learning, where the aim is to measure how far a model's predictions deviate from real observations. For instance, the following squared loss function computes the sum of squared errors between a model's predictions and the targets:
 
 ```julia
 loss(f, guess, target) = sum((f.(guess) .- target).^2)
 ```
 
-Here, `guess` might represent model parameters (or input values), and `target` is the observed data. Minimizing this loss aligns the model’s predictions with reality as closely as possible.
+Here, `guess` might represent model parameters (or input values), and `target` is the observed data. Minimizing this loss aligns the model's predictions with reality as closely as possible.
 
 ## Optimization Techniques
 
@@ -99,7 +99,7 @@ Here, `guess` might represent model parameters (or input values), and `target` i
 
 Nonlinear optimization refers to problems where the relationship between the inputs and outputs is not constrained to be a linear relationship, which is incredibly common in financial modeling.
 
-In many financial settings, variables must obey certain bounds or relationships (e.g., portfolios cannot exceed a total budget, a particular risk measure must remain below a threshold). Handling constraints often involves methods like Lagrange multipliers, projected gradient, or analytic penalty functions. We won’t cover these in depth here, but be aware that most general optimization libraries can handle constraints in nonlinear problems as well.
+In many financial settings, variables must obey certain bounds or relationships (e.g., portfolios cannot exceed a total budget, a particular risk measure must remain below a threshold). Handling constraints often involves methods like Lagrange multipliers, projected gradient, or analytic penalty functions. We won't cover these in depth here, but be aware that most general optimization libraries can handle constraints in nonlinear problems as well.
 
 #### Gradient-Based Optimization
 
@@ -108,7 +108,7 @@ The most efficient nonlinear optimization algorithms tend to utilize the gradien
 Calculating gradients in the context of computer algorithms is discussed at length in @sec-autodiff, but a quick recap of the available approaches:
 
 -   Finite differences: evaluate the function at nearby points and determine the rates of change associated with each change in direction.
--   Analytic derivatives: A human-derived or computer tool (such as Mathematica) is able to analytically determine a derivative that is coded into the optimization algorithm
+-   Analytic derivatives: A human-derived or computer tool (such as Mathematica) is able to analytically determine a derivative that is coded into the optimization algorithm.
 -   Automatic differentiation (AD): elementary rules are applied to decompose elementary code operations into derivatives, allowing for very efficient computation of complex algorithms.
 
 To compare the approaches, here is an example of determining the derivative of a simple function at a certain point:
@@ -120,18 +120,21 @@ using Zygote
 f(x) = 3x^2 + 2x + 1
 # Define an input value
 x = 2.0
+h = 1e-3
 
-finite_diff = (f(x + 0.001) - f(x)) / 0.001
+finite_diff = (f(x + h) - f(x - h)) / 2h
+auto_diff = gradient(f, x)[1]
+analytic_diff = 6x + 2
 
 println("Value of f(x) at x=", f(x))
 println("Gradient of f(x) at x=", finite_diff)
-println("Gradient of f(x) at x=", gradient(f, x))
-println("Gradient of f(x) at x=", 6 * x + 2)
+println("Gradient of f(x) at x=", auto_diff)
+println("Gradient of f(x) at x=", analytic_diff)
 ```
 
-1.  A finite-difference approach to determining a gradient. Note that this method required two function calls of `f` to calculate an approximation.
-2.  An automatic, exact derivative determined by the rules in the Zygote library.
-3.  An analytic derivative using a user-coded derivative.
+1.  `finite_diff` uses finite differences. It needs multiple calls to `f` and is sensitive to the choice of `h` (too small amplifies round-off, too large smears the slope).
+2.  `auto_diff` comes from automatic differentiation and matches machine precision for smooth code without symbolic work.
+3.  `analytic_diff` is a closed-form derivative. When the algebra is manageable this remains the gold standard, but AD gives similar accuracy with far less manual effort.
 
 ##### Root finding
 
@@ -165,11 +168,15 @@ end
 print("Approximate root: ", x)
 ```
 
+::: callout-tip
+Newton's method converges quadratically near a simple root, but it can diverge if the initial guess is far away or if the derivative becomes very small. In practice we often bracket the solution first (to guarantee a sign change) and then switch to Newton once we are in a safe neighborhood.
+:::
+
 Although it might look different, **root-finding** (i.e. finding $x$ such that $g(x)=0$) can be cast as a minimization problem by defining an objective function such as $g(x))^2$. In this view, driving $g(x)^2$  to zero compels $g(x)$ itself to be zero, so the methods and algorithmic ideas from minimization apply naturally to root-finding scenarios as well.
 
 ##### BFGS
 
-BFGS—named for Broyden, Fletcher, Goldfarb, and Shanno—is a popular member of the quasi–Newton family of optimization algorithms. Although it does require first‐order gradient information, BFGS does not need the exact Hessian (i.e., second derivatives). Instead, it updates an approximation to the inverse Hessian at each step using the gradients from previous iterations. This extra curvature information allows BFGS to converge much faster than steepest descent in practice. Moreover, because it never explicitly forms the full Hessian matrix, it remains efficient for moderately sized problems. In finance and actuarial settings, BFGS can be especially useful for model calibration or parameter estimation tasks where one needs to handle nonlinear functions relatively quickly but cannot afford the computational overhead of second derivatives.
+BFGS — named for Broyden, Fletcher, Goldfarb, and Shanno — is a popular member of the quasi–Newton family of optimization algorithms. Although it does require first‐order gradient information, BFGS does not need the exact Hessian (i.e., second derivatives). Instead, it updates an approximation to the inverse Hessian at each step using the gradients from previous iterations. This extra curvature information allows BFGS to converge much faster than steepest descent in practice. Moreover, because it never explicitly forms the full Hessian matrix, it remains efficient for moderately sized problems. In finance and actuarial settings, BFGS can be especially useful for model calibration or parameter estimation tasks where one needs to handle nonlinear functions relatively quickly but cannot afford the computational overhead of second derivatives.
 
 The following example uses the `Optim` package available in Julia to do the BFGS optimization. We don't illustrate the complete algorithm as it is a bit longer, but wanted to ensure that this workhorse of an algorithm was mentioned.
 
@@ -202,7 +209,7 @@ This category includes algorithms that do not rely on gradients or derivative in
 
 A bracketed search algorithm is a technique used in optimization and numerical methods to confine or "bracket" a minimum or maximum of a function within a specified interval. The primary goal is to reduce the search space systematically until a satisfactory solution or range containing the optimal value is found.
 
-For 1D minimization with bracketing, golden-section search and Brent’s method are standard. The bisection code below is for root finding, not minimization.
+For 1D minimization with bracketing, golden-section search and Brent's method are standard. The bisection code below is for root finding, not minimization.
 
 ```{julia}
 function bisection_method(f, a, b; tol=1e-6, max_iter=100)
@@ -364,7 +371,7 @@ On this run the algorithm settles near the global minimizer at the origin. In pr
 
 ##### Particle swarm optimization (PSO)
 
-Particle swarm optimization is a metaheuristic optimization algorithm inspired by the social behavior of birds flocking or fish schooling. It is used to solve optimization problems by iteratively improving a candidate solution based on the velocity and position of particles (potential solutions) in the search space. The PSO algorithm differs from other methods in a key way, that instead of updating a single candidate solution at each iteration, we update a population (set) of candidate solutions, called a swarm. Each candidate solution in the swarm is called a particle. We think of a swarm as an apparently disorganized population of moving individuals that tend to cluster together while each individual seems to be moving in a random direction. The PSO algorithm aims to mimic the social behavior of animals and insects.
+Particle swarm optimization is a meta-heuristic optimization algorithm inspired by the social behavior of birds flocking or fish schooling. It is used to solve optimization problems by iteratively improving a candidate solution based on the velocity and position of particles (potential solutions) in the search space. The PSO algorithm differs from other methods in a key way, that instead of updating a single candidate solution at each iteration, we update a population (set) of candidate solutions, called a swarm. Each candidate solution in the swarm is called a particle. We think of a swarm as an apparently disorganized population of moving individuals that tend to cluster together while each individual seems to be moving in a random direction. The PSO algorithm aims to mimic the social behavior of animals and insects.
 
 ```{julia}
 using Random, CairoMakie
@@ -712,10 +719,10 @@ The process of finding the best fitting curve typically involves:
 
 -   Iterating if necessary: If the fit is not satisfactory, one may need to iterate on the model or consider alternative models until you find a satisfactory fit to the data.
 
-While we have shown general approaches like BFGS or gradient‐free schemes, libraries such as LsqFit wrap these concepts into convenient functions. Under the hood, these packages may employ gradient‐based methods (including automatic differentiation) to refine parameters. Below is a demonstration:
+While we have shown general approaches like BFGS or gradient‐free schemes, libraries such as `LsqFit` wrap these concepts into convenient functions. Under the hood, these packages may employ gradient‐based methods (including automatic differentiation) to refine parameters. Below is a demonstration:
 
 ```{julia}
-using LsqFit, CairoMakie
+using Random, LsqFit, CairoMakie
 
 x_data = 0:0.1:10
 y_data = 2 .* sin.(x_data) .+ 0.5 .* randn(length(x_data))
