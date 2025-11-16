@@ -798,7 +798,7 @@ window.Quarto = {
 </div>
 <div class="callout-body-container callout-body">
 <p>The result, Base.OneTo(5), returns an efficient iterator over valid indices (e.g., <code>Base.OneTo(5)</code> for a <code>Vector</code>). Iterators represent sequences without allocating per-element containers. You can traverse them directly, or materialize them if needed with collect.</p>
-<p>An analogy is that we can write the “set of all numbers from 1 to 100” without writing out each of the 100 numbers, but we are referring to the same thing.</p>
+<p>An analogy is that we can write the “set of all numbers from 1 to 100” without writing out each of the 100 numbers, but we are referring to the same thing. In practice this means we can iterate over scenario paths, coupon dates, or bucketized tenors without allocating temporary arrays, which keeps the garbage collector quiet during valuation runs.</p>
 <p>An example of operating on a lazy iterator, is that we could find the largest index:</p>
 <div id="8" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">maximum</span>(<span class="fu">eachindex</span>(cf_bond)) <span class="co"># operates without materializing all the indices</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -993,7 +993,7 @@ Has a couple of important, optional keyword arguments to note (which also apply 
 <li>The compiler is free to apply more optimizations. For example, with <code>reduce</code>, the compiler could optimize the calculation since the operation is assumed to be associative.</li>
 <li>The lack of mutable state.</li>
 </ol>
-<p>Let’s build a version of the present value calculation using the functional building blocks described above. We will work up to it by discussing the core functional programming building blocks, culminating in combining <code>mapreduce</code> and <code>accumulate</code> to do the bond valuation.</p>
+<p>Let’s build a version of the present value calculation using the functional building blocks described above. In practice these patterns show up when aggregating P&amp;L across books, summing hedges across currencies, or transforming raw trades into risk factors. We will work up to the bond example by discussing the core building blocks—<code>map</code>, <code>accumulate</code>, <code>reduce</code>—and culminate in combining them with <code>mapreduce</code>.</p>
 <section id="map" class="level3" data-number="6.4.1">
 <h3 data-number="6.4.1" class="anchored" data-anchor-id="map"><span class="header-section-number">6.4.1</span> <code>map</code></h3>
 <p><strong><code>map</code></strong> is so named for the mathematical concept of mapping an input to an output. Here, it’s effectively the same thing. We take a collection and use the given function to calculate an output. The size of the output equals the size of the input.</p>
@@ -1009,7 +1009,7 @@ Has a couple of important, optional keyword arguments to note (which also apply 
  0.9523809523809523</code></pre>
 </div>
 </div>
-<p><code>map</code> transforms the <code>rate</code> collection by applying the anonymous function <code>x -&gt; 1 / (1 + x)</code>, which is the single period discount factor. This operation is conveyed visually in <a href="#fig-map-diagram" class="quarto-xref">Figure&nbsp;<span>6.1</span></a>.</p>
+<p><code>map</code> transforms the <code>rate</code> collection by applying the anonymous function <code>x -&gt; 1 / (1 + x)</code>, which is the single period discount factor used in discount curve construction. This operation is conveyed visually in <a href="#fig-map-diagram" class="quarto-xref">Figure&nbsp;<span>6.1</span></a>.</p>
 <div class="cell" data-layout-align="default">
 <div class="cell-output-display">
 <div id="fig-map-diagram" class="quarto-float quarto-figure quarto-figure-center anchored">

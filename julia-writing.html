@@ -725,12 +725,13 @@ window.Quarto = {
 
 <section id="chapter-overview" class="level2" data-number="21.1">
 <h2 data-number="21.1" class="anchored" data-anchor-id="chapter-overview"><span class="header-section-number">21.1</span> Chapter Overview</h2>
-<p>Installing and setting up your Julia environment. Text editor and REPL editing environments. Setting up your global environment for development. Creating packages. Logging and debugging code.</p>
+<p>Installing and setting up your Julia environment. Text editor and REPL editing environments. Setting up your global environment for development. Creating packages. Logging and debugging code. The focus is on building reproducible, auditable modelling workflows that satisfy finance and actuarial governance demands.</p>
 </section>
 <section id="getting-help" class="level2" data-number="21.2">
 <h2 data-number="21.2" class="anchored" data-anchor-id="getting-help"><span class="header-section-number">21.2</span> Getting help</h2>
 <p>Before you write any line of code, it’s good to know where to find help. The official <a href="https://julialang.org/about/help/">help page</a> is a good place to start. In particular, the Julia <a href="https://julialang.org/community/">community</a> is always happy to guide beginners.</p>
 <p>As a rule of thumb, the <a href="https://discourse.julialang.org/">Discourse forum</a> is where you should ask your questions to make the answers discoverable for future users. If you just want to chat with someone, you have a choice between the open source <a href="https://julialang.zulipchat.com/register/">Zulip</a> and the closed source <a href="https://julialang.org/slack/">Slack</a>.</p>
+<p>For internal work, mirror this habit in your own organization: create an internal forum/wiki where modelling teams can document solutions, common stacktraces, and environment setup steps so regulatory reviews and onboarding go faster.</p>
 </section>
 <section id="installation" class="level2" data-number="21.3">
 <h2 data-number="21.3" class="anchored" data-anchor-id="installation"><span class="header-section-number">21.3</span> Installation</h2>
@@ -763,6 +764,7 @@ Tip
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">juliaup</span> update</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </div>
+<p>Keeping <code>juliaup</code> channels pinned (e.g., <code>+lts</code> for long-term support, or a specific version like <code>+1.10</code>) is a good idea for production workflows. With good model governance, you want to control the exact compiler/runtime version rather than silently jumping to the next release mid-quarter.</p>
 </section>
 <section id="repl" class="level2" data-number="21.4">
 <h2 data-number="21.4" class="anchored" data-anchor-id="repl"><span class="header-section-number">21.4</span> REPL</h2>
@@ -859,7 +861,7 @@ Tip
 <h2 data-number="21.6" class="anchored" data-anchor-id="running-code"><span class="header-section-number">21.6</span> Running code</h2>
 <p>You can execute a Julia script from your terminal, but in most cases that is not what you want to do.</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ex">julia</span> myfile.jl  <span class="co"># avoid this</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Julia has a rather high startup and compilation latency. If you only use scripts, you will pay this cost every time you run a slightly modified version of your code. That is why many Julia developers fire up a REPL at the beginning of the day and run all of their code there, chunk by chunk, in an interactive way. Full files can be run interactively from the REPL with the <code>include</code> function.</p>
+<p>Julia has a rather high startup and compilation latency. If you only use scripts, you will pay this cost every time you run a slightly modified version of your code. That is why many Julia developers fire up a REPL at the beginning of the day and run all of their code there, chunk by chunk, in an interactive way. Full files can be run interactively from the REPL with the <code>include</code> function. In production pipelines, wrap your script logic in a module so that <code>include</code> loads it once and you can iterate without recompiling on every run.</p>
 <pre class="julia-repl"><code>julia&gt; include("myfile.jl")</code></pre>
 <p>Alternatively, <code>includet</code> from the <a href="https://timholy.github.io/Revise.jl/stable/user_reference/#Revise.includet">Revise.jl</a> package can be used to “include and track” a file. This will automatically update changes to function definitions in the file in the running REPL session.</p>
 <div class="callout callout-style-default callout-tip callout-titled">
@@ -973,7 +975,7 @@ Tip
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Activate a temporary environment with <code>activate --temp</code>. This will give you a temporary environment with a random name, which is very useful for testing out things in a clean, simplified environment. Note that environment stacking still applies, so the global environment, like <code>@1.10</code> will be available inside your temp environment.</p>
+<p>Activate a temporary environment with <code>activate --temp</code>. This will give you a temporary environment with a random name, which is very useful for testing out things in a clean, simplified environment. Note that environment stacking still applies, so the global environment, like <code>@1.10</code> will be available inside your temp environment. For auditability, always capture your Project/Manifest files and store them alongside model deliverables so results can be reproduced months later.</p>
 </div>
 </div>
 <section id="project.toml" class="level3" data-number="21.9.1">
@@ -1003,11 +1005,14 @@ Note
 <span id="annotated-cell-17-8"><a href="#annotated-cell-17-8" aria-hidden="true" tabindex="-1"></a><span class="dt">LoopVectorization</span> <span class="op">=</span> <span class="st">"bdcacae8-1622-11e9-2a5c-532679323890"</span></span>
 <span id="annotated-cell-17-9"><a href="#annotated-cell-17-9" aria-hidden="true" tabindex="-1"></a><span class="dt">Roots</span> <span class="op">=</span> <span class="st">"f2b01f46-fcfa-551c-844a-d8ac1e96c665"</span></span>
 <span id="annotated-cell-17-10"><a href="#annotated-cell-17-10" aria-hidden="true" tabindex="-1"></a></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="5" onclick="event.preventDefault();">5</a><span id="annotated-cell-17-11" class="code-annotation-target"><a href="#annotated-cell-17-11" aria-hidden="true" tabindex="-1"></a><span class="kw">[compat]</span></span>
-<span id="annotated-cell-17-12"><a href="#annotated-cell-17-12" aria-hidden="true" tabindex="-1"></a><span class="dt">Dates</span> <span class="op">=</span> <span class="st">"1"</span></span>
-<span id="annotated-cell-17-13"><a href="#annotated-cell-17-13" aria-hidden="true" tabindex="-1"></a><span class="dt">LoopVectorization</span> <span class="op">=</span> <span class="st">"^0.12"</span></span>
-<span id="annotated-cell-17-14"><a href="#annotated-cell-17-14" aria-hidden="true" tabindex="-1"></a><span class="dt">Roots</span> <span class="op">=</span> <span class="st">"^1.0, 2"</span></span>
-<span id="annotated-cell-17-15"><a href="#annotated-cell-17-15" aria-hidden="true" tabindex="-1"></a><span class="dt">julia</span> <span class="op">=</span> <span class="st">"1.6"</span></span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="5" onclick="event.preventDefault();">5</a><span id="annotated-cell-17-11" class="code-annotation-target"><a href="#annotated-cell-17-11" aria-hidden="true" tabindex="-1"></a><span class="kw">[sources]</span></span>
+<span id="annotated-cell-17-12"><a href="#annotated-cell-17-12" aria-hidden="true" tabindex="-1"></a><span class="dt">SPIRVIntrinsics</span> <span class="op">=</span> <span class="op">{</span><span class="dt">url</span><span class="op"> =</span> <span class="st">"https://github.com/JuliaGPU/OpenCL.jl"</span><span class="op">, </span><span class="dt">rev</span><span class="op"> =</span> <span class="st">"main"</span><span class="op">, </span><span class="dt">subdir</span><span class="op"> =</span> <span class="st">"lib/intrinsics"</span><span class="op">}</span></span>
+<span id="annotated-cell-17-13"><a href="#annotated-cell-17-13" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-17" data-target-annotation="6" onclick="event.preventDefault();">6</a><span id="annotated-cell-17-14" class="code-annotation-target"><a href="#annotated-cell-17-14" aria-hidden="true" tabindex="-1"></a><span class="kw">[compat]</span></span>
+<span id="annotated-cell-17-15"><a href="#annotated-cell-17-15" aria-hidden="true" tabindex="-1"></a><span class="dt">Dates</span> <span class="op">=</span> <span class="st">"1"</span></span>
+<span id="annotated-cell-17-16"><a href="#annotated-cell-17-16" aria-hidden="true" tabindex="-1"></a><span class="dt">LoopVectorization</span> <span class="op">=</span> <span class="st">"^0.12"</span></span>
+<span id="annotated-cell-17-17"><a href="#annotated-cell-17-17" aria-hidden="true" tabindex="-1"></a><span class="dt">Roots</span> <span class="op">=</span> <span class="st">"^1.0, 2"</span></span>
+<span id="annotated-cell-17-18"><a href="#annotated-cell-17-18" aria-hidden="true" tabindex="-1"></a><span class="dt">julia</span> <span class="op">=</span> <span class="st">"1.6"</span></span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-17" data-target-annotation="1">1</dt>
 <dd>
@@ -1027,7 +1032,11 @@ Note
 </dd>
 <dt data-target-cell="annotated-cell-17" data-target-annotation="5">5</dt>
 <dd>
-<span data-code-cell="annotated-cell-17" data-code-lines="11" data-code-annotation="5">The <code>compat</code> section defines compatibility with packages can be enforced (via SemVer) to clarify which versions are allowed to be installed in case incompatibilities arise.</span>
+<span data-code-cell="annotated-cell-17" data-code-lines="11" data-code-annotation="5">A <code>sources</code> section can be specified within <code>Project.toml</code> to indicate specific dependencies that are not available from a registry. You can specify a location (including locally on your computer), as well as sub-modules or specific branches. This is available with Julia 1.11 or later.</span>
+</dd>
+<dt data-target-cell="annotated-cell-17" data-target-annotation="6">6</dt>
+<dd>
+<span data-code-cell="annotated-cell-17" data-code-lines="14" data-code-annotation="6">The <code>compat</code> section defines compatibility with packages can be enforced (via SemVer) to clarify which versions are allowed to be installed in case incompatibilities arise.</span>
 </dd>
 </dl>
 <p>When you <code>instantiate</code> a project (see <a href="#sec-environments" class="quarto-xref"><span>Section 21.9</span></a> for more), Julia will essentially <code>add</code> the packages listed under <code>deps</code>, and will <strong>resolve</strong> the compatible versions, generally picking the highest version number for the packages so long as the <code>compat</code> section rule are not broken.</p>
@@ -1129,11 +1138,11 @@ Tip
 <table class="caption-top table">
 <caption>A recommended Julia environment setup.</caption>
 <colgroup>
+<col style="width: 14%">
+<col style="width: 30%">
 <col style="width: 23%">
-<col style="width: 28%">
-<col style="width: 21%">
-<col style="width: 26%">
-<col style="width: 0%">
+<col style="width: 27%">
+<col style="width: 2%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -1164,14 +1173,18 @@ Tip
 <td></td>
 </tr>
 <tr class="odd">
-<td>Individual Project Environments, e.g.&nbsp;<code>work_projects/alpha_analysis/Project.toml</code> or <code>reports/25Q4/Project.toml</code>.</td>
+<td>Individual Project Environments, e.g.&nbsp;<code>reports/25Q4/Project.toml</code>.</td>
 <td>An environment that is associated with a project folder.</td>
 <td><code>activate .</code> in Pkg mode when the working directory is the intended folder.</td>
 <td>Dependencies supporting a particular analysis intended to share with others or record the dependency tree via a <code>Manifest.toml</code>.</td>
 <td></td>
 </tr>
 <tr class="even">
-<td colspan="5">Temporary environments | A throw-away temporary environment used for throwing together a quick example, or creating a minimal environment for testing something out. | <code>activate –temp</code> will create a temporary environment that is effectively gone when the Julia session ends. | One-off example or testing packages.</td>
+<td>Temporary environments</td>
+<td>A throw-away temporary environment used for throwing together a quick example, or creating a minimal environment for testing something out.</td>
+<td><code>activate -–temp</code> will create a temporary environment that is effectively gone when the Julia session ends.</td>
+<td>One-off examples or ad-hoc analysis that you don’t want to save to file.</td>
+<td></td>
 </tr>
 </tbody>
 </table>
@@ -1329,36 +1342,37 @@ Tip
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="co"># first five methods that take an integer argument</span></span>
 <span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="fu">methodswith</span>(<span class="dt">Integer</span>)[<span class="fl">1</span><span class="op">:</span><span class="fl">5</span>]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-5-element Vector{Method}:<ul><li> Array(s::<b>LinearAlgebra.UniformScaling</b>, m::<b>Integer</b>, n::<b>Integer</b>) in LinearAlgebra at <a href="file:///Users/julia/.julia/scratchspaces/a66863c6-20e8-4ff4-8a62-49f30b1f605e/agent-cache/default-honeycrisp-R17H3W25T9.0/build/default-honeycrisp-R17H3W25T9-0/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/LinearAlgebra/src/uniformscaling.jl" target="_blank">/Users/alecloudenback/.julia/juliaup/julia-1.11.6+0.aarch64.apple.darwin14/share/julia/stdlib/v1.11/LinearAlgebra/src/uniformscaling.jl:420</a></li><li> Float16(x::<b>Integer</b>) in Base at <a href="https://github.com/JuliaLang/julia/tree/9615af0f269df4d371b8010e9507ed5bae86103b/base/float.jl#L234" target="_blank">float.jl:234</a></li><li> GenericMemoryRef(mem::<b>GenericMemoryRef</b>, i::<b>Integer</b>) in Core at <a href="file:///Users/alecloudenback/.julia/juliaup/julia-1.11.6+0.aarch64.apple.darwin14/share/julia/base/boot.jl" target="_blank">boot.jl:527</a></li><li> GenericMemoryRef(mem::<b>GenericMemory</b>, i::<b>Integer</b>) in Core at <a href="file:///Users/alecloudenback/.julia/juliaup/julia-1.11.6+0.aarch64.apple.darwin14/share/julia/base/boot.jl" target="_blank">boot.jl:526</a></li><li> Integer(x::<b>Integer</b>) in Core at <a href="file:///Users/alecloudenback/.julia/juliaup/julia-1.11.6+0.aarch64.apple.darwin14/share/julia/base/boot.jl" target="_blank">boot.jl:925</a></li></ul>
+5-element Vector{Method}:<ul><li> Array(s::<b>LinearAlgebra.UniformScaling</b>, m::<b>Integer</b>, n::<b>Integer</b>) in LinearAlgebra at <a href="file:///Users/julia/.julia/scratchspaces/a66863c6-20e8-4ff4-8a62-49f30b1f605e/agent-cache/default-honeycrisp-XG3Q6T6R70.0/build/default-honeycrisp-XG3Q6T6R70-0/julialang/julia-release-1-dot-12/usr/share/julia/stdlib/v1.12/LinearAlgebra/src/uniformscaling.jl" target="_blank">/Users/alecloudenback/.julia/juliaup/julia-1.12.1+0.aarch64.apple.darwin14/share/julia/stdlib/v1.12/LinearAlgebra/src/uniformscaling.jl:436</a></li><li> Float16(x::<b>Integer</b>) in Base at <a href="https://github.com/JuliaLang/julia/tree/ba1e628ee49351af0b704afd2b2903d253bd3564/base/float.jl#L240" target="_blank">float.jl:240</a></li><li> GenericMemoryRef(mem::<b>GenericMemoryRef</b>, i::<b>Integer</b>) in Core at <a href="file:///Users/alecloudenback/.julia/juliaup/julia-1.12.1+0.aarch64.apple.darwin14/share/julia/base/boot.jl" target="_blank">boot.jl:598</a></li><li> GenericMemoryRef(mem::<b>GenericMemory</b>, i::<b>Integer</b>) in Core at <a href="file:///Users/alecloudenback/.julia/juliaup/julia-1.12.1+0.aarch64.apple.darwin14/share/julia/base/boot.jl" target="_blank">boot.jl:597</a></li><li> Integer(x::<b>Integer</b>) in Core at <a href="file:///Users/alecloudenback/.julia/juliaup/julia-1.12.1+0.aarch64.apple.darwin14/share/julia/base/boot.jl" target="_blank">boot.jl:990</a></li></ul>
 </div>
 </div>
 <div id="10" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@which</span> <span class="fu">exp</span>(<span class="fl">1</span>) <span class="co"># where the currently used function is defined</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-exp(x::<b>Real</b>) in Base.Math at <a href="https://github.com/JuliaLang/julia/tree/9615af0f269df4d371b8010e9507ed5bae86103b/base/math.jl#L1528" target="_blank">math.jl:1528</a>
+exp(x::<b>Real</b>) in Base.Math at <a href="https://github.com/JuliaLang/julia/tree/ba1e628ee49351af0b704afd2b2903d253bd3564/base/math.jl#L1543" target="_blank">math.jl:1543</a>
 </div>
 </div>
 <div id="12" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="fu">apropos</span>(<span class="st">"matrix exponential"</span>) <span class="co"># search docstrings</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Base.exp
-Base.:^</code></pre>
+<pre><code>Base.:^
+Base.exp</code></pre>
 </div>
 </div>
 <p>When you ask for help on a Julia forum, you might want to include your local Julia information:</p>
 <div id="14" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">versioninfo</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Julia Version 1.11.6
-Commit 9615af0f269 (2025-07-09 12:58 UTC)
+<pre><code>Julia Version 1.12.1
+Commit ba1e628ee49 (2025-10-17 13:02 UTC)
 Build Info:
-  Official https://julialang.org/ release
+  Official https://julialang.org release
 Platform Info:
   OS: macOS (arm64-apple-darwin24.0.0)
   CPU: 14 × Apple M4 Max
   WORD_SIZE: 64
-  LLVM: libLLVM-16.0.6 (ORCJIT, apple-m1)
-Threads: 10 default, 0 interactive, 5 GC (on 10 virtual cores)
+  LLVM: libLLVM-18.1.7 (ORCJIT, apple-m4)
+  GC: Built with stock GC
+Threads: 10 default, 1 interactive, 10 GC (on 10 virtual cores)
 Environment:
   JULIA_NUM_THREADS = auto
   JULIA_PROJECT = @.
@@ -1413,7 +1427,7 @@ Tip
 <div class="cell-output cell-output-stdout">
 <div class="ansi-escaped-output">
 <pre><span class="ansi-bold">Test Summary:   | </span><span class="ansi-green-fg ansi-bold">Pass  </span><span class="ansi-cyan-fg ansi-bold">Total  </span><span class="ansi-bold">Time</span>
-Scalar Discount | <span class="ansi-green-fg">   2  </span><span class="ansi-cyan-fg">    2  </span>0.1s
+Scalar Discount | <span class="ansi-green-fg">   2  </span><span class="ansi-cyan-fg">    2  </span>0.0s
 <span class="ansi-bold">Test Summary:   | </span><span class="ansi-green-fg ansi-bold">Pass  </span><span class="ansi-cyan-fg ansi-bold">Total  </span><span class="ansi-bold">Time</span>
 Vector Discount | <span class="ansi-green-fg">   2  </span><span class="ansi-cyan-fg">    2  </span>0.0s
 </pre>

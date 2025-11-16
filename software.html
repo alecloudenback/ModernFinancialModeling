@@ -675,8 +675,9 @@ window.Quarto = {
   <li><a href="#version-control" id="toc-version-control" class="nav-link" data-scroll-target="#version-control"><span class="header-section-number">12.5</span> Version Control</a>
   <ul class="collapse">
   <li><a href="#git-overview" id="toc-git-overview" class="nav-link" data-scroll-target="#git-overview"><span class="header-section-number">12.5.1</span> Git Overview</a></li>
-  <li><a href="#collaborative-workflows" id="toc-collaborative-workflows" class="nav-link" data-scroll-target="#collaborative-workflows"><span class="header-section-number">12.5.2</span> Collaborative Workflows</a></li>
-  <li><a href="#sec-data-version-control" id="toc-sec-data-version-control" class="nav-link" data-scroll-target="#sec-data-version-control"><span class="header-section-number">12.5.3</span> Data Version Control</a></li>
+  <li><a href="#change-governance-checklist" id="toc-change-governance-checklist" class="nav-link" data-scroll-target="#change-governance-checklist"><span class="header-section-number">12.5.2</span> Change governance checklist</a></li>
+  <li><a href="#collaborative-workflows" id="toc-collaborative-workflows" class="nav-link" data-scroll-target="#collaborative-workflows"><span class="header-section-number">12.5.3</span> Collaborative Workflows</a></li>
+  <li><a href="#sec-data-version-control" id="toc-sec-data-version-control" class="nav-link" data-scroll-target="#sec-data-version-control"><span class="header-section-number">12.5.4</span> Data Version Control</a></li>
   </ul></li>
   <li><a href="#distributing-the-package" id="toc-distributing-the-package" class="nav-link" data-scroll-target="#distributing-the-package"><span class="header-section-number">12.6</span> Distributing the Package</a>
   <ul class="collapse">
@@ -959,7 +960,7 @@ Warning
 <p>The most important part of code for maintenance purposes is plainly written notes for humans, not the compiler. This includes in-line comments, docstrings, reference materials, and how-to pages, etc. Even as a single model developer, writing comments for your future self is critical for model maintenance and ongoing productivity.</p>
 <section id="comments" class="level3" data-number="12.4.1">
 <h3 data-number="12.4.1" class="anchored" data-anchor-id="comments"><span class="header-section-number">12.4.1</span> Comments</h3>
-<p>Comments are meant for the developer to aid in understanding a certain bit of code. A bit of time-tested wisdom is that after several weeks, months, or years away from a piece of code, something that seemed ‘obvious’ at the time tends to become perplexing at a later time. Writing comments is as much for yourself as it is your colleagues or successors.</p>
+<p>Comments are meant for the developer to aid in understanding a certain bit of code. A bit of time-tested wisdom is that after several weeks, months, or years away from a piece of code, something that seemed ‘obvious’ at the time tends to become perplexing at a later time. Writing comments is as much for yourself as it is your colleagues or successors. Focus comments on <strong>why</strong> something is done (business constraints, regulatory rules, data quirks) rather than restating the next line of code.</p>
 <p>Here’s an example of documentation with single-line comments (indicated with the preceding <code>#</code>) and multi-line comments (enclosed by <code>#=</code> and <code>=#</code>):</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">calculate_bond_price</span>(face_value, coupon_rate, years_to_maturity, market_rate)</span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Convert annual rates to semi-annual</span></span>
@@ -1039,6 +1040,7 @@ Warning
 </dd>
 </dl>
 <p>The last point, the <em>Extended help</em> section is shown when using help mode in the REPL and including an extra <code>?</code>. For example, in the REPL, typing <code>?calculate_bond_price</code> will show the docstring up through the examples. Typing <code>??calculate_bond_price</code> will show the docstring in its entirety.</p>
+<p>Docstrings become even more valuable when you hook them into automated documentation generators such as <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a>. Documenter ingests Markdown pages plus in-code docstrings, renders math, runs doctests, and publishes a searchable site every time CI runs. Writing rich docstrings up front means your docsite, help mode, and notebook snippets stay perfectly in sync.</p>
 </section>
 <section id="docsites" class="level3" data-number="12.4.3">
 <h3 data-number="12.4.3" class="anchored" data-anchor-id="docsites"><span class="header-section-number">12.4.3</span> Docsites</h3>
@@ -1234,8 +1236,18 @@ Table&nbsp;12.1: A workflow demonstrating branching, staging, committing, and me
                           ↓           ↗
 fix_function branch :  ...58b → ...6ac</code></pre>
 <p>The “staging” aspect will be explained next.</p>
-<section id="git-staging" class="level4" data-number="12.5.1.1">
-<h4 data-number="12.5.1.1" class="anchored" data-anchor-id="git-staging"><span class="header-section-number">12.5.1.1</span> Git Staging</h4>
+</section>
+<section id="change-governance-checklist" class="level3" data-number="12.5.2">
+<h3 data-number="12.5.2" class="anchored" data-anchor-id="change-governance-checklist"><span class="header-section-number">12.5.2</span> Change governance checklist</h3>
+<p>Most teams wrap the branch workflow inside a pull-request (PR) or merge-request process. A typical cadence for an actuarial change is:</p>
+<ol type="1">
+<li>Open a PR from your feature branch with a concise summary (<code>fix: correct PV logic for monthly products</code>) and a link to the model-change ticket or associated Github Issue number.</li>
+<li>Request a peer review so another actuary/developer confirms the implementation, assumptions, and data lineage.</li>
+<li>Once tests are green and approvals recorded, merge the branch; the PR becomes part of the model-change audit trail.</li>
+</ol>
+<p>Writing clear commit messages (e.g., <a href="https://www.conventionalcommits.org/en/v1.0.0/">Conventional Commits</a>) and using PR templates that ask for “risk assessment” or “validation evidence” makes it easy to satisfy SOX/CECL/Solvency documentation requirements without a separate Word document.</p>
+<section id="git-staging" class="level4" data-number="12.5.2.1">
+<h4 data-number="12.5.2.1" class="anchored" data-anchor-id="git-staging"><span class="header-section-number">12.5.2.1</span> Git Staging</h4>
 <p>Staging (sometimes called the “staging area” or “index”) is an intermediate step between making changes to files and recording those changes in a commit. Think of staging as preparing a snapshot - you’re choosing which modified files (or even which specific changes within files) should be included in your next commit. When you modify files in your Git repository, those changes are initially “unstaged.” Using the git add command (or your Git GUI’s staging interface) moves changes into the staging area. This two-step process - staging followed by committing - gives you precise control over which changes get recorded together. Here’s a typical workflow:</p>
 <ol type="1">
 <li>You modify several files in your modeling project</li>
@@ -1253,8 +1265,8 @@ fix_function branch :  ...58b → ...6ac</code></pre>
 <p>You could stage and commit the bug fix and documentation separately, keeping the work-in-progress feature changes unstaged until they’re complete. This creates a cleaner, more logical project history where each commit represents one coherent change.</p>
 <p>Think of staging as preparing a shipment: you first gather and organize the items (staging), then seal and send the package (committing). This extra step helps maintain a well-organized project history where each commit represents a logical, self-contained change.</p>
 </section>
-<section id="git-tooling" class="level4" data-number="12.5.1.2">
-<h4 data-number="12.5.1.2" class="anchored" data-anchor-id="git-tooling"><span class="header-section-number">12.5.1.2</span> Git Tooling</h4>
+<section id="git-tooling" class="level4" data-number="12.5.2.2">
+<h4 data-number="12.5.2.2" class="anchored" data-anchor-id="git-tooling"><span class="header-section-number">12.5.2.2</span> Git Tooling</h4>
 <p>Git is traditionally a command-line based tool, however we will not focus on the command line usage as more beginner friendly and intuitive interfaces are available from different available software. The branching and nodes are well suited to be represented visually.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -1276,8 +1288,8 @@ Note
 </div>
 </section>
 </section>
-<section id="collaborative-workflows" class="level3" data-number="12.5.2">
-<h3 data-number="12.5.2" class="anchored" data-anchor-id="collaborative-workflows"><span class="header-section-number">12.5.2</span> Collaborative Workflows</h3>
+<section id="collaborative-workflows" class="level3" data-number="12.5.3">
+<h3 data-number="12.5.3" class="anchored" data-anchor-id="collaborative-workflows"><span class="header-section-number">12.5.3</span> Collaborative Workflows</h3>
 <p>Git is a distributed VCS, meaning that copies of the repository and all its history and content can live in multiple locations, such as on two colleagues’ computer as well as a server. In this distributed model, what happens if you make a change locally?</p>
 <p>Git maintains a local repository on each user’s machine, containing the full project history. This local repository includes the working directory (current state of files), staging area (changes prepared for commit), and the .git directory (metadata and object database). When collaborating, users push and pull changes to and from remote repositories. Git uses a branching model, allowing multiple lines of development to coexist and merge when ready.</p>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -1293,8 +1305,8 @@ Note
 <p>The primary branch of a project is typically named the ⁠main branch. This change reflects a shift from the older ⁠master branch name, which some projects may still use.</p>
 </div>
 </div>
-<section id="pull-requests" class="level4" data-number="12.5.2.1">
-<h4 data-number="12.5.2.1" class="anchored" data-anchor-id="pull-requests"><span class="header-section-number">12.5.2.1</span> Pull Requests</h4>
+<section id="pull-requests" class="level4" data-number="12.5.3.1">
+<h4 data-number="12.5.3.1" class="anchored" data-anchor-id="pull-requests"><span class="header-section-number">12.5.3.1</span> Pull Requests</h4>
 <p>Layered onto core Git functionality, services like Github provide interfaces which enhance the utility of VCS. A major example of this is <strong>Pull Requests</strong> (or PRs), which is a process of merging git branches in a way that allows for additional automation and governance.</p>
 <p>The following is an example of a PR on a repository adding a small bit of documentation to help future users. We’ll walk through several elements to describe what’s going on:</p>
 <div id="fig-pull-request" class="quarto-float quarto-figure quarto-figure-center anchored">
@@ -1335,9 +1347,19 @@ Figure&nbsp;12.2: A diff shows a file-by-file and line-by-line comparison of wha
 </figure>
 </div>
 </section>
+<section id="continuous-integration-ci" class="level4" data-number="12.5.3.2">
+<h4 data-number="12.5.3.2" class="anchored" data-anchor-id="continuous-integration-ci"><span class="header-section-number">12.5.3.2</span> Continuous integration (CI)</h4>
+<p>CI pipelines turn “remember to rerun the model” into code. A minimal Julia CI workflow usually runs:</p>
+<ol type="1">
+<li><code>julia --project -e 'using Pkg; Pkg.instantiate(); Pkg.test()'</code></li>
+<li>Optional data validation scripts (e.g., confirm new market data falls within sanity bands).</li>
+<li>Documentation builds (<code>docs/make.jl</code>) and style checks (<code>using JuliaFormatter; format(".")</code>).</li>
+</ol>
+<p>Because GitHub Actions, GitLab CI, and Azure Pipelines capture logs and artifacts automatically, each pull request carries a timestamped record of which Julia version, OS, and dependency set produced the numbers. Regulators can accept these logs as part of model change evidence because they are immutable and repeatable.</p>
 </section>
-<section id="sec-data-version-control" class="level3" data-number="12.5.3">
-<h3 data-number="12.5.3" class="anchored" data-anchor-id="sec-data-version-control"><span class="header-section-number">12.5.3</span> Data Version Control</h3>
+</section>
+<section id="sec-data-version-control" class="level3" data-number="12.5.4">
+<h3 data-number="12.5.4" class="anchored" data-anchor-id="sec-data-version-control"><span class="header-section-number">12.5.4</span> Data Version Control</h3>
 <p>Git alone is not well suited for large, frequently changing binary files. Instead, the approach is to combine git with a <strong>data version control</strong> tool. These tool essentially replace the data (often called binary data or a blob) with a content hash in the git snapshots. The actual content referred to by the hash is then located elsewhere (e.g.&nbsp;a hosted server).</p>
 <p>::: {#note-content-hash callout-note} ## Content Hashes</p>
 <p><strong>Content hashes</strong> are the output of a function that transforms arbitrary data into a string of data. Hashes are very common in cryptography and in areas where security/certainty is important. Eliding the details of how they work exactly, what’s important to understand for our purposes is that a content hash function will take arbitrary bits and output the same set of data each time the function is called on the original bits.</p>
@@ -1381,7 +1403,7 @@ Tip
 <p>Use a cryptographic hash (e.g., SHA-256) to derive a stable, deterministic content hash. Base.hash is intentionally randomized for security and is not suitable for content-addressed storage.</p>
 </div>
 </div>
-<p>This is used in content addressed systems like Data Version Control (<a href="#sec-data-version-control" class="quarto-xref"><span>Section 12.5.3</span></a>) and Artifacts (sec <span class="citation" data-cites="artifacts">(<a href="references.html#ref-artifacts" role="doc-biblioref"><strong>artifacts?</strong></a>)</span>) to ask for, and confirm the accuracy of, data instead of trying to address the data by its location. That is, instead of trying to ask to get data from a given URL (e.g.&nbsp;<code>http://adatasource.com/data.csv</code>) you can set up a system which keeps track of available locations for the data that matches the content hash. Something like (in Julia-ish pseudocode):</p>
+<p>This is used in content addressed systems like Data Version Control (<a href="#sec-data-version-control" class="quarto-xref"><span>Section 12.5.4</span></a>) and Artifacts (sec <span class="citation" data-cites="artifacts">(<a href="references.html#ref-artifacts" role="doc-biblioref"><strong>artifacts?</strong></a>)</span>) to ask for, and confirm the accuracy of, data instead of trying to address the data by its location. That is, instead of trying to ask to get data from a given URL (e.g.&nbsp;<code>http://adatasource.com/data.csv</code>) you can set up a system which keeps track of available locations for the data that matches the content hash. Something like (in Julia-ish pseudocode):</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb27"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>storage_locations <span class="op">=</span> <span class="fu">Dict</span>(</span>
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"0x4d7e8e449afd1c48"</span> <span class="op">=&gt;</span> [</span>
 <span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>        <span class="st">"http://datasets.com/1231234"</span>,</span>

@@ -635,11 +635,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul class="collapse">
   <li><a href="#defining-good-interfaces" id="toc-defining-good-interfaces" class="nav-link" data-scroll-target="#defining-good-interfaces"><span class="header-section-number">8.4.1</span> Defining Good Interfaces</a></li>
   <li><a href="#interfaces-a-financial-modeling-case-study" id="toc-interfaces-a-financial-modeling-case-study" class="nav-link" data-scroll-target="#interfaces-a-financial-modeling-case-study"><span class="header-section-number">8.4.2</span> Interfaces: A Financial Modeling Case Study</a></li>
+  <li><a href="#abstraction-design-checklist" id="toc-abstraction-design-checklist" class="nav-link" data-scroll-target="#abstraction-design-checklist"><span class="header-section-number">8.4.3</span> Abstraction Design Checklist</a></li>
   </ul></li>
   <li><a href="#macros-homoiconicity" id="toc-macros-homoiconicity" class="nav-link" data-scroll-target="#macros-homoiconicity"><span class="header-section-number">8.5</span> Macros &amp; Homoiconicity</a>
   <ul class="collapse">
   <li><a href="#metaprogramming-in-financial-modeling" id="toc-metaprogramming-in-financial-modeling" class="nav-link" data-scroll-target="#metaprogramming-in-financial-modeling"><span class="header-section-number">8.5.1</span> Metaprogramming in Financial Modeling</a></li>
   </ul></li>
+  <li><a href="#key-takeaways" id="toc-key-takeaways" class="nav-link" data-scroll-target="#key-takeaways"><span class="header-section-number">8.6</span> Key Takeaways</a></li>
   </ul>
 </nav>
     </div>
@@ -673,7 +675,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 <blockquote class="blockquote">
-<p>“Simple things should be simple, complex things should be possible.” — Alan Kay (1970s)</p>
+<p>“Simple things should be simple, complex things should be possible.” - Alan Kay (1970s)</p>
 </blockquote>
 <section id="chapter-overview" class="level2" data-number="8.1">
 <h2 data-number="8.1" class="anchored" data-anchor-id="chapter-overview"><span class="header-section-number">8.1</span> Chapter Overview</h2>
@@ -681,7 +683,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="introduction" class="level2" data-number="8.2">
 <h2 data-number="8.2" class="anchored" data-anchor-id="introduction"><span class="header-section-number">8.2</span> Introduction</h2>
-<p>In programming and modeling, as in mathematics, abstraction permits the definition of interchangeable components and patterns that can be reused. Abstraction is a selective ignorance—focusing on the aspects of the problem that are relevant, and ignoring the others. The last two chapters described what we might call “micro-level” abstractions: specific functions and types.</p>
+<p>In programming and modeling, as in mathematics, abstraction permits the definition of interchangeable components and patterns that can be reused. Abstraction is a selective ignorance - focusing on the aspects of the problem that are relevant, and ignoring the others. The last two chapters described what we might call “micro-level” abstractions: specific functions and types.</p>
 <p>In this chapter, we zoom out and examine some principles that guide good model development, manifesting in architectural concerns such as how different parts of the code are organized, what parts of the program are considered ‘public’ versus ‘private’, and patterns themselves.</p>
 <p>Section <a href="foundations-of-programming.html" class="quarto-xref"><span>Chapter 5</span></a> described a number of tools that we can utilize as interfaces within our model. We use these tools that are provided by our programming language <em>in service of</em> the conceptual abstraction described above.</p>
 <ul>
@@ -864,8 +866,7 @@ Table&nbsp;8.1: Finding abstractions generally means finding patterns that fit i
 <span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>cashflow_vector <span class="op">=</span> [<span class="fl">1_000_000.0</span>, <span class="fl">3_000_000.0</span>, <span class="fl">1_000.0</span>]</span>
 <span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="fu">present_value</span>(model, cashflow_vector)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>It’s slightly more verbose, but notice how much more powerful and extensible <code>fit(Spline.Cubic(), quotes, Fit.Bootstrap()</code> is than <code>Yields.Par(risk_free_rates,tenors)</code> . The end result is the same, but now the same package and interface can clearly interchange other options, such as a <code>NelsonSiegelSvennson</code> curve instead of a spline. And the <code>quotes</code> could be a combination of observed bonds of different technical parameters (though still sharing characteristics which make it relevant for the model being constructed).</p>
-<p>The same pattern also applies for option valuation, such as this example of vanilla euro options with an assumed constant volatility assumption:<br>
-</p>
+<p>The same pattern also applies for option valuation, such as this example of vanilla euro options with an assumed constant volatility assumption:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="annotated-cell-5"><pre class="sourceCode julia code-annotation-code code-with-copy code-annotated"><code class="sourceCode julia"><a class="code-annotation-anchor" data-target-cell="annotated-cell-5" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-5-1" class="code-annotation-target"><a href="#annotated-cell-5-1" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> Option.<span class="fu">EuroCall</span>(<span class="fu">CommonEquity</span>(), <span class="fl">1.0</span>, <span class="fl">1.0</span>)</span>
 <span id="annotated-cell-5-2"><a href="#annotated-cell-5-2" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> Option.<span class="fu">EuroCall</span>(<span class="fu">CommonEquity</span>(), <span class="fl">1.0</span>, <span class="fl">2.0</span>)</span>
 <span id="annotated-cell-5-3"><a href="#annotated-cell-5-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -905,10 +906,22 @@ Table&nbsp;8.1: Finding abstractions generally means finding patterns that fit i
 <p>Further, and critically, the new design allows modelers to create their own models or contracts<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> and extend the existing methods rather than needing to create their own: the function signature <code>fit(model,quotes)</code> handles a very wide variety of cases, as does <code>present_value(model,contract)</code>.</p>
 </section>
 </section>
+<section id="abstraction-design-checklist" class="level3" data-number="8.4.3">
+<h3 data-number="8.4.3" class="anchored" data-anchor-id="abstraction-design-checklist"><span class="header-section-number">8.4.3</span> Abstraction Design Checklist</h3>
+<p>When you are introducing a new abstraction in a production model, walk through the following quick diagnostic:</p>
+<ol type="1">
+<li><strong>Audience</strong> - Who will consume this interface (internal quants, downstream systems, regulators)? Tailor naming and documentation to their vocabulary.</li>
+<li><strong>Surface area</strong> - Can the public API be expressed in a dozen functions or fewer? If not, consider breaking the concept into smaller submodules.</li>
+<li><strong>Extensibility</strong> - Do you know how a new asset class, reporting basis, or scenario type would plug in without editing core code? If the answer is unclear, capture that as an interface requirement now.</li>
+<li><strong>Testing strategy</strong> - Identify the seams where unit tests or property-based tests will live. Abstractions without convenient test hooks tend to erode.</li>
+<li><strong>Failure modes</strong> - Decide what should happen when data is missing, calibration fails, or convergence is slow. Document these behaviours in the API docstrings so consumers are not surprised.</li>
+</ol>
+<p>Keeping these questions in mind ensures the abstraction remains a tool, not a new source of opacity.</p>
+</section>
 </section>
 <section id="macros-homoiconicity" class="level2" data-number="8.5">
 <h2 data-number="8.5" class="anchored" data-anchor-id="macros-homoiconicity"><span class="header-section-number">8.5</span> Macros &amp; Homoiconicity</h2>
-<p>We’ve talked about transforming data and restructuring logic in order to make the model more effective. We can go still deeper!(Or is it higher level?) We can actually abstract the process of writing code itself! This subject is a bit advanced, so we are simply going to introduce it because you will likely find many convenient instances of it as a <em>user</em> even if you never find a need to implement this yourself.</p>
+<p>We have talked about transforming data and restructuring logic in order to make the model more effective. We can go even further: we can abstract the process of writing code itself. This subject is a bit advanced, so we are simply going to introduce it because you will likely find many convenient instances of it as a <em>user</em> even if you never need to implement it yourself.</p>
 <p><strong>Homoiconicity</strong> refers to the property of a programming language where the language’s code can be represented and manipulated as a data structure in the language itself. Think of a recipe. You can follow the recipe’s instructions (the code) to bake a cake. But you could also treat the recipe itself as data: you could write a program to scan thousands of recipes, find every instance of ‘sugar,’ and reduce the quantity by 25%. This is the essence of homoiconicity: the code (the recipe) can also be treated as data to be manipulated.</p>
 <p>In a homoiconic language like Julia, the code is data and can be treated as such. This enables powerful metaprogramming (i.e.&nbsp;code that writes other code) capabilities, where code can be generate or transform code during macro expansion (before runtime), producing expressions that are then compiled.</p>
 <p><strong>Macros</strong> are a metaprogramming feature that leverage homoiconicity in Julia. They allow the programmer to write code that generates or manipulates other code at compile-time. Macros take code as input, transform it based on certain rules or patterns, and return the modified code which then gets compiled.</p>
@@ -924,10 +937,10 @@ Table&nbsp;8.1: Finding abstractions generally means finding patterns that fit i
 <div id="2" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@time</span> <span class="fu">exp</span>(<span class="fu">rand</span>())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  0.000004 seconds</code></pre>
+<pre><code>  0.000000 seconds</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>1.4120026466601727</code></pre>
+<pre><code>1.4768028345360595</code></pre>
 </div>
 </div>
 <section id="metaprogramming-in-financial-modeling" class="level3" data-number="8.5.1">
@@ -941,9 +954,18 @@ Table&nbsp;8.1: Finding abstractions generally means finding patterns that fit i
 <li><p>Optimizing performance: Macros can be used to perform code optimizations at compile-time. For example, a macro could unroll loops, inline functions, or specialize generic code based on specific types or parameters, resulting in more efficient runtime code.</p></li>
 <li><p>Generating code from data: Macros can be used to generate code based on external data or configuration files. For example, a macro could read a specification file and generate the corresponding financial contract types and functions.</p></li>
 </ol>
-
-
 </section>
+</section>
+<section id="key-takeaways" class="level2" data-number="8.6">
+<h2 data-number="8.6" class="anchored" data-anchor-id="key-takeaways"><span class="header-section-number">8.6</span> Key Takeaways</h2>
+<ul>
+<li>Start by clarifying which concern you are abstracting: behavior, domain ownership, or user experience. Each leads to different module boundaries and collaboration patterns.</li>
+<li>Build narrow public interfaces that accept abstract types (for example, <code>present_value(model, contract)</code>) so that new instruments or calibration routines can be composed without editing core logic.</li>
+<li>Package sensible defaults with escape hatches. Providing a ready-made spline curve or report template lowers adoption friction while still allowing dependency injection.</li>
+<li>Treat metaprogramming as a force multiplier. Even if you only consume macros, understanding how they enforce conventions and eliminate boilerplate will help you evaluate third-party packages and maintain your own.</li>
+</ul>
+
+
 </section>
 <section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes">
 <hr>

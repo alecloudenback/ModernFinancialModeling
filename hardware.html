@@ -708,7 +708,7 @@ window.Quarto = {
 <section id="introduction" class="level2" data-number="9.2">
 <h2 data-number="9.2" class="anchored" data-anchor-id="introduction"><span class="header-section-number">9.2</span> Introduction</h2>
 <p>The quote that opens the chapter is a silly way of describing that most modern computers are made with silicon, a common mineral found in rocks. However, we will not concern ourselves with the raw materials of computers and instead will focus on the key architectural aspect.</p>
-<p>A computer handles data at rest (in memory) or data being acted upon (processed). This chapter will try to explain both of those processes in a way that reveals key reasons why different approaches to programming can yield different results in terms of processing speed, memory usage, and compiled outputs.</p>
+<p>A computer handles data at rest (in memory) or data being acted upon (processed). This chapter will try to explain both of those processes in a way that reveals key reasons why different approaches to programming can yield different results in terms of processing speed, memory usage, and compiled outputs. The goal is not to turn you into a hardware designer, but to help you reason about why one valuation run takes seconds while another takes hours.</p>
 </section>
 <section id="memory-and-moving-data-around" class="level2" data-number="9.3">
 <h2 data-number="9.3" class="anchored" data-anchor-id="memory-and-moving-data-around"><span class="header-section-number">9.3</span> Memory and Moving Data Around</h2>
@@ -804,6 +804,19 @@ Note
 <li><p>The <strong>stack</strong> stores small, fixed-size (known bit length), data and program components. The stack is a last-in-first-out queue of data that is able to be written to and read from very quickly. The stack is CPU cache friendly.</p></li>
 <li><p>The <strong>heap</strong> is a region which can be dynamically sized and has random read/write (you need not access the data in a particular order). The heap is much slower but more flexible. The heap is not very CPU cache friendly.</p></li>
 </ul>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Tip</span>Why this matters for models
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>When a Monte Carlo engine allocates a new vector for every inner-loop step, it is hitting the heap repeatedly and inviting garbage-collector work. Reusing buffers or preallocating arrays keeps data on the stack and in caches, which can reduce runtimes by an order of magnitude. See <a href="julia-optimizing.html" class="quarto-xref"><span>Chapter 24</span></a> for tips on how to optimize Julia code.</p>
+</div>
+</div>
 <section id="garbage-collector" class="level4" data-number="9.3.2.1">
 <h4 data-number="9.3.2.1" class="anchored" data-anchor-id="garbage-collector"><span class="header-section-number">9.3.2.1</span> Garbage Collector</h4>
 <p>The <strong>garbage collector</strong> is a program that gets run to free up previously requested/allocated memory. It accomplishes this by keeping track of references to data in memory by section of your code. If a section of code is no longer reachable (e.g.&nbsp;inside a function that will never get called again, or a loop that ran earlier in the program but is now complete), then, periodically, the garbage collector will pause execution of the primary program in order to “sweep” the memory. This step marks the space as able to be reused by your program or the operating system.</p>
@@ -855,22 +868,20 @@ Tip
 <div class="cell-output cell-output-stdout">
 <div class="ansi-escaped-output">
 <pre>   .section    __TEXT,__text,regular,pure_instructions
-    .build_version macos, <span class="ansi-yellow-fg">15</span>, <span class="ansi-yellow-fg">0</span>
-    .globl  _julia_myadd_6893               <span class="ansi-bright-black-fg">; -- Begin function julia_myadd_6893</span>
+    .build_version macos, <span class="ansi-yellow-fg">16</span>, <span class="ansi-yellow-fg">0</span>
+    .globl  _julia_myadd_6697               <span class="ansi-bright-black-fg">; -- Begin function julia_myadd_6697</span>
     .p2align    <span class="ansi-yellow-fg">2</span>
-<span class="ansi-bright-red-fg">_julia_myadd_6893:</span>                      <span class="ansi-bright-black-fg">; @julia_myadd_6893</span>
+<span class="ansi-bright-red-fg">_julia_myadd_6697:</span>                      <span class="ansi-bright-black-fg">; @julia_myadd_6697</span>
 <span class="ansi-bright-black-fg">; Function Signature: myadd(Int64, Int64, Int64)</span>
-<span class="ansi-bright-black-fg">; ┌ @ /Users/alecloudenback/prog/julia-fin-book/hardware.qmd:112 within `myadd`</span>
+<span class="ansi-bright-black-fg">; ┌ @ /Users/alecloudenback/prog/julia-fin-book/hardware.qmd:119 within `myadd`</span>
 <span class="ansi-bright-black-fg">; %bb.0:                                ; %top</span>
-<span class="ansi-bright-black-fg">; │ @ /Users/alecloudenback/prog/julia-fin-book/hardware.qmd within `myadd`</span>
     <span class="ansi-bright-black-fg">;DEBUG_VALUE: myadd:x &lt;- $x0</span>
     <span class="ansi-bright-black-fg">;DEBUG_VALUE: myadd:x &lt;- $x0</span>
     <span class="ansi-bright-black-fg">;DEBUG_VALUE: myadd:y &lt;- $x1</span>
     <span class="ansi-bright-black-fg">;DEBUG_VALUE: myadd:y &lt;- $x1</span>
     <span class="ansi-bright-black-fg">;DEBUG_VALUE: myadd:z &lt;- $x2</span>
     <span class="ansi-bright-black-fg">;DEBUG_VALUE: myadd:z &lt;- $x2</span>
-<span class="ansi-bright-black-fg">; │ @ /Users/alecloudenback/prog/julia-fin-book/hardware.qmd:112 within `myadd`</span>
-<span class="ansi-bright-black-fg">; │┌ @ operators.jl:596 within `+` @ int.jl:87</span>
+<span class="ansi-bright-black-fg">; │┌ @ operators.jl:642 within `+` @ int.jl:87</span>
     <span class="ansi-bright-cyan-fg ansi-bold">add</span>  x8, x1, x0
     <span class="ansi-bright-cyan-fg ansi-bold">add</span>  x0, x8, x2
     <span class="ansi-bright-cyan-fg ansi-bold">ret</span>
@@ -969,6 +980,7 @@ _julia_myadd_1851:                      ; @julia_myadd_1851
 <li><strong>Microarchitectural techniques:</strong> clever tricks to predict, schedule, and optimize the computations to make better use of the memory pipeline and otherwise idle CPU cycles.</li>
 </ol>
 <p>We will cover techniques to utilize concurrent/parallel processing in <a href="parallelization.html" class="quarto-xref"><span>Chapter 11</span></a>. As for the second technique, it is capable of very impressive accelerations (on the order 2x to 100x faster than a naive implementation. However, it has sometimes caused issues. There have been some famous security vulnerabilities such as Spectre and Meltdown, which exploited speculative execution – a technique used to optimize CPU performance which will execute code <em>before being explicitly asked to</em> because the scheduler <em>anticipates</em> the next steps (with very good, but imperfect accuracy).</p>
+<p>For practitioners this means: expect hardware vendors to keep adding cores, vector units, and specialised instructions (AVX, SVE, BF16) while single-thread speed inches forward. Models that parallelise cleanly—scenario loops, policy seriatim projections, P&amp;L explain—will benefit automatically from newer CPUs. Models that rely on single-core performance or constantly move data back and forth to main memory will hit a wall regardless of silicon improvements.</p>
 </section>
 </section>
 <section id="logistics-warehouse-analogy" class="level2" data-number="9.5">
@@ -981,6 +993,7 @@ _julia_myadd_1851:                      ; @julia_myadd_1851
 <li><p>If an item usually ordered after another one is, the conveyor system will start to bring that second item as soon as the first one is ordered (prefetching).</p></li>
 <li><p>Different types of packaging stations might be used for specialized items (e.g.&nbsp;vector processing or cryptography instructions in the CPU).</p></li>
 </ul>
+<p>For finance workloads you control the pick list: structuring arrays so related fields are adjacent, batching valuation requests by product type, and avoiding random “walks” through large scenario tables all help the warehouse keep its conveyor belts full.</p>
 <div class="callout callout-style-default callout-tip callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">

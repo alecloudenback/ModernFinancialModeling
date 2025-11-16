@@ -56,7 +56,27 @@ div.sourceCode
 @media screen {
 pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="site_libs/quarto-nav/quarto-nav.js"></script>
@@ -659,6 +679,7 @@ window.Quarto = {
   <ul class="collapse">
   <li><a href="#taking-things-to-the-extreme" id="toc-taking-things-to-the-extreme" class="nav-link" data-scroll-target="#taking-things-to-the-extreme"><span class="header-section-number">32.2.1</span> Taking Things to the Extreme</a></li>
   <li><a href="#range-bounding" id="toc-range-bounding" class="nav-link" data-scroll-target="#range-bounding"><span class="header-section-number">32.2.2</span> Range Bounding</a></li>
+  <li><a href="#pseudo-monte-carlo-sanity-checks" id="toc-pseudo-monte-carlo-sanity-checks" class="nav-link" data-scroll-target="#pseudo-monte-carlo-sanity-checks"><span class="header-section-number">32.2.3</span> Pseudo-Monte Carlo Sanity Checks</a></li>
   </ul></li>
   <li><a href="#modeling-techniques" id="toc-modeling-techniques" class="nav-link" data-scroll-target="#modeling-techniques"><span class="header-section-number">32.3</span> Modeling Techniques</a>
   <ul class="collapse">
@@ -669,7 +690,13 @@ window.Quarto = {
   <li><a href="#static-and-dynamic-validation" id="toc-static-and-dynamic-validation" class="nav-link" data-scroll-target="#static-and-dynamic-validation"><span class="header-section-number">32.4.1</span> Static and dynamic validation</a></li>
   <li><a href="#implied-rate-analysis" id="toc-implied-rate-analysis" class="nav-link" data-scroll-target="#implied-rate-analysis"><span class="header-section-number">32.4.2</span> Implied rate analysis</a></li>
   </ul></li>
-  <li><a href="#sec-model-assessment" id="toc-sec-model-assessment" class="nav-link" data-scroll-target="#sec-model-assessment"><span class="header-section-number">32.5</span> Predictive vs.&nbsp;Explanatory Model Assessments</a></li>
+  <li><a href="#sec-model-assessment" id="toc-sec-model-assessment" class="nav-link" data-scroll-target="#sec-model-assessment"><span class="header-section-number">32.5</span> Predictive vs.&nbsp;Explanatory Model Assessments</a>
+  <ul class="collapse">
+  <li><a href="#predictive-assessment" id="toc-predictive-assessment" class="nav-link" data-scroll-target="#predictive-assessment"><span class="header-section-number">32.5.1</span> Predictive assessment</a></li>
+  <li><a href="#explanatory-assessment" id="toc-explanatory-assessment" class="nav-link" data-scroll-target="#explanatory-assessment"><span class="header-section-number">32.5.2</span> Explanatory assessment</a></li>
+  <li><a href="#causal-modeling" id="toc-causal-modeling" class="nav-link" data-scroll-target="#causal-modeling"><span class="header-section-number">32.5.3</span> Causal Modeling</a></li>
+  </ul></li>
+  <li><a href="#additional-techniques-to-explore" id="toc-additional-techniques-to-explore" class="nav-link" data-scroll-target="#additional-techniques-to-explore"><span class="header-section-number">32.6</span> Additional Techniques to Explore</a></li>
   </ul>
 </nav>
     </div>
@@ -704,22 +731,31 @@ window.Quarto = {
 
 <section id="chapter-overview" class="level2" data-number="32.1">
 <h2 data-number="32.1" class="anchored" data-anchor-id="chapter-overview"><span class="header-section-number">32.1</span> Chapter Overview</h2>
-<p>Other useful techniques are surveyed, such as: memoization to avoid repeated computations, pseudo–Monte Carlo, creating a model office, and tips on modeling a complete balance sheet. Also covered are elements of practical review such as static and dynamic validations, implied rate analysis, and explanatory vs.&nbsp;predictive modeling considerations.</p>
+<p>Disciplined ways to sanity-check assumptions, keep intermediate results reproducible, and interrogate models from an auditor’s perspective. Pragmatic techniques such as thought experiments, range tests, serialization patterns, memoization, validation workflows, and implied-rate calculations so that large-scale projects stay trustworthy and maintainable.</p>
 </section>
 <section id="conceptual-techniques" class="level2" data-number="32.2">
 <h2 data-number="32.2" class="anchored" data-anchor-id="conceptual-techniques"><span class="header-section-number">32.2</span> Conceptual Techniques</h2>
 <section id="taking-things-to-the-extreme" class="level3" data-number="32.2.1">
 <h3 data-number="32.2.1" class="anchored" data-anchor-id="taking-things-to-the-extreme"><span class="header-section-number">32.2.1</span> Taking Things to the Extreme</h3>
-<p>Consider what happens if something is taken to an extreme. For example, what happens in the model if we input negative rates? Where should negative rates be allowed and can the model handle them?</p>
+<p>Consider what happens if something is taken to an extreme. Stress every assumption until it breaks: negative interest rates, zero recovery, perfectly correlated defaults, an illiquid market with no trades, or policy lapses at 100%. Catalogue which parts of the code are robust and which ones fail silently. Extreme thought experiments often surface missing guards, implicit caps/floors, or hidden assumptions in third-party datasets.</p>
 </section>
 <section id="range-bounding" class="level3" data-number="32.2.2">
 <h3 data-number="32.2.2" class="anchored" data-anchor-id="range-bounding"><span class="header-section-number">32.2.2</span> Range Bounding</h3>
-<p>Sometimes you just need to know that an outcome is within a certain range - if you can develop a “high” and “low” estimate by making assumptions that you know are outside of feasible ranges, then you can determine whether something is reasonable or within tolerances.</p>
+<p>Sometimes you just need to know that an outcome is within a certain range. Develop a “low” and a “high” estimate using deliberately conservative assumptions; if both bounds clear the hurdle, you have enough evidence without a full stochastic run. This technique is especially useful in early scoping meetings or ad-hoc regulatory requests where a directional answer suffices.</p>
 <p>To take an example from the pages of interview questions: say you need to determine if a mortgaged property’s value is greater than the amount of the outstanding loan (say $100,000). You don’t have an appraisal, but know that it’s in reasonable condition and that (1) a comparable house with many more issues sold for $100 per square foot. You also don’t know the square footage of the house, but know from the number of rooms and layout that it must be at least 1000 square feet. Therefore you know that the value should at least be greater than:</p>
 <p><span class="math display">\[
 \frac{\$100}{\text{sq. ft}} \times 1000 \text{sq. ft} = \$100,000
 \]</span></p>
 <p>We’d then conclude that the value of the house very likely exceeds the outstanding balance of the loan and resolves our query without complex modeling or expensive appraisals.</p>
+</section>
+<section id="pseudo-monte-carlo-sanity-checks" class="level3" data-number="32.2.3">
+<h3 data-number="32.2.3" class="anchored" data-anchor-id="pseudo-monte-carlo-sanity-checks"><span class="header-section-number">32.2.3</span> Pseudo-Monte Carlo Sanity Checks</h3>
+<p>Before investing compute time in a massive simulation, run a miniature version that mimics the full workflow but with fixed seeds and a handful of scenarios. This “pseudo-Monte Carlo” run lets you verify that:</p>
+<ul>
+<li>Random seeds, scenario IDs, and configuration files are captured for reproducibility.</li>
+<li>Downstream transformations (aggregation, VaR/ECL, attribution) operate correctly on realistic but tiny datasets.</li>
+<li>Performance bottlenecks show up early; profilers on a small run still reveal poorly vectorized code or serial loops.</li>
+</ul>
 </section>
 </section>
 <section id="modeling-techniques" class="level2" data-number="32.3">
@@ -727,18 +763,22 @@ window.Quarto = {
 <section id="serialization" class="level3" data-number="32.3.1">
 <h3 data-number="32.3.1" class="anchored" data-anchor-id="serialization"><span class="header-section-number">32.3.1</span> Serialization</h3>
 <p><strong>Serialization</strong> is the process of converting a data structure or object state into a format that can be easily stored or transmitted, allowing it to be reconstructed later.</p>
-<p>In most finance workflows, the slowest parts are not the regressions themselves—they are the data prep, calibration, and scenario generation steps that lead up to them. If you are pricing thousands of scenarios, rolling a model office forward month-by-month, or recalibrating prepayment and default curves, rerunning those steps on every iteration wastes time and money and complicates audits. Serialization lets you checkpoint those expensive steps and ship lightweight “artifacts” between notebooks, jobs, and environments.</p>
+<p>In most finance workflows, the slowest parts are not the regressions themselves; they are the data prep, calibration, and scenario generation steps that lead up to them. If you are pricing thousands of scenarios, rolling a model office forward month-by-month, or recalibrating prepayment and default curves, rerunning those steps on every iteration wastes time and money and complicates audits. Serialization lets you checkpoint those expensive steps and ship lightweight “artifacts” between notebooks, jobs, and environments.</p>
 <div class="callout callout-style-default callout-tip callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Tip
+<span class="screen-reader-only">Tip</span>Why serialize?
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Why serialize? - Speed and cost: Avoid recomputing expensive steps (e.g., yield curve calibration, Monte Carlo paths) between runs. - Reproducibility and audit: Persist a snapshot of the “model office” (data, parameters, code version, random seeds) so results can be reproduced for validation and regulators. - Deployment: Move model artifacts between environments in a controlled, versioned way.</p>
+<ul>
+<li>Speed and cost: avoid recomputing expensive steps (e.g., yield-curve calibration, Monte Carlo paths) between runs.</li>
+<li>Reproducibility and audit: persist a snapshot of the model office (data, parameters, code version, random seeds) so you can replay it for validation or regulators.</li>
+<li>Deployment: move model artifacts between environments in a controlled, versioned way.</li>
+</ul>
 </div>
 </div>
 <p>What to use when:</p>
@@ -794,7 +834,11 @@ Tip
 <li>Traceability: Attach metadata (model version, code commit, created_at, inputs’ file hashes) so an auditor or colleague can answer “what produced this file?” a year later.</li>
 </ul>
 <p>What to serialize vs.&nbsp;recompute:</p>
-<p>Serialize: fitted parameters, calibrated curves, scenario indexes, precomputed shocks, and intermediate aggregates that are expensive but compact. - Recompute: anything cheap, or large raw inputs you can reload from a columnar format (Arrow/Parquet). - Reference big inputs by path and hash in the artifact’s metadata rather than embedding them.</p>
+<ul>
+<li>Serialize: fitted parameters, calibrated curves, scenario indexes, precomputed shocks, and intermediate aggregates that are expensive but compact.</li>
+<li>Recompute: anything cheap, or large raw inputs you can reload from a columnar format (Arrow/Parquet).</li>
+<li>Reference big inputs by path and hash in the artifact’s metadata rather than embedding them.</li>
+</ul>
 <p>Operational guidance:</p>
 <ul>
 <li>Version your artifacts: embed minimal metadata (e.g., julia_version, created_at, model_version) and, if possible, a git commit hash for traceability.</li>
@@ -836,7 +880,7 @@ Tip
 <span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>restored <span class="op">=</span> <span class="fu">deserialize</span>(path)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>ModelState([1.0, 2.0], 42, DateTime("2025-08-18T21:21:38.316"), "OLS on 2025-08-11")</code></pre>
+<pre><code>ModelState([1.0, 2.0], 42, DateTime("2025-11-15T23:39:22.347"), "OLS on 2025-08-11")</code></pre>
 </div>
 </div>
 <p>Tip: Keep snapshot files small and focused. Store big inputs (e.g., loan-level data) separately in efficient tabular formats and reference them via metadata (e.g., file hashes/paths) in the snapshot.</p>
@@ -923,7 +967,7 @@ Tip
 </div>
 <div class="callout-body-container callout-body">
 <ul>
-<li>For recurring production runs, use a directory convention like artifacts/YYYY-MM-DD/ with consistent filenames, and clean caches on a schedule to control disk use.</li>
+<li>For recurring production runs, use a directory convention like <code>artifacts/YYYY-MM-DD/</code> with consistent filenames, and clean caches on a schedule to control disk use.</li>
 </ul>
 </div>
 </div>
@@ -966,8 +1010,8 @@ Tip
 <span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Mean Absolute Error (MAE): "</span>, mae)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Static validation (chronological holdout):
-Mean Squared Error (MSE): 0.008267067643781285
-Mean Absolute Error (MAE): 0.0707896587375999</code></pre>
+Mean Squared Error (MSE): 0.008243256485211533
+Mean Absolute Error (MAE): 0.07489707771294109</code></pre>
 </div>
 </div>
 <p>The following example shows how to do a dynamic validation in Julia.</p>
@@ -1006,8 +1050,8 @@ Mean Absolute Error (MAE): 0.0707896587375999</code></pre>
 <span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Mean Absolute Error (MAE): "</span>, <span class="fu">mean</span>(abserrs))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Dynamic validation (walk-forward expanding window):
-Mean Squared Error (MSE): 0.012102241884186706
-Mean Absolute Error (MAE): 0.08733803592034403</code></pre>
+Mean Squared Error (MSE): 0.012102241884186694
+Mean Absolute Error (MAE): 0.08733803592034399</code></pre>
 </div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -1102,68 +1146,31 @@ Tip
 </section>
 <section id="sec-model-assessment" class="level2" data-number="32.5">
 <h2 data-number="32.5" class="anchored" data-anchor-id="sec-model-assessment"><span class="header-section-number">32.5</span> Predictive vs.&nbsp;Explanatory Model Assessments</h2>
-<p>Model assessment should be driven by the model’s purpose. A predictive model is judged by how well it forecasts targets under realistic deployment conditions. An explanatory (or structural) model is judged by how well its parameters are identified, interpretable, and stable under interventions—so that counterfactuals are credible.</p>
-<p>Predictive assessment - Define the forecast target and loss explicitly (point, quantile, probability, or full distribution). - Point forecasts (levels/returns): prioritize scale-aware losses such as RMSE and MAE. <span class="math display">\[
-\mathrm{RMSE} = \sqrt{\frac{1}{T}\sum_{t=1}^{T}(\hat{y}_t - y_t)^2}, \quad \mathrm{MAE} = \frac{1}{T}\sum_{t=1}^{T}|\hat{y}_t - y_t|
-\]</span> Avoid MAPE when values can be near zero; consider symmetric MAPE variants if needed. - Quantile forecasts (e.g., VaR at level <span class="math inline">\(\tau\)</span>): use pinball (quantile) loss. <span class="math display">\[
-  L_\tau(\hat{q}_t, y_t) = \left(\tau - \mathbf{1}\{y_t &lt; \hat{q}_t\}\right)(y_t - \hat{q}_t)
-\]</span> - Probabilistic forecasts (default probabilities, loss distributions): use log score (negative log-likelihood), Brier score for binary events, CRPS for full distributions; evaluate calibration (reliability curves, PIT uniformity) and sharpness (narrowness of distributions). - Interval forecasts: evaluate coverage vs nominal and average interval width (or Winkler score). - Classification tasks (e.g., downgrade prediction): use AUROC/PR, calibration error, expected utility with cost-sensitive thresholds. - Validation design: for time series, use walk-forward (rolling-origin) evaluation with realistic feature availability; guard against leakage; include transaction costs/slippage where applicable.</p>
-<p>Explanatory assessment - Parameter interpretability: signs, magnitudes, and units align with theory and domain knowledge; elasticities and risk premia within plausible ranges. - Identification: demonstrate that parameters are uniquely recoverable from the data/design (e.g., instrument relevance/exogeneity for IV; rank conditions for GMM); report overidentification tests where applicable (e.g., Hansen’s J). - Stability/invariance: test parameter constancy across regimes (structural break tests such as Chow; rolling/CUSUM diagnostics); assess sensitivity to alternative samples/specifications. - Counterfactual validity: show that the model’s structural relationships remain invariant under contemplated interventions (policy changes, shocks); evaluate out-of-sample counterfactual predictions when historical policy variation exists. - Moment fit for structural models: report distance between empirical and model-implied moments; assess which moments are well matched and which are not. - Sensitivity/uncertainty analysis: local and global parameter sensitivity (e.g., Sobol indices), posterior uncertainty where Bayesian, and scenario robustness for key assumptions.</p>
-<p>Summary mapping</p>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 25%">
-<col style="width: 25%">
-<col style="width: 25%">
-<col style="width: 25%">
-</colgroup>
-<thead>
-<tr class="header">
-<th style="text-align: left;">Goal</th>
-<th style="text-align: left;">Primary metrics/loss</th>
-<th style="text-align: left;">Validation design</th>
-<th style="text-align: left;">Finance examples</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: left;">Predict point</td>
-<td style="text-align: left;">RMSE, MAE, MAPE (with caution)</td>
-<td style="text-align: left;">Walk-forward CV; leakage checks</td>
-<td style="text-align: left;">Forecast next-month returns, prepayment speeds</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Predict quantile</td>
-<td style="text-align: left;">Pinball loss at τ</td>
-<td style="text-align: left;">Rolling quantile backtests</td>
-<td style="text-align: left;">VaR at 99%</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Predict probability/distribution</td>
-<td style="text-align: left;">Log score, Brier, CRPS; calibration and sharpness</td>
-<td style="text-align: left;">Time-stamped splits; reliability/PIT checks</td>
-<td style="text-align: left;">Default probability, loss distribution for stress</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Classification</td>
-<td style="text-align: left;">AUROC/PR, calibration error, expected utility</td>
-<td style="text-align: left;">Cost-sensitive thresholds; class imbalance handling</td>
-<td style="text-align: left;">Downgrade/watchlist prediction</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Explanatory (structural)</td>
-<td style="text-align: left;">Identification tests, parameter plausibility, moment fit</td>
-<td style="text-align: left;">Stability/structural-break tests; sensitivity analysis</td>
-<td style="text-align: left;">Term-structure model, demand/supply elasticities</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Counterfactual</td>
-<td style="text-align: left;">Invariance under intervention; policy simulation accuracy</td>
-<td style="text-align: left;">Natural experiments; out-of-sample policy periods</td>
-<td style="text-align: left;">Impact of capital requirement change on lending</td>
-</tr>
-</tbody>
-</table>
+<p>Financial modelers build models either to <strong>predict</strong> what will happen next (claim counts, RBC ratios, liquidity needs) or to <strong>explain</strong> how a system behaves so they can run “what-if” questions (what drives lapses, how an intervention changes credit take-up). Keep the assessment yardstick tied to that purpose.</p>
+<section id="predictive-assessment" class="level3" data-number="32.5.1">
+<h3 data-number="32.5.1" class="anchored" data-anchor-id="predictive-assessment"><span class="header-section-number">32.5.1</span> Predictive assessment</h3>
+<p>State the forecast target up front—point value, percentile, probability, or an entire distribution—and pick a loss function that matches how the result will be used.</p>
+<p><strong>Point forecasts</strong> (paid claims next quarter, book yield, asset growth) favor scale-aware losses such as RMSE and MAE: <span class="math display">\[
+\mathrm{RMSE} = \sqrt{\frac{1}{T}\sum_{t=1}^{T}(\hat{y}_t - y_t)^2}, \qquad
+\mathrm{MAE} = \frac{1}{T}\sum_{t=1}^{T}|\hat{y}_t - y_t|.
+\]</span> Avoid MAPE when volumes can be near zero (e.g., small-line claims); symmetric MAPE variants are safer if you must report a percentage error.</p>
+<p><strong>Quantile forecasts</strong> (Value-at-Risk, Conditional Tail Expectation at level <span class="math inline">\(\tau\)</span>) use the pinball loss <span class="math display">\[
+L_\tau(\hat{q}_t, y_t) = \bigl(\tau - \mathbf{1}\{y_t &lt; \hat{q}_t\}\bigr)(y_t - \hat{q}_t),
+\]</span> which directly rewards accurate tail placement.</p>
+<p><strong>Probabilistic forecasts</strong> (default odds, surrender probabilities, full loss distributions) rely on the log score or Brier score for binary events, and Continuous Ranked Probability Score for full distributions. Judge the model on both calibration (does a “5% default” bucket actually default 5% of the time?) and sharpness (are the predictive bands as tight as possible while staying honest?).</p>
+<p><strong>Validation design</strong>: For time-dependent work, roll the origin forward (walk-forward validation) so each backtest only uses information that would have existed at that decision date. Guard against leakage from future accounting closes, and bake in transaction costs, hedging slippage, or operational frictions so the score reflects real implementation.</p>
+</section>
+<section id="explanatory-assessment" class="level3" data-number="32.5.2">
+<h3 data-number="32.5.2" class="anchored" data-anchor-id="explanatory-assessment"><span class="header-section-number">32.5.2</span> Explanatory assessment</h3>
+<p>Explanatory or structural models earn trust when they give business-friendly answers to “why” questions and remain stable under policy changes.</p>
+<ul>
+<li><strong>Parameter meaning</strong>: coefficients should carry the expected sign, scale, and units. For example, a lapse elasticity of –0.3 per 100 bps rate increase is easy to discuss with product actuaries.</li>
+<li><strong>Data support (“identification”)</strong>: verify the inputs contain enough variation to determine statistical parameters. Data (e.g.&nbsp;financial instruments) must be relevant and not clouded with ; rank conditions in GMM or regression diagnostics provide quick sanity checks.</li>
+<li><strong>Stability across regimes</strong>: rerun the model on pre/post periods (e.g., pre-pandemic vs.&nbsp;pandemic), apply rolling or CUSUM charts, and log any breaks. If coefficients swing wildly, note the limits of any policy recommendations.</li>
+<li><strong>Counterfactual credibility</strong>: before using the model for what-if questions (changing credit standards, adjusting caps), demonstrate that the relationships held during past policy shifts or supervised experiments.</li>
+<li><strong>Subset/component fit</strong>: report how closely the model matches key summary statistics (loss ratio mean/variance, duration buckets) and at sub-group levels. Highlight the components that drive calibration and acknowledge those it misses.</li>
+<li><strong>Sensitivity and uncertainty</strong>: vary inputs and parameters (scenario sweeps, Sobol indices, or even simple ±10% shocks) to show decision makers the range of possible outcomes. Bayesian models should also quote posterior spreads, not just a single best fit.</li>
+</ul>
 <div class="callout callout-style-default callout-tip callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -1177,8 +1184,45 @@ Tip
 <p>Align the loss you optimize in estimation with the metric you report in evaluation. If your risk committee cares about 99% tail losses, train and evaluate on quantile/tail losses, not just RMSE.</p>
 </div>
 </div>
+</section>
+<section id="causal-modeling" class="level3" data-number="32.5.3">
+<h3 data-number="32.5.3" class="anchored" data-anchor-id="causal-modeling"><span class="header-section-number">32.5.3</span> Causal Modeling</h3>
+<p>Causal Modeling is a burgeoning discipline related to statistics and is used to help practitioners think through <em>causal</em> releationships, not just <em>correlated</em> relationships. For a more complete introduction, see <span class="citation" data-cites="pearl2009causality">(<a href="references.html#ref-pearl2009causality" role="doc-biblioref">Pearl 2009</a>)</span>. We summarize some key concepts to demonstrate some of the complex relationships that one may want to model. These are important when trying to use models to explain the world - and go beyond mere prediction.</p>
+<p>Through thoughtful specification and modeling, you can discern insights about whether your modeled set of relationships is consistent with observed data or not. For example, think about trying to separate an issue like trying to decide if it was plausible that smoking didn’t cause lung cancer - lung cancer was just genetic and the same gene that caused lung cancer also caused nicotine cravings (i.e.&nbsp;a desire to smoke). Thoughtful causal modeling was able to prove out undeniably that smoking <em>causes</em> lung cancer. This type of analysis can be extended to financial markets and modeling as well.</p>
+<p><strong>Directed acyclic graphs (DAGs)</strong>. Pearl’s structural causal models encode assumptions as arrows between nodes. Each node is a variable (policy rate, lapse rate, capital buffer), arrows represent direct causal influence, and acyclicity enforces a time/order logic. DAGs separate what causes what from any specific estimator and make missing variables explicit—if you leave “regulator pressure” off your solvency model, you must defend that choice.</p>
+<p>Relationships in a DAG that commonly arise inlcude the following:</p>
+<ul>
+<li><strong>Confounder</strong>: a variable that drives both treatment and outcome (e.g., <em>macro growth</em> affecting both lending standards and default rates). The confounder must be conditioned on to avoid spurious correlations.</li>
+<li><strong>Mediator</strong>: sits on the causal pathway from treatment to outcome (capital rule → <em>lending supply</em> → loan growth). Conditioning on it blocks part of the effect, so only do that if you want the direct effect.</li>
+<li><strong>Collider</strong>: two arrows pointing into the same node (regulation intensity → media coverage ← market stress). Conditioning on a collider or its descendants opens a bogus association; avoid “collider bias” by not controlling for variables jointly influenced by treatment and outcome (e.g., media coverage in this example).</li>
+<li><strong>Instrument</strong>: affects treatment but has no path to the outcome except through that treatment (e.g., randomized audit assignment affecting expense levels). IVs help when confounders are unobserved.</li>
+<li><strong>Selection nodes</strong>: explicit triangles showing how the data subset was chosen (e.g., only solvent companies report RBC ratios). Graphing them forces you to check for selection bias.</li>
+</ul>
+<p>Think of these as three practical knobs for turning a causal diagram into something you can estimate:</p>
+<ul>
+<li><strong>Backdoor criterion</strong>. To estimate <span class="math inline">\(P(Y \mid \mathrm{do}(X=x))\)</span>, block every path that enters <span class="math inline">\(X\)</span> from the “back door” (i.e., starts with an arrow into <span class="math inline">\(X\)</span>) by conditioning on an appropriate set <span class="math inline">\(Z\)</span>. Rules: include confounders, avoid mediators, never condition on colliders. Example: evaluating the impact of a hedging overlay (<span class="math inline">\(X\)</span>) on surplus volatility (<span class="math inline">\(Y\)</span>) while macro stress (<span class="math inline">\(M\)</span>) affects both. Conditioning on <span class="math inline">\(M\)</span> (or proxies like credit spreads) satisfies backdoor, letting you use standard regression or inverse propensity weighting.</li>
+<li><strong>Front-door criterion</strong>. When confounders of <span class="math inline">\(X \to Y\)</span> are unobserved but you can observe a clean mediator <span class="math inline">\(Z\)</span>, identify the effect by modeling <span class="math inline">\(X \to Z\)</span> and <span class="math inline">\(Z \to Y\)</span> separately. Finance example: marketing push (<span class="math inline">\(X\)</span>) affects advisor engagement (<span class="math inline">\(Z\)</span>), which affects annuity sales (<span class="math inline">\(Y\)</span>); if advisor engagement captures the entire pathway, you can recover <span class="math inline">\(X\)</span>’s effect even with latent demand cycles.</li>
+<li><strong>Do-calculus (three rules)</strong>. Pearl’s algebra lets you manipulate expressions with the do-operator using graphical criteria. Most day-to-day work relies on the backdoor/front-door rules, but do-calculus formalizes when you may swap interventions and observations, add/remove conditioning sets, or break down complex experiments.</li>
+</ul>
+<p>It’s not (yet) very common, but it may become commonplace to overlay your model assessment framework with the causal lens: predictive models care about accuracy under the observed world, whereas explanatory/structural models must defend their DAG, adjustment set, and intervention mapping. When management asks, “What happens if we raise surrender charges?”, bring the graph, spell out the assumed pathways, and attach sensitivity bands so the recommendation is both technically sound and board-ready.</p>
+</section>
+</section>
+<section id="additional-techniques-to-explore" class="level2" data-number="32.6">
+<h2 data-number="32.6" class="anchored" data-anchor-id="additional-techniques-to-explore"><span class="header-section-number">32.6</span> Additional Techniques to Explore</h2>
+<ul>
+<li><strong>Low-discrepancy sampling (quasi-Monte Carlo):</strong> Sobol and Halton sequences dramatically reduce variance in multi-factor simulations (exotic option pricing, nested ALM) compared with pure pseudo-random draws.</li>
+<li><strong>Variance-reduction tricks:</strong> Control variates, antithetic paths, and stratification shrink simulation error without multiplying run time; use them when estimating Greeks or tail percentiles.</li>
+<li><strong>Scenario reduction and clustering:</strong> Algorithms such as forward/backward selection or Kantorovich distance pruning compress thousands of economic scenarios into a representative subset while preserving risk metrics.</li>
+<li><strong>Reverse stress testing:</strong> Solve for the joint shocks that breach a target KPI (e.g., solvency ratio) to uncover hidden vulnerabilities that standard stress grids miss.</li>
+<li><strong>Automated benchmark suites:</strong> Maintain a lightweight set of benchmark portfolios and vintage runs; rerun them nightly to detect regressions in pricing, cash-flow engines, or calibration pipelines.</li>
+</ul>
 
 
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
+<div id="ref-pearl2009causality" class="csl-entry" role="listitem">
+Pearl, Judea. 2009. <em>Causality: Models, Reasoning, and Inference</em>. 2nd ed. New York: Cambridge University Press.
+</div>
+</div>
 </section>
 
 </main> <!-- /main -->

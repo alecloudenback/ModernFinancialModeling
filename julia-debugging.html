@@ -706,7 +706,7 @@ window.Quarto = {
 </blockquote>
 <section id="chapter-overview" class="level2" data-number="22.1">
 <h2 data-number="22.1" class="anchored" data-anchor-id="chapter-overview"><span class="header-section-number">22.1</span> Chapter Overview</h2>
-<p>Debugging in Julia involves a mix of strategies, including using print statements, the Debugger package for step-by-step inspection, logging with the Logging module, and interactive debugging with Infiltrator. These tools and techniques can help you identify and fix issues in your code efficiently.</p>
+<p>Debugging in Julia involves a mix of strategies, including using print statements, the Debugger package for step-by-step inspection, logging with the Logging module, and interactive debugging with Infiltrator. These tools and techniques help uncover why a pricing routine blew up at 3 a.m., which scenario caused a risk run to stall, or why yesterday’s valuation disagreed with the trading desk. The sections below highlight patterns that show up frequently in financial-model code.</p>
 </section>
 <section id="error-messages-and-stack-traces" class="level2" data-number="22.2">
 <h2 data-number="22.2" class="anchored" data-anchor-id="error-messages-and-stack-traces"><span class="header-section-number">22.2</span> Error Messages and Stack Traces</h2>
@@ -723,6 +723,7 @@ window.Quarto = {
 <p>Notice that errors are given specific types and not just result in a generic <code>Error</code>. This aids in understanding for the user: if a <code>DomainError</code> then you know that you passed the right type (e.g.&nbsp;a <code>Float64</code> to a function that takes a number), just that the value was not acceptable (as in the example above). Contrast that with a <code>MethodError</code> which will tell you that you’ve passed an invalid kind of thing to the function, not just that its value was off:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">#| error: true</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">mysqrt</span>(<span class="st">"a string isn't OK"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Make it a habit to read both the error type and the offending signature—they usually point directly to the place that needs attention.</p>
 </section>
 </section>
 <section id="logging" class="level2" data-number="22.3">
@@ -789,13 +790,13 @@ i ^ 2 = 9</code></pre>
 <div class="ansi-escaped-output">
 <pre><span class="ansi-yellow-fg ansi-bold">┌ </span><span class="ansi-yellow-fg ansi-bold">Warning: </span>This is bad
 <span class="ansi-yellow-fg ansi-bold">│ </span>  i ^ 2 = 1
-<span class="ansi-yellow-fg ansi-bold">└ </span><span class="ansi-bright-black-fg">@ Main.Notebook ~/prog/julia-fin-book/julia-debugging.qmd:81</span>
+<span class="ansi-yellow-fg ansi-bold">└ </span><span class="ansi-bright-black-fg">@ Main.Notebook ~/prog/julia-fin-book/julia-debugging.qmd:82</span>
 <span class="ansi-yellow-fg ansi-bold">┌ </span><span class="ansi-yellow-fg ansi-bold">Warning: </span>This is bad
 <span class="ansi-yellow-fg ansi-bold">│ </span>  i ^ 2 = 4
-<span class="ansi-yellow-fg ansi-bold">└ </span><span class="ansi-bright-black-fg">@ Main.Notebook ~/prog/julia-fin-book/julia-debugging.qmd:81</span>
+<span class="ansi-yellow-fg ansi-bold">└ </span><span class="ansi-bright-black-fg">@ Main.Notebook ~/prog/julia-fin-book/julia-debugging.qmd:82</span>
 <span class="ansi-yellow-fg ansi-bold">┌ </span><span class="ansi-yellow-fg ansi-bold">Warning: </span>This is bad
 <span class="ansi-yellow-fg ansi-bold">│ </span>  i ^ 2 = 9
-<span class="ansi-yellow-fg ansi-bold">└ </span><span class="ansi-bright-black-fg">@ Main.Notebook ~/prog/julia-fin-book/julia-debugging.qmd:81</span>
+<span class="ansi-yellow-fg ansi-bold">└ </span><span class="ansi-bright-black-fg">@ Main.Notebook ~/prog/julia-fin-book/julia-debugging.qmd:82</span>
 </pre>
 </div>
 </div>
@@ -822,8 +823,8 @@ Note
 <table class="caption-top table">
 <caption>Useful macros for modeling work. There are others related to parallelism which will be covered in <a href="parallelization.html" class="quarto-xref"><span>Chapter 11</span></a>.</caption>
 <colgroup>
-<col style="width: 29%">
-<col style="width: 70%">
+<col style="width: 30%">
+<col style="width: 69%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -884,8 +885,13 @@ Note
 <td><code>@inline</code></td>
 <td>Suggests to the compiler that a function should be inlined at its call sites, potentially improving performance by reducing function call overhead.</td>
 </tr>
+<tr class="even">
+<td><code>@profview</code></td>
+<td>Used alongside VS Code to monitor performance and produce a visual indication of code sections that take a lot of time to run.</td>
+</tr>
 </tbody>
 </table>
+<p>Two favourites for performance tuning financial models are <code>@code_warntype</code> (to ensure valuation functions stay type-stable) and <code>BenchmarkTools.@btime</code> (to confirm a refactor actually sped things up before you check it in).</p>
 </section>
 <section id="debugging" class="level2" data-number="22.5">
 <h2 data-number="22.5" class="anchored" data-anchor-id="debugging"><span class="header-section-number">22.5</span> Debugging</h2>
@@ -954,6 +960,7 @@ julia&gt; safehouse.F
 2^63-1</code></pre>
 <p>And the solution is to call our function on “big” integers with an arbitrary number of bits:</p>
 <pre class=">fermat-big"><code>fermat_prime(big(6))</code></pre>
+<p>Stashing intermediate values in the <code>safehouse</code> is particularly handy when a failing scenario only shows up deep in a parallel risk run—you can capture local state from the worker and inspect it later without rerunning the full job.</p>
 </section>
 <section id="debugger.jl" class="level3" data-number="22.5.3">
 <h3 data-number="22.5.3" class="anchored" data-anchor-id="debugger.jl"><span class="header-section-number">22.5.3</span> Debugger.jl</h3>
