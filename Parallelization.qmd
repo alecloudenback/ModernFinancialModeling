@@ -1,5 +1,4 @@
 ---
-engine: jupyter
 author:
   - name: Alec Loudenback
 ---
@@ -688,47 +687,52 @@ See
 
 ```{julia}
 using Distributed
-let
 
-    # Add worker processes if not already added
-    if nworkers() == 0
-        addprocs(4)  # Add 4 worker processes
-    end
-
-    @everywhere function trade_producer(channel, i)
-        sleep(rand())
-        profit = randn()
-        put!(channel, profit)
-        println("Producer $(myid()): Trade Result #$i $(round(profit, digits=3))")
-    end
-
-    @everywhere function portfolio_monitor(channel, n)
-        sum = 0.0
-        for _ in 1:n
-            profit = take!(channel)
-            sum += profit
-            println("Monitor $(myid()): Received $(round(profit, digits=3)), Cumulative profit: $(round(sum, digits=3))")
-        end
-    end
-
-    function run_distributed_simulation()
-        channel = RemoteChannel(() -> Channel{Float64}(32))
-
-        # Start producer and consumer tasks
-        @sync begin  # <5>
-            for i in 1:5
-                @spawnat :any trade_producer(channel, i)
-            end
-            @spawnat :any portfolio_monitor(channel, 5)
-        end
-
-        # Close the channel and wait for tasks to finish
-        close(channel)
-    end
-
-    # Run the simulation
-    run_distributed_simulation()
+# Add worker processes if not already added
+if nworkers() == 0
+    addprocs(4)  # Add 4 worker processes
 end
+
+@everywhere using Distributed, Random
+
+@everywhere function trade_producer(channel, i)
+    sleep(rand())
+    profit = randn()
+    put!(channel, profit)
+    println("Producer $(myid()): Trade Result #$i $(round(profit, digits=3))")
+end
+
+@everywhere function portfolio_monitor(channel, n)
+    sum = 0.0
+    for _ in 1:n
+        profit = take!(channel)
+        sum += profit
+        println("Monitor $(myid()): Received $(round(profit, digits=3)), Cumulative profit: $(round(sum, digits=3))")
+    end
+end
+
+# Let the workers reference the same bindings as Main
+const trade_producer = Main.trade_producer
+const portfolio_monitor = Main.portfolio_monitor
+
+function run_distributed_simulation()
+    channel = RemoteChannel(() -> Channel{Float64}(32))
+
+    # Start producer and consumer tasks
+    @sync begin  # <5>
+        for i in 1:5
+            @spawnat :any trade_producer(channel, i)
+        end
+        @spawnat :any portfolio_monitor(channel, 5)
+    end
+
+    # Close the channel and wait for tasks to finish
+    close(channel)
+    return nothing
+end
+
+# Run the simulation
+run_distributed_simulation()
 ```
 
 Given the similarity to the single-process task-based version above, what's the motivation for this bothering with a distributed approach? A few differences:
