@@ -704,11 +704,11 @@ window.Quarto = {
 </blockquote>
 <section id="chapter-overview" class="level2" data-number="28.1">
 <h2 data-number="28.1" class="anchored" data-anchor-id="chapter-overview"><span class="header-section-number">28.1</span> Chapter Overview</h2>
-<p>Different approaches to understanding the sensitivity of a model to changes in its inputs: derivatives, finite differences, global sensitivity analysis approaches, and statistical approaches.</p>
+<p>Sensitivity analysis tells us how fragile our valuation or risk metrics are once key drivers shift. We will move from <strong>local techniques</strong> (derivatives, finite differences, automatic differentiation) that explain the effect of tiny shocks to <strong>global techniques</strong> (regression-based screening, Sobol, Morris, FAST) that summarize how entire distributions of inputs ripple through a model. The chapter closes with practical scenario-analysis guidance so you can turn the math into board-ready stress narratives.</p>
 </section>
 <section id="setup" class="level2" data-number="28.2">
 <h2 data-number="28.2" class="anchored" data-anchor-id="setup"><span class="header-section-number">28.2</span> Setup</h2>
-<p>Let’s assume there are certain insurance policies throughout the chapter.</p>
+<p>To keep the examples concrete we will work with a simplified block of participating whole life policies.</p>
 <div id="4" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Dates</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -728,6 +728,7 @@ window.Quarto = {
 <span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    risk<span class="op">::</span><span class="dt">Risk</span></span>
 <span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<p>The fields give us everything we need to project reserves: demographic attributes, benefit base, the policy interest rate (<code>pir</code>), premium pattern, and risk class. Real models would store many more underwriting features, but this toy structure is enough to showcase the techniques.</p>
 </section>
 <section id="the-data" class="level2" data-number="28.3">
 <h2 data-number="28.3" class="anchored" data-anchor-id="the-data"><span class="header-section-number">28.3</span> The Data</h2>
@@ -780,6 +781,7 @@ window.Quarto = {
  Policy(1, Male, 100000.0, 0.03, 1, 1000.0, 10, Date("1999-12-05"), 30, Standard)</code></pre>
 </div>
 </div>
+<p>For example, <code>res(2, policies[1])</code> returns the reserve at the end of policy year 2 for our sample contract. We will refer to <code>policies[1]</code> when we need a concrete contract for the sensitivity examples.</p>
 <p>Given a basic insurance product, a pure whole of life (WOL) policy with level benefits and level premiums payable within the first 10 years, the reserve in-force at the end of the <span class="math inline">\(y^{th}\)</span> (<span class="math inline">\(y\)</span> &gt;= 0) policy year is defined by</p>
 <p><span class="math display">\[
 res(y) = \sum_{t=age+y}^{120} (sur_{t-age-y} * mort_t * B_y * \sqrt{1 + pir}) - (P_y * sur_{t-age-y})
@@ -831,7 +833,7 @@ res(y) = \sum_{t=age+y}^{120} (sur_{t-age-y} * mort_t * B_y * \sqrt{1 + pir}) - 
 <h2 data-number="28.4" class="anchored" data-anchor-id="common-sensitivity-analysis-methodologies"><span class="header-section-number">28.4</span> Common Sensitivity Analysis Methodologies</h2>
 <section id="finite-differences" class="level3" data-number="28.4.1">
 <h3 data-number="28.4.1" class="anchored" data-anchor-id="finite-differences"><span class="header-section-number">28.4.1</span> Finite Differences</h3>
-<p>Define a customized finite difference function with respect to the interest rate, rippled by a small difference.</p>
+<p>Central finite differences approximate derivatives by shocking one input up and down while holding everything else fixed. The result can be interpreted as a “delta” (absolute change per unit of input) or as an elasticity if we scale by the base reserve.</p>
 <div id="12" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">res_wrt_r_fd</span>(y<span class="op">::</span><span class="dt">Int</span>, pol<span class="op">::</span><span class="dt">Policy</span>, r<span class="op">::</span><span class="dt">Float64</span>, h<span class="op">=</span><span class="fl">1e-3</span>)</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    p₊, p₋ <span class="op">=</span> <span class="fu">deepcopy</span>(pol), <span class="fu">deepcopy</span>(pol)</span>
@@ -844,9 +846,11 @@ res(y) = \sum_{t=age+y}^{120} (sur_{t-age-y} * mort_t * B_y * \sqrt{1 + pir}) - 
 <pre><code>0.18602131593930354</code></pre>
 </div>
 </div>
+<p>Use a smaller <code>h</code> when <code>pir</code> is quoted in decimals (e.g., 3%) and a larger <code>h</code> if you work in basis points. Always sanity check that the perturbation stays within practical limits (no negative credited rates).</p>
 </section>
 <section id="regression-analyses" class="level3" data-number="28.4.2">
 <h3 data-number="28.4.2" class="anchored" data-anchor-id="regression-analyses"><span class="header-section-number">28.4.2</span> Regression Analyses</h3>
+<p>Regression-based sensitivity (also called standardized regression coefficients) fits a metamodel between sampled inputs and the resulting reserves, then reports correlations and partial correlations as quick importance scores.</p>
 <div id="14" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">GlobalSensitivity</span></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -861,7 +865,7 @@ res(y) = \sum_{t=age+y}^{120} (sur_{t-age-y} * mort_t * B_y * \sqrt{1 + pir}) - 
 <span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>reg_anal <span class="op">=</span> <span class="fu">gsa</span>(r1_wrt_r, <span class="fu">RegressionGSA</span>(), [[<span class="fl">1</span>, <span class="fl">2</span>], [<span class="fl">0.029</span>, <span class="fl">0.031</span>], [<span class="fl">999.9</span>, <span class="fl">1000.1</span>]], samples<span class="op">=</span><span class="fl">1000</span>)</span>
 <span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(reg_anal.pearson)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[0.0022567189580152192 -0.9998838789971553 -0.004550632511995584]</code></pre>
+<pre><code>[0.002256718958015217 -0.9998838789971553 -0.00455063251199558]</code></pre>
 </div>
 </div>
 <p>The Pearson coefficients show the correlation coefficient matrix between inputs and outputs.</p>
@@ -895,7 +899,7 @@ Var(Y) = \sum_{i=1}^{d}V_i + \sum_{i&lt;j}^{d}V_{ij} + ... + V_{1,2,...,d}
 </div>
 </div>
 </div>
-<p>The output shows the first order and total order of variations in different input parameters.</p>
+<p><code>S1</code> reports how much of the reserve variance comes from each input alone, while <code>ST</code> shows the total contribution including interaction terms. If rate and premium interact strongly, the gap <code>ST - S1</code> will be large, signaling non-linear cross-effects.</p>
 </section>
 <section id="morris-method" class="level3" data-number="28.4.4">
 <h3 data-number="28.4.4" class="anchored" data-anchor-id="morris-method"><span class="header-section-number">28.4.4</span> Morris Method</h3>
@@ -913,8 +917,8 @@ EE_i = \frac{f(x_1, x_2, ...x_i + \Delta, ...x_k) - y}{\Delta}
 <span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(m.means)</span>
 <span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(m.variances)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[0.0 -655361.5591866194 -24.231504991513404]
-[0.0 2.611546662711629e8 0.04024070599425008]</code></pre>
+<pre><code>[0.0 -655401.2640841826 -24.298613850484617]
+[0.0 1.7497303192115158e8 0.05163706277733505]</code></pre>
 </div>
 </div>
 <p>From the means it can be observed which variables are more important, and the variances imply higher degree of nonlinearity or interactions with other variables.</p>
@@ -934,11 +938,11 @@ EE_i = \frac{f(x_1, x_2, ...x_i + \Delta, ...x_k) - y}{\Delta}
 <span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(fast.S1)</span>
 <span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(fast.ST)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1.3615785544803975e-11 0.997683796221837 1.3622073687954465e-5]
-[7.177845547934325e-7 0.9999854208103248 0.002319843651146014]</code></pre>
+<pre><code>[1.4375336849488495e-11 0.9976794599631812 1.3623825574750418e-5]
+[7.257990255471469e-7 0.9999853591324693 0.0023141135503588206]</code></pre>
 </div>
 </div>
-<p>The output shows the first order and total order of variations in different input parameters.</p>
+<p>Interpretation mirrors Sobol: <code>S1</code> is the main effect and <code>ST</code> the total effect. Differences between Sobol and FAST estimates mostly reflect Monte Carlo noise; agreement across both methods boosts confidence in your ranking.</p>
 </section>
 <section id="automatic-differentiation" class="level3" data-number="28.4.6">
 <h3 data-number="28.4.6" class="anchored" data-anchor-id="automatic-differentiation"><span class="header-section-number">28.4.6</span> Automatic Differentiation</h3>
@@ -946,21 +950,35 @@ EE_i = \frac{f(x_1, x_2, ...x_i + \Delta, ...x_k) - y}{\Delta}
 </section>
 <section id="scenario-analyses" class="level3" data-number="28.4.7">
 <h3 data-number="28.4.7" class="anchored" data-anchor-id="scenario-analyses"><span class="header-section-number">28.4.7</span> Scenario Analyses</h3>
-<p>Scenarios can be generated following scenario generation methodologies to evaluate impacts. More details in <a href="scenario-generation.html" class="quarto-xref"><span>Chapter 25</span></a> on scenario generation.</p>
-<p>When scenarios are generated to evaluate sensitivities, one may need to take the following into consideration.</p>
-<ul>
-<li>Reverse stress testing. Reverse stress testing in scenario analysis involves identifying extreme scenarios that could potentially lead to catastrophic outcomes for a financial institution or a system. Unlike traditional sensitivity testing to simulate the impact of adverse events on the system, reverse stress testing starts with a catastrophic outcome and works backwards to determine the combination of events or circumstances that could lead to such an outcome.</li>
-</ul>
-<p>One typically follows these steps to do reverse stress testing. – Define a critical failure point (e.g., bankruptcy, system outage, regulatory breach). – Analyze the combinations of events or variables that could cause the failure. – Model the path from normal conditions to the adverse outcome.</p>
-<p>Potential benefits that reverse stress testing could bring include: – Focusing on Vulnerabilities: Highlights specific scenarios to avoid at all costs. – Enhancing Resilience: Strengthens systems against extreme risks. – Regulatory Compliance: Often required in highly regulated industries like banking and energy.</p>
-<ul>
-<li><p>Stylistic scenarios. Developing stylistic scenarios in scenario analysis involves creating narratives or storylines that describe plausible future states or situations. These scenarios are crafted to capture key uncertainties, trends, and factors that could significantly impact the organization, industry, or environment under study.</p></li>
-<li><p>Backtesting against historical data. Backtesting in scenario analysis involves an iterative process of using past data to validate the effectiveness and accuracy of scenarios developed for forecasting future outcomes. Scenarios are first defined and applied on selective historical data, and refined after any discrepancies of scenario outcomes versus historical results are identified.</p></li>
-</ul>
-<p>One typically follows these steps to do backtesting against historical data. – Define Scenarios: Establish hypothetical scenarios (e.g., market crashes, changes in interest rates, or operational disruptions), and ensure scenarios cover a range of possibilities, such as best-case, base-case, and worst-case scenarios. – Collect Historical Data: Gather relevant historical data for key variables (e.g., stock prices, interest rates, production metrics), and ensure data spans periods where similar events occurred in the past. – Model Scenario Impacts: Use historical data to simulate the impacts of the scenarios on key metrics or performance indicators. – Compare Results: Compare the modeled results of the scenarios with the actual historical outcomes, and assess how well the scenarios predict or explain the observed data. – Adjust and Refine: If the scenarios do not align with historical outcomes, refine the assumptions or parameters in the scenario models, and incorporate lessons learned from historical patterns to improve future scenario analyses.</p>
-<p>Some considerations in incorporating historical data. – Data Quality: Ensure historical data is accurate, complete, and relevant to the scenarios being tested. – Model Limitations: Scenario models are based on assumptions that might not fully capture real-world complexities. – Overfitting: Avoid fine-tuning scenarios to perfectly match historical outcomes, as this reduces their applicability to future events. – Changing Dynamics: Historical events may not fully represent future possibilities due to changes in market conditions, regulations, or technology.</p>
+<p>Quantitative sensitivities are only half the story. Boards and regulators still expect named scenarios that link narrative shocks to financial impacts. Use the techniques from <a href="scenario-generation.html" class="quarto-xref"><span>Chapter 25</span></a> to build the paths, then layer on the following practices.</p>
+<section id="reverse-stress-testing" class="level4" data-number="28.4.7.1">
+<h4 data-number="28.4.7.1" class="anchored" data-anchor-id="reverse-stress-testing"><span class="header-section-number">28.4.7.1</span> Reverse stress testing</h4>
+<p>Reverse stress tests start from an unacceptable outcome (e.g., statutory RBC &lt; 250%) and work backward to the combination of market, actuarial, and operational events that would trigger it.</p>
+<ol type="1">
+<li>Define the failure point in business terms.</li>
+<li>Enumerate the drivers that could push the system there (rate shocks, mass lapses, cyber loss).</li>
+<li>Build a trajectory that connects today’s state to the failure and quantify the cumulative impact.</li>
+</ol>
+<p>Benefits include clearer vulnerability maps, stronger contingency plans, and alignment with supervisory expectations.</p>
+</section>
+<section id="stylistic-scenarios" class="level4" data-number="28.4.7.2">
+<h4 data-number="28.4.7.2" class="anchored" data-anchor-id="stylistic-scenarios"><span class="header-section-number">28.4.7.2</span> Stylistic scenarios</h4>
+<p>Stylistic (narrative) scenarios translate technical shocks into stories that executives recognize (“Higher-for-longer inflation with elevated credit spreads”). Describe the macro setting, policy responses, and customer behavior, then map those story elements to the stochastic blocks in your engine. This makes it easier to compare sensitivities across business units that may not share the same quantitative models.</p>
+</section>
+<section id="backtesting-scenarios" class="level4" data-number="28.4.7.3">
+<h4 data-number="28.4.7.3" class="anchored" data-anchor-id="backtesting-scenarios"><span class="header-section-number">28.4.7.3</span> Backtesting scenarios</h4>
+<p>Before anchoring capital plans on a scenario set, test whether similar historical episodes would have produced the modeled impacts.</p>
+<ol type="1">
+<li>Define the scenario family (base/up/down, climate pathways, liquidity crunch).</li>
+<li>Pull historical periods that resemble each narrative and compute the actual KPI movements.</li>
+<li>Run the scenario through your model for those historical start dates.</li>
+<li>Compare modeled vs.&nbsp;realized outcomes and reconcile gaps.</li>
+<li>Adjust assumptions or document why the future is expected to differ (structural breaks, new hedging programs).</li>
+</ol>
+<p>Key reminders when using history: validate data quality, resist overfitting scenarios to the past, and note that structural changes (regulation, product mix, technology) can limit comparability.</p>
 
 
+</section>
 </section>
 </section>
 
