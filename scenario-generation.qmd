@@ -110,7 +110,7 @@ function cir_simulation(rng::AbstractRNG, κ, θ, σ, r₀, Δt, num_steps, num_
         interest_rate_paths[1, j] = r₀
         for i in 2:num_steps
             # dr = κ * (θ - interest_rate_paths[i-1, j]) * Δt + σ * dW # for Vasicek
-            dr = κ * (θ - interest_rate_paths[i-1, j]) * Δt + σ * sqrt(max(interest_rate_paths[i-1, j], 0.0)) * st * shocks[i - 1]
+            dr = κ * (θ - interest_rate_paths[i-1, j]) * Δt + σ * sqrt(max(interest_rate_paths[i-1, j], 0.0)) * st * shocks[i-1]
             interest_rate_paths[i, j] = max(interest_rate_paths[i-1, j] + dr, 0.0)  # Ensure non-negativity
         end
     end
@@ -196,7 +196,7 @@ let
     nsims = 1000 # number of simulated paths
 
     tgrid, rpaths = cir_exact_paths(rng, κ, θ, σ, r₀, T, nsteps, nsims)
-    
+
     # Plot
     fig = Figure(size=(800, 500))
     ax = Axis(fig[1, 1], xlabel="Time (years)", ylabel="Short rate", title="Exact CIR Process Simulation (Non-central Chi-square)")
@@ -224,18 +224,18 @@ where
 -   $dW(t)$ is a Wiener process or Brownian motion, representing a random shock.
 
 ```{julia}
-using Interpolations, Dierckx, Random, CairoMakie
+using DataInterpolations, Random, CairoMakie
 
 function hull_white_theta_timevar_sigma(years, prices, σt; a::Float64)
     @assert length(years) == length(prices) == length(σt) "times and prices and sigmas must have same length"
 
     # Interpolate logP for smooth derivatives (cubic spline)
     logP = log.(prices)
-    interp_logP = Spline1D(years, logP, k=3)  # cubic spline
+    interp_logP = CubicSpline(logP, years)
 
     # instantaneous forward f(0,t) = -∂_t log P(0,t)
-    f0(t) = -derivative(interp_logP, t)
-    df0(t) = -derivative(interp_logP, t, 2)
+    f0(t) = -DataInterpolations.derivative(interp_logP, t)
+    df0(t) = -DataInterpolations.derivative(interp_logP, t, 2)
 
     # Precompute Δs_j (left Riemann widths). assumes years[1] == 0 or handles first width as years[1].
     Δs = Vector{Float64}(undef, length(years))
@@ -296,10 +296,10 @@ let
         r = r0
         rpaths[1, path] = r
         for i in 2:length(years)
-            dt = years[i] - years[i - 1]
+            dt = years[i] - years[i-1]
             dW = sqrt(dt) * randn(rng)
-            drift = (θt[i - 1] - a * r) * dt
-            diffusion = σt[i - 1] * dW
+            drift = (θt[i-1] - a * r) * dt
+            diffusion = σt[i-1] * dW
             r += drift + diffusion
             rpaths[i, path] = r
         end
@@ -346,7 +346,7 @@ function gbm_simulation(rng::AbstractRNG, μ, σ, S₀, Δt, num_steps, num_simu
         stock_price_paths[1, j] = S₀
         shocks = randn(rng, num_steps - 1)
         for i in 2:num_steps
-            stock_price_paths[i, j] = stock_price_paths[i-1, j] * exp(drift + vol * shocks[i - 1])
+            stock_price_paths[i, j] = stock_price_paths[i-1, j] * exp(drift + vol * shocks[i-1])
         end
     end
     return stock_price_paths
@@ -411,7 +411,7 @@ function garch_simulation(rng::AbstractRNG, ω, α₁, β₁, num_steps, num_sim
     for j in 1:num_sims
         returns[1, j] = volatility_paths[1, j] * randn(rng)
         for i in 2:num_steps
-            σ² = ω + α₁ * returns[i - 1, j] * returns[i - 1, j] + β₁ * volatility_paths[i - 1, j] * volatility_paths[i - 1, j]
+            σ² = ω + α₁ * returns[i-1, j] * returns[i-1, j] + β₁ * volatility_paths[i-1, j] * volatility_paths[i-1, j]
             volatility_paths[i, j] = sqrt(σ²)
             returns[i, j] = volatility_paths[i, j] * randn(rng)
         end
@@ -477,7 +477,7 @@ end
 Copulas can also be used to infer combined distributions from data samples.
 
 ```{julia}
-using Random, Copulas, Distributions
+using Random, Copulas, Distributions, CairoMakie
 
 let
     X₁ = Gamma(2.0, 3.0)
@@ -486,18 +486,45 @@ let
     C = ClaytonCopula(3, 0.7) # A 3-variate Clayton Copula with θ = 0.7
     D = SklarDist(C, (X₁, X₂, X₃)) # The final distribution
 
-    # Generate a dataset
+    # Generate a dataset (returns dimensions × observations)
     simu = rand(D, 1000)
     # Estimate marginals by MLE
-    d̂1 = fit(Gamma, simu[:, 1])
-    d̂2 = fit(Pareto, simu[:, 2])
-    d̂3 = fit(LogNormal, simu[:, 3])
+    d̂1 = fit(Gamma, simu[1, :])
+    d̂2 = fit(Pareto, simu[2, :])
+    d̂3 = fit(LogNormal, simu[3, :])
     # Probability integral transform to uniforms
-    Û = hcat(cdf.(d̂1, simu[:, 1]), cdf.(d̂2, simu[:, 2]), cdf.(d̂3, simu[:, 3]))
+    Û = permutedims(hcat(cdf.(d̂1, simu[1, :]), cdf.(d̂2, simu[2, :]), cdf.(d̂3, simu[3, :])))
     # Fit copula on uniforms
     Ĉ = fit(ClaytonCopula, Û)
     # Compose the estimated Sklar distribution
     D̂ = SklarDist(Ĉ, (d̂1, d̂2, d̂3))
+
+    # Generate new samples from the fitted distribution
+    simu_fitted = rand(D̂, 1000)
+
+    # Create visualizations
+    fig = Figure(size=(1000, 800))
+
+    # Plot pairwise scatter plots
+    ax1 = Axis(fig[1, 1], xlabel="X₁ (Gamma)", ylabel="X₂ (Pareto)", title="Original Data")
+    scatter!(ax1, simu[1, :], simu[2, :], markersize=3, color=:steelblue, alpha=0.5)
+
+    ax2 = Axis(fig[1, 2], xlabel="X₁ (Gamma)", ylabel="X₂ (Pareto)", title="Fitted Distribution")
+    scatter!(ax2, simu_fitted[1, :], simu_fitted[2, :], markersize=3, color=:coral, alpha=0.5)
+
+    ax3 = Axis(fig[2, 1], xlabel="X₁ (Gamma)", ylabel="X₃ (LogNormal)")
+    scatter!(ax3, simu[1, :], simu[3, :], markersize=3, color=:steelblue, alpha=0.5)
+
+    ax4 = Axis(fig[2, 2], xlabel="X₁ (Gamma)", ylabel="X₃ (LogNormal)")
+    scatter!(ax4, simu_fitted[1, :], simu_fitted[3, :], markersize=3, color=:coral, alpha=0.5)
+
+    ax5 = Axis(fig[3, 1], xlabel="X₂ (Pareto)", ylabel="X₃ (LogNormal)")
+    scatter!(ax5, simu[2, :], simu[3, :], markersize=3, color=:steelblue, alpha=0.5)
+
+    ax6 = Axis(fig[3, 2], xlabel="X₂ (Pareto)", ylabel="X₃ (LogNormal)")
+    scatter!(ax6, simu_fitted[2, :], simu_fitted[3, :], markersize=3, color=:coral, alpha=0.5)
+
+    fig
 end
 ```
 
