@@ -378,11 +378,10 @@ end
 @btime sum_chunker(100_000)
 ```
 
-1.  Compute a chunk size that covers the full range even when `a` is not perfectly divisible by the thread count (`cld` is ceiling division).
-2.  Build a generator of `UnitRange`s that partition `1:a` without dropping any trailing values.
-3.  Launch a task per chunk; each task computes a single-threaded sum for its range.
-4.  Collect the partial sums when the tasks finish.
-5.  Perform one final single-threaded aggregation. This last step is cheap because there are only as many partial sums as threads.
+1.  Split `1:a` into roughly equal ranges across available threads.
+2.  Launch a task for each chunk to compute a single-threaded sum.
+3.  Fetch each task's result once it finishes.
+4.  Aggregate the partial sums on a single thread; this is cheap because there are only as many partial sums as threads.
 
 ##### Using Locks
 
@@ -756,7 +755,7 @@ Map-Reduce (@sec-map-reduce) operations are inherently parallelizable and variou
 
 ##### OhMyThreads
 
-[OhMyThreads.jl](https://github.com/JuliaFolds2/OhMyThreads.jl) provides the threaded versions of essential functions such as `tmap`, `tmapreduce`,`tcollect`, and `tforeach` (see @tbl-funcional-methods). In most cases, the chunking and data sharing is handled automatically for you.
+[OhMyThreads.jl](https://github.com/JuliaFolds2/OhMyThreads.jl) provides the threaded versions of essential functions such as `tmap`, `tmapreduce`,`tcollect`, and `tforeach` (see @tbl-functional-methods). In most cases, the chunking and data sharing is handled automatically for you.
 
 ```{julia}
 import OhMyThreads
