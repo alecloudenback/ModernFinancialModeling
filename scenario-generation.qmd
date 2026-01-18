@@ -102,16 +102,21 @@ The following code shows a simplified implementation of a CIR model. The specifi
 using Random, CairoMakie
 
 # Function to simulate CIR process
-function cir_simulation(rng::AbstractRNG, κ, θ, σ, r₀, Δt, num_steps, num_sims)
+function cir_simulation(
+    rng::AbstractRNG, κ, θ, σ, r₀, Δt, num_steps, num_sims)
     interest_rate_paths = zeros(num_steps, num_sims)
     st = sqrt(Δt)
     for j in 1:num_sims
         shocks = randn(rng, num_steps - 1)
         interest_rate_paths[1, j] = r₀
         for i in 2:num_steps
-            # dr = κ * (θ - interest_rate_paths[i-1, j]) * Δt + σ * dW # for Vasicek
-            dr = κ * (θ - interest_rate_paths[i-1, j]) * Δt + σ * sqrt(max(interest_rate_paths[i-1, j], 0.0)) * st * shocks[i-1]
-            interest_rate_paths[i, j] = max(interest_rate_paths[i-1, j] + dr, 0.0)  # Ensure non-negativity
+            # dr = κ*(θ - r)*Δt + σ*dW for Vasicek
+            r_prev = interest_rate_paths[i-1, j]
+            drift = κ * (θ - r_prev) * Δt
+            diffusion = σ * sqrt(max(r_prev, 0.0)) * st * shocks[i-1]
+            dr = drift + diffusion
+            # Ensure non-negativity
+            interest_rate_paths[i, j] = max(r_prev + dr, 0.0)
         end
     end
     return interest_rate_paths
@@ -140,7 +145,8 @@ let
 
     # Plot the simulated interest rate paths
     f = Figure()
-    ax = Axis(f[1, 1], xlabel="Trading days", ylabel="Short rate", title="CIR paths")
+    ax = Axis(f[1, 1], xlabel="Trading days",
+        ylabel="Short rate", title="CIR paths")
     ti = 0:(num_steps-1)
     for i in 1:num_simulations
         lines!(ax, ti, cir_paths[:, i], color=:steelblue, linewidth=0.8)
@@ -165,7 +171,8 @@ where $\chi'^2_{d}(\lambda)$ means the non-central chi-square distribution with 
 ```{julia}
 using Random, CairoMakie, Distributions
 
-function cir_exact_paths(rng::AbstractRNG, κ, θ, σ, r₀, T, num_steps, num_sims)
+function cir_exact_paths(
+    rng::AbstractRNG, κ, θ, σ, r₀, T, num_steps, num_sims)
     Δt = T / num_steps
     d = 4 * κ * θ / (σ * σ)
     c = (σ * σ * (1 - exp(-κ * Δt))) / (4 * κ)
@@ -199,7 +206,8 @@ let
 
     # Plot
     fig = Figure(size=(800, 500))
-    ax = Axis(fig[1, 1], xlabel="Time (years)", ylabel="Short rate", title="Exact CIR Process Simulation (Non-central Chi-square)")
+    ax = Axis(fig[1, 1], xlabel="Time (years)",
+        ylabel="Short rate", title="Exact CIR Simulation")
     for path in 1:nsims
         lines!(ax, tgrid, rpaths[:, path], color=:steelblue, linewidth=0.8)
     end
@@ -227,7 +235,8 @@ where
 using DataInterpolations, Random, CairoMakie
 
 function hull_white_theta_timevar_sigma(years, prices, σt; a::Float64)
-    @assert length(years) == length(prices) == length(σt) "times and prices and sigmas must have same length"
+    n = length(years)
+    @assert n == length(prices) == length(σt) "mismatched lengths"
 
     # Interpolate logP for smooth derivatives (cubic spline)
     logP = log.(prices)
@@ -283,7 +292,8 @@ let
 
     # Parameters
     a = 0.1 # mean reversion speed
-    σt = 0.008 .+ 0.004 .* sin.(0.5 .* years) # sinusoidal time-varying sigma
+    # sinusoidal time-varying sigma
+    σt = 0.008 .+ 0.004 .* sin.(0.5 .* years)
     θt, f0, df0 = hull_white_theta_timevar_sigma(years, prices, σt; a=a)
     r0 = 0.03 # initial short rate
     nsim = 1000 # number of simulated paths
@@ -307,7 +317,11 @@ let
 
     # Plot
     fig = Figure(size=(800, 500))
-    ax = Axis(fig[1, 1], xlabel="Time (years)", ylabel="Short rate", title="Hull–White Simulation with time-dependent θ(t) and σ(t)")
+    ax = Axis(
+        fig[1, 1],
+        xlabel="Time (years)",
+        ylabel="Short rate",
+        title="Hull–White Simulation with time-dependent θ(t) and σ(t)")
     for path in 1:nsim
         lines!(ax, years, rpaths[:, path])
     end
@@ -338,7 +352,8 @@ where
 using Random, CairoMakie
 
 # Function to simulate GBM
-function gbm_simulation(rng::AbstractRNG, μ, σ, S₀, Δt, num_steps, num_simulations)
+function gbm_simulation(
+    rng::AbstractRNG, μ, σ, S₀, Δt, num_steps, num_simulations)
     stock_price_paths = zeros(num_steps, num_simulations)
     drift = (μ - 0.5 * σ * σ) * Δt
     vol = σ * sqrt(Δt)
@@ -346,7 +361,8 @@ function gbm_simulation(rng::AbstractRNG, μ, σ, S₀, Δt, num_steps, num_simu
         stock_price_paths[1, j] = S₀
         shocks = randn(rng, num_steps - 1)
         for i in 2:num_steps
-            stock_price_paths[i, j] = stock_price_paths[i-1, j] * exp(drift + vol * shocks[i-1])
+            S_prev = stock_price_paths[i-1, j]
+            stock_price_paths[i, j] = S_prev * exp(drift + vol * shocks[i-1])
         end
     end
     return stock_price_paths

@@ -19,7 +19,8 @@ Asset liability modeling requires computing derivatives of portfolio values with
 ```{julia}
 using FinanceCore: Cashflow    # provides Cashflow object
 using DifferentiationInterface # autodiff
-using DifferentiationInterface: AutoForwardDiff, gradient, hessian, value_gradient_and_hessian
+using DifferentiationInterface: AutoForwardDiff, gradient, hessian
+using DifferentiationInterface: value_gradient_and_hessian
 import ForwardDiff             # specific autodiff technique
 using CairoMakie               # plotting
 using DataInterpolations       # yield curve interpolation
@@ -42,7 +43,8 @@ zero_rates = [0.01, 0.02, 0.02, 0.03, 0.05, 0.055] # continuous, annualised
 times = [1.0, 2.0, 3.0, 5.0, 10.0, 20.0]
 
 function curve(zero_rates, times)
-    DataInterpolations.CubicSpline([1.0; exp.(-zero_rates .* times)], [0.; times])
+    discounts = [1.0; exp.(-zero_rates .* times)]
+    DataInterpolations.CubicSpline(discounts, [0.; times])
 end
 
 c = curve(zero_rates, times)
@@ -195,7 +197,8 @@ function consolidate(cashflows)
     MapCat(identity) |> # flatten it out without changing elements
     # group by the time, and just keep and sum the amounts 
     GroupBy(x -> x.time, Map(last) ⨟ Map(x -> x.amount), +) |>
-    foldxl(Transducers.right) # perform the aggregation and keep the final grouped result
+    # perform the aggregation and keep the final grouped result
+    foldxl(Transducers.right)
 end
 ```
 
@@ -254,7 +257,8 @@ The `value_gradient_and_hessian` function returns the present value, key rate du
 
 ```{julia}
 vgh_liab = let
-    value_gradient_and_hessian(z -> annuities(z, liabilities), AutoForwardDiff(), zero_rates)
+    f = z -> annuities(z, liabilities)
+    value_gradient_and_hessian(f, AutoForwardDiff(), zero_rates)
 end
 ```
 
@@ -361,7 +365,11 @@ asset_universe = [
 And we capture the measures for each of the available assets for the portfolio selection:
 
 ```{julia}
-vgh_assets= [value_gradient_and_hessian(x->value(curve(x,times),a),AutoForwardDiff(), zero_rates) for a in asset_universe]
+vgh_assets = [
+    value_gradient_and_hessian(
+        x -> value(curve(x, times), a), AutoForwardDiff(), zero_rates)
+    for a in asset_universe
+]
 
 ```
 
@@ -373,7 +381,8 @@ This optimization function uses functionality from [JuMP](https://jump.dev), a r
 With derivatives available, we can optimize the asset portfolio to match liability characteristics.The optimization maximizes asset yield while constraining the difference between asset and liability key rate durations. This ensures that small yield curve movements don't create large changes in surplus.
 
 ```{julia}
-function optimize_portfolio(assets, vgh_assets, liabs, vgh_liabs, constraints)
+function optimize_portfolio(
+        assets, vgh_assets, liabs, vgh_liabs, constraints)
     n = length(assets)
 
     # Create model
@@ -385,20 +394,23 @@ function optimize_portfolio(assets, vgh_assets, liabs, vgh_liabs, constraints)
 
     @constraint(model, w .>= 0)  # Long-only constraint
     # Budget/asset value constraint
-    @constraint(model, sum(w[i] * vgh_assets[i][1] for i in 1:n) + vgh_liabs[1] == 0)
+    asset_val = sum(w[i] * vgh_assets[i][1] for i in 1:n)
+    @constraint(model, asset_val + vgh_liabs[1] == 0)
 
     # Objective: Maximize total yield
     @objective(model, Max, sum(w[i] * assets[i].coupon for i in 1:n))
 
     # Gradient component (krd) constraints
     for j in 1:length(vgh_liabs[2])
-        gradient_gap = sum(w[i] * vgh_assets[i][2][j] for i in 1:n) + vgh_liabs[2][j]
+        asset_grad = sum(w[i] * vgh_assets[i][2][j] for i in 1:n)
+        gradient_gap = asset_grad + vgh_liabs[2][j]
         @constraint(model, gradient_gap >= constraints[:krd][:lower])
         @constraint(model, gradient_gap <= constraints[:krd][:upper])
     end
 
-    # total duration constraint 
-    duration_gap = sum(w[i] * sum(vgh_assets[i][2]) for i in 1:n) + sum(vgh_liabs[2])
+    # total duration constraint
+    asset_dur = sum(w[i] * sum(vgh_assets[i][2]) for i in 1:n)
+    duration_gap = asset_dur + sum(vgh_liabs[2])
     @constraint(model, duration_gap <= constraints[:duration][:upper])
     @constraint(model, duration_gap >= constraints[:duration][:lower])
 
@@ -420,7 +432,8 @@ constraints = Dict(
 )
 
 # Optimize
-result = optimize_portfolio(asset_universe, vgh_assets, liabilities, vgh_liab, constraints)
+result = optimize_portfolio(
+    asset_universe, vgh_assets, liabilities, vgh_liab, constraints)
 
 ```
 
@@ -509,7 +522,8 @@ For ALM applications, this means more accurate risk measurement and the ability 
 Here, we value 100,000 interest-sensitive policies with a monthly timestep for up to 20 years *and* compute 1st and 2nd order partial sensitives extremely quickly:
 
 ```{julia}
-@btime value_gradient_and_hessian(z -> annuities(z, liabilities), AutoForwardDiff(), zero_rates)
+f = z -> annuities(z, liabilities)
+@btime value_gradient_and_hessian($f, AutoForwardDiff(), $zero_rates)
 ```
 
 However, there's still some performance left on the table! the `(d::DeferredAnnuity)(curve)` function defined above is not type stable. In the appendix to this post, we'll cover a way to improve the performance even more.
@@ -647,7 +661,8 @@ end;
 Using this technique, we can see that we achieve a significant speedup (less than half the runtime) from the earlier version due to improving the type stability of the code:
 
 ```{julia}
-@btime value_gradient_and_hessian(z -> annuities(z, liabilities), AutoForwardDiff(), zero_rates)
+f = z -> annuities(z, liabilities)
+@btime value_gradient_and_hessian($f, AutoForwardDiff(), $zero_rates)
 ```
 
 [^zulip]: With thanks to the helpful persons on the Julia Zulip and in particular Mason Protter for this approach. 
