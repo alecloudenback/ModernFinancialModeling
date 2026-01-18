@@ -704,13 +704,13 @@ window.Quarto = {
 </blockquote>
 <section id="chapter-overview" class="level2" data-number="7.1">
 <h2 data-number="7.1" class="anchored" data-anchor-id="chapter-overview"><span class="header-section-number">7.1</span> Chapter Overview</h2>
-<p>The powerful benefits that using assigning types to data has within the model’s system, some examples of utilizing types to simplify a programs logic, and comparing aspects of different type related program organization (such as object oriented design versus composition).</p>
+<p>Using Julia’s type system lets us express financial instruments and valuation logic cleanly and efficiently. In this chapter we will: - model assets as concrete types within a simple hierarchy, - define valuation functions using multiple dispatch, - show how to aggregate portfolio value succinctly, - compare this data-oriented approach with common object-oriented patterns.</p>
 </section>
 <section id="using-types-to-value-a-portfolio" class="level2" data-number="7.2">
 <h2 data-number="7.2" class="anchored" data-anchor-id="using-types-to-value-a-portfolio"><span class="header-section-number">7.2</span> Using Types to Value a Portfolio</h2>
-<p>We will assemble the tools and terminology to value a portfolio of assets by leverage types (@sec-data-types). Using the constructs introduced in the prior chapter, we can describe the portfolio valuation as additively reducing the mapped value of assets in the portfolio. If <code>value</code> is our valuation function), we are trying to do the following:</p>
+<p>We will assemble the tools and terminology to value a portfolio of assets by leverage types (<a href="#sec-data-types" class="quarto-xref"><span>Chapter 7</span></a>). Using the constructs introduced in the prior chapter, we can describe the portfolio valuation as additively reducing the mapped value of assets in the portfolio. We aim to compute the total portfolio value by applying a valuation function to each asset and summing up the individual valuations:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mapreduce</span>(value,<span class="op">+</span>,portfolio)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The challenge is how do design an all-purpose <code>value</code> function? In <code>portfolio</code>, the assets may be heterogeneous, so we will need to define what the valuation semantics are for the different kinds of assets. To get to our end goal, we will need to:</p>
+<p>The challenge is how to design an all-purpose <code>value</code> function? In <code>portfolio</code>, the assets may be heterogeneous, so we will need to define what the valuation semantics are for the different kinds of assets. To get to our end goal, we will need to:</p>
 <ol type="1">
 <li>Define the different kinds of assets within our portfolio</li>
 <li>How the assets are to be valued.</li>
@@ -731,10 +731,10 @@ window.Quarto = {
 </section>
 <section id="defining-types-for-portfolio-valuation" class="level2" data-number="7.4">
 <h2 data-number="7.4" class="anchored" data-anchor-id="defining-types-for-portfolio-valuation"><span class="header-section-number">7.4</span> Defining Types for Portfolio Valuation</h2>
-<p>We will define five types of assets in this simplified universe:</p>
+<p>We will define two types of assets in this simplified universe:</p>
 <ul>
 <li>Cash</li>
-<li>Risk Free Bonds (coupon and zero-coupon varieties)</li>
+<li>Risk-free Bonds (coupon and zero-coupon varieties)</li>
 </ul>
 <p>To do the valuation of these, we need some economic parameters as well: risk free rates for discounting.</p>
 <p>Here’s the outline of what follows to get an understanding of types, type hierarchy, and multiple dispatch.</p>
@@ -793,10 +793,9 @@ window.Quarto = {
 <pre><code>EconomicAssumptions{Float64}(0.05)</code></pre>
 </div>
 </div>
-<p>Now on to defining the valuation for <code>Cash</code> and <code>AbstractBonds</code>. Cash is always equal to it’s balance:</p>
+<p>Now on to defining the valuation for <code>Cash</code> and <code>AbstractBonds</code>. Cash is always equal to its balance:</p>
 <div id="8" class="cell" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">value</span>(asset<span class="op">::</span><span class="dt">Cash</span>, ea<span class="op">::</span><span class="dt">EconomicAssumptions</span>) <span class="op">=</span> asset.balance</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">value</span>(asset<span class="op">::</span><span class="dt">Cash</span>, econ<span class="op">::</span><span class="dt">EconomicAssumptions</span>) <span class="op">=</span> asset.balance</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>value (generic function with 1 method)</code></pre>
 </div>
@@ -805,12 +804,12 @@ window.Quarto = {
 <div id="10" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="annotated-cell-6"><pre class="sourceCode julia code-annotation-code code-with-copy code-annotated"><code class="sourceCode julia"><a class="code-annotation-anchor" data-target-cell="annotated-cell-6" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-6-1" class="code-annotation-target"><a href="#annotated-cell-6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">value</span>(asset<span class="op">::</span><span class="dt">AbstractBond</span>, r<span class="op">::</span><span class="dt">Float64</span>)</span>
 <span id="annotated-cell-6-2"><a href="#annotated-cell-6-2" aria-hidden="true" tabindex="-1"></a>    discount_factor <span class="op">=</span> <span class="fl">1.0</span></span>
-<span id="annotated-cell-6-3"><a href="#annotated-cell-6-3" aria-hidden="true" tabindex="-1"></a>    value <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="annotated-cell-6-3"><a href="#annotated-cell-6-3" aria-hidden="true" tabindex="-1"></a>    pv <span class="op">=</span> <span class="fl">0.0</span></span>
 <span id="annotated-cell-6-4"><a href="#annotated-cell-6-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> t <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>asset.tenor</span>
 <a class="code-annotation-anchor" data-target-cell="annotated-cell-6" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-6-5" class="code-annotation-target"><a href="#annotated-cell-6-5" aria-hidden="true" tabindex="-1"></a>        discount_factor <span class="op">/=</span> (<span class="fl">1</span> <span class="op">+</span> r)</span>
-<span id="annotated-cell-6-6"><a href="#annotated-cell-6-6" aria-hidden="true" tabindex="-1"></a>        value <span class="op">+=</span> discount_factor <span class="op">*</span> <span class="fu">cashflow</span>(asset, t)</span>
+<span id="annotated-cell-6-6"><a href="#annotated-cell-6-6" aria-hidden="true" tabindex="-1"></a>        pv <span class="op">+=</span> discount_factor <span class="op">*</span> <span class="fu">cashflow</span>(asset, t)</span>
 <span id="annotated-cell-6-7"><a href="#annotated-cell-6-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
-<span id="annotated-cell-6-8"><a href="#annotated-cell-6-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> value</span>
+<span id="annotated-cell-6-8"><a href="#annotated-cell-6-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> pv</span>
 <span id="annotated-cell-6-9"><a href="#annotated-cell-6-9" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
 <span id="annotated-cell-6-10"><a href="#annotated-cell-6-10" aria-hidden="true" tabindex="-1"></a></span>
 <span id="annotated-cell-6-11"><a href="#annotated-cell-6-11" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">cashflow</span>(bond<span class="op">::</span><span class="dt">CouponBond</span>, time)</span>
@@ -881,7 +880,7 @@ window.Quarto = {
 <p>This is the power of dispatch. By defining a <strong>more specific</strong> method, <code>value(bond::ZeroCouponBond, r::Float64)</code>, we are telling Julia: “When you have a <code>ZeroCouponBond</code>, use this highly efficient, direct formula. For any <em>other</em> kind of <code>AbstractBond</code>, you can fall back on the generic looping version.” Dispatch ensures that the most specific, and in this case most performant, implementation is automatically chosen. This allows you to build a system that is both general and extensible, while also being highly optimized for the most common and simple cases.</p>
 <section id="integrating-economic-assumptions" class="level4" data-number="7.4.1.1">
 <h4 data-number="7.4.1.1" class="anchored" data-anchor-id="integrating-economic-assumptions"><span class="header-section-number">7.4.1.1</span> Integrating Economic Assumptions</h4>
-<p>Despite the definitions above, the following will error because we haven’t defined a method for <code>value</code> which takes as it’s second argument a type of <code>EconomicAssumptions</code>:</p>
+<p>Despite the definitions above, the following will error because we haven’t defined a method for <code>value</code> which takes as its second argument a type of <code>EconomicAssumptions</code>:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">#| error: true</span></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">value</span>(<span class="fu">ZeroCouponBond</span>(<span class="fl">100.0</span>,<span class="fl">5</span>),econ_baseline)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Let’s fix that by defining a method which takes the economic assumption type and just relays the relevant risk free rate to the <code>value</code> methods already defined (which take an <code>AbstractBond</code> and a scalar <code>r</code>).</p>
@@ -933,7 +932,7 @@ Note
 <div class="callout-body-container callout-body">
 <p>This code:</p>
 <pre><code>mapreduce(asset-&gt; value(asset,econ_baseline), +, portfolio)</code></pre>
-<p>is more verbose than what we set out do at the start (<code>mapreduce(value,+,portfolio)</code>) due to the two-argument <code>value</code> function requiring a second argument for the economic variables. This works well! However, there is a way to define it which avoids the anonymous function, which in some cases will end up needing to be compiled more frequently than you want it to. Sometime we want a lightweight, okay-to-compile-on-the-fly function. Other times, we know it’s something that will be passed around in compute-intensive parts of the code. A technique in this situation is to define an object which “locks in” one of the arguments but behaves like the anonymous version. There is a pair of types in the Base module, <code>Fix1</code> and <code>Fix2</code>, which represent partially-applied versions of the two-argument function f, with the first or second argument fixed to the value “x”.</p>
+<p>is more verbose than what we set out do at the start (<code>mapreduce(value,+,portfolio)</code>) due to the two-argument <code>value</code> function requiring a second argument for the economic variables. This works well! However, there is a way to define it which avoids the anonymous function, which in some cases will end up needing to be compiled more frequently than you want it to. Sometimes we want a lightweight, okay-to-compile-on-the-fly function. Other times, we know it’s something that will be passed around in compute-intensive parts of the code. A technique in this situation is to define an object which “locks in” one of the arguments but behaves like the anonymous version. There is a pair of types in the Base module, <code>Fix1</code> and <code>Fix2</code>, which represent partially-applied versions of the two-argument function f, with the first or second argument fixed to the value “x”.</p>
 <p>This is, <code>Base.Fix1(f, x)</code> behaves like <code>y-&gt;f(x, y)</code> and <code>Base.Fix2(f, x)</code> behaves like <code>y-&gt;f(y, x)</code>.</p>
 <p>In the context of our valuation model, this would look like:</p>
 <div id="20" class="cell" data-execution_count="1">
@@ -953,7 +952,7 @@ Note
 <div id="22" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>econ_sin <span class="op">=</span> <span class="fu">EconomicAssumptions</span>(t <span class="op">-&gt;</span> <span class="fl">0.05</span> <span class="op">+</span> <span class="fu">sin</span>(t) <span class="op">/</span> <span class="fl">100</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>EconomicAssumptions{var"#5#6"}(var"#5#6"())</code></pre>
+<pre><code>EconomicAssumptions{var"#8#9"}(var"#8#9"())</code></pre>
 </div>
 </div>
 <p>Now value will not work, because we’ve only defined how <code>value</code> works on bonds if the given rate is a <code>Float64</code> type:</p>
@@ -961,23 +960,23 @@ Note
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">value</span>(<span class="fu">ZeroCouponBond</span>(<span class="fl">100.0</span>, <span class="fl">5</span>), econ_sin)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-error">
 <div class="ansi-escaped-output">
-<pre>MethodError: no method matching value(::ZeroCouponBond, ::var"#5#6")
+<pre>MethodError: no method matching value(::ZeroCouponBond, ::var"#8#9")
 The function `value` exists, but no method is defined for this combination of argument types.
 
 Closest candidates are:
   value(::ZeroCouponBond, <span class="ansi-bright-red-fg">::Float64</span>)
-<span class="ansi-bright-black-fg">   @</span> <span class="ansi-magenta-fg">Main.Notebook</span> <span class="ansi-bright-black-fg">~/prog/julia-fin-book/</span><span style="text-decoration:underline" class="ansi-bright-black-fg">type-abstractions.qmd:127</span>
+<span class="ansi-bright-black-fg">   @</span> <span class="ansi-magenta-fg">Main.Notebook</span> <span class="ansi-bright-black-fg">~/prog/julia-fin-book/</span><span style="text-decoration:underline" class="ansi-bright-black-fg">type-abstractions.qmd:130</span>
   value(::AbstractBond, <span class="ansi-bright-red-fg">::EconomicAssumptions</span>)
-<span class="ansi-bright-black-fg">   @</span> <span class="ansi-magenta-fg">Main.Notebook</span> <span class="ansi-bright-black-fg">~/prog/julia-fin-book/</span><span style="text-decoration:underline" class="ansi-bright-black-fg">type-abstractions.qmd:202</span>
+<span class="ansi-bright-black-fg">   @</span> <span class="ansi-magenta-fg">Main.Notebook</span> <span class="ansi-bright-black-fg">~/prog/julia-fin-book/</span><span style="text-decoration:underline" class="ansi-bright-black-fg">type-abstractions.qmd:205</span>
   value(::AbstractBond, <span class="ansi-bright-red-fg">::Float64</span>)
-<span class="ansi-bright-black-fg">   @</span> <span class="ansi-magenta-fg">Main.Notebook</span> <span class="ansi-bright-black-fg">~/prog/julia-fin-book/</span><span style="text-decoration:underline" class="ansi-bright-black-fg">type-abstractions.qmd:109</span>
+<span class="ansi-bright-black-fg">   @</span> <span class="ansi-magenta-fg">Main.Notebook</span> <span class="ansi-bright-black-fg">~/prog/julia-fin-book/</span><span style="text-decoration:underline" class="ansi-bright-black-fg">type-abstractions.qmd:112</span>
   ...
 
 Stacktrace:
- [1] <span class="ansi-bold">value</span><span class="ansi-bold">(</span><span class="ansi-bright-black-fg">bond</span>::ZeroCouponBond, <span class="ansi-bright-black-fg">econ</span>::EconomicAssumptions<span class="ansi-bright-black-fg">{var"#5#6"}</span><span class="ansi-bold">)</span>
-<span class="ansi-bright-black-fg">   @</span> <span class="ansi-magenta-fg">Main.Notebook</span> <span class="ansi-bright-black-fg">~/prog/julia-fin-book/</span><span style="text-decoration:underline" class="ansi-bright-black-fg">type-abstractions.qmd:202</span>
+ [1] <span class="ansi-bold">value</span><span class="ansi-bold">(</span><span class="ansi-bright-black-fg">bond</span>::ZeroCouponBond, <span class="ansi-bright-black-fg">econ</span>::EconomicAssumptions<span class="ansi-bright-black-fg">{var"#8#9"}</span><span class="ansi-bold">)</span>
+<span class="ansi-bright-black-fg">   @</span> <span class="ansi-magenta-fg">Main.Notebook</span> <span class="ansi-bright-black-fg">~/prog/julia-fin-book/</span><span style="text-decoration:underline" class="ansi-bright-black-fg">type-abstractions.qmd:205</span>
  [2] top-level scope
-<span class="ansi-bright-black-fg">   @</span> <span class="ansi-bright-black-fg">~/prog/julia-fin-book/</span><span style="text-decoration:underline" class="ansi-bright-black-fg">type-abstractions.qmd:262</span></pre>
+<span class="ansi-bright-black-fg">   @</span> <span class="ansi-bright-black-fg">~/prog/julia-fin-book/</span><span style="text-decoration:underline" class="ansi-bright-black-fg">type-abstractions.qmd:265</span></pre>
 </div>
 </div>
 </div>
@@ -1015,7 +1014,7 @@ Stacktrace:
 </section>
 <section id="sec-object-oriented" class="level2 page-columns page-full" data-number="7.5">
 <h2 data-number="7.5" class="anchored" data-anchor-id="sec-object-oriented"><span class="header-section-number">7.5</span> Object-Oriented Design</h2>
-<p>Object oriented (OO) type systems use the analogy that various parts of the system are their own objects which encapsulate both data and behavior. Object oriented design is often one of the first computer programming abstractions introduced because it very relatable<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>, however there are a number of its flaws in over-relying on OO patterns. Julia does not natively have traditional OO classes and types, but much of OO design can be emulated in Julia except for data inheritance.</p>
+<p>Object oriented (OO) type systems use the analogy that various parts of the system are their own objects which encapsulate both data and behavior. Object oriented design is often one of the first computer programming abstractions introduced because it is very relatable<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>, however there are a number of its flaws in over-relying on OO patterns. Julia does not natively have traditional OO classes and types, but much of OO design can be emulated in Julia except for data inheritance.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -1034,7 +1033,7 @@ Note
 </ul>
 </div>
 </div>
-<p>We bring up object oriented design for comparison’s sake, but think that ultimately choosing a data driven or functional design is better for financial modeling. Of course, many robust, well-used financial models have been built this way but in our experience the abstractions become unnatural. Additionally, maintenance unwieldy beyond simple examples. We’ll now discuss some of the aspects of OO design and why the overuse of OO is not preferred.</p>
+<p>We bring up object oriented design for comparison’s sake, but think that ultimately choosing a data driven or functional design is better for financial modeling. Of course, many robust, well-used financial models have been built this way but in our experience the abstractions become unnatural. Additionally, maintenance becomes unwieldy beyond simple examples. We’ll now discuss some of the aspects of OO design and why the overuse of OO is not preferred.</p>
 <section id="assigning-behavior" class="level3 page-columns page-full" data-number="7.5.1">
 <h3 data-number="7.5.1" class="anchored" data-anchor-id="assigning-behavior"><span class="header-section-number">7.5.1</span> Assigning Behavior</h3>
 <p>Needing to assign methods to a single class can lead to awkward design limitations - when multiple objects are involved in a computation, why dictate that only one of them “controls” the logic?</p>
@@ -1218,17 +1217,17 @@ Note
 <p>In composition, objects are constructed from other objects, and behaviors are delegated to these contained objects. This approach allows for greater flexibility, as it’s easier to change the behavior of a system by replacing parts of it without affecting the entire hierarchy, as is often the case with inheritance.</p>
 <p>Composition looks like this:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb34"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> CUSIP</span>
-<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>    code<span class="op">::</span><span class="dt">string</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>    code<span class="op">::</span><span class="dt">String</span></span>
 <span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
 <span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> FixedBond</span>
 <span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>    coupon<span class="op">::</span><span class="dt">Float64</span></span>
-<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>    tenor<span class="op">::</span><span class="dt">Float64</span></span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>    tenor<span class="op">::</span><span class="dt">Int64</span></span>
 <span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
 <span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> FloatingBond</span>
 <span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a>    spread<span class="op">::</span><span class="dt">Float64</span></span>
-<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a>    tenor<span class="op">::</span><span class="dt">Float64</span></span>
+<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a>    tenor<span class="op">::</span><span class="dt">Int64</span></span>
 <span id="cb34-13"><a href="#cb34-13" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
 <span id="cb34-14"><a href="#cb34-14" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb34-15"><a href="#cb34-15" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> MunicipalBond</span>

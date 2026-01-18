@@ -755,16 +755,16 @@ Note
 <span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>cashflow_output</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>10-element Vector{Float64}:
-  50.26350997644971
-  50.26350997644971
- 344.26350997644994
-  50.26350997644971
- 400.2635099764497
-  50.26350997644971
-  50.26350997644971
-  50.26350997644971
-  50.26350997644971
- 406.26350997644965</code></pre>
+  50.88910333927834
+  50.88910333927834
+ 387.8891033392776
+  50.88910333927834
+ 384.88910333927765
+  50.88910333927834
+  50.88910333927834
+  50.88910333927834
+  50.88910333927834
+ 379.8891033392778</code></pre>
 </div>
 </div>
 <p>Julia’s <code>@allocated</code> macro will display the number of bytes allocated by an expression, helping you identify and eliminate unnecessary allocations.</p>
@@ -785,7 +785,7 @@ Note
 <p>What is cache-friendly memory access? Essentially it boils down to spatial and temporal locality.</p>
 <section id="spatial-locality" class="level4" data-number="10.3.2.1">
 <h4 data-number="10.3.2.1" class="anchored" data-anchor-id="spatial-locality"><span class="header-section-number">10.3.2.1</span> Spatial Locality</h4>
-<p>Spatial locality refers to accessing data that is physically near each other in memory (e..g contiguous blocks of data in an array).</p>
+<p>Spatial locality refers to accessing data that is physically near each other in memory (e.g.&nbsp;contiguous blocks of data in an array).</p>
 <p>For example, it is better to access data in a linear order rather than random order. In actuarial projections we often sum along policy-by-policy arrays; keeping the loop aligned with the storage order avoids cache misses. The benchmark below highlights the gap:</p>
 <div id="8" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">BenchmarkTools</span>, <span class="bu">Random</span></span>
@@ -833,20 +833,14 @@ Note
 <span id="cb5-43"><a href="#cb5-43" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"</span><span class="sc">\n</span><span class="st">Random access:"</span>)</span>
 <span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">random_sum</span>(<span class="op">$</span>large_array, <span class="op">$</span>shuffled_indices)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<div class="ansi-escaped-output">
-<pre><span class="ansi-green-fg ansi-bold">Precompiling</span> packages...
-    452.8 ms<span class="ansi-green-fg">  ✓ </span>QuartoNotebookWorkerJSONExt<span class="ansi-bright-black-fg"> (serial)</span>
-  1 dependency successfully precompiled in 0 seconds
-Sequential access:
-  529.083 μs (0 allocations: 0 bytes)
+<pre><code>Sequential access:
+  501.625 μs (0 allocations: 0 bytes)
 
 Random access:
-  2.341 ms (0 allocations: 0 bytes)
-</pre>
-</div>
+  2.167 ms (0 allocations: 0 bytes)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>500217.8478410592</code></pre>
+<pre><code>500382.9515269413</code></pre>
 </div>
 </div>
 <p>When the data is accessed in a linear order, it means that the computer can load chunks of data into the cache and it can operate on that cached data for several cycles before new data needs to be loaded into the cache. In contrast, when accessing the data randomly, then the cache frequently needs to be populated with a different set of bits from a completely different part of our array.</p>
@@ -855,15 +849,15 @@ Random access:
 <p>All multi-dimensional arrays in computer memory are actually stored linearly. When storing the multi-dimensional array, an architectural decision needs to be made at the language-level and Julia is column-major, similar to many performance-oriented languages and libraries (e.g.&nbsp;LAPACK, Fortran, Matlab). Values are stored going down the columns instead of across the rows.</p>
 <p>For example, this 2D array would be stored as <code>[1,2,3,...]</code> in memory, which is made clear via <code>vec</code> (which turns a multi-dimensional array into a 1D vector):</p>
 <div id="10" class="cell" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    array <span class="op">=</span> [</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>        <span class="fl">1</span> <span class="fl">4</span> <span class="fl">7</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>        <span class="fl">2</span> <span class="fl">5</span> <span class="fl">8</span></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>        <span class="fl">3</span> <span class="fl">6</span> <span class="fl">9</span></span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    ]</span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">vec</span>(array)</span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    array <span class="op">=</span> [</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>        <span class="fl">1</span> <span class="fl">4</span> <span class="fl">7</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>        <span class="fl">2</span> <span class="fl">5</span> <span class="fl">8</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>        <span class="fl">3</span> <span class="fl">6</span> <span class="fl">9</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    ]</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">vec</span>(array)</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>9-element Vector{Int64}:
  1
@@ -880,34 +874,34 @@ Random access:
 <p>When working with arrays, prefer accessing elements in column-major order (the default in Julia) to maximize spatial locality. This allows the CPU to prefetch data more effectively.</p>
 <p>You can see how summing up values across the first (column) dimension is much faster than summing across rows, because column-major storage keeps column elements contiguous in memory:</p>
 <div id="12" class="cell" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">sum</span>(arr, dims<span class="op">=</span><span class="fl">1</span>) setup <span class="op">=</span> arr <span class="op">=</span> <span class="fu">rand</span>(<span class="fl">1000</span>, <span class="fl">1000</span>)</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">sum</span>(arr, dims<span class="op">=</span><span class="fl">2</span>) setup <span class="op">=</span> arr <span class="op">=</span> <span class="fu">rand</span>(<span class="fl">1000</span>, <span class="fl">1000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">sum</span>(arr, dims<span class="op">=</span><span class="fl">1</span>) setup <span class="op">=</span> arr <span class="op">=</span> <span class="fu">rand</span>(<span class="fl">1000</span>, <span class="fl">1000</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">sum</span>(arr, dims<span class="op">=</span><span class="fl">2</span>) setup <span class="op">=</span> arr <span class="op">=</span> <span class="fu">rand</span>(<span class="fl">1000</span>, <span class="fl">1000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  73.250 μs (3 allocations: 8.08 KiB)
+<pre><code>  72.875 μs (3 allocations: 8.08 KiB)
   109.958 μs (3 allocations: 8.08 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>1000×1 Matrix{Float64}:
- 506.9509638329025
- 507.15757023381997
- 494.5905934248326
- 499.08303602462314
- 509.46463091668625
- 502.5064217978588
- 496.3025522836511
- 501.99622607677884
- 501.6834504230503
- 482.6450714059836
+ 489.9897392810706
+ 497.18559545143336
+ 496.3078370828444
+ 496.10323679620024
+ 509.0843987035319
+ 500.80486716339607
+ 515.3562481501599
+ 511.0424094909899
+ 476.0915577800482
+ 502.25596908520185
    ⋮
- 501.2391476370913
- 496.6624443082166
- 498.3487226467483
- 504.22630364555044
- 511.46346791677286
- 498.71795014698375
- 506.3927432812148
- 496.95554299557244
- 474.48814314642726</code></pre>
+ 497.101586941095
+ 507.15294873920493
+ 478.0902596430488
+ 505.0541357156579
+ 515.8360593466758
+ 502.7878805883341
+ 508.9816419710861
+ 494.11604616810695
+ 500.9662729992898</code></pre>
 </div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -1009,11 +1003,11 @@ Warning
 </dl>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  11.583 μs (2008 allocations: 49.91 KiB)
-  818.182 ns (10 allocations: 18.69 KiB)</code></pre>
+<pre><code>  11.125 μs (2008 allocations: 49.91 KiB)
+  817.952 ns (10 allocations: 18.69 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>490.29235967228567</code></pre>
+<pre><code>497.966155689233</code></pre>
 </div>
 </div>
 <p>The <code>unstable_example</code> function illustrates a common anti-pattern wherein an <code>Any</code> typed array is created and then elements are added to it. Because any type can be added to an <code>Any</code> array (we happen to just add floats to it) then Julia’s not sure what types to expect inside the container and therefore has to determine it at runtime.</p>
@@ -1058,29 +1052,29 @@ Tip
 </ol>
 <p>Here’s an example demonstrating the impact of branch prediction:</p>
 <div id="16" class="cell" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">process_data</span>(data, threshold)</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    total <span class="op">=</span> <span class="fl">0.0</span></span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> x <span class="kw">in</span> data</span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> x <span class="op">&gt;</span> threshold</span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>            total <span class="op">+=</span> <span class="fu">log</span>(x)</span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span></span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>            total <span class="op">+=</span> x</span>
-<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
-<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
-<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>    total</span>
-<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
-<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Random data = unpredictable branches</span></span>
-<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>rand_data <span class="op">=</span> <span class="fu">rand</span>(<span class="fl">1_000_000</span>)</span>
-<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Sorted data = predictable branches</span></span>
-<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>sorted_data <span class="op">=</span> <span class="fu">sort</span>(<span class="fu">rand</span>(<span class="fl">1_000_000</span>))</span>
-<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">process_data</span>(<span class="op">$</span>rand_data, <span class="fl">0.5</span>)</span>
-<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">process_data</span>(<span class="op">$</span>sorted_data, <span class="fl">0.5</span>);</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">process_data</span>(data, threshold)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    total <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> x <span class="kw">in</span> data</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> x <span class="op">&gt;</span> threshold</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>            total <span class="op">+=</span> <span class="fu">log</span>(x)</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>            total <span class="op">+=</span> x</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>    total</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Random data = unpredictable branches</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>rand_data <span class="op">=</span> <span class="fu">rand</span>(<span class="fl">1_000_000</span>)</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Sorted data = predictable branches</span></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>sorted_data <span class="op">=</span> <span class="fu">sort</span>(<span class="fu">rand</span>(<span class="fl">1_000_000</span>))</span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">process_data</span>(<span class="op">$</span>rand_data, <span class="fl">0.5</span>)</span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">process_data</span>(<span class="op">$</span>sorted_data, <span class="fl">0.5</span>);</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  5.126 ms (0 allocations: 0 bytes)
-  1.596 ms (0 allocations: 0 bytes)</code></pre>
+<pre><code>  4.744 ms (0 allocations: 0 bytes)
+  1.542 ms (0 allocations: 0 bytes)</code></pre>
 </div>
 </div>
 <p>In this example, having sorted data means that the CPU will predict which branch of the <code>if</code> statement is likely to be utilized. Sorting makes the branch outcome highly predictable for long stretches (all below-threshold values, then all above), improving the effectiveness of the branch predictor. By speculatively executing the code that it thinks will be used, the overall program time is faster when processing <code>sorted_data</code>.</p>
