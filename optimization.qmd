@@ -326,7 +326,7 @@ function initialize_solution()
 end
 
 # Random perturbation within bounds
-function perturb_solution(solution; step = 0.1)
+function perturb_solution(solution; step=0.1)
     perturbed = solution .+ step .* randn(length(solution))
     return clamp.(perturbed, bounds[1], bounds[2])
 end
@@ -387,7 +387,7 @@ rosenbrock(x) = (1 - x[1])^2 + 100 * (x[2] - x[1]^2)^2
 
 # PSO Implementation
 function particle_swarm_optimization(
-        objective, n_particles, n_iterations, bounds, dim; vmax=0.5)
+    objective, n_particles, n_iterations, bounds, dim; vmax=0.5)
     # Initialize particles
     span = bounds[2] - bounds[1]
     positions = [bounds[1] .+ span .* rand(dim) for _ in 1:n_particles]
@@ -409,9 +409,9 @@ function particle_swarm_optimization(
             # Update velocity
             r1, r2 = rand(), rand()
             velocities[i] .= clamp.(ω .* velocities[i] .+
-                             c1 .* r1 .* (personal_best_positions[i] .- positions[i]) .+
-                             c2 .* r2 .* (global_best_position .- positions[i]),
-                             -vmax, vmax)
+                                    c1 .* r1 .* (personal_best_positions[i] .- positions[i]) .+
+                                    c2 .* r2 .* (global_best_position .- positions[i]),
+                -vmax, vmax)
 
             # Update position
             positions[i] .+= velocities[i]
@@ -494,7 +494,7 @@ rastrigin(x) = 10length(x) + sum(xᵢ * xᵢ - 10cos(2π * xᵢ) for xᵢ in x)
 function initialize_population()
     span = bounds[2] - bounds[1]
     [bounds[1] .+ span .* rand(chromosome_length)
-        for _ in 1:population_size]
+     for _ in 1:population_size]
 end
 
 # Fitness function (negative because we are minimizing)
@@ -613,19 +613,27 @@ krig = Kriging(x_init, y_init, lb, ub; p=1.9)
 # Surrogate optimization loop (Expected Improvement)
 maxiters = 20
 num_new_samples = 200
-best_x, best_f = surrogate_optimize(f, EI(), lb, ub, krig, SobolSample(); maxiters=maxiters, num_new_samples=num_new_samples)
+best_x, best_f = surrogate_optimize(
+    f, EI(), lb, ub, krig, SobolSample();
+    maxiters=maxiters, num_new_samples=num_new_samples
+)
 
 # Plotting
 xs = collect(range(lb, ub, length=400))
 ys_true = f.(xs)
 ys_pred = krig.(xs)
 
-fig = Figure(size = (800, 500))
-ax = Axis(fig[1, 1], title = "Surrogate Optimization (Kriging + EI)", xlabel = "x", ylabel = "f(x)")
+fig = Figure(size=(800, 500))
+ax = Axis(
+    fig[1, 1],
+    title="Surrogate Optimization (Kriging + EI)",
+    xlabel="x", ylabel="f(x)"
+)
 # True function
 lines!(ax, xs, ys_true, color=:black, linewidth=2, label="True f(x)")
 # Surrogate prediction
-lines!(ax, xs, ys_pred, color=:red, linestyle=:dash, linewidth=2, label="Kriging surrogate")
+lines!(ax, xs, ys_pred, color=:red, linestyle=:dash, linewidth=2,
+    label="Kriging surrogate")
 # Initial samples
 scatter!(ax, x_init, y_init, color=:blue, markersize=10, label="Initial samples")
 # Best found point
@@ -746,8 +754,10 @@ using Random, LsqFit, CairoMakie
 
 x_data = 0:0.1:10
 y_data = 2 .* sin.(x_data) .+ 0.5 .* randn(length(x_data))
-# Define the model function, using a polynomial function to fit sinusoidal data for illustration purposes
-curve_model(x, p) = p[1] * x .^ 5 + p[2] * x .^ 4 .+ p[3] * x .^ 3 .+ p[4] * x .^ 2 .+ p[5] * x .+ p[6]
+# Define the model function, using a polynomial function 
+# to fit sinusoidal data for illustration purposes
+curve_model(x, p) = p[1] * x .^ 5 + p[2] * x .^ 4 .+ p[3] * x .^ 3 .+
+                    p[4] * x .^ 2 .+ p[5] * x .+ p[6]
 # Initial parameter guess
 p₀ = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
 # Fit the model to the data
@@ -758,7 +768,8 @@ params = coef(fit_result)
 y_fit = curve_model(x_data, params)
 # Plot the data and the fitted curve
 fig = Figure()
-Axis(fig[1, 1], title="Curve Fitting - a polynomial guess-fitting a sinusoidal function")
+Axis(fig[1, 1],
+    title="Curve Fitting - a polynomial guess-fitting a sinusoidal function")
 scatter!(x_data, y_data, label="Data")
 lines!(x_data, y_fit, label="Fitted Curve", linestyle=:dash, color=:red)
 fig

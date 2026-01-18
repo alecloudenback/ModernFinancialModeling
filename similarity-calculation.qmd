@@ -50,7 +50,7 @@ sample_csv_data =
          4,F,50000.0,college,2,60.0
          5,M,250000.0,college,1,40.0
          6,F,200000.0,high_school,2,30.0"
-    )
+    );
 ```
 
 ```{julia}
@@ -63,7 +63,11 @@ df_num = apply(MinMax(), df[:, [:benefit_base, :issue_age]])[1]
 ```{julia}
 using StatsBase
 
-arr_cat = hcat(indicatormat(df.sex)', indicatormat(df.education)', indicatormat(df.occupation)')
+arr_cat = hcat(
+    indicatormat(df.sex)',
+    indicatormat(df.education)',
+    indicatormat(df.occupation)'
+)
 ```
 
 `df_num` contains scaled benefit bases and issue ages, while `arr_cat` stores the one-hot encoding for sex, education, and occupation. Drop or regularize any column with zero range before scaling to avoid division-by-zero warnings. For unstructured inputs, substitute your favorite embedding model (Word2Vec for text, CNN features for images, spectrograms for audio); the downstream similarity routines stay the same once you have numeric vectors.
@@ -83,7 +87,8 @@ The distance is usually meaningful when applied to numerical data. The following
 ```{julia}
 using LinearAlgebra
 
-#d₁₂ = √(∑((Array(df_num[:, 1]) .- Array(df_num[:, 2])) .* (Array(df_num[:, 1]) .- Array(df_num[:, 2]))))
+#d₁₂ = √(∑((Array(df_num[:, 1]) .- Array(df_num[:, 2])) .* 
+#      (Array(df_num[:, 1]) .- Array(df_num[:, 2]))))
 d₁₂ = LinearAlgebra.norm(Array(df_num[:, 1]) .- Array(df_num[:, 2]))
 ```
 
@@ -117,7 +122,8 @@ The following Julia code shows the cosine similarity for the first two rows in d
 ```{julia}
 using LinearAlgebra
 
-d₁₂ = (Array(df_num[:, 1]) ⋅ Array(df_num[:, 2])) / norm(df_num[:, 1]) / norm(df_num[:, 2])
+d₁₂ = (Array(df_num[:, 1]) ⋅ Array(df_num[:, 2])) /
+      norm(df_num[:, 1]) / norm(df_num[:, 2])
 ```
 
 The following Julia code shows the cosine similarity for the first and the third rows in arr_cat.
@@ -195,7 +201,8 @@ println("Distances to Nearest Neighbors: ", distances)
 f = Figure()
 axis = Axis(f[1, 1], title="Nearest Neighbors Search")
 scatter!(data[1, :], data[2, :], label="Data Points", color=:blue)
-scatter!([query_point[1]], [query_point[2]], label="Query Point", color=:red, marker=:cross, markersize=10)
+scatter!([query_point[1]], [query_point[2]], label="Query Point",
+    color=:red, marker=:cross, markersize=10)
 
 # Highlight nearest neighbors
 for idx in indices

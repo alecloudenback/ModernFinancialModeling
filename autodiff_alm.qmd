@@ -205,13 +205,13 @@ end
 Example:
 
 ```{julia}
-cashflow_vectors = [l(c) for l in liabilities]
+cashflow_vectors = [l(c) for l in liabilities];
 ```
 
 And running `consolidate` groups the cashflows into `timepoint => amount` pairs.
 
 ```{julia}
-consolidate(cashflow_vectors)
+consolidate(cashflow_vectors);
 ```
 :::
 
@@ -338,8 +338,10 @@ let
         mapreduce(cf -> c(cf.time) * cf.amount,+,cfs)
     end
 
-    @show hessian(dynamic,AutoForwardDiff(),zero_rates) |> diag |> sum
-    @show hessian(static,AutoForwardDiff(),zero_rates) |> diag |> sum
+    a = hessian(dynamic,AutoForwardDiff(),zero_rates) |> diag |> sum
+    b = hessian(static,AutoForwardDiff(),zero_rates) |> diag |> sum
+
+    a, b
 end
 ```
 
@@ -369,7 +371,7 @@ vgh_assets = [
     value_gradient_and_hessian(
         x -> value(curve(x, times), a), AutoForwardDiff(), zero_rates)
     for a in asset_universe
-]
+];
 
 ```
 
@@ -523,7 +525,7 @@ Here, we value 100,000 interest-sensitive policies with a monthly timestep for u
 
 ```{julia}
 f = z -> annuities(z, liabilities)
-@btime value_gradient_and_hessian($f, AutoForwardDiff(), $zero_rates)
+@btime value_gradient_and_hessian($f, AutoForwardDiff(), $zero_rates);
 ```
 
 However, there's still some performance left on the table! the `(d::DeferredAnnuity)(curve)` function defined above is not type stable. In the appendix to this post, we'll cover a way to improve the performance even more.
@@ -587,20 +589,22 @@ Here's the macro that does this (expand to see the full definition):
 """
     @unroll N for_loop
 
-Unroll the first `N` iterations of a for loop, with remaining iterations handled by a regular loop.
+Unroll the first `N` iterations of a for loop, 
+with remaining iterations handled by a regular loop.
 
-This macro takes a for loop and explicitly expands the first `N` iterations, which can improve 
-performance and type stability, particularly when building collections where the first few 
-iterations determine the container's type.
+This macro takes a for loop and explicitly expands 
+the first `N` iterations, which can improve performance 
+and type stability, particularly when building collections 
+where the first few iterations determine the container's type.
 
 # Arguments
-- `N::Int`: Number of loop iterations to unroll (must be a compile-time constant)
+- `N::Int`: # of loop iterations to unroll (must be a compile-time constant)
 - `for_loop`: A standard for loop expression
 
 """
 macro unroll(N::Int, loop)
     Base.isexpr(loop, :for) || error("only works on for loops")
-    Base.isexpr(loop.args[1], :(=)) || error("This loop pattern isn't supported")
+    Base.isexpr(loop.args[1], :(=)) || error("Loop pattern not supported")
     val, itr = esc.(loop.args[1].args)
     body = esc(loop.args[2])
     @gensym loopend
@@ -662,7 +666,7 @@ Using this technique, we can see that we achieve a significant speedup (less tha
 
 ```{julia}
 f = z -> annuities(z, liabilities)
-@btime value_gradient_and_hessian($f, AutoForwardDiff(), $zero_rates)
+@btime value_gradient_and_hessian($f, AutoForwardDiff(), $zero_rates);
 ```
 
 [^zulip]: With thanks to the helpful persons on the Julia Zulip and in particular Mason Protter for this approach. 

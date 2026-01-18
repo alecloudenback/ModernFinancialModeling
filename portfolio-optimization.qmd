@@ -60,7 +60,8 @@ set_silent(model)
 @variable(model, w[1:n_assets] >= 0.0)
 # Objective: minimize portfolio variance
 @objective(model, Min, dot(w, Σ * w))
-# Constraints: Sum of portfolio weights should equal to 1, and all weights should be zero or positive
+# Constraints: Sum of portfolio weights should equal to 1, 
+# and all weights should be zero or positive
 @constraint(model, sum(w) == 1.0)
 # May also add additional constraints
 # target_return = 0.1
@@ -76,8 +77,8 @@ println("Optimal minimum mean-variance portfolio weights:")
 for (i, wᵢ) in enumerate(w_meanvar)
     println("Asset ", i, ": ", round(wᵢ, digits=4))
 end
-println("Portfolio mean optimized under mean-variance = ", round(μ_meanvar, digits = 4))
-println("Portfolio standard deviation optimized under mean-variance = ", round(σ_meanvar, digits = 4))
+println("Portfolio mean optimized under mean-variance = ", round(μ_meanvar, digits=4))
+println("Portfolio standard deviation optimized under mean-variance = ", round(σ_meanvar, digits=4))
 ```
 
 In real-world settings you may impose lower/upper bounds, forbid short positions, or layer liquidity constraints, but the structure is identical. Once the baseline model is producing sensible weights, iterate on additional business rules.
@@ -108,7 +109,8 @@ r = μ .- λ # risk adjusted returns
 @variable(model, w[1:n_assets] >= 0.0)
 # Objective: minimize portfolio variance
 @objective(model, Max, dot(r, w))
-# Constraints: Sum of portfolio weights should equal to 1, and all weights should be zero or positive
+# Constraints: Sum of portfolio weights should equal to 1, 
+# and all weights should be zero or positive
 @constraint(model, sum(w) == 1.0)
 # Constraints: Sum of allowable portfolio variance is limited
 @constraint(model, dot(w, Σ * w) <= σ²_max)
@@ -126,8 +128,8 @@ println("Portfolio weights with RBC-adjusted returns:")
 for (i, wᵢ) in enumerate(w_rbc)
     println("Asset ", i, ": ", round(wᵢ, digits=4))
 end
-println("Portfolio mean optimized under RBC = ", round(μ_rbc, digits = 4))
-println("Portfolio standard deviation optimized under RBC = ", round(σ_rbc, digits = 4))
+println("Portfolio mean optimized under RBC = ", round(μ_rbc, digits=4))
+println("Portfolio standard deviation optimized under RBC = ", round(σ_rbc, digits=4))
 ```
 
 Capital charges effectively haircut the expected return of risky assets. In this simple illustration the optimizer shifts weight toward the lower-cost asset once the variance constraint is binding. In a production setting you would source the adjustments from your solvency framework (for example, regulatory RBC factors or internal economic capital) and consider separate limits for issuer, sector, or region exposures.
@@ -140,9 +142,9 @@ The efficient frontier represents the set of portfolios that offer the highest e
 using JuMP, Ipopt, CairoMakie, LinearAlgebra
 import MathOptInterface as MOI
 
-function efficient_frontier(μ, Σ; points::Int = 100)
-    targets = range(minimum(μ), maximum(μ), length = points)
-    frontier = Tuple{Float64, Float64}[]
+function efficient_frontier(μ, Σ; points::Int=100)
+    targets = range(minimum(μ), maximum(μ), length=points)
+    frontier = Tuple{Float64,Float64}[]
     for target in targets
         model = Model(Ipopt.Optimizer)
         set_silent(model)
@@ -163,8 +165,8 @@ end
 ef = efficient_frontier(μ, Σ)
 # Plot Efficient Frontier
 fig = Figure()
-Axis(fig[1, 1], xlabel = "Portfolio Volatility (σ)", ylabel = "Expected Return (μ)")
-lines!(first.(ef), last.(ef), color = :dodgerblue, linewidth = 2)
+Axis(fig[1, 1], xlabel="Portfolio Volatility (σ)", ylabel="Expected Return (μ)")
+lines!(first.(ef), last.(ef), color=:dodgerblue, linewidth=2)
 fig
 ```
 
@@ -218,7 +220,8 @@ set_silent(model)
 @variable(model, w[1:n_assets] >= 0.0)
 # Objective: maximize sharpe ratio
 @objective(model, Max, dot(μ_BL, w) - (λ / 2) * dot(w, Σ_prior * w))
-# Constraints: Sum of portfolio weights should equal to 1, and all weights should be zero or positive
+# Constraints: Sum of portfolio weights should equal to 1, 
+# and all weights should be zero or positive
 @constraint(model, sum(w) == 1.0)
 # Solve the optimization problem
 optimize!(model)
@@ -226,12 +229,14 @@ w_BL = value.(w)
 μ_BLpost = dot(μ_BL, w_BL)
 σ_BLpost = sqrt(dot(w_BL, Σ_prior * w_BL))
 # Print results
-println("Portfolio standard deviation optimized under Black-Litterman = ", round(σ_BLpost, digits = 4))
+println("Portfolio standard deviation optimized under Black-Litterman = ",
+    round(σ_BLpost, digits=4))
 for (i, wᵢ) in enumerate(w_BL)
     println("Asset ", i, ": ", round(wᵢ, digits=4))
 end
 println("Portfolio Weights optimized under Black-Litterman:")
-println("Portfolio mean optimized under Black-Litterman = ", round(μ_BLpost, digits = 4))
+println("Portfolio mean optimized under Black-Litterman = ",
+    round(μ_BLpost, digits=4))
 ```
 
 Black-Litterman provides a disciplined way to blend equilibrium returns (for instance, those implied by a global CAP-weighted index) with discretionary views. The prior acts as an anchor; the pick matrix $P$, the view vector $Q$, and the confidence matrix $\Omega$ tilt the portfolio toward convictions. In practice you would calibrate $\tau$ and the $\Omega$ diagonal entries so that strong views meaningfully shift allocations while weak views barely move the dial.
@@ -264,7 +269,8 @@ set_silent(model)
 @expression(model, RC[i=1:n_assets], (w[i] * Σw[i]) / (var_p + eps()))
 @expression(model, target_contribution, var_p / n_assets)
 @objective(model, Min, sum((RC[i] - target_contribution)^2 for i in 1:n_assets))
-# Constraints: Sum of portfolio weights should equal to 1, and all weights should be zero or positive
+# Constraints: Sum of portfolio weights should equal to 1, 
+# and all weights should be zero or positive
 @constraint(model, sum(w) == 1.0)
 # Solve the optimization problem
 optimize!(model)
@@ -308,8 +314,14 @@ set_silent(model)
 @variable(model, w[1:n_assets] >= 0.0)
 # Objective: minimize portfolio variance
 rfr = 0.05 # risk free rate
-@objective(model, Max, (dot(μ, w) - rfr) / sqrt(sum(w[i] * Σ[i, j] * w[j] for i in 1:n_assets, j in 1:n_assets) + eps()))
-# Constraints: Sum of portfolio weights should equal to 1, and all weights should be zero or positive
+@objective(
+    model,
+    Max,
+    (dot(μ, w) - rfr) /
+    sqrt(sum(w[i] * Σ[i, j] * w[j] for i in 1:n_assets, j in 1:n_assets) + eps())
+)
+# Constraints: Sum of portfolio weights should equal to 1, 
+# and all weights should be zero or positive
 @constraint(model, sum(w) == 1.0)
 # Solve the optimization problem
 optimize!(model)
@@ -323,9 +335,11 @@ println("Optimal portfolio weights using Sharpe Ratio:")
 for (i, wᵢ) in enumerate(w_sharpe)
     println("Asset ", i, ": ", round(wᵢ, digits=4))
 end
-println("Sharpe ratio = ", round(sharpe_ratio, digits = 4))
-println("Portfolio mean optimized using Sharpe Ratio = ", round(μ_sharpe, digits = 4))
-println("Portfolio standard deviation optimized using Sharpe Ratio = ", round(σ_sharpe, digits = 4))
+println("Sharpe ratio = ", round(sharpe_ratio, digits=4))
+println("Portfolio mean optimized using Sharpe Ratio = ",
+    round(μ_sharpe, digits=4))
+println("Portfolio standard deviation optimized using Sharpe Ratio = ",
+    round(σ_sharpe, digits=4))
 ```
 
 Maximizing the Sharpe ratio is equivalent to choosing the tangency portfolio when a risk-free asset is available. The non-linear objective makes the problem slightly harder than the quadratic programs we solved earlier, but `Ipopt` handles it comfortably. Many practitioners linearize the problem by fixing variance and maximizing excess return, then scanning along the frontier as needed.
@@ -356,9 +370,11 @@ set_silent(model)
 γ = 0.1  # Robustness parameter
 w₀ = [0.3, 0.4, 0.3] # expected weights
 @objective(model, Min, dot(w, Σ * w) + γ * sum((w[i] - w₀[i])^2 for i in 1:n_assets))
-# Constraints: Sum of portfolio weights should equal to 1, and all weights should be zero or positive
+# Constraints: Sum of portfolio weights should equal to 1, 
+# and all weights should be zero or positive
 @constraint(model, sum(w) == 1)
-@constraint(model, sum(((w[i] - w₀[i]) * Σ[i, j] * (w[j] - w₀[j])) for i in 1:n_assets, j in 1:n_assets) <= ε)
+@constraint(model,
+    sum(((w[i] - w₀[i]) * Σ[i, j] * (w[j] - w₀[j])) for i in 1:n_assets, j in 1:n_assets) <= ε)
 # Solve the optimization problem
 optimize!(model)
 w_robust = value.(w)
@@ -369,8 +385,10 @@ println("Portfolio Weights under robust optimization:")
 for (i, wᵢ) in enumerate(w_robust)
     println("Asset ", i, ": ", round(wᵢ, digits=4))
 end
-println("Portfolio mean under robust optimization = ", round(μ_robust, digits = 4))
-println("Portfolio standard deviation under robust optimization = ", round(σ_robust, digits = 4))
+println("Portfolio mean under robust optimization = ",
+    round(μ_robust, digits=4))
+println("Portfolio standard deviation under robust optimization = ",
+    round(σ_robust, digits=4))
 ```
 
 Robust optimization frameworks vary from simple shrinkage toward a reference portfolio (as shown here) to full-fledged worst-case analysis across an uncertainty set. They are especially helpful when market regimes shift quickly or when return estimates are notoriously noisy, as is common with alternative assets and private markets.

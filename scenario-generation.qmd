@@ -246,7 +246,8 @@ function hull_white_theta_timevar_sigma(years, prices, σt; a::Float64)
     f0(t) = -DataInterpolations.derivative(interp_logP, t)
     df0(t) = -DataInterpolations.derivative(interp_logP, t, 2)
 
-    # Precompute Δs_j (left Riemann widths). assumes years[1] == 0 or handles first width as years[1].
+    # Precompute Δs_j (left Riemann widths). 
+    # assumes years[1] == 0 or handles first width as years[1].
     Δs = Vector{Float64}(undef, length(years))
     Δs[1] = years[1] # if years[1]==0 this is zero; else left interval from 0
     for j in 2:length(years)
@@ -259,13 +260,16 @@ function hull_white_theta_timevar_sigma(years, prices, σt; a::Float64)
         ti = years[i]
         s = 0.0
         acc = 0.0
-        # left Riemann: use sigma at s = years[j] for interval [years[j], years[j+1])
+        # left Riemann: use sigma at s = years[j] for 
+        # interval [years[j], years[j+1])
         for j in 1:i
             sj = years[j]
-            # width Δs[j] approximates length of [sj, sj+1) (or [0, years[1]] for j=1)
+            # width Δs[j] approximates length of 
+            # [sj, sj+1) (or [0, years[1]] for j=1)
             w = Δs[j]
             if w <= 0
-                # if grid is pure points (years[1]==0 and Δs[1]==0), skip zero-width
+                # if grid is pure points (years[1]==0 and Δs[1]==0), 
+                # skip zero-width
                 continue
             end
             # integrand evaluated at left point sj
@@ -427,7 +431,8 @@ function garch_simulation(rng::AbstractRNG, ω, α₁, β₁, num_steps, num_sim
     for j in 1:num_sims
         returns[1, j] = volatility_paths[1, j] * randn(rng)
         for i in 2:num_steps
-            σ² = ω + α₁ * returns[i-1, j] * returns[i-1, j] + β₁ * volatility_paths[i-1, j] * volatility_paths[i-1, j]
+            σ² = ω + α₁ * returns[i-1, j] * returns[i-1, j] +
+                 β₁ * volatility_paths[i-1, j] * volatility_paths[i-1, j]
             volatility_paths[i, j] = sqrt(σ²)
             returns[i, j] = volatility_paths[i, j] * randn(rng)
         end
@@ -457,7 +462,11 @@ let
 
     # Plot the simulated volatility paths
     f = Figure()
-    ax = Axis(f[1, 1], xlabel="Trading days", ylabel="Volatility", title="GARCH(1, 1) conditional volatility")
+    ax = Axis(
+        f[1, 1],
+        xlabel="Trading days", ylabel="Volatility",
+        title="GARCH(1, 1) conditional volatility"
+    )
     for i in 1:num_simulations
         lines!(ax, 1:num_steps, garch_paths[:, i])
     end
@@ -509,7 +518,9 @@ let
     d̂2 = fit(Pareto, simu[2, :])
     d̂3 = fit(LogNormal, simu[3, :])
     # Probability integral transform to uniforms
-    Û = permutedims(hcat(cdf.(d̂1, simu[1, :]), cdf.(d̂2, simu[2, :]), cdf.(d̂3, simu[3, :])))
+    Û = permutedims(
+        hcat(cdf.(d̂1, simu[1, :]), cdf.(d̂2, simu[2, :]), cdf.(d̂3, simu[3, :]))
+    )
     # Fit copula on uniforms
     Ĉ = fit(ClaytonCopula, Û)
     # Compose the estimated Sklar distribution
@@ -522,23 +533,29 @@ let
     fig = Figure(size=(1000, 800))
 
     # Plot pairwise scatter plots
-    ax1 = Axis(fig[1, 1], xlabel="X₁ (Gamma)", ylabel="X₂ (Pareto)", title="Original Data")
-    scatter!(ax1, simu[1, :], simu[2, :], markersize=3, color=:steelblue, alpha=0.5)
+    ax1 = Axis(fig[1, 1], xlabel="X₁ (Gamma)", ylabel="X₂ (Pareto)",
+        title="Original Data")
+    scatter!(ax1, simu[1, :], simu[2, :], markersize=3, color=:steelblue,
+        alpha=0.5)
 
-    ax2 = Axis(fig[1, 2], xlabel="X₁ (Gamma)", ylabel="X₂ (Pareto)", title="Fitted Distribution")
-    scatter!(ax2, simu_fitted[1, :], simu_fitted[2, :], markersize=3, color=:coral, alpha=0.5)
+    ax2 = Axis(fig[1, 2], xlabel="X₁ (Gamma)", ylabel="X₂ (Pareto)",
+        title="Fitted Distribution")
+    scatter!(ax2, simu_fitted[1, :], simu_fitted[2, :], markersize=3,
+        color=:coral, alpha=0.5)
 
     ax3 = Axis(fig[2, 1], xlabel="X₁ (Gamma)", ylabel="X₃ (LogNormal)")
     scatter!(ax3, simu[1, :], simu[3, :], markersize=3, color=:steelblue, alpha=0.5)
 
     ax4 = Axis(fig[2, 2], xlabel="X₁ (Gamma)", ylabel="X₃ (LogNormal)")
-    scatter!(ax4, simu_fitted[1, :], simu_fitted[3, :], markersize=3, color=:coral, alpha=0.5)
+    scatter!(ax4, simu_fitted[1, :], simu_fitted[3, :], markersize=3,
+        color=:coral, alpha=0.5)
 
     ax5 = Axis(fig[3, 1], xlabel="X₂ (Pareto)", ylabel="X₃ (LogNormal)")
     scatter!(ax5, simu[2, :], simu[3, :], markersize=3, color=:steelblue, alpha=0.5)
 
     ax6 = Axis(fig[3, 2], xlabel="X₂ (Pareto)", ylabel="X₃ (LogNormal)")
-    scatter!(ax6, simu_fitted[2, :], simu_fitted[3, :], markersize=3, color=:coral, alpha=0.5)
+    scatter!(ax6, simu_fitted[2, :], simu_fitted[3, :], markersize=3,
+        color=:coral, alpha=0.5)
 
     fig
 end

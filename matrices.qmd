@@ -27,7 +27,7 @@ We first review basic matrix manipulation routines before going into more advanc
 
 Think of each matrix as a data grid (like a spreadsheet). Adding or subtracting values element by element is analogous to combining two sets of financial figures—such as merging cash inflows and outflows.
 
-Example: Combining variations in `A` and `B` where each element represents a specific scenario's impact when doing cash flow projections. We would like to see combined variations of `A` and `B`, and we also would like to know the difference in variations between `A` and `B`.
+Example: Combining variations in `A` and `B` where each element represents a specific scenario's impact when doing cash flow projections. We would like to know the difference in variations between `A` and `B`.
 
 ```{julia}
 # Define two matrices with returns across 3 assets over 4 scenarios
@@ -35,18 +35,14 @@ A = [0.01 0.02 -0.01;
     0.03 0.01 0.04;
     -0.02 0.01 0.02;
     -0.03 0.03 0.01]
+
 B = [0.02 0.01 -0.01;
     0.02 0.01 -0.01;
     -0.01 0.02 0.01;
     0.01 0.02 -0.02]
-# Perform element-wise matrix addition and subtraction
-C = A .+ B
+
+# Perform element-wise subtraction
 D = A .- B
-# Display the result
-println("Result of matrix addition:")
-println(C)
-println("Result of matrix subtraction:")
-println(D)
 ```
 
 ### Transpose
@@ -62,9 +58,6 @@ A = [1 2 3;
     7 8 9]
 # Perform matrix transpose
 B = A'
-# Display the result
-println("Result of matrix transpose:")
-println(B)
 ```
 
 ::: callout-tip
@@ -102,11 +95,9 @@ using LinearAlgebra
 A = [2.5e-6 2.5e-6 -1.25e-6;
     2.5e-6 2.5e-6 -1.25e-6;
     -1.25e-6 -1.25e-6 1.25e-6]
+
 # Perform matrix determinant calculation
 B = det(A)
-# Display the result
-println("Result of matrix determinant:")
-println(B)
 ```
 
 ### Trace
@@ -124,9 +115,6 @@ A = [2.5e-6 2.5e-6 -1.25e-6;
     -1.25e-6 -1.25e-6 1.25e-6]
 # Perform matrix trace calculation
 B = tr(A)
-# Display the result
-println("Result of matrix trace:")
-println(B)
 ```
 
 ### Norm
@@ -148,11 +136,9 @@ A = [-0.01 0.01 0.0;
     0.01 0.0 0.05;
     -0.01 -0.01 0.01;
     -0.04 0.01 0.03]
+
 # Perform matrix norm calculation
 B = norm(A)
-# Display the result
-println("Result of matrix norm:")
-println(B)
 ```
 
 Julia's `norm` defaults to the Frobenius norm for matrices. Specify `norm(A, 2)` for the operator (spectral) norm if you need the largest singular value instead.
@@ -178,11 +164,9 @@ A = [0.01 0.02 -0.01;
 B = [0.8 0.2;
     0.5 0.5;
     0.3 0.7]
+
 # Perform non-element-wise matrix multiplication
 C = A * B
-# Display the result
-println("Result of non-element-wise matrix multiplication:")
-println(C)
 ```
 
 On the other hand, element-wise multiplication multiplies corresponding elements directly (like applying a weight matrix).
@@ -195,15 +179,14 @@ A = [100 120 150;
     50 60 70;
     200 180 160;
     80 90 100]
+
 B = [0.8 0.8 0.7;
     0.5 0.5 0.4;
     0.3 0.2 0.1;
     0.2 0.5 0.8]
+
 # Perform element-wise matrix multiplication
 C = A .* B
-# Display the result
-println("Result of element-wise matrix multiplication:")
-println(C)
 ```
 
 ### Inversion
@@ -217,11 +200,9 @@ That said, production code typically avoids forming the inverse explicitly; inst
 ```{julia}
 # Define a linear system
 A = [1 -0.2 0; -0.1 1 -0.1; 0 -0.3 1]
+
 # Compute the inverse of the matrix
-A_inv = inv(A) # Tip: Prefer solving systems with A \ b instead of inv(A) * b for numerical stability and performance.
-# Display the result
-println("Inverse of matrix A:")
-println(A_inv)
+A_inv = inv(A)
 ```
 
 ::: callout-tip
@@ -254,19 +235,9 @@ using LinearAlgebra
 A = [4.0 1.0 2.0;
     1.0 3.0 0.0;
     2.0 0.0 5.0]
+
 # Perform eigenvalue decomposition
 eigen_A = eigen(A)
-# Extract eigenvalues and eigenvectors
-λ = eigen_A.values
-V = eigen_A.vectors
-
-# Display the results
-println("Original Matrix:")
-println(A)
-println("\nEigenvalues:")
-println(λ)
-println("\nEigenvectors:")
-println(V)
 ```
 
 ::: callout-note
@@ -285,32 +256,47 @@ Singular value decomposition (SVD) breaks a matrix into three matrices U, Σ, an
 - In machine learning, SVD helps extract important features from datasets.
 - SVD provides insights into the relationships within data. The singular values indicate the strength of the relationship, while the singular vectors offer a way to visualize and interpret those relationships.
 
+// ...existing code...
 ```{julia}
 using Random, LinearAlgebra
 
 # Create a random matrix
 A = rand(4, 3)
-# Perform Singular Value Decomposition (SVD)
-U, Σ, V = svd(A)
-# U: Left singular vectors
-# Σ: Singular values (diagonal matrix)
-# V: Right singular vectors (transpose)
-# Reconstruct original matrix
-A_reconstructed = U * Diagonal(Σ) * V'
+```
 
-# Display the results
-println("Original Matrix:")
-println(A)
-println("\nLeft Singular Vectors:")
-println(U)
-println("\nSingular Values:")
-println(Σ)
-println("\nRight Singular Vectors:")
-println(V)
-println("\nReconstructed Matrix:")
-println(A_reconstructed)
-println("\nReconstructed Matrix matches Original Matrix:")
-println(A_reconstructed ≈ A)
+```{julia}
+# Perform Singular Value Decomposition (SVD)
+U, Σ, V = svd(A);
+```
+
+Left Singular Vectors (U):
+
+```{julia}
+U
+```
+
+Singular Values (Σ):
+
+```{julia}
+Σ
+```
+
+Right Singular Vectors (V):
+
+```{julia}
+V
+```
+
+Reconstructed Matrix:
+
+```{julia}
+A_reconstructed = U * Diagonal(Σ) * V'
+```
+
+Reconstructed Matrix matches Original Matrix:
+
+```{julia}
+A_reconstructed ≈ A
 ```
 
 ### Matrix Factorization and Factorization Machines
@@ -332,7 +318,7 @@ num_items = 50
 num_ratings = 500
 user_ids = rand(1:num_users, num_ratings)
 item_ids = rand(1:num_items, num_ratings)
-ratings  = rand(1:5, num_ratings)
+ratings = rand(1:5, num_ratings)
 
 events = [Event(user_ids[i], item_ids[i], Float64(ratings[i])) for i in 1:num_ratings]
 
@@ -341,7 +327,7 @@ Random.seed!(1234)
 shuffle!(events)
 train_size = round(Int, 0.8 * num_ratings)
 train_events = events[1:train_size]
-test_events  = events[train_size+1:end]
+test_events = events[train_size+1:end]
 
 # 3. DataAccessor
 da_train = DataAccessor(train_events, num_users, num_items)
@@ -351,18 +337,24 @@ recommender = MatrixFactorization(da_train)
 
 # 5. Train with hyperparameters
 build!(recommender;
-       reg=0.05,
-       learning_rate=0.007,
-       eps=1e-4,
-       max_iter=20,
-       random_init=true)
+    reg=0.05,
+    learning_rate=0.007,
+    eps=1e-4,
+    max_iter=20,
+    random_init=true)
 
 # 6. Recommend for a user
 user = 1
 k = 5
 candidates = collect(1:num_items)
+
+# Recommendations for user
 rec_list = recommend(recommender, user, k, candidates)
-println("Recommendations for user $user: ", rec_list)
+```
+
+Next we evaluate the RMSE:
+
+```{julia}
 
 # 7. Evaluate RMSE
 predicted = Float64[]
@@ -374,7 +366,6 @@ for ev in test_events
 end
 
 rmse = measure(RMSE(), predicted, actual)
-println("Test RMSE = ", rmse)
 ```
 
 Lower RMSE indicates better out-of-sample accuracy. In production you would also monitor business metrics — such as product uptake or credit conversion — but RMSE is a good sanity check that the latent factors are capturing the signal.

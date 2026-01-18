@@ -271,7 +271,8 @@ x = randn(100)  # For scatter plot
 
 # Combine individual plots into a 2x2 layout
 f = Figure()
-barplot(f[1, 1], 1:4, sales, axis=(xticks=(1:4, categories), title="bar", xticklabelsize=10))
+barplot(f[1, 1], 1:4, sales, axis=(xticks=(1:4, categories), title="bar",
+    xticklabelsize=10))
 axis = Axis(f[1, 2], title="line")
 lines!(f[1, 2], cumsum(x))
 axis = Axis(f[2, 1], title="scatter")
@@ -400,15 +401,23 @@ fig
 
 ```{julia}
 using GeoJSON, Downloads, DataFrames, CairoMakie, Colors, Random
-
-geo = GeoJSON.read(Downloads.download("https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/united-states.geojson"))
+dl = Downloads.download(
+    "https://raw.githubusercontent.com/codeforamerica/" *
+    "click_that_hood/master/public/data/united-states.geojson"
+)
+geo = GeoJSON.read(dl)
 state_names = [f.properties[:name] for f in geo.features]
 Random.seed!(100)
 metric = rand(49)
 df_states = DataFrame(name=state_names, value=metric)
 
 fig = Figure()
-ax = Axis(fig[1, 1], title="Synthetic state metric", xgridvisible=false, ygridvisible=false, xlabel="", ylabel="")
+ax = Axis(
+    fig[1, 1],
+    title="Synthetic state metric",
+    xgridvisible=false, ygridvisible=false,
+    xlabel="", ylabel=""
+)
 
 grad = cgrad(:viridis)
 for feature in geo.features
@@ -416,11 +425,13 @@ for feature in geo.features
     xs = first.(coords)
     ys = last.(coords)
     name = feature.properties[:name]
-    val = df_states[df_states.name .== name, :value]
+    val = df_states[df_states.name.==name, :value]
     color = isempty(val) ? :gray80 : get(grad, val[1])
     poly!(ax, xs, ys, color=color, strokecolor=:white, strokewidth=0.5)
 end
-hidespines!(ax); hidexdecorations!(ax); hideydecorations!(ax)
+hidespines!(ax);
+hidexdecorations!(ax);
+hideydecorations!(ax);
 
 fig
 ```

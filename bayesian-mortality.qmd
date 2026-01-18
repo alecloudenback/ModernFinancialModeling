@@ -57,7 +57,8 @@ end
 ```
 
 ```{julia}
-base_table = MortalityTables.table("2001 VBT Residual Standard Select and Ultimate - Male Nonsmoker, ANB")
+tbl_name = "2001 VBT Residual Standard Select and Ultimate - Male Nonsmoker, ANB"
+base_table = MortalityTables.table(tbl_name)
 
 function tabular_mortality(params, issue_age, att_age, risk_level)
     q = params.ultimate[att_age]
@@ -118,7 +119,8 @@ data = combine(groupby(exposures, [:issue_age, :att_age])) do subdf
 end
 
 
-data2 = combine(groupby(exposures, [:issue_age, :att_age, :risk_level])) do subdf
+grp = groupby(exposures, [:issue_age, :att_age, :risk_level])
+data2 = combine(grp) do subdf
     (exposures=nrow(subdf),
         deaths=sum(subdf.death),
         fraction=sum(subdf.death) / nrow(subdf))
@@ -180,7 +182,7 @@ let
         data.fraction,
         markersize=data_weight,
         color=(:blue, 0.5),
-        label="Experience data point (size indicates relative exposure quantity)",)
+        label="Experience data (size ~ exposure)",)
 
     # show n samples from the posterior plotted on the graph
     n = 300
@@ -312,7 +314,7 @@ let
         data.fraction,
         markersize=data_weight,
         color=(:blue, 0.5),
-        label="Experience data point (size indicates relative exposure quantity)",)
+        label="Experience data (size ~ exposure)",)
 
     # show n samples from the posterior plotted on the graph
     n = 300
