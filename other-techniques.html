@@ -878,7 +878,7 @@ window.Quarto = {
 <span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>restored <span class="op">=</span> <span class="fu">deserialize</span>(path)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>ModelState([1.0, 2.0], 42, DateTime("2026-01-18T10:41:38.517"), "OLS on 2025-08-11")</code></pre>
+<pre><code>ModelState([1.0, 2.0], 42, DateTime("2026-01-18T16:44:49.653"), "OLS on 2025-08-11")</code></pre>
 </div>
 </div>
 <p>Tip: Keep snapshot files small and focused. Store big inputs (e.g., loan-level data) separately in efficient tabular formats and reference them via metadata (e.g., file hashes/paths) in the snapshot.</p>
@@ -927,32 +927,36 @@ window.Quarto = {
 <span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="fu">bytes2hex</span>(<span class="fu">sha1</span>(<span class="fu">take!</span>(io)))</span>
 <span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
 <span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">memoize_to_disk</span>(f; label<span class="op">::</span><span class="dt">AbstractString</span>=<span class="st">"f"</span>, cache_dir<span class="op">::</span><span class="dt">AbstractString</span>=<span class="st">"cache"</span>)</span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mkpath</span>(cache_dir)</span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">function</span> (args<span class="op">...</span>; kwargs<span class="op">...</span>)</span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>        key <span class="op">=</span> <span class="fu">cachekey</span>(label, args<span class="op">...</span>; kwargs<span class="op">...</span>)</span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>        path <span class="op">=</span> <span class="fu">joinpath</span>(cache_dir, <span class="fu">string</span>(key, <span class="st">".jls"</span>))</span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="fu">isfile</span>(path)</span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="fu">deserialize</span>(path)</span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span></span>
-<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>            res <span class="op">=</span> <span class="fu">f</span>(args<span class="op">...</span>; kwargs<span class="op">...</span>)</span>
-<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Atomic write</span></span>
-<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>            tmp <span class="op">=</span> <span class="fu">tempname</span>(cache_dir)</span>
-<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>            <span class="fu">serialize</span>(tmp, res)</span>
-<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>            <span class="fu">mv</span>(tmp, path; force<span class="op">=</span><span class="cn">true</span>)</span>
-<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> res</span>
-<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
-<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>    <span class="kw">end</span></span>
-<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
-<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a><span class="co"># Example: cache an OLS fit (stand-in for a slow calibration)</span></span>
-<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>ols <span class="op">=</span> (X, y) <span class="op">-&gt;</span> X <span class="op">\</span> y</span>
-<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>ols_cached <span class="op">=</span> <span class="fu">memoize_to_disk</span>(ols; label<span class="op">=</span><span class="st">"ols_v1"</span>)</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">memoize_to_disk</span>(</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    f;</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    label<span class="op">::</span><span class="dt">AbstractString</span>=<span class="st">"f"</span>,</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    cache_dir<span class="op">::</span><span class="dt">AbstractString</span>=<span class="st">"cache"</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mkpath</span>(cache_dir)</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="kw">function</span> (args<span class="op">...</span>; kwargs<span class="op">...</span>)</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>        key <span class="op">=</span> <span class="fu">cachekey</span>(label, args<span class="op">...</span>; kwargs<span class="op">...</span>)</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>        path <span class="op">=</span> <span class="fu">joinpath</span>(cache_dir, <span class="fu">string</span>(key, <span class="st">".jls"</span>))</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="fu">isfile</span>(path)</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="fu">deserialize</span>(path)</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>            res <span class="op">=</span> <span class="fu">f</span>(args<span class="op">...</span>; kwargs<span class="op">...</span>)</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Atomic write</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>            tmp <span class="op">=</span> <span class="fu">tempname</span>(cache_dir)</span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>            <span class="fu">serialize</span>(tmp, res)</span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>            <span class="fu">mv</span>(tmp, path; force<span class="op">=</span><span class="cn">true</span>)</span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> res</span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>    <span class="kw">end</span></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
 <span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a><span class="co"># First call computes and caches; second call loads from disk</span></span>
-<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>θa <span class="op">=</span> <span class="fu">ols_cached</span>([<span class="fu">ones</span>(<span class="fl">3</span>) [<span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">3.0</span>]], [<span class="fl">1.0</span>, <span class="fl">3.0</span>, <span class="fl">5.0</span>])</span>
-<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>θb <span class="op">=</span> <span class="fu">ols_cached</span>([<span class="fu">ones</span>(<span class="fl">3</span>) [<span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">3.0</span>]], [<span class="fl">1.0</span>, <span class="fl">3.0</span>, <span class="fl">5.0</span>])</span>
-<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a><span class="pp">@assert</span> θa <span class="op">==</span> θb</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a><span class="co"># Example: cache an OLS fit (stand-in for a slow calibration)</span></span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>ols <span class="op">=</span> (X, y) <span class="op">-&gt;</span> X <span class="op">\</span> y</span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>ols_cached <span class="op">=</span> <span class="fu">memoize_to_disk</span>(ols; label<span class="op">=</span><span class="st">"ols_v1"</span>)</span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a><span class="co"># First call computes and caches; second call loads from disk</span></span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a>θa <span class="op">=</span> <span class="fu">ols_cached</span>([<span class="fu">ones</span>(<span class="fl">3</span>) [<span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">3.0</span>]], [<span class="fl">1.0</span>, <span class="fl">3.0</span>, <span class="fl">5.0</span>])</span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a>θb <span class="op">=</span> <span class="fu">ols_cached</span>([<span class="fu">ones</span>(<span class="fl">3</span>) [<span class="fl">1.0</span>, <span class="fl">2.0</span>, <span class="fl">3.0</span>]], [<span class="fl">1.0</span>, <span class="fl">3.0</span>, <span class="fl">5.0</span>])</span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a><span class="pp">@assert</span> θa <span class="op">==</span> θb</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="callout callout-style-default callout-tip callout-titled">
 <div class="callout-header d-flex align-content-center">
@@ -1008,8 +1012,8 @@ window.Quarto = {
 <span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Mean Absolute Error (MAE): "</span>, mae)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Static validation (chronological holdout):
-Mean Squared Error (MSE): 0.013693059831948328
-Mean Absolute Error (MAE): 0.09550693667561173</code></pre>
+Mean Squared Error (MSE): 0.010994987800982053
+Mean Absolute Error (MAE): 0.08688188501242941</code></pre>
 </div>
 </div>
 <p>The following example shows how to do a dynamic validation in Julia.</p>

@@ -56,7 +56,27 @@ div.sourceCode
 @media screen {
 pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js" integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2" crossorigin="anonymous"></script><script src="site_libs/quarto-nav/quarto-nav.js"></script>
@@ -985,19 +1005,19 @@ Tip
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">BenchmarkTools</span></span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">f3</span>(x) setup <span class="op">=</span> x <span class="op">=</span> <span class="fu">rand</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  4.833 ns (0 allocations: 0 bytes)</code></pre>
+<pre><code>  5.541 ns (0 allocations: 0 bytes)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>14.358351337461517</code></pre>
+<pre><code>9.3279708592136</code></pre>
 </div>
 </div>
 <div id="30" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">f3</span>(<span class="fu">DualNumber</span>(x, <span class="fl">1</span>)) setup <span class="op">=</span> x <span class="op">=</span> <span class="fu">rand</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  9.510 ns (0 allocations: 0 bytes)</code></pre>
+<pre><code>  9.843 ns (0 allocations: 0 bytes)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>DualNumber{Float64, Float64}(8.284254584439902, 9.690966830691721)</code></pre>
+<pre><code>DualNumber{Float64, Float64}(10.706822324653386, 10.268448327779748)</code></pre>
 </div>
 </div>
 <p>In performing this computation, the compiler has been able to optimize it such that we effectively are able to compute the function and its derivative at less than two times the cost of the base function evaluation. As the function gets more complex, the overhead does increase but is still a generally preferred versus finite differentiation. This advantage becomes more pronounced as we contemplate derivatives with respect to many variables at once or for higher-order derivatives.</p>
@@ -1036,27 +1056,29 @@ Note
 <span id="annotated-cell-14-14"><a href="#annotated-cell-14-14" aria-hidden="true" tabindex="-1"></a><span class="st">"""</span></span>
 <span id="annotated-cell-14-15"><a href="#annotated-cell-14-15" aria-hidden="true" tabindex="-1"></a><span class="st">    eurocall(parameters)</span></span>
 <span id="annotated-cell-14-16"><a href="#annotated-cell-14-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-14-17"><a href="#annotated-cell-14-17" aria-hidden="true" tabindex="-1"></a><span class="st">Calculate the Black-Scholes implied option price for a european call where `parameters` is a vector with the following six elements:</span></span>
-<span id="annotated-cell-14-18"><a href="#annotated-cell-14-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-14-19"><a href="#annotated-cell-14-19" aria-hidden="true" tabindex="-1"></a><span class="st">- `S` is the current asset price</span></span>
-<span id="annotated-cell-14-20"><a href="#annotated-cell-14-20" aria-hidden="true" tabindex="-1"></a><span class="st">- `K` is the strike or exercise price</span></span>
-<span id="annotated-cell-14-21"><a href="#annotated-cell-14-21" aria-hidden="true" tabindex="-1"></a><span class="st">- `τ` is the time remaining to maturity (can be typed with </span><span class="sc">\\</span><span class="st">tau[tab])</span></span>
-<span id="annotated-cell-14-22"><a href="#annotated-cell-14-22" aria-hidden="true" tabindex="-1"></a><span class="st">- `r` is the continuously compounded risk free rate</span></span>
-<span id="annotated-cell-14-23"><a href="#annotated-cell-14-23" aria-hidden="true" tabindex="-1"></a><span class="st">- `σ` is the (implied) volatility (can be typed with </span><span class="sc">\\</span><span class="st">sigma[tab])</span></span>
-<span id="annotated-cell-14-24"><a href="#annotated-cell-14-24" aria-hidden="true" tabindex="-1"></a><span class="st">- `q` is the continuously paid dividend rate</span></span>
-<span id="annotated-cell-14-25"><a href="#annotated-cell-14-25" aria-hidden="true" tabindex="-1"></a><span class="st">"""</span></span>
-<span id="annotated-cell-14-26"><a href="#annotated-cell-14-26" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">eurocall</span>(parameters)</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-14" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-14-27" class="code-annotation-target"><a href="#annotated-cell-14-27" aria-hidden="true" tabindex="-1"></a>    S, K, τ, r, σ, q <span class="op">=</span> parameters</span>
-<span id="annotated-cell-14-28"><a href="#annotated-cell-14-28" aria-hidden="true" tabindex="-1"></a>    <span class="fu">iszero</span>(τ) <span class="op">&amp;&amp;</span> <span class="cf">return</span> <span class="fu">max</span>(<span class="fu">zero</span>(S), S <span class="op">-</span> K)</span>
-<span id="annotated-cell-14-29"><a href="#annotated-cell-14-29" aria-hidden="true" tabindex="-1"></a>    d₁ <span class="op">=</span> <span class="fu">d1</span>(S, K, τ, r, σ, q)</span>
-<span id="annotated-cell-14-30"><a href="#annotated-cell-14-30" aria-hidden="true" tabindex="-1"></a>    d₂ <span class="op">=</span> <span class="fu">d2</span>(S, K, τ, r, σ, q)</span>
-<span id="annotated-cell-14-31"><a href="#annotated-cell-14-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> S <span class="op">*</span> <span class="fu">exp</span>(<span class="op">-</span>q <span class="op">*</span> τ) <span class="op">*</span> <span class="fu">N</span>(d₁) <span class="op">-</span> K <span class="op">*</span> <span class="fu">exp</span>(<span class="op">-</span>r <span class="op">*</span> τ) <span class="op">*</span> <span class="fu">N</span>(d₂)</span>
-<span id="annotated-cell-14-32"><a href="#annotated-cell-14-32" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="annotated-cell-14-17"><a href="#annotated-cell-14-17" aria-hidden="true" tabindex="-1"></a><span class="st">Calculate the Black-Scholes implied option price </span></span>
+<span id="annotated-cell-14-18"><a href="#annotated-cell-14-18" aria-hidden="true" tabindex="-1"></a><span class="st">for a european call where `parameters` is a vector </span></span>
+<span id="annotated-cell-14-19"><a href="#annotated-cell-14-19" aria-hidden="true" tabindex="-1"></a><span class="st">with the following six elements:</span></span>
+<span id="annotated-cell-14-20"><a href="#annotated-cell-14-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="annotated-cell-14-21"><a href="#annotated-cell-14-21" aria-hidden="true" tabindex="-1"></a><span class="st">- `S` is the current asset price</span></span>
+<span id="annotated-cell-14-22"><a href="#annotated-cell-14-22" aria-hidden="true" tabindex="-1"></a><span class="st">- `K` is the strike or exercise price</span></span>
+<span id="annotated-cell-14-23"><a href="#annotated-cell-14-23" aria-hidden="true" tabindex="-1"></a><span class="st">- `τ` is the time remaining to maturity (can be typed with </span><span class="sc">\\</span><span class="st">tau[tab])</span></span>
+<span id="annotated-cell-14-24"><a href="#annotated-cell-14-24" aria-hidden="true" tabindex="-1"></a><span class="st">- `r` is the continuously compounded risk free rate</span></span>
+<span id="annotated-cell-14-25"><a href="#annotated-cell-14-25" aria-hidden="true" tabindex="-1"></a><span class="st">- `σ` is the (implied) volatility (can be typed with </span><span class="sc">\\</span><span class="st">sigma[tab])</span></span>
+<span id="annotated-cell-14-26"><a href="#annotated-cell-14-26" aria-hidden="true" tabindex="-1"></a><span class="st">- `q` is the continuously paid dividend rate</span></span>
+<span id="annotated-cell-14-27"><a href="#annotated-cell-14-27" aria-hidden="true" tabindex="-1"></a><span class="st">"""</span></span>
+<span id="annotated-cell-14-28"><a href="#annotated-cell-14-28" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">eurocall</span>(parameters)</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-14" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-14-29" class="code-annotation-target"><a href="#annotated-cell-14-29" aria-hidden="true" tabindex="-1"></a>    S, K, τ, r, σ, q <span class="op">=</span> parameters</span>
+<span id="annotated-cell-14-30"><a href="#annotated-cell-14-30" aria-hidden="true" tabindex="-1"></a>    <span class="fu">iszero</span>(τ) <span class="op">&amp;&amp;</span> <span class="cf">return</span> <span class="fu">max</span>(<span class="fu">zero</span>(S), S <span class="op">-</span> K)</span>
+<span id="annotated-cell-14-31"><a href="#annotated-cell-14-31" aria-hidden="true" tabindex="-1"></a>    d₁ <span class="op">=</span> <span class="fu">d1</span>(S, K, τ, r, σ, q)</span>
+<span id="annotated-cell-14-32"><a href="#annotated-cell-14-32" aria-hidden="true" tabindex="-1"></a>    d₂ <span class="op">=</span> <span class="fu">d2</span>(S, K, τ, r, σ, q)</span>
+<span id="annotated-cell-14-33"><a href="#annotated-cell-14-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> S <span class="op">*</span> <span class="fu">exp</span>(<span class="op">-</span>q <span class="op">*</span> τ) <span class="op">*</span> <span class="fu">N</span>(d₁) <span class="op">-</span> K <span class="op">*</span> <span class="fu">exp</span>(<span class="op">-</span>r <span class="op">*</span> τ) <span class="op">*</span> <span class="fu">N</span>(d₂)</span>
+<span id="annotated-cell-14-34"><a href="#annotated-cell-14-34" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-annotation">
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-14" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-cell="annotated-cell-14" data-code-lines="27" data-code-annotation="1">We put the various variables inside a single <code>parameters</code> vector to allow calling a single <code>gradient</code> call instead of multiple <code>derivative</code> calls for each parameter.</span>
+<span data-code-cell="annotated-cell-14" data-code-lines="29" data-code-annotation="1">We put the various variables inside a single <code>parameters</code> vector to allow calling a single <code>gradient</code> call instead of multiple <code>derivative</code> calls for each parameter.</span>
 </dd>
 </dl>
 </div>
@@ -1156,7 +1178,7 @@ Note
 <div id="40" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">eurocall</span>(<span class="op">$</span>params)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  19.038 ns (0 allocations: 0 bytes)</code></pre>
+<pre><code>  19.433 ns (0 allocations: 0 bytes)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>0.024933768194037365</code></pre>
@@ -1176,7 +1198,7 @@ Note
 </dl>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  447.122 ns (3 allocations: 704 bytes)</code></pre>
+<pre><code>  321.892 ns (3 allocations: 704 bytes)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>6-element Vector{Float64}:
@@ -1228,11 +1250,19 @@ Note
 <section id="references" class="level2" data-number="16.9">
 <h2 data-number="16.9" class="anchored" data-anchor-id="references"><span class="header-section-number">16.9</span> References</h2>
 <ul>
-<li>https://book.sciml.ai/notes/08-Forward-Mode_Automatic_Differentiation_(AD)_via_High_Dimensional_Algebras/</li>
-<li>https://blog.esciencecenter.nl/automatic-differentiation-from-scratch-23d50c699555</li>
+<li><span class="citation" data-cites="rackauckas2020forwardad">Rackauckas (<a href="references.html#ref-rackauckas2020forwardad" role="doc-biblioref">2020</a>)</span></li>
+<li><span class="citation" data-cites="esciencecenter2019autodiff">Center (<a href="references.html#ref-esciencecenter2019autodiff" role="doc-biblioref">2019</a>)</span></li>
 </ul>
 
 
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
+<div id="ref-esciencecenter2019autodiff" class="csl-entry" role="listitem">
+Center, Netherlands eScience. 2019. <span>“Automatic Differentiation from Scratch.”</span> 2019. <a href="https://blog.esciencecenter.nl/automatic-differentiation-from-scratch-23d50c699555">https://blog.esciencecenter.nl/automatic-differentiation-from-scratch-23d50c699555</a>.
+</div>
+<div id="ref-rackauckas2020forwardad" class="csl-entry" role="listitem">
+Rackauckas, Chris. 2020. <span>“Forward-Mode Automatic Differentiation (AD) via High Dimensional Algebras.”</span> 2020. <a href="https://book.sciml.ai/notes/08-Forward-Mode_Automatic_Differentiation_(AD)_via_High_Dimensional_Algebras/">https://book.sciml.ai/notes/08-Forward-Mode_Automatic_Differentiation_(AD)_via_High_Dimensional_Algebras/</a>.
+</div>
+</div>
 </section>
 <section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes">
 <hr>
