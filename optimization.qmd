@@ -45,15 +45,19 @@ let
     i_global = argmin(ys)
     x_global_min = xs[i_global]
     y_global_min = ys[i_global]
-    scatter!(ax, [x_global_min], [y_global_min], color=:red, markersize=10, label="Global minimum (on grid)")
+    scatter!(ax, [x_global_min], [y_global_min],
+        color=:red, markersize=10, label="Global min")
 
     # Detect local minima by comparing neighbors (simple discrete test)
-    local_min_inds = findall((ys[2:end-1] .< ys[1:end-2]) .& (ys[2:end-1] .< ys[3:end])) .+ 1
+    left_lower = ys[2:end-1] .< ys[1:end-2]
+    right_lower = ys[2:end-1] .< ys[3:end]
+    local_min_inds = findall(left_lower .& right_lower) .+ 1
     # Exclude the global index to highlight a different local minimum if present
     local_min_inds = filter(i -> i != i_global, local_min_inds)
     if !isempty(local_min_inds)
         i_local = first(local_min_inds)
-        scatter!(ax, [xs[i_local]], [ys[i_local]], color=:black, markersize=10, label="Local minimum (on grid)")
+        scatter!(ax, [xs[i_local]], [ys[i_local]],
+            color=:black, markersize=10, label="Local min")
     end
 
     axislegend(ax, position=:rt)
@@ -317,10 +321,12 @@ dimension = 5 # Number of dimensions in the search space
 rastrigin(x) = 10length(x) + sum(xᵢ * xᵢ - 10cos(2π * xᵢ) for xᵢ in x)
 
 # Random initialization within bounds
-initialize_solution() = bounds[1] .+ (bounds[2] - bounds[1]) .* rand(dimension)
+function initialize_solution()
+    bounds[1] .+ (bounds[2] - bounds[1]) .* rand(dimension)
+end
 
 # Random perturbation within bounds
-function perturb_solution(solution; step = 0.1)
+function perturb_solution(solution; step=0.1)
     perturbed = solution .+ step .* randn(length(solution))
     return clamp.(perturbed, bounds[1], bounds[2])
 end
@@ -354,7 +360,7 @@ function simulated_annealing_min()
         # Decrease temperature
         cur_t *= cooling_rate
         if iteration % 100 == 0
-            println("Iteration $iteration: Best Value = $best_f, Temperature = $cur_t")
+            println("Iter $iteration: Best=$best_f, Temp=$cur_t")
         end
     end
 
@@ -380,13 +386,17 @@ using Random, CairoMakie
 rosenbrock(x) = (1 - x[1])^2 + 100 * (x[2] - x[1]^2)^2
 
 # PSO Implementation
-function particle_swarm_optimization(objective, n_particles, n_iterations, bounds, dim; vmax = 0.5)
+function particle_swarm_optimization(
+    objective, n_particles, n_iterations, bounds, dim; vmax=0.5)
     # Initialize particles
-    positions = [bounds[1] .+ (bounds[2] - bounds[1]) .* rand(dim) for _ in 1:n_particles]
-    velocities = [0.1 .* randn(dim) for _ in 1:n_particles]  # small initial velocities
+    span = bounds[2] - bounds[1]
+    positions = [bounds[1] .+ span .* rand(dim) for _ in 1:n_particles]
+    # small initial velocities
+    velocities = [0.1 .* randn(dim) for _ in 1:n_particles]
     personal_best_positions = deepcopy(positions)
     personal_best_scores = [objective(p) for p in positions]
-    global_best_position = personal_best_positions[argmin(personal_best_scores)]
+    best_idx = argmin(personal_best_scores)
+    global_best_position = personal_best_positions[best_idx]
     global_best_score = minimum(personal_best_scores)
 
     # PSO parameters
@@ -399,9 +409,9 @@ function particle_swarm_optimization(objective, n_particles, n_iterations, bound
             # Update velocity
             r1, r2 = rand(), rand()
             velocities[i] .= clamp.(ω .* velocities[i] .+
-                             c1 .* r1 .* (personal_best_positions[i] .- positions[i]) .+
-                             c2 .* r2 .* (global_best_position .- positions[i]),
-                             -vmax, vmax)
+                                    c1 .* r1 .* (personal_best_positions[i] .- positions[i]) .+
+                                    c2 .* r2 .* (global_best_position .- positions[i]),
+                -vmax, vmax)
 
             # Update position
             positions[i] .+= velocities[i]
@@ -435,7 +445,8 @@ bounds = (-2.0, 2.0)
 dim = 2
 
 # Run PSO
-best_position, best_score = particle_swarm_optimization(rosenbrock, n_particles, n_iterations, bounds, dim)
+best_position, best_score = particle_swarm_optimization(
+    rosenbrock, n_particles, n_iterations, bounds, dim)
 
 println("Best Position: $best_position")
 println("Best Score: $best_score")
@@ -449,7 +460,8 @@ Z = [(1 - xᵢ)^2 + 100 * (yᵢ - xᵢ^2)^2 for yᵢ in y, xᵢ in x]
 fig = Figure()
 ax = Axis(fig[1, 1], title="PSO Optimization of Rosenbrock", xlabel="x", ylabel="y")
 heatmap!(ax, x, y, Z, colormap=:viridis)
-scatter!(ax, [best_position[1]], [best_position[2]], color=:red, markersize=10, label="Optimal Solution")
+scatter!(ax, [best_position[1]], [best_position[2]],
+    color=:red, markersize=10, label="Optimal")
 axislegend(ax)
 fig
 ```
@@ -479,7 +491,11 @@ bounds = (-5.12, 5.12) # Boundaries for each gene
 rastrigin(x) = 10length(x) + sum(xᵢ * xᵢ - 10cos(2π * xᵢ) for xᵢ in x)
 
 # Initialize population randomly within bounds
-initialize_population() = [bounds[1] .+ (bounds[2] - bounds[1]) .* rand(chromosome_length) for _ in 1:population_size]
+function initialize_population()
+    span = bounds[2] - bounds[1]
+    [bounds[1] .+ span .* rand(chromosome_length)
+     for _ in 1:population_size]
+end
 
 # Fitness function (negative because we are minimizing)
 function fitness(individual)
@@ -488,8 +504,12 @@ end
 
 # Selection: Tournament selection
 function tournament_selection(population, fitnesses)
-    candidates = rand(1:population_size, 2)
-    return ifelse(fitnesses[candidates[1]] > fitnesses[candidates[2]], population[candidates[1]], population[candidates[2]])
+    c1, c2 = rand(1:population_size, 2)
+    if fitnesses[c1] > fitnesses[c2]
+        return population[c1]
+    else
+        return population[c2]
+    end
 end
 
 # Crossover: Single-point crossover
@@ -593,19 +613,27 @@ krig = Kriging(x_init, y_init, lb, ub; p=1.9)
 # Surrogate optimization loop (Expected Improvement)
 maxiters = 20
 num_new_samples = 200
-best_x, best_f = surrogate_optimize(f, EI(), lb, ub, krig, SobolSample(); maxiters=maxiters, num_new_samples=num_new_samples)
+best_x, best_f = surrogate_optimize(
+    f, EI(), lb, ub, krig, SobolSample();
+    maxiters=maxiters, num_new_samples=num_new_samples
+)
 
 # Plotting
 xs = collect(range(lb, ub, length=400))
 ys_true = f.(xs)
 ys_pred = krig.(xs)
 
-fig = Figure(size = (800, 500))
-ax = Axis(fig[1, 1], title = "Surrogate Optimization (Kriging + EI)", xlabel = "x", ylabel = "f(x)")
+fig = Figure(size=(800, 500))
+ax = Axis(
+    fig[1, 1],
+    title="Surrogate Optimization (Kriging + EI)",
+    xlabel="x", ylabel="f(x)"
+)
 # True function
 lines!(ax, xs, ys_true, color=:black, linewidth=2, label="True f(x)")
 # Surrogate prediction
-lines!(ax, xs, ys_pred, color=:red, linestyle=:dash, linewidth=2, label="Kriging surrogate")
+lines!(ax, xs, ys_pred, color=:red, linestyle=:dash, linewidth=2,
+    label="Kriging surrogate")
 # Initial samples
 scatter!(ax, x_init, y_init, color=:blue, markersize=10, label="Initial samples")
 # Best found point
@@ -726,8 +754,10 @@ using Random, LsqFit, CairoMakie
 
 x_data = 0:0.1:10
 y_data = 2 .* sin.(x_data) .+ 0.5 .* randn(length(x_data))
-# Define the model function, using a polynomial function to fit sinusoidal data for illustration purposes
-curve_model(x, p) = p[1] * x .^ 5 + p[2] * x .^ 4 .+ p[3] * x .^ 3 .+ p[4] * x .^ 2 .+ p[5] * x .+ p[6]
+# Define the model function, using a polynomial function 
+# to fit sinusoidal data for illustration purposes
+curve_model(x, p) = p[1] * x .^ 5 + p[2] * x .^ 4 .+ p[3] * x .^ 3 .+
+                    p[4] * x .^ 2 .+ p[5] * x .+ p[6]
 # Initial parameter guess
 p₀ = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
 # Fit the model to the data
@@ -738,7 +768,8 @@ params = coef(fit_result)
 y_fit = curve_model(x_data, params)
 # Plot the data and the fitted curve
 fig = Figure()
-Axis(fig[1, 1], title="Curve Fitting - a polynomial guess-fitting a sinusoidal function")
+Axis(fig[1, 1],
+    title="Curve Fitting - a polynomial guess-fitting a sinusoidal function")
 scatter!(x_data, y_data, label="Data")
 lines!(x_data, y_fit, label="Fitted Curve", linestyle=:dash, color=:red)
 fig

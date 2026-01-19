@@ -133,31 +133,32 @@ steps_existing = length(log_air_passengers)
 steps_ahead = 30
 
 # SARIMA
-model_sarima = SARIMA(log_air_passengers; order=(0, 1, 1), seasonal_order=(0, 1, 1, 12))
+model_sarima = SARIMA(log_air_passengers; order=(0, 1, 1),
+    seasonal_order=(0, 1, 1, 12))
 fit!(model_sarima)
 forec_sarima = forecast(model_sarima, steps_ahead)
 
 forecast_mean = [μ[1] for μ in forec_sarima.expected_value]
 forecast_std = [sqrt(Σ[1, 1]) for Σ in forec_sarima.covariance]
-future_idx = collect(steps_existing + 1:steps_existing + steps_ahead)
+future_idx = collect(steps_existing+1:steps_existing+steps_ahead)
 
 
 f = Figure()
 ax = Axis(f[1, 1],
-    title = "SARIMA forecast on log passengers",
-    xlabel = "Month index",
-    ylabel = "log(passengers)"
+    title="SARIMA forecast on log passengers",
+    xlabel="Month index",
+    ylabel="log(passengers)"
 )
-lines!(ax, 1:steps_existing, log_air_passengers, label = "history")
-lines!(ax, future_idx, forecast_mean, color = :red, label = "forecast mean")
+lines!(ax, 1:steps_existing, log_air_passengers, label="history")
+lines!(ax, future_idx, forecast_mean, color=:red, label="forecast mean")
 band!(ax,
     future_idx,
     forecast_mean .- 1.96 .* forecast_std,
     forecast_mean .+ 1.96 .* forecast_std,
-    color = (:red, 0.2),
-    label = "95% interval"
+    color=(:red, 0.2),
+    label="95% interval"
 )
-axislegend(ax, position = :lt)
+axislegend(ax, position=:lt)
 f
 ```
 

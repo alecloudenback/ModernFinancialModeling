@@ -56,8 +56,9 @@ sample_csv_data =
     )
 
 mort = Dict(
-    Male => MortalityTables.table(262).ultimate, # assuming no issue ages < 2 or > 120
-    Female => MortalityTables.table(261).ultimate, # assuming no issue ages < 2 or > 120
+    # assuming no issue ages < 2 or > 120
+    Male => MortalityTables.table(262).ultimate,
+    Female => MortalityTables.table(261).ultimate,
 )
 ```
 
@@ -109,7 +110,9 @@ where
 - $pir$ is the level policy interest rate throughout the policy
 
 ```{julia}
-# Can be made more efficient by storing values in a pre-calculated table. The recursive calculation here is for illustrative purposes.
+# Can be made more efficient by storing values in 
+# a pre-calculated table. 
+# The recursive calculation here is for illustrative purposes.
 function sur(y::Int, pol::Policy; Ω=120)
     if y == 0
         1.0
@@ -128,7 +131,8 @@ function res(y::Int, pol::Policy; Ω=120)
             if y <= pol.pp
                 prem = pol.prem
             end
-            s += sur(t - pol.issue_age, pol) * mort[pol.sex][t] * pol.benefit_base / sqrt(1 + pol.pir) - prem * sur(t - pol.issue_age, pol)
+            s += sur(t - pol.issue_age, pol) * mort[pol.sex][t] * pol.benefit_base /
+                 sqrt(1 + pol.pir) - prem * sur(t - pol.issue_age, pol)
         end
     end
     s
@@ -148,7 +152,9 @@ function res_wrt_r_fd(y::Int, pol::Policy, r::Float64, h=1e-3)
     (res(y, p₋) - res(y, p₊)) / (2 * res(y, pol))
 end
 
-res_wrt_r_fd(2, policies[1], 0.03) # percentage changes in reserve at year 2 when the interest rate at 3% with a perturbation of 0.1%
+# percentage changes in reserve at year 2 when 
+# the interest rate at 3% with a perturbation of 0.1%
+res_wrt_r_fd(2, policies[1], 0.03)
 ```
 
 Use a smaller `h` when `pir` is quoted in decimals (e.g., 3%) and a larger `h` if you work in basis points. Always sanity check that the perturbation stays within practical limits (no negative credited rates).
@@ -168,7 +174,10 @@ function r1_wrt_r(r)
 end
 
 # reserve @ year 1 or 2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1
-reg_anal = gsa(r1_wrt_r, RegressionGSA(), [[1, 2], [0.029, 0.031], [999.9, 1000.1]], samples=1000)
+reg_anal = gsa(
+    r1_wrt_r, RegressionGSA(),
+    [[1, 2], [0.029, 0.031], [999.9, 1000.1]],
+    samples=1000)
 println(reg_anal.pearson)
 ```
 
@@ -192,7 +201,11 @@ The Sobol Indices are "ordered", the first order indices given by $S_i = \dfrac{
 using QuasiMonteCarlo, GlobalSensitivity
 
 # reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1
-L, U = QuasiMonteCarlo.generate_design_matrices(1000, [1, 0.029, 999.9], [2, 0.031, 1000.1], SobolSample())
+L, U = QuasiMonteCarlo.generate_design_matrices(
+    1000,
+    [1, 0.029, 999.9],
+    [2, 0.031, 1000.1], SobolSample()
+)
 s = gsa(r1_wrt_r, Sobol(), L, U)
 println(s.S1)
 println(s.ST)

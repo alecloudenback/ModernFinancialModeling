@@ -210,7 +210,9 @@ let
         for _ in 1:n # <3>
             profit = take!(channel)
             sum += profit
-            println("Monitor: Received $(round(profit, digits=3)), Cumulative profit: $(round(sum, digits=3))")
+            p = round(profit, digits=3)
+            s = round(sum, digits=3)
+            println("Monitor: Received $p, Cumulative: $s")
         end
     end
 
@@ -633,7 +635,12 @@ The above example would be translated to CUDA by changing just a few things:
 -   The kernel macro would be `@cuda threads=1024 calculate_present_values_kernel!(...)` instead of `@metal threads=threads groups=groups calculate_present_values_kernel(...)`. The memory sharing and synchronizing between threads is more manual than Metal.jl, but this is not strictly necessary for our example.
 
 ``` julia
-function calculate_present_values_kernel!(present_values,cashflows, discount_matrices)
+function calculate_present_values_kernel!(
+    present_values,
+    cashflows, 
+    discount_matrices
+    )
+    
     idx = threadIdx().x 
 
     pv = 0.0f0
@@ -698,7 +705,7 @@ end
     sleep(rand())
     profit = randn()
     put!(channel, profit)
-    println("Producer $(myid()): Trade Result #$i $(round(profit, digits=3))")
+    println("Producer $(myid()): Trade #$i $(round(profit,digits=3))")
 end
 
 @everywhere function portfolio_monitor(channel, n)
@@ -706,7 +713,9 @@ end
     for _ in 1:n
         profit = take!(channel)
         sum += profit
-        println("Monitor $(myid()): Received $(round(profit, digits=3)), Cumulative profit: $(round(sum, digits=3))")
+        p = round(profit, digits=3)
+        s = round(sum, digits=3)
+        println("Monitor $(myid()): Received $p, Cumulative: $s")
     end
 end
 
