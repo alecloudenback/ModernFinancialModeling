@@ -48,83 +48,79 @@ using StatsBase
 
 ```{julia}
 n = 10_000
-inforce = map(1:n) do i
-    (
-        issue_age=rand(30:70),
-        risk_level=rand(1:3),
-    )
-
-end
+inforce = [(issue_age=rand(30:70), risk_level=rand(1:3)) for _ in 1:n]
 ```
 
 ```{julia}
 tbl_name = "2001 VBT Residual Standard Select and Ultimate - Male Nonsmoker, ANB"
 base_table = MortalityTables.table(tbl_name)
 
+# Risk level multipliers: 1 = preferred (0.7x), 2 = standard (1.0x), 3 = substandard (1.5x)
+const RISK_MULTIPLIERS = (0.7, 1.0, 1.5)
+
 function tabular_mortality(params, issue_age, att_age, risk_level)
-    q = params.ultimate[att_age]
-    if risk_level == 1
-        q *= 0.7
-    elseif risk_level == 2
-        q = q
-    else
-        q *= 1.5
-    end
+    params.ultimate[att_age] * RISK_MULTIPLIERS[risk_level]
 end
 ```
 
 ```{julia}
+"""
+Simulate mortality outcomes for a portfolio of policies.
+Returns a DataFrame with one row per policy-year exposure.
+"""
 function model_outcomes(inforce, assumption, assumption_params; n_years=5)
+    # Pre-allocate result vectors
+    result_issue_age = Int[]
+    result_risk_level = Int[]
+    result_att_age = Int[]
+    result_death = Int[]
 
-    outcomes = map(inforce) do pol
-        alive = 1
-        sim = map(1:n_years) do t
+    sizehint!(result_issue_age, length(inforce) * n_years)
+    sizehint!(result_risk_level, length(inforce) * n_years)
+    sizehint!(result_att_age, length(inforce) * n_years)
+    sizehint!(result_death, length(inforce) * n_years)
+
+    for pol in inforce
+        for t in 1:n_years
             att_age = pol.issue_age + t - 1
-            q = assumption(
-                assumption_params,
-                pol.issue_age,
-                att_age,
-                pol.risk_level
-            )
-            if rand() < q
-                out = (att_age=att_age, exposures=alive, death=1)
-                alive = 0
-                out
-            else
-                (att_age=att_age, exposures=alive, death=0)
-            end
-        end
-        filter!(x -> x.exposures == 1, sim)
+            q = assumption(assumption_params, pol.issue_age, att_age, pol.risk_level)
+            died = rand() < q
 
+            push!(result_issue_age, pol.issue_age)
+            push!(result_risk_level, pol.risk_level)
+            push!(result_att_age, att_age)
+            push!(result_death, died ? 1 : 0)
+
+            # If died, no more exposures for this policy
+            died && break
+        end
     end
 
-
-    df = DataFrame(inforce)
-
-    df.outcomes = outcomes
-    df = flatten(df, :outcomes)
-
-    df.att_age = [x.att_age for x in df.outcomes]
-    df.death = [x.death for x in df.outcomes]
-    df.exposures = [x.exposures for x in df.outcomes]
-    select!(df, Not(:outcomes))
-
-
+    DataFrame(
+        issue_age=result_issue_age,
+        risk_level=result_risk_level,
+        att_age=result_att_age,
+        death=result_death,
+        exposures=ones(Int, length(result_death))  # each row is one exposure
+    )
 end
 
 exposures = model_outcomes(inforce, tabular_mortality, base_table)
-data = combine(groupby(exposures, [:issue_age, :att_age])) do subdf
-    (exposures=nrow(subdf),
-        deaths=sum(subdf.death),
-        fraction=sum(subdf.death) / nrow(subdf))
+
+# Aggregate by issue_age and att_age
+data = @chain exposures begin
+    groupby([:issue_age, :att_age])
+    @combine(:exposures = length(:death),
+        :deaths = sum(:death),
+        :fraction = sum(:death) / length(:death))
 end
 
-
-grp = groupby(exposures, [:issue_age, :att_age, :risk_level])
-data2 = combine(grp) do subdf
-    (exposures=nrow(subdf),
-        deaths=sum(subdf.death),
-        fraction=sum(subdf.death) / nrow(subdf))
+# Aggregate including risk_level for multi-level modeling
+data2 = @chain exposures begin
+    groupby([:issue_age, :att_age, :risk_level])
+    @combine(:exposures = length(:death),
+        :deaths = sum(:death),
+        :fraction = sum(:death) / length(:death))
 end
 ```
 
@@ -133,19 +129,20 @@ end
 Estimate $q$, the average mortality rate, not accounting for any variation within the population/sample. Our model is defined as:
 
 $$
-q ~ Beta(1,1)
+q ~\text{Beta}(1,1)
 p(\text{death}) ~ \text{Binomial}(q)
 $$
 
 ```{julia}
-@model function mortality(data, deaths)
+@model function mortality(exposures, deaths)
     q ~ Beta(1, 1)
-    for i = 1:nrow(data)
-        deaths[i] ~ Binomial(data.exposures[i], q)
+    # Vectorized: observe all deaths at once
+    for i in eachindex(deaths)
+        deaths[i] ~ Binomial(exposures[i], q)
     end
 end
 
-m1 = mortality(data, data.deaths)
+m1 = mortality(data.exposures, data.deaths)
 ```
 
 ### Sampling from the posterior
@@ -171,58 +168,33 @@ This is saying that for the observed data, if there really is just a single prob
 ```{julia}
 let
     data_weight = sqrt.(data.exposures) / 2
-    f = Figure(title="Parametric Bayesian Mortality"
-    )
+    f = Figure()
     ax = Axis(f[1, 1],
         xlabel="age",
         ylabel="mortality rate",
         limits=(nothing, nothing, -0.01, 0.10),
+        title="Single-parameter Bayesian Mortality"
     )
     scatter!(ax,
         data.att_age,
         data.fraction,
         markersize=data_weight,
         color=(:blue, 0.5),
-        label="Experience data (size ~ exposure)",)
+        label="Experience data (size ~ exposure)")
 
-    # show n samples from the posterior plotted on the graph
-    n = 300
-    ages = sort!(unique(data.att_age))
+    # Sample from posterior once (more efficient than sampling 1 at a time)
+    n_samples = 300
+    q_posterior = vec(Array(sample(chain, n_samples)[:q]))
 
-    q_posterior = sample(chain, n)[:q]
-
-
-    for i in 1:n
-
-        hlines!(ax, [q_posterior[i]], color=(:grey, 0.1))
+    # Draw horizontal lines for each posterior sample
+    for q in q_posterior
+        hlines!(ax, [q], color=(:grey, 0.1))
     end
-
-    sim05 = Float64[]
-    sim95 = Float64[]
-    for r in eachrow(data)
-        outcomes = map(1:n) do i
-            rand(Binomial(r.exposures, q_posterior[i]), 500)
-        end
-        push!(sim05, quantile(Iterators.flatten(outcomes), 0.05) / r.exposures)
-        push!(sim95, quantile(Iterators.flatten(outcomes), 0.95) / r.exposures)
-
-
-    end
-
-
 
     f
 end
 ```
 
-```{julia}
-let
-    n = 300
-    q_posterior = sample(chain, n)[:q]
-
-
-end
-```
 
 ## 2. Parametric model
 
@@ -233,21 +205,19 @@ The **prior** values for `a`,`b`,`c`, and `k` are chosen to constrain the hazard
 This isn't an ideal parameterization (e.g. we aren't including information about the select underwriting period), but is an example of utilizing Bayesian techniques on life experience data.
 
 ```{julia}
-@model function mortality2(data, deaths)
+@model function mortality2(ages, exposures, deaths)
     a ~ Exponential(0.1)
     b ~ Exponential(0.1)
     c = 0.0
     k ~ truncated(Exponential(1), 1, Inf)
 
-    # use the variables to create a parametric mortality model
+    # Create parametric mortality model once
     m = MortalityTables.MakehamBeard(; a, b, c, k)
 
-    # loop through the rows of the dataframe to let Turing observe the data 
-    # and how consistent the parameters are with the data
-    for i = 1:nrow(data)
-        age = data.att_age[i]
-        q = MortalityTables.hazard(m, age)
-        deaths[i] ~ Binomial(data.exposures[i], q)
+    # Observe deaths for each age/exposure combination
+    for i in eachindex(deaths)
+        q = MortalityTables.hazard(m, ages[i])
+        deaths[i] ~ Binomial(exposures[i], q)
     end
 end
 ```
@@ -255,7 +225,7 @@ end
 We combine the model with the data and sample from the posterior using a similar call as before:
 
 ```{julia}
-m2 = mortality2(data, data.deaths)
+m2 = mortality2(data.att_age, data.exposures, data.deaths)
 
 chain2 = sample(m2, NUTS(), MCMCThreads(), 400, num_chains)
 ```
@@ -282,19 +252,19 @@ let
         )
     )
 
+    # Sample from posterior once (much faster than sampling 1 at a time in loop)
+    n_samples = 300
+    posterior = sample(chain2, n_samples)
+    a_samples = vec(Array(posterior[:a]))
+    b_samples = vec(Array(posterior[:b]))
+    k_samples = vec(Array(posterior[:k]))
 
-    # show n samples from the posterior plotted on the graph
-    n = 300
     ages = sort!(unique(data.att_age))
 
-    for i in 1:n
-        s = sample(chain2, 1)
-        a = only(s[:a])
-        b = only(s[:b])
-        k = only(s[:k])
-        c = 0
-        m = MortalityTables.MakehamBeard(; a, b, c, k)
-        lines!(ages, age -> MortalityTables.hazard(m, age), alpha=0.1, label="")
+    for i in 1:n_samples
+        m = MortalityTables.MakehamBeard(; a=a_samples[i], b=b_samples[i], c=0.0, k=k_samples[i])
+        qs = MortalityTables.hazard.(m, ages)
+        lines!(ages, qs, alpha=0.1, label="")
     end
     p
 end
@@ -303,31 +273,31 @@ end
 ```{julia}
 let
     data_weight = sqrt.(data.exposures) / 2
-    f = Figure(title="Parametric Bayesian Mortality"
-    )
+    f = Figure()
     ax = Axis(f[1, 1],
         xlabel="age",
         ylabel="mortality rate",
         limits=(nothing, nothing, -0.01, 0.10),
+        title="Parametric Bayesian Mortality"
     )
     scatter!(ax,
         data.att_age,
         data.fraction,
         markersize=data_weight,
         color=(:blue, 0.5),
-        label="Experience data (size ~ exposure)",)
+        label="Experience data (size ~ exposure)")
 
-    # show n samples from the posterior plotted on the graph
-    n = 300
+    # Sample from posterior once (much faster than sampling 1 at a time in loop)
+    n_samples = 300
+    posterior = sample(chain2, n_samples)
+    a_samples = vec(Array(posterior[:a]))
+    b_samples = vec(Array(posterior[:b]))
+    k_samples = vec(Array(posterior[:k]))
+
     ages = sort!(unique(data.att_age))
 
-    for i in 1:n
-        s = sample(chain2, 1)
-        a = only(s[:a])
-        b = only(s[:b])
-        k = only(s[:k])
-        c = 0
-        m = MortalityTables.MakehamBeard(; a, b, c, k)
+    for i in 1:n_samples
+        m = MortalityTables.MakehamBeard(; a=a_samples[i], b=b_samples[i], c=0.0, k=k_samples[i])
         qs = MortalityTables.hazard.(m, ages)
         lines!(ax, ages, qs, color=(:grey, 0.1))
     end
@@ -342,29 +312,23 @@ Recall that the lines are not plotting the possible outcomes of the claims rates
 This model extends the prior to create a multi-level model. Each risk class (`risk_level`) gets its own $a$ paramater in the `MakhamBeard` model. The prior for $a_i$ is determined by the hyper-parameter $\bar{a}$.
 
 ```{julia}
-@model function mortality3(data, deaths)
-    risk_levels = length(levels(data.risk_level))
+@model function mortality3(ages, exposures, risk_levels, deaths, n_risk_levels)
     b ~ Exponential(0.1)
     ā ~ Exponential(0.1)
-    a ~ filldist(Exponential(ā), risk_levels)
-    c = 0
+    a ~ filldist(Exponential(ā), n_risk_levels)
+    c = 0.0
     k ~ truncated(Exponential(1), 1, Inf)
 
-    # use the variables to create a parametric mortality model
-
-    # loop through the rows of the dataframe to let Turing observe the data 
-    # and how consistent the parameters are with the data
-    for i = 1:nrow(data)
-        risk = data.risk_level[i]
-
-        m = MortalityTables.MakehamBeard(; a=a[risk], b, c, k)
-        age = data.att_age[i]
-        q = MortalityTables.hazard(m, age)
-        deaths[i] ~ Binomial(data.exposures[i], q)
+    # Observe deaths for each row
+    for i in eachindex(deaths)
+        m = MortalityTables.MakehamBeard(; a=a[risk_levels[i]], b, c, k)
+        q = MortalityTables.hazard(m, ages[i])
+        deaths[i] ~ Binomial(exposures[i], q)
     end
 end
 
-m3 = mortality3(data2, data2.deaths)
+n_risk_levels = length(unique(data2.risk_level))
+m3 = mortality3(data2.att_age, data2.exposures, data2.risk_level, data2.deaths, n_risk_levels)
 
 chain3 = sample(m3, NUTS(), 1000)
 
@@ -372,42 +336,39 @@ summarize(chain3)
 ```
 
 ```{julia}
-let data = data2
-
-    data_weight = sqrt.(data.exposures)
-    color_i = data.risk_level
-    cm = CairoMakie.Makie.wong_colors()
+let
+    colors = Makie.wong_colors()
+    data_weight = sqrt.(data2.exposures)
 
     p, ax, _ = scatter(
-        data.att_age,
-        data.fraction,
+        data2.att_age,
+        data2.fraction,
         markersize=data_weight,
         alpha=0.5,
-        color=[(CairoMakie.Makie.wong_colors()[c], 0.7) for c in color_i],
-        colormap=CairoMakie.Makie.wong_colors(),
+        color=[(colors[c], 0.7) for c in data2.risk_level],
         label="Experience data point (size indicates relative exposure quantity)",
         axis=(
             xlabel="age",
             limits=(nothing, nothing, -0.01, 0.10),
             ylabel="mortality rate",
-            title="Parametric Bayesian Mortality"
+            title="Multi-level Bayesian Mortality"
         )
     )
 
+    # Sample from posterior once (much faster than sampling 1 at a time in loop)
+    n_samples = 100
+    posterior = sample(chain3, n_samples)
+    b_samples = vec(Array(posterior[:b]))
+    k_samples = vec(Array(posterior[:k]))
 
-    # show n samples from the posterior plotted on the graph
-    n = 100
+    ages = sort!(unique(data2.att_age))
 
-    ages = sort!(unique(data.att_age))
     for r in 1:3
-        for i in 1:n
-            s = sample(chain3, 1)
-            a = only(s[Symbol("a[$r]")])
-            b = only(s[:b])
-            k = only(s[:k])
-            c = 0
-            m = MortalityTables.MakehamBeard(; a, b, c, k)
-            lines!(ages, age -> MortalityTables.hazard(m, age), label="risk level $r", alpha=0.2, color=(CairoMakie.Makie.wong_colors()[r], 0.2))
+        a_samples = vec(Array(posterior[Symbol("a[$r]")]))
+        for i in 1:n_samples
+            m = MortalityTables.MakehamBeard(; a=a_samples[i], b=b_samples[i], c=0.0, k=k_samples[i])
+            qs = MortalityTables.hazard.(m, ages)
+            lines!(ages, qs, label="risk level $r", alpha=0.2, color=(colors[r], 0.2))
         end
     end
     axislegend(ax, merge=true)
@@ -422,71 +383,64 @@ Again, the lines are not plotting the possible outcomes of the claims rates, but
 The key is to use the Poisson distribution, which is a continuous approximation to the Binomial distribution:
 
 ```{julia}
-@model function mortality4(data, deaths)
-    risk_levels = length(levels(data.risk_level))
+@model function mortality4(ages, exposures, risk_levels, deaths, n_risk_levels)
     b ~ Exponential(0.1)
     ā ~ Exponential(0.1)
-    a ~ filldist(Exponential(ā), risk_levels)
+    a ~ filldist(Exponential(ā), n_risk_levels)
     c ~ Beta(4, 18)
     k ~ truncated(Exponential(1), 1, Inf)
 
-    # use the variables to create a parametric mortality model
-
-    # loop through the rows of the dataframe to let Turing observe the data 
-    # and how consistent the parameters are with the data
-    for i = 1:nrow(data)
-        risk = data.risk_level[i]
-
-        m = MortalityTables.MakehamBeard(; a=a[risk], b, c, k)
-        age = data.att_age[i]
-        q = MortalityTables.hazard(m, age)
-        deaths[i] ~ Poisson(data.exposures[i] * q)
+    # Observe deaths for each row using Poisson likelihood
+    for i in eachindex(deaths)
+        m = MortalityTables.MakehamBeard(; a=a[risk_levels[i]], b, c, k)
+        q = MortalityTables.hazard(m, ages[i])
+        deaths[i] ~ Poisson(exposures[i] * q)
     end
 end
 
-m4 = mortality4(data2, data2.deaths)
+m4 = mortality4(data2.att_age, data2.exposures, data2.risk_level, data2.deaths, n_risk_levels)
 
 chain4 = sample(m4, NUTS(), 1000)
 ```
 
 ```{julia}
+# Extract posterior means for risk factors and compute relative factors
 risk_factors4 = [mean(chain4[Symbol("a[$f]")]) for f in 1:3]
+println("Risk factors relative to standard (level 2): ", risk_factors4 ./ risk_factors4[2])
 
-risk_factors4 ./ risk_factors4[2]
-
-let data = data2
-
-    data_weight = sqrt.(data.exposures) / 2
-    color_i = data.risk_level
+let
+    colors = Makie.wong_colors()
+    data_weight = sqrt.(data2.exposures) / 2
 
     p, ax, _ = scatter(
-        data.att_age,
-        data.fraction,
+        data2.att_age,
+        data2.fraction,
         markersize=data_weight,
         alpha=0.5,
-        color=color_i,
+        color=data2.risk_level,
         label="Experience data point (size indicates relative exposure quantity)",
-        axis=(xlabel="age",
+        axis=(
+            xlabel="age",
             limits=(nothing, nothing, -0.01, 0.10),
             ylabel="mortality rate",
-            title="Parametric Bayesian Mortality"
+            title="Poisson Multi-level Bayesian Mortality"
         )
     )
 
+    # Sample from posterior once (much faster than sampling 1 at a time in loop)
+    n_samples = 100
+    posterior = sample(chain4, n_samples)
+    b_samples = vec(Array(posterior[:b]))
+    k_samples = vec(Array(posterior[:k]))
 
-    # show n samples from the posterior plotted on the graph
-    n = 100
+    ages = sort!(unique(data2.att_age))
 
-    ages = sort!(unique(data.att_age))
     for r in 1:3
-        for i in 1:n
-            s = sample(chain4, 1)
-            a = only(s[Symbol("a[$r]")])
-            b = only(s[:b])
-            k = only(s[:k])
-            c = 0
-            m = MortalityTables.MakehamBeard(; a, b, c, k)
-            lines!(ages, age -> MortalityTables.hazard(m, age), label="risk level $r", alpha=0.2, color=(CairoMakie.Makie.wong_colors()[r], 0.2))
+        a_samples = vec(Array(posterior[Symbol("a[$r]")]))
+        for i in 1:n_samples
+            m = MortalityTables.MakehamBeard(; a=a_samples[i], b=b_samples[i], c=0.0, k=k_samples[i])
+            qs = MortalityTables.hazard.(m, ages)
+            lines!(ages, qs, label="risk level $r", alpha=0.2, color=(colors[r], 0.2))
         end
     end
     axislegend(ax, merge=true)
@@ -501,5 +455,13 @@ We can generate predictive estimates by passing a vector of `missing` in place o
 We get a table of values where each row is the the prediction implied by the corresponding chain sample, and the columns are the predicted value for each of the outcomes in our original dataset.
 
 ```{julia}
-preds = predict(mortality4(data2, fill(missing, length(data2.deaths))), chain4)
+# Create model with missing deaths to generate predictions
+pred_model = mortality4(
+    data2.att_age,
+    data2.exposures,
+    data2.risk_level,
+    fill(missing, length(data2.deaths)),
+    n_risk_levels
+)
+preds = predict(pred_model, chain4);
 ```
