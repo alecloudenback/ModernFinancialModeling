@@ -677,7 +677,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </blockquote>
 <section id="chapter-overview" class="level2" data-number="8.1">
 <h2 data-number="8.1" class="anchored" data-anchor-id="chapter-overview"><span class="header-section-number">8.1</span> Chapter Overview</h2>
-<p>Why abstraction matters as a technique in its own right, with a focus on code organization, interfaces, and reusable design patterns.</p>
+<p>Abstraction matters as a technique in its own right. This chapter focuses on code organization, interfaces, and reusable design patterns.</p>
 </section>
 <section id="introduction" class="level2" data-number="8.2">
 <h2 data-number="8.2" class="anchored" data-anchor-id="introduction"><span class="header-section-number">8.2</span> Introduction</h2>
@@ -760,13 +760,13 @@ Table&nbsp;8.1: Finding abstractions generally means finding patterns that fit i
 <section id="composability-versus-all-in-one" class="level4" data-number="8.3.1.3">
 <h4 data-number="8.3.1.3" class="anchored" data-anchor-id="composability-versus-all-in-one"><span class="header-section-number">8.3.1.3</span> Composability versus All-in-One</h4>
 <p>For some model design goals, it may be warranted to attempt to bundle together more functionality instead of allowing users to compose a functionality that comes from different packages. For example, perhaps a certain visualization of model results is particularly useful, not easy to create from scratch, and widely desired to see the model output visualized that way. Instead of relying on the user to install a separate visualization package and develop the visualization themselves, it could make sense to bundle visualization functionality with a model that is otherwise unconcerned with graphical capabilities.</p>
-<p>In general, though it is preferred to try to loosely couple systems, you can pick and choose which components you use and that those components work well together.</p>
+<p>In general, loosely coupled systems are preferred—you want to pick and choose which components you use while ensuring they work well together.</p>
 </section>
 </section>
 </section>
 <section id="interfaces" class="level2" data-number="8.4">
 <h2 data-number="8.4" class="anchored" data-anchor-id="interfaces"><span class="header-section-number">8.4</span> Interfaces</h2>
-<p><strong>Interfaces</strong> are the boundary between different encapsulated abstractions. The user-facing interface is the set of functionality and details that the user of the package or model must consider, which is separate from the intermediate variables, logic, and complexity that may be contained within.</p>
+<p><strong>Interfaces</strong> are the boundaries between different encapsulated abstractions. The user-facing interface is what users of a package or model must actually think about—separate from the intermediate variables, logic, and complexity hidden within.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -798,24 +798,24 @@ Table&nbsp;8.1: Finding abstractions generally means finding patterns that fit i
 <p>As a case study, we’ll look at the FinanceModels.jl and related packages to discuss some of the background and design choices that went into the functionality. This suite was written by one of the authors and is publicly available as set of installable Julia packages.</p>
 <section id="background" class="level4" data-number="8.4.2.1">
 <h4 data-number="8.4.2.1" class="anchored" data-anchor-id="background"><span class="header-section-number">8.4.2.1</span> Background</h4>
-<p>In actuarial work, it is common to need to work with interest rate and bond yield curves to determine current forward rates, estimates of the shape of future yield curves, or discount a series of cashflows to determine a present value. Determining things like “given a par yield curve, what’s the implied discount factor for a cashflow at time 10” or “what is the 10 year BBB public corporate rate implied by the current curve in five years’ time” is cumbersome at best in a spreadsheet.</p>
+<p>In actuarial work, you constantly work with interest rate and bond yield curves—determining forward rates, estimating the shape of future curves, or discounting cashflows to estimate a present value. Determining things like “given a par yield curve, what’s the implied discount factor for a cashflow at time 10” or “what is the 10 year BBB public corporate rate implied by the current curve in five years’ time” is cumbersome at best in a spreadsheet.</p>
 <p>For example, to determine the answer to the first one (“a discount factor for time 10”) actually requires quite a bit of detail and assumption to derive:</p>
 <ul>
 <li>Reference market data and a specification for how that market data should be interpreted. For example, if given the rate <code>0.05</code> for time <code>10</code>, is it quoted as a continuously compounded rate or as an annual effective rate? Is that a par rate, a zero-coupon bond (spot) rate, or a one-year-forward rate from time <code>10</code>?</li>
 <li>Smoothing, interpolation, or extrapolation for noisy or sparse data. Should the rates be bootstrapped or fit to a parametrically specified curve?</li>
 </ul>
-<p>This is the type of complexity that we wish to save the user from needing to keep front of mind when the primary goal is, e.g., valuation of a stream of riskless life insurance payments, which might look like this:</p>
+<p>This is exactly the kind of complexity we want to hide when the goal is simply to value a stream of riskless life insurance payments, which might look like this:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>  risk_free_rates <span class="op">=</span> [<span class="fl">0.05</span>, <span class="fl">0.055</span>, <span class="fl">0.06</span>]      <span class="co"># example par yields</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  tenors <span class="op">=</span> [<span class="fl">1.0</span>, <span class="fl">5.0</span>, <span class="fl">10.0</span>]                  <span class="co"># years</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  yield_curve <span class="op">=</span> Yields.<span class="fu">Par</span>(risk_free_rates, tenors)</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>  cashflow_vector <span class="op">=</span> [<span class="fl">1_000_000.0</span>, <span class="fl">3_000_000.0</span>, <span class="fl">1_000.0</span>]</span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">present_value</span>(yield_curve, cashflow_vector)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>This is very clear from the variable and function names what the purpose and steps in the analysis are. Imagine starting with rates and cashflows in a spreadsheet, needing to perform the bootstrapping, interpolation, and discounting before getting to the simple present value sought in the analysis. What can be, with the right abstractions, distilled into five lines of code would take hundreds of cells in a spreadsheet. Providing abstractions like this at the hand of financial modelers is a productivity multiplier.</p>
+<p>The variable and function names make the purpose and steps clear. Now imagine doing this in a spreadsheet: bootstrapping, interpolation, and discounting before you even get to the present value you actually wanted. What can be five lines of code (with the right abstractions) would take hundreds of cells in a spreadsheet. Abstractions like these are productivity multipliers for financial modelers.</p>
 </section>
 <section id="initial-versions" class="level4" data-number="8.4.2.2">
 <h4 data-number="8.4.2.2" class="anchored" data-anchor-id="initial-versions"><span class="header-section-number">8.4.2.2</span> Initial Versions</h4>
-<p>There were two main abstractions to talk about from early versions of the packages.</p>
+<p>Two main abstractions emerged in the early versions.</p>
 <section id="rates" class="level5" data-number="8.4.2.2.1">
 <h5 data-number="8.4.2.2.1" class="anchored" data-anchor-id="rates"><span class="header-section-number">8.4.2.2.1</span> Rates</h5>
 <p>Utilizing the benefit of the type system, it was decided that it would be most useful to represent rates not as simple floating point numbers (e.g.&nbsp;<code>0.05</code>) but instead with dedicated types to distinguish between rate conventions. The abstract type <code>CompoundingFrequency</code> had two subtypes: <code>Continuous</code> and <code>Periodic</code> so that a 5% rate compounded continuously versus an effective per period rate would be distinguished via <code>Continuous(0.05)</code> versus <code>Periodic(0.05,1)</code>. The two could be converted between by extending the built-in <code>Base.convert</code> function.</p>
@@ -840,7 +840,7 @@ Table&nbsp;8.1: Finding abstractions generally means finding patterns that fit i
 </section>
 <section id="the-birth-of-financemodels" class="level4" data-number="8.4.2.3">
 <h4 data-number="8.4.2.3" class="anchored" data-anchor-id="the-birth-of-financemodels"><span class="header-section-number">8.4.2.3</span> The Birth of FinanceModels</h4>
-<p>There were multiple insights that led to a more flexible interface in more recent versions.</p>
+<p>Several insights led to a more flexible interface in later versions.</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
 <p><img src="assets/financemodels-relations.png" class="img-fluid figure-img"></p>
@@ -900,7 +900,7 @@ Table&nbsp;8.1: Finding abstractions generally means finding patterns that fit i
 <span data-code-cell="annotated-cell-5" data-code-lines="13" data-code-annotation="5">Values the contract; in this simple, noiseless setup we recover the original price of approximately <code>0.0541</code>.</span>
 </dd>
 </dl>
-<p>With a consistent interface able to handle a wide variety of situations, the modeler is free to expand the model in new directions of analysis with the built in functionality allowing him or her to compose pieces together that was not possible with the less abstracted design. For example, the equity option example had no parallel when all of the available constructors were <code>Yields.Zero</code> or <code>Yields.Par</code> and would have required a completely from-scratch implementation with newly defined functions.</p>
+<p>With a consistent interface that handles a wide variety of situations, you’re free to expand the model in new directions. The built-in functionality lets you compose pieces together in ways that weren’t possible with the less abstracted design. For example, the equity option example had no parallel when all of the available constructors were <code>Yields.Zero</code> or <code>Yields.Par</code> and would have required a completely from-scratch implementation with newly defined functions.</p>
 <p>Further, and critically, the new design allows modelers to create their own models or contracts<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> and extend the existing methods rather than needing to create their own: the function signature <code>fit(model,quotes)</code> handles a very wide variety of cases, as does <code>present_value(model,contract)</code>.</p>
 </section>
 </section>
@@ -935,10 +935,10 @@ Table&nbsp;8.1: Finding abstractions generally means finding patterns that fit i
 <div id="2" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@time</span> <span class="fu">exp</span>(<span class="fu">rand</span>())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  0.000000 seconds</code></pre>
+<pre><code>  0.000003 seconds</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>1.573715878122971</code></pre>
+<pre><code>2.395478762775307</code></pre>
 </div>
 </div>
 <section id="metaprogramming-in-financial-modeling" class="level3" data-number="8.5.1">

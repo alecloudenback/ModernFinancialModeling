@@ -708,9 +708,9 @@ window.Quarto = {
 </section>
 <section id="using-types-to-value-a-portfolio" class="level2" data-number="7.2">
 <h2 data-number="7.2" class="anchored" data-anchor-id="using-types-to-value-a-portfolio"><span class="header-section-number">7.2</span> Using Types to Value a Portfolio</h2>
-<p>We will assemble the tools and terminology to value a portfolio of assets by leverage types (<a href="#sec-data-types" class="quarto-xref"><span>Chapter 7</span></a>). Using the constructs introduced in the prior chapter, we can describe the portfolio valuation as additively reducing the mapped value of assets in the portfolio. We aim to compute the total portfolio value by applying a valuation function to each asset and summing up the individual valuations:</p>
+<p>We’ll assemble the tools and terminology to value a portfolio of assets by leveraging types (<a href="#sec-data-types" class="quarto-xref"><span>Chapter 7</span></a>). Using the constructs from the prior chapter, we can describe portfolio valuation as additively reducing the mapped value of assets. We aim to compute total portfolio value by applying a valuation function to each asset and summing the individual valuations:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mapreduce</span>(value,<span class="op">+</span>,portfolio)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The challenge is how to design an all-purpose <code>value</code> function? In <code>portfolio</code>, the assets may be heterogeneous, so we will need to define what the valuation semantics are for the different kinds of assets. To get to our end goal, we will need to:</p>
+<p>The challenge: how do we design an all-purpose <code>value</code> function? Assets in <code>portfolio</code> may be heterogeneous, so we need to define valuation semantics for different asset types. To reach our end goal, we need to:</p>
 <ol type="1">
 <li>Define the different kinds of assets within our portfolio</li>
 <li>How the assets are to be valued.</li>
@@ -775,7 +775,7 @@ window.Quarto = {
 </dd>
 <dt data-target-cell="annotated-cell-2" data-target-annotation="3">3</dt>
 <dd>
-<span data-code-cell="annotated-cell-2" data-code-lines="4,10,16" data-code-annotation="3">We define concrete data types (<code>structs)</code> with the fields necessary for valuing those assets.</span>
+<span data-code-cell="annotated-cell-2" data-code-lines="4,10,16" data-code-annotation="3">We define concrete data types (<code>structs</code>) with the fields necessary for valuing those assets.</span>
 </dd>
 </dl>
 </div>
@@ -1246,16 +1246,16 @@ Note
 <span id="cb34-28"><a href="#cb34-28" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
 <span id="cb34-29"><a href="#cb34-29" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb34-30"><a href="#cb34-30" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> UnlistedBond</span>
-<span id="cb34-31"><a href="#cb34-31" aria-hidden="true" tabindex="-1"></a>    fi<span class="op">::</span><span class="dt">FixedIncome</span></span>
+<span id="cb34-31"><a href="#cb34-31" aria-hidden="true" tabindex="-1"></a>    fi<span class="op">::</span><span class="dt">FixedBond</span></span>
 <span id="cb34-32"><a href="#cb34-32" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
 <span id="cb34-33"><a href="#cb34-33" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb34-34"><a href="#cb34-34" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb34-35"><a href="#cb34-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-36"><a href="#cb34-36" aria-hidden="true" tabindex="-1"></a><span class="co"># define behavior which relies on delegation to components </span></span>
+<span id="cb34-36"><a href="#cb34-36" aria-hidden="true" tabindex="-1"></a><span class="co"># define behavior which relies on delegation to components</span></span>
 <span id="cb34-37"><a href="#cb34-37" aria-hidden="true" tabindex="-1"></a><span class="fu">last_transaction</span>(c<span class="op">::</span><span class="dt">CUSIP</span>) <span class="op">=</span> <span class="co"># ...perform lookup of data</span></span>
 <span id="cb34-38"><a href="#cb34-38" aria-hidden="true" tabindex="-1"></a><span class="fu">last_transaction</span>(asset) <span class="op">=</span> <span class="fu">last_transaction</span>(asset.cusip)</span>
 <span id="cb34-39"><a href="#cb34-39" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-40"><a href="#cb34-40" aria-hidden="true" tabindex="-1"></a><span class="fu">duration</span>(f<span class="op">::</span><span class="dt">FixedIncome</span>) <span class="op">=</span> <span class="co"># ... calculate duration</span></span>
+<span id="cb34-40"><a href="#cb34-40" aria-hidden="true" tabindex="-1"></a><span class="fu">duration</span>(f<span class="op">::</span><span class="dt">FixedBond</span>) <span class="op">=</span> <span class="co"># ... calculate duration</span></span>
 <span id="cb34-41"><a href="#cb34-41" aria-hidden="true" tabindex="-1"></a><span class="fu">duration</span>(asset) <span class="op">=</span> <span class="fu">duration</span>(asset.fi)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>In the above example, there are number of asset classes that have CUSIP related attributes (i.e.&nbsp;the 9 character code) and behavior (e.g.&nbsp;being able to look up transaction data). Other assets have fixed income attributes (e.g.&nbsp;calculating a duration). There’s no clear hierarchy here.</p>
 <p>Composition lets us bundle the data and behavior together without needing complex chains of inheritance.</p>
