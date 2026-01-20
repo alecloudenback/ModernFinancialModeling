@@ -9,7 +9,7 @@ author:
 
 ## Chapter Overview
 
-Why abstraction matters as a technique in its own right, with a focus on code organization, interfaces, and reusable design patterns.
+Abstraction matters as a technique in its own right. This chapter focuses on code organization, interfaces, and reusable design patterns.
 
 ## Introduction
 
@@ -54,11 +54,11 @@ It may be that components of the model require sufficient expertise that differe
 
 For some model design goals, it may be warranted to attempt to bundle together more functionality instead of allowing users to compose a functionality that comes from different packages. For example, perhaps a certain visualization of model results is particularly useful, not easy to create from scratch, and widely desired to see the model output visualized that way. Instead of relying on the user to install a separate visualization package and develop the visualization themselves, it could make sense to bundle visualization functionality with a model that is otherwise unconcerned with graphical capabilities.
 
-In general, though it is preferred to try to loosely couple systems, you can pick and choose which components you use and that those components work well together.
+In general, loosely coupled systems are preferred—you want to pick and choose which components you use while ensuring they work well together.
 
 ## Interfaces
 
-**Interfaces** are the boundary between different encapsulated abstractions. The user-facing interface is the set of functionality and details that the user of the package or model must consider, which is separate from the intermediate variables, logic, and complexity that may be contained within.
+**Interfaces** are the boundaries between different encapsulated abstractions. The user-facing interface is what users of a package or model must actually think about—separate from the intermediate variables, logic, and complexity hidden within.
 
 ::: callout-note
 ## Example of an interface
@@ -86,14 +86,14 @@ As a case study, we'll look at the FinanceModels.jl and related packages to disc
 
 #### Background
 
-In actuarial work, it is common to need to work with interest rate and bond yield curves to determine current forward rates, estimates of the shape of future yield curves, or discount a series of cashflows to determine a present value. Determining things like "given a par yield curve, what's the implied discount factor for a cashflow at time 10" or "what is the 10 year BBB public corporate rate implied by the current curve in five years' time" is cumbersome at best in a spreadsheet.
+In actuarial work, you constantly work with interest rate and bond yield curves—determining forward rates, estimating the shape of future curves, or discounting cashflows to estimate a present value. Determining things like "given a par yield curve, what's the implied discount factor for a cashflow at time 10" or "what is the 10 year BBB public corporate rate implied by the current curve in five years' time" is cumbersome at best in a spreadsheet.
 
 For example, to determine the answer to the first one ("a discount factor for time 10") actually requires quite a bit of detail and assumption to derive:
 
 -   Reference market data and a specification for how that market data should be interpreted. For example, if given the rate `0.05` for time `10`, is it quoted as a continuously compounded rate or as an annual effective rate? Is that a par rate, a zero-coupon bond (spot) rate, or a one-year-forward rate from time `10`?
 -   Smoothing, interpolation, or extrapolation for noisy or sparse data. Should the rates be bootstrapped or fit to a parametrically specified curve?
 
-This is the type of complexity that we wish to save the user from needing to keep front of mind when the primary goal is, e.g., valuation of a stream of riskless life insurance payments, which might look like this:
+This is exactly the kind of complexity we want to hide when the goal is simply to value a stream of riskless life insurance payments, which might look like this:
 
 ``` julia
   risk_free_rates = [0.05, 0.055, 0.06]      # example par yields
@@ -104,11 +104,11 @@ This is the type of complexity that we wish to save the user from needing to kee
   present_value(yield_curve, cashflow_vector)
 ```
 
-This is very clear from the variable and function names what the purpose and steps in the analysis are. Imagine starting with rates and cashflows in a spreadsheet, needing to perform the bootstrapping, interpolation, and discounting before getting to the simple present value sought in the analysis. What can be, with the right abstractions, distilled into five lines of code would take hundreds of cells in a spreadsheet. Providing abstractions like this at the hand of financial modelers is a productivity multiplier.
+The variable and function names make the purpose and steps clear. Now imagine doing this in a spreadsheet: bootstrapping, interpolation, and discounting before you even get to the present value you actually wanted. What can be five lines of code (with the right abstractions) would take hundreds of cells in a spreadsheet. Abstractions like these are productivity multipliers for financial modelers.
 
 #### Initial Versions
 
-There were two main abstractions to talk about from early versions of the packages.
+Two main abstractions emerged in the early versions.
 
 ##### Rates
 
@@ -133,7 +133,7 @@ This covered a lot of lightweight use-cases, but made a lot of implicit assumpti
 
 #### The Birth of FinanceModels
 
-There were multiple insights that led to a more flexible interface in more recent versions.
+Several insights led to a more flexible interface in later versions.
 
 ![A conceptual sketch of FinanceModels.jl components.](assets/financemodels-relations.png)
 
@@ -193,7 +193,7 @@ present_value(m,qs[1].instrument) # <5>
 4.  Fits the model and derives an estimated volatility close to `0.15` for the 1-year call (given the quoted price).
 5.  Values the contract; in this simple, noiseless setup we recover the original price of approximately `0.0541`.
 
-With a consistent interface able to handle a wide variety of situations, the modeler is free to expand the model in new directions of analysis with the built in functionality allowing him or her to compose pieces together that was not possible with the less abstracted design. For example, the equity option example had no parallel when all of the available constructors were `Yields.Zero` or `Yields.Par` and would have required a completely from-scratch implementation with newly defined functions.
+With a consistent interface that handles a wide variety of situations, you're free to expand the model in new directions. The built-in functionality lets you compose pieces together in ways that weren't possible with the less abstracted design. For example, the equity option example had no parallel when all of the available constructors were `Yields.Zero` or `Yields.Par` and would have required a completely from-scratch implementation with newly defined functions.
 
 Further, and critically, the new design allows modelers to create their own models or contracts[^patterns-abstraction-1] and extend the existing methods rather than needing to create their own: the function signature `fit(model,quotes)` handles a very wide variety of cases, as does `present_value(model,contract)`.
 
