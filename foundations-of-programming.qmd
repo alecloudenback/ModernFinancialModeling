@@ -122,6 +122,7 @@ z = (x = 1; y = 2; x + y)
 Compound expressions allow you to group multiple operations together while still having the entire block evaluate to a single value, typically the last expression. This makes it easy to use complex logic anywhere a value is needed, like in function arguments or assignments.
 
 `let` blocks define variables within its scope and cannot be accessed outside that scope. More on scope in @sec-scope.
+
 ```{julia}
 #| error: true
 c = let
@@ -133,7 +134,6 @@ end
 @show c
 @show g
 ```
-
 
 #### Conditional Expressions
 
@@ -149,7 +149,7 @@ end
 ```
 
 ::: callout-note
-In Julia, the booleans have an integer equality: `true` is equal to `1` (`true == 1`) and `false` is equal to `0` (`false == 0`). 
+In Julia, the booleans have an integer equality: `true` is equal to `1` (`true == 1`) and `false` is equal to `0` (`false == 0`).
 
 However, `true != 5`. Only `1` is equal to true (in some languages, any non-zero number is "truthy").
 :::
@@ -186,9 +186,11 @@ buy_or_sell(10, 15), buy_or_sell(15, 10), buy_or_sell(10, 10)
 
 ::: callout-note
 ## Advanced: Short Circuiting Operator
+
 Julia has short-circuiting boolean operators that avoid evaluating the right-hand side when it isn’t needed:
--  a && b evaluates b only if a is true
--  a || b evaluates b only if a is false
+
+- `a && b` evaluates `b` only if `a` is `true` 
+- `a || b` evaluates `b` only if `a` is `false`
 
 ```{julia}
 function bigger_than_and_print(a, b)
@@ -203,7 +205,7 @@ end
 (5 < 0) || bigger_than_and_print(5, 7)  # prints, returns false
 ```
 
-By contrast, & and | are non–short-circuit (bitwise/logical) and always evaluate both sides:
+By contrast, & and \| are non–short-circuit (bitwise/logical) and always evaluate both sides:
 
 ```{julia}
 (5 > 0) & bigger_than_and_print(5, 7)   # prints, returns false
@@ -218,12 +220,8 @@ false && error("boom")  # no error (RHS skipped)
 false & error("boom")  # ERROR: boom
 ```
 
-Tips:
--  Use && and || for control flow on Bool values.
--  With arrays, use broadcasting: .& and .| (not &&/||).
--  With missing data, &&/|| require Bool and will error; & and | propagate missing.
+Tips: - Use && and \|\| for control flow on Bool values. - With arrays, use broadcasting: .& and .\| (not &&/\|\|). - With missing data, &&/\|\| require Bool and will error; & and \| propagate missing.
 :::
-
 
 ### Equality {#sec-equality}
 
@@ -386,7 +384,7 @@ end
 
 Loops are highly performant in Julia and often the fastest way to accomplish things. This approach contrasts with advice often given to Python or R users, where vectorized operations are heavily favored over loops for performance. In Julia, ⁠for loops are highly performant and often the most efficient and readable way to implement an algorithm.
 
-## Data Types {#sec-data-types}
+## Data Types {#sec-basic-data-types}
 
 **Data types** categorize information by intrinsic characteristics. We instinctively know that `13.24` is different than `"this set of words"`—types are how we formalize this distinction. Mathematically, it's like having different sets of objects to perform specialized operations on. Underneath this set-like abstraction are implementation details related to computer hardware. You probably know that computers only natively "speak" in binary zeros and ones. Data types are a primary way for a computer to know if it should interpret `01000010` as `B` or as `66`[^foundations-of-programming-3].
 
@@ -457,9 +455,9 @@ In the last example, we've converted the normal `Float64` to a `BigFloat` which 
 
 Integers are similarly represented as 32 or 64 bits (with `Int32` and `Int64`) and are limited to exact precision:
 
-- `Int32` range: −2,147,483,648 to 2,147,483,647
+-   `Int32` range: −2,147,483,648 to 2,147,483,647
 
-- `Int64` range: −9,223,372,036,854,775,808 to 9,223,372,036,854,775,807
+-   `Int64` range: −9,223,372,036,854,775,808 to 9,223,372,036,854,775,807
 
 Additional range in the positive direction if one chooses to use "unsigned", non-negative numbers (`UInt32` and `UInt64`). Unlike floating point numbers, the integers have a type `Int` which will use the system bit architecture by default (that is, `Int(30)` will create a 64 bit integer on 64-bit systems and 32-bit on 32-bit systems).
 
@@ -474,7 +472,7 @@ In practice, this means that it can be difficult to exactly replicate a calculat
 ::: callout-tip
 ## Currencies and Decimals
 
-Due to the inherent imprecision of floating point numbers, they should **not** be used in storing financial transaction records! The trade-offs inherent floating point math described above to not lend itself to accurate record-keeping. For example, in looking at summing up two products sold for $19.99 and $84.99, since floating point operations like `19.99 + 84.99` do not precisely equal `105.98`. 
+Due to the inherent imprecision of floating point numbers, they should **not** be used in storing financial transaction records! The trade-offs inherent floating point math described above to not lend itself to accurate record-keeping. For example, in looking at summing up two products sold for \$19.99 and \$84.99, since floating point operations like `19.99 + 84.99` do not precisely equal `105.98`.
 
 ```{julia}
 BigFloat(19.99 + 84.99)
@@ -491,43 +489,16 @@ If you are implementing a transaction or trading system, ensure proper treatment
 
 We can describe a *hierarchy* of types. Both `Float64` and `Int64` are examples of `Real` numbers (here, `Real` is an **abstract** Julia type which corresponds to the mathematical set of real numbers commonly denoted with $\mathbb{R}$ ). Both `Float64` and `Int32` are `Real` numbers, so why not just define all numbers as a `Real` type? Because for performant calculations, the computer must know in advance how many bits each number is represented with.
 
-@fig-julia-numeric-types shows the type hierarchy for most built-in Julia number types.
+We can use Julia to introspect its own type hierarchy:
 
-TODO: Once Quarto Issue [#10961](https://github.com/quarto-dev/quarto-cli/issues/10961) is resolved, render the mermaid diagram.
-
-```mermaid
-%%| label: fig-julia-numeric-types
-%%| fig-cap: "Numeric Type Hierarchy in Julia. Leafs of the tree are concrete types."
-%%| fig-width: 6.5
-graph TD
-    Number --> Real
-    Number --> Complex
-
-    Real --> Integer
-    Real --> AbstractFloat
-    Real --> Rational
-    Real --> Irrational
-
-    Integer --> Signed
-    Integer --> Unsigned
-
-    Signed --> Int8
-    Signed --> Int16
-    Signed --> Int32
-    Signed --> Int64
-    Signed --> Int128
-    Signed --> BigInt
-
-    Unsigned --> UInt8
-    Unsigned --> UInt16
-    Unsigned --> UInt32
-    Unsigned --> UInt64
-    Unsigned --> UInt128
-
-    AbstractFloat --> Float16
-    AbstractFloat --> Float32
-    AbstractFloat --> Float64
-    AbstractFloat --> BigFloat
+```{julia}
+function print_type_tree(T::Type, indent=0)
+    println("  "^indent * string(T))
+    for sub in subtypes(T)
+        print_type_tree(sub, indent+1)
+    end
+end
+print_type_tree(Number)
 ```
 
 The integer and floating point types described in the prior section are known as **concrete** types because there are no possible sub types (child types). Further, a concrete type can be a **bit type** if the data type will always have the same number of bits in memory: a `Float32` will always be 32 bits in memory, for example. Contrast this with strings (described below) which can contain an arbitrary number of characters.
@@ -959,7 +930,7 @@ help?> θ
 
 To constrain the types that could be used within our coordinates above, such as if we wanted the fields to all be Real-valued, we could modify the `struct` definitions with the `<:Real` annotation:
 
-```julia
+``` julia
 struct Point2D{T<:Real} <: CartesianCoordinate
     # ...
 end
@@ -971,7 +942,6 @@ end
 struct Polar2D{T<:Real} <: PolarCoordinate
     # ...
 end
-
 ```
 
 ### Mutable structs
@@ -1385,8 +1355,6 @@ end
 typeof(my_func) <: Function
 ```
 
-
-
 ## Scope {#sec-scope}
 
 In projects of even modest complexity, it can be challenging to come up with unique identifiers for different functions or variables. **Scope** refers to the bounds for which an identifier is available. We will often talk about the **local scope** that's inside some expression that creates a narrowly-defined scope (such as a `function` or `let` or `module` block) or the **global scope** which is the top level scope that contains everything else inside of it. Here are a few examples to demonstrate scope.
@@ -1403,11 +1371,14 @@ end
 2.  The `let ... end` block creates a local scope which inherits the defined global scope definitions.
 3.  `j` is only defined in the local scope created by the `let` block.
 
-In fact, if we try to use `j` outside of the scope defined above we will get an error:
+In fact, if we try to use `j` outside of the scope defined above we will get an error[^foundations-of-programming-16].
+
+[^foundations-of-programming-16]: Note that this error **stack trace** is unfortunately much messier due to it running in a Quarto notebook environment. When running scripts or in a REPL, your stack traces should look much simpler and easier to follow the error's lineage.
 
 ```{julia}
 #| error: true
 #| code-overflow: wrap
+#| max-lines: 7
 j
 ```
 
