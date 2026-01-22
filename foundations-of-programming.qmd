@@ -489,43 +489,16 @@ If you are implementing a transaction or trading system, ensure proper treatment
 
 We can describe a *hierarchy* of types. Both `Float64` and `Int64` are examples of `Real` numbers (here, `Real` is an **abstract** Julia type which corresponds to the mathematical set of real numbers commonly denoted with $\mathbb{R}$ ). Both `Float64` and `Int32` are `Real` numbers, so why not just define all numbers as a `Real` type? Because for performant calculations, the computer must know in advance how many bits each number is represented with.
 
-@fig-julia-numeric-types shows the type hierarchy for most built-in Julia number types.
+We can use Julia to introspect its own type hierarchy:
 
-TODO: Once Quarto Issue [#10961](https://github.com/quarto-dev/quarto-cli/issues/10961) is resolved, render the mermaid diagram.
-
-``` mermaid
-%%| label: fig-julia-numeric-types
-%%| fig-cap: "Numeric Type Hierarchy in Julia. Leafs of the tree are concrete types."
-%%| fig-width: 6.5
-graph TD
-    Number --> Real
-    Number --> Complex
-
-    Real --> Integer
-    Real --> AbstractFloat
-    Real --> Rational
-    Real --> Irrational
-
-    Integer --> Signed
-    Integer --> Unsigned
-
-    Signed --> Int8
-    Signed --> Int16
-    Signed --> Int32
-    Signed --> Int64
-    Signed --> Int128
-    Signed --> BigInt
-
-    Unsigned --> UInt8
-    Unsigned --> UInt16
-    Unsigned --> UInt32
-    Unsigned --> UInt64
-    Unsigned --> UInt128
-
-    AbstractFloat --> Float16
-    AbstractFloat --> Float32
-    AbstractFloat --> Float64
-    AbstractFloat --> BigFloat
+```{julia}
+function print_type_tree(T::Type, indent=0)
+    println("  "^indent * string(T))
+    for sub in subtypes(T)
+        print_type_tree(sub, indent+1)
+    end
+end
+print_type_tree(Number)
 ```
 
 The integer and floating point types described in the prior section are known as **concrete** types because there are no possible sub types (child types). Further, a concrete type can be a **bit type** if the data type will always have the same number of bits in memory: a `Float32` will always be 32 bits in memory, for example. Contrast this with strings (described below) which can contain an arbitrary number of characters.
