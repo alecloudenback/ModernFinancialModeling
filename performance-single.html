@@ -6,7 +6,6 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="author" content="Alec Loudenback">
 
 <title>10&nbsp; Writing Performant Single-Threaded Code – Modern Financial Modeling</title>
 <style>
@@ -602,7 +601,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./ecosystem.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">33</span>&nbsp; <span class="chapter-title">The Julia Ecosystem Today</span></span></a>
+ <span class="menu-text"><span class="chapter-number">33</span>&nbsp; <span class="chapter-title">The Julia Ecosystem for Financial Modeling</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -651,12 +650,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <div class="quarto-title-meta">
 
-    <div>
-    <div class="quarto-title-meta-heading">Author</div>
-    <div class="quarto-title-meta-contents">
-             <p>Alec Loudenback </p>
-          </div>
-  </div>
     
   
     
@@ -755,16 +748,16 @@ Note
 <span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>cashflow_output</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>10-element Vector{Float64}:
-  50.88910333927834
-  50.88910333927834
- 387.8891033392776
-  50.88910333927834
- 384.88910333927765
-  50.88910333927834
-  50.88910333927834
-  50.88910333927834
-  50.88910333927834
- 379.8891033392778</code></pre>
+  48.59932407947251
+  48.59932407947251
+ 411.5993240794726
+  48.59932407947251
+ 352.5993240794727
+  48.59932407947251
+  48.59932407947251
+  48.59932407947251
+  48.59932407947251
+ 381.5993240794724</code></pre>
 </div>
 </div>
 <p>Julia’s <code>@allocated</code> macro will display the number of bytes allocated by an expression, helping you identify and eliminate unnecessary allocations.</p>
@@ -834,13 +827,13 @@ Note
 <span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">random_sum</span>(<span class="op">$</span>large_array, <span class="op">$</span>shuffled_indices)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Sequential access:
-  501.625 μs (0 allocations: 0 bytes)
+  497.666 μs (0 allocations: 0 bytes)
 
 Random access:
-  2.167 ms (0 allocations: 0 bytes)</code></pre>
+  2.176 ms (0 allocations: 0 bytes)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>500382.9515269413</code></pre>
+<pre><code>500198.85356213106</code></pre>
 </div>
 </div>
 <p>When the data is accessed in a linear order, it means that the computer can load chunks of data into the cache and it can operate on that cached data for several cycles before new data needs to be loaded into the cache. In contrast, when accessing the data randomly, then the cache frequently needs to be populated with a different set of bits from a completely different part of our array.</p>
@@ -877,31 +870,31 @@ Random access:
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">sum</span>(arr, dims<span class="op">=</span><span class="fl">1</span>) setup <span class="op">=</span> arr <span class="op">=</span> <span class="fu">rand</span>(<span class="fl">1000</span>, <span class="fl">1000</span>)</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">sum</span>(arr, dims<span class="op">=</span><span class="fl">2</span>) setup <span class="op">=</span> arr <span class="op">=</span> <span class="fu">rand</span>(<span class="fl">1000</span>, <span class="fl">1000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  72.875 μs (3 allocations: 8.08 KiB)
+<pre><code>  72.959 μs (3 allocations: 8.08 KiB)
   109.958 μs (3 allocations: 8.08 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>1000×1 Matrix{Float64}:
- 489.9897392810706
- 497.18559545143336
- 496.3078370828444
- 496.10323679620024
- 509.0843987035319
- 500.80486716339607
- 515.3562481501599
- 511.0424094909899
- 476.0915577800482
- 502.25596908520185
+ 499.9588436445933
+ 494.47703436172225
+ 496.88874100560224
+ 501.52103048252326
+ 495.30535110626056
+ 495.62015415367966
+ 520.533066918895
+ 495.5777029678036
+ 485.8647093043931
+ 504.94437585079436
    ⋮
- 497.101586941095
- 507.15294873920493
- 478.0902596430488
- 505.0541357156579
- 515.8360593466758
- 502.7878805883341
- 508.9816419710861
- 494.11604616810695
- 500.9662729992898</code></pre>
+ 494.9156940657247
+ 506.4387494092477
+ 477.45108852248075
+ 518.6877115713688
+ 491.274756133977
+ 489.458406153074
+ 488.1354134114652
+ 489.9516520199414
+ 502.57180447894586</code></pre>
 </div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -1003,11 +996,11 @@ Warning
 </dl>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  11.125 μs (2008 allocations: 49.91 KiB)
-  817.952 ns (10 allocations: 18.69 KiB)</code></pre>
+<pre><code>  11.334 μs (2008 allocations: 49.91 KiB)
+  806.593 ns (10 allocations: 18.69 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>497.966155689233</code></pre>
+<pre><code>507.61780765381485</code></pre>
 </div>
 </div>
 <p>The <code>unstable_example</code> function illustrates a common anti-pattern wherein an <code>Any</code> typed array is created and then elements are added to it. Because any type can be added to an <code>Any</code> array (we happen to just add floats to it) then Julia’s not sure what types to expect inside the container and therefore has to determine it at runtime.</p>
@@ -1073,8 +1066,8 @@ Tip
 <span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">process_data</span>(<span class="op">$</span>rand_data, <span class="fl">0.5</span>)</span>
 <span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">process_data</span>(<span class="op">$</span>sorted_data, <span class="fl">0.5</span>);</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  4.744 ms (0 allocations: 0 bytes)
-  1.542 ms (0 allocations: 0 bytes)</code></pre>
+<pre><code>  4.756 ms (0 allocations: 0 bytes)
+  1.545 ms (0 allocations: 0 bytes)</code></pre>
 </div>
 </div>
 <p>In this example, having sorted data means that the CPU will predict which branch of the <code>if</code> statement is likely to be utilized. Sorting makes the branch outcome highly predictable for long stretches (all below-threshold values, then all above), improving the effectiveness of the branch predictor. By speculatively executing the code that it thinks will be used, the overall program time is faster when processing <code>sorted_data</code>.</p>

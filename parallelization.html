@@ -6,7 +6,6 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="author" content="Alec Loudenback">
 
 <title>11&nbsp; Parallelization – Modern Financial Modeling</title>
 <style>
@@ -56,7 +55,27 @@ div.sourceCode
 @media screen {
 pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js" integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2" crossorigin="anonymous"></script><script src="site_libs/quarto-nav/quarto-nav.js"></script>
@@ -634,7 +653,7 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./ecosystem.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">33</span>&nbsp; <span class="chapter-title">The Julia Ecosystem Today</span></span></a>
+ <span class="menu-text"><span class="chapter-number">33</span>&nbsp; <span class="chapter-title">The Julia Ecosystem for Financial Modeling</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -698,12 +717,6 @@ window.Quarto = {
 
 <div class="quarto-title-meta">
 
-    <div>
-    <div class="quarto-title-meta-heading">Author</div>
-    <div class="quarto-title-meta-contents">
-             <p>Alec Loudenback </p>
-          </div>
-  </div>
     
   
     
@@ -771,17 +784,6 @@ S(n) = \frac{1}{(1-p) + \frac{p}{n}}
 <span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
 <span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a><span class="fu">main</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-stdout">
-<div class="ansi-escaped-output">
-<pre><span class="ansi-green-fg ansi-bold">Precompiling</span> packages...
-   3620.9 ms<span class="ansi-green-fg">  ✓ </span>QuartoNotebookWorkerMakieExt<span class="ansi-bright-black-fg"> (serial)</span>
-  1 dependency successfully precompiled in 4 seconds
-<span class="ansi-green-fg ansi-bold">Precompiling</span> packages...
-   3143.9 ms<span class="ansi-green-fg">  ✓ </span>QuartoNotebookWorkerCairoMakieExt<span class="ansi-bright-black-fg"> (serial)</span>
-  1 dependency successfully precompiled in 3 seconds
-</pre>
-</div>
-</div>
 <div id="fig-amdahl" class="cell-output cell-output-display quarto-float quarto-figure quarto-figure-center anchored" data-execution_count="1">
 <figure class="quarto-float quarto-float-fig figure">
 <div aria-describedby="fig-amdahl-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
@@ -892,11 +894,11 @@ Tip
 <span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@btime</span> <span class="fu">allow_simd</span>(<span class="op">$</span>x)</span>
 <span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  45.250 μs (0 allocations: 0 bytes)
-  4.827 μs (0 allocations: 0 bytes)</code></pre>
+<pre><code>  44.166 μs (0 allocations: 0 bytes)
+  4.816 μs (0 allocations: 0 bytes)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>4949.908659431269</code></pre>
+<pre><code>4994.324781126044</code></pre>
 </div>
 </div>
 <p>In testing the above code, the <code>allow_simd</code> version should be several times faster than the <code>prevent_simd</code> example. The reason is that <code>prevent_simd</code> has a branch (<code>if x &gt; 0</code>) where the behavior of the code may change depending on the value in <code>arr</code>. Conversely, the behavior of <code>allow_simd</code> is always the same in each iteration, no matter the value of <code>x</code>. This allows the compiler to generate vectorized code automatically.</p>
@@ -916,7 +918,8 @@ Tip
 <p>Other types of parallelism that we will discuss in this chapter have some risk of errors or data corruption if not used correctly. SIMD isn’t prone to issues like this because if the code is not SIMD-able then the compiler will not auto-vectorize the code block.</p>
 <section id="hardware" class="level3" data-number="11.4.1">
 <h3 data-number="11.4.1" class="anchored" data-anchor-id="hardware"><span class="header-section-number">11.4.1</span> Hardware</h3>
-<p>Vectorization is hardware dependent. If the CPU does not support vectorization you will not see speedups from it. Many consumer and professional chips have AVX2 (Advanced Vector Extensions, with the 2 signifying second-generation 256 bit width, allowing four simultaneous 64-bit operations). The next generation is AVX512, having twice the SIMD capacity as AVX2. However, as of 2025 most consumer chips do not yet have that and commercial chips may not actually be faster than the AVX2 due to thermal restrictions (SIMD uses more power and generates more heat).</p>
+<p>Vectorization is hardware dependent. If the CPU does not support vectorization you will not see speedups from it. Many consumer and professional chips have AVX2 (Advanced Vector Extensions 2), which uses 256-bit registers allowing four simultaneous 64-bit floating-point operations. AVX-512, with 512-bit registers (eight simultaneous 64-bit operations), is common on Intel server chips and recent AMD processors. However, AVX-512 can cause thermal throttling on some chips—wider SIMD uses more power and generates more heat—so real-world speedups depend on sustained workloads and cooling.</p>
+<p>On ARM processors (AArch64), the equivalent is NEON (128-bit, two 64-bit operations) and the newer SVE/SVE2 (Scalable Vector Extension) which supports variable-width vectors up to 2048 bits. Apple’s M-series chips use NEON; ARM server chips like AWS Graviton3 support SVE.</p>
 </section>
 </section>
 <section id="sec-multithreading" class="level2" data-number="11.5">
@@ -1026,16 +1029,16 @@ Main: [1.0, 2.0, 0.0, 0.0, 0.0]</code></pre>
 </dl>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Producer: Trade Result #2 -1.628
-Monitor: Received -1.628, Cumulative: -1.628
-Producer: Trade Result #3 0.299
-Monitor: Received 0.299, Cumulative: -1.329
-Producer: Trade Result #5 -0.583
-Monitor: Received -0.583, Cumulative: -1.912
-Producer: Trade Result #1 0.054
-Monitor: Received 0.054, Cumulative: -1.858
-Producer: Trade Result #4 -0.257
-Monitor: Received -0.257, Cumulative: -2.114</code></pre>
+<pre><code>Producer: Trade Result #2 1.271
+Monitor: Received 1.271, Cumulative: 1.271
+Producer: Trade Result #1 -0.952
+Monitor: Received -0.952, Cumulative: 0.319
+Producer: Trade Result #4 0.51
+Monitor: Received 0.51, Cumulative: 0.829
+Producer: Trade Result #3 0.416
+Monitor: Received 0.416, Cumulative: 1.245
+Producer: Trade Result #5 0.952
+Monitor: Received 0.952, Cumulative: 2.198</code></pre>
 </div>
 </div>
 <p>This is really useful for handling events that are “external” to our program. If we were just doing a modeling exercise using static data, then we could control the order of processing and not need to worry about monitoring a volatile source of data. Nonetheless, tasks can still be useful in some cases even if a model is not using “live” data: for example if one of the steps in a model is to load a very large dataset, it may be possible to perform some computations while chunked task requests are queued to load more data from the disk.</p>
@@ -1140,7 +1143,7 @@ Figure&nbsp;11.2: When a program starts, the operating system creates a process 
 </div>
 </div>
 </div>
-<p>The advantage of threads is that within a single physical processor there may be multiple cores. Those cores can access the shared process memory and run tasks from different threads simultaneously. This is a technique that takes advantage of modern processor architecture wherein several (sometimes as many as 32 or more) cores exist on the same chip.</p>
+<p>The advantage of threads is that within a single physical processor there may be multiple cores. Those cores can access the shared process memory and run tasks from different threads simultaneously. Modern processors commonly have 8-16 cores (consumer) or 64-128+ cores (server), making multi-threading an effective way to utilize available hardware.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -1151,7 +1154,7 @@ Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Thread jargon varies. A compact glossary helps:</p>
+<p>Thread jargon varies. A compact glossary to help:</p>
 <ul>
 <li><strong>Hardware threads</strong> are the execution lanes exposed by the CPU. They are what the operating system schedules on each core.</li>
 <li><strong>Operating-system threads</strong> are managed by the kernel and generally map one-to-one to hardware threads. They are heavier to create and destroy than Julia tasks.</li>
@@ -1180,7 +1183,7 @@ Note
 <span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="fu">sum_bad</span>(<span class="fl">100_000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>950235276</code></pre>
+<pre><code>751860866</code></pre>
 </div>
 </div>
 <p>The result will be less than the expected sum (<code>5000050000</code>) due to a race condition. Here’s what happens:</p>
@@ -1209,7 +1212,7 @@ Note
 <span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
 <span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">sum_single</span>(<span class="fl">1</span><span class="op">:</span><span class="fl">100_000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  1.541 ns (0 allocations: 0 bytes)</code></pre>
+<pre><code>  1.500 ns (0 allocations: 0 bytes)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>5000050000</code></pre>
@@ -1254,7 +1257,7 @@ Note
 </dl>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  5.521 μs (72 allocations: 4.16 KiB)</code></pre>
+<pre><code>  5.192 μs (72 allocations: 4.16 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>5000050000</code></pre>
@@ -1300,7 +1303,7 @@ Note
 </dl>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  4.285 ms (199534 allocations: 3.05 MiB)</code></pre>
+<pre><code>  6.021 ms (199534 allocations: 3.05 MiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>5000050000</code></pre>
@@ -1333,7 +1336,7 @@ Note
 </dl>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  303.458 μs (73 allocations: 4.38 KiB)</code></pre>
+<pre><code>  1.290 ms (73 allocations: 4.38 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>5000050000</code></pre>
@@ -1350,17 +1353,17 @@ Note
 <p>Graphics Processing Units (GPUs) and Tensor Processing Units (TPUs) are hardware accelerators for massively parallel computations. A TPU is very similar to a GPU but have special ability to handle data types and instructions that are more specialized for linear algebra operations; going forward we will simply refer to these types of accelerators as GPUs.</p>
 <p>GPUs have similar components as the CPU as discussed in <a href="hardware.html" class="quarto-xref"><span>Chapter 9</span></a>. They have RAM, caches for the cores, and cores that run the coded instructions on the data. The differences from a CPU are primarily:</p>
 <ul>
-<li>A GPU typically has thousands of cores while a CPU generally has single or double digit cores.
+<li>A GPU typically has thousands of simple cores, while CPUs have fewer but more sophisticated cores (4-16 on consumer chips, up to 128+ on server chips like AMD EPYC or Intel Xeon).
 <ul>
-<li>The cores typically operate at a <em>slower</em> clock speed than CPUs, relying on the sheer number of cores to perform computations faster.</li>
+<li>GPU cores operate at <em>slower</em> clock speeds than CPU cores (1-2 GHz vs 3-5 GHz) but achieve throughput through massive parallelism.</li>
 </ul></li>
 <li>The GPU cores essentially have to be running the same set of instructions on all of the data, not unlike vectorization (<a href="#sec-vectorization" class="quarto-xref"><span>Section 11.4</span></a>).
 <ul>
 <li>GPU code is not suited for code with branching conditions (e.g.&nbsp;<code>if</code> statements) and so is more limited in the kinds of computations it can handle compared to the CPU.</li>
 </ul></li>
-<li>The RAM is typically much more constrained, typically less than a quarter of what primary RAM might be.
+<li>GPU memory (VRAM) is typically more constrained than system RAM. Consumer GPUs have 8-24 GB; high-end data center GPUs (NVIDIA H100) have up to 80 GB, while system RAM can easily be 128-512 GB on servers.
 <ul>
-<li>As a result, GPUs may need strategies to move chunks of data to and from the GPU memory for moderately large datasets. Further, it’s actually fairly common to use a lower-precision datatype (e.g.&nbsp;<code>Float16</code> or <code>Float32</code>) to improve overall program throughput at the cost of some precision.</li>
+<li>As a result, GPUs may need strategies to move chunks of data to and from GPU memory for large datasets. Using lower-precision datatypes (e.g., <code>Float16</code> or <code>Float32</code> instead of <code>Float64</code>) is common to fit more data and improve throughput, though this trades off numerical precision.</li>
 </ul></li>
 <li>The caches are similar in concept to CPU, but unlike most CPU caches, there is relative locality to data (wherein core #1 will have much quicker access to a different subset of data than, say, core #1024).</li>
 <li>A GPU is usually a secondary device of sorts: it physically and in device architecture is separate from the CPU. The CPU remains in charge of overall computer execution.
@@ -1374,44 +1377,44 @@ Note
 <p>Like the difference between x86 and ARM architectures, GPU also have specific architectures which vary by the vendor. To make full use of the hardware, the vendors need to (1) provide device drivers which allow the CPU to talk to the GPU, and (2) provide the libraries (lower level application programming interfaces, or APIs) which allow developers to utilize different hardware features without needing to write machine code.</p>
 <p>As of the mid 2020s, here are the most important GPU vendors and the associated programming library for utilizing their specific hardware:</p>
 <table class="caption-top table">
-<caption>Important GPU and TPU vendors and the associated library/interface.</caption>
+<caption>GPU and TPU vendors with representative hardware and programming interfaces. NVIDIA dominates the data center market; Apple Metal is only available on macOS/iOS.</caption>
 <colgroup>
-<col style="width: 33%">
-<col style="width: 33%">
-<col style="width: 33%">
+<col style="width: 20%">
+<col style="width: 47%">
+<col style="width: 32%">
 </colgroup>
 <thead>
 <tr class="header">
 <th>Vendor</th>
-<th>Hardware</th>
-<th>API Library/Package</th>
+<th>Hardware Examples</th>
+<th>API/Library</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td>NVIDIA</td>
-<td>Geforce, GTX/RTX, various Data Center focused hardware</td>
+<td>GeForce RTX (consumer), Quadro/RTX A-series (professional), A100/H100/H200 (data center)</td>
 <td>CUDA</td>
 </tr>
 <tr class="even">
 <td>AMD</td>
-<td>Radeon, various Data Center focused hardware</td>
-<td>ROCm</td>
+<td>Radeon (consumer), Radeon Pro (professional), Instinct MI series (data center)</td>
+<td>ROCm (HIP)</td>
 </tr>
 <tr class="odd">
 <td>Intel</td>
-<td>Core, Xeon, Arc processors</td>
-<td>OneAPI</td>
+<td>Arc (consumer), Data Center GPU Max / Ponte Vecchio (data center)</td>
+<td>oneAPI (SYCL)</td>
 </tr>
 <tr class="even">
 <td>Apple</td>
-<td>M Series processors</td>
+<td>M-series integrated GPU (M1, M2, M3, M4)</td>
 <td>Metal</td>
 </tr>
 <tr class="odd">
 <td>Google</td>
-<td>Tensor processors</td>
-<td>XLA (via TensorFlow or JAX)</td>
+<td>TPU v4, v5 (cloud only)</td>
+<td>XLA (via JAX or TensorFlow)</td>
 </tr>
 </tbody>
 </table>
@@ -1525,7 +1528,7 @@ Note
 </dd>
 <dt data-target-cell="annotated-cell-10" data-target-annotation="3">3</dt>
 <dd>
-<span data-code-cell="annotated-cell-10" data-code-lines="11" data-code-annotation="3">Metal only supports 32 bit floating point (some CUDA hardware will support 64 bit floating point)</span>
+<span data-code-cell="annotated-cell-10" data-code-lines="11" data-code-annotation="3">Metal only supports 32-bit floating point (<code>Float32</code>) in GPU shaders. NVIDIA data center GPUs (A100, H100) have full-speed FP64; consumer GPUs (RTX series) have heavily throttled FP64 (often 1/64th the FP32 rate). For financial calculations requiring double precision, this is an important hardware consideration.</span>
 </dd>
 <dt data-target-cell="annotated-cell-10" data-target-annotation="4">4</dt>
 <dd>
@@ -1542,12 +1545,12 @@ Note
 </dl>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  1.102 ms (6 allocations: 38.55 MiB)
-  70.459 μs (298 allocations: 8.59 KiB)</code></pre>
+<pre><code>  1.079 ms (6 allocations: 38.55 MiB)
+  68.958 μs (298 allocations: 8.59 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>1×100000 MtlMatrix{Float32, Metal.PrivateStorage}:
- 22.8794  21.8055  24.2892  23.1184  …  23.6779  23.6557  24.2572  23.3801</code></pre>
+ 26.4729  27.8967  27.3278  25.4183  …  23.8243  25.2  26.7409  29.5361</code></pre>
 </div>
 </div>
 <p>The testing suggests approximately 200 times faster computation when performed on the GPU. Note however, that does not include the overhead of (1) moving the data to the GPU (in the initial <code>MtlArray(cashflows)</code> call), or (2) returning the data to the CPU (since the return type for the GPU version is <code>MtlArray</code>). We can measure this overhead by wrapping the data transfer inside another function and benchmarking it:</p>
@@ -1564,11 +1567,11 @@ Note
 <span id="annotated-cell-11-10"><a href="#annotated-cell-11-10" aria-hidden="true" tabindex="-1"></a></span>
 <span id="annotated-cell-11-11"><a href="#annotated-cell-11-11" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">GPU_overhead_test</span>(<span class="op">$</span>pvs, <span class="op">$</span>cashflows, <span class="op">$</span>discount_matrices)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  4.486 ms (482 allocations: 413.52 KiB)</code></pre>
+<pre><code>  4.228 ms (482 allocations: 413.52 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>1×100000 Matrix{Float32}:
- 22.8794  21.8055  24.2892  23.1184  …  23.6779  23.6557  24.2572  23.3801</code></pre>
+ 26.4729  27.8967  27.3278  25.4183  …  23.8243  25.2  26.7409  29.5361</code></pre>
 </div>
 </div>
 <p>With the additional overhead, the computation on the GPU takes more total time than if the work were done just on the CPU. This is a very simple example, and the balance tips heavily in favor of the GPU when:</p>
@@ -1672,7 +1675,7 @@ Warning
 <span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">$</span>discount_matrices_GPU</span>
 <span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  16.208 μs (73 allocations: 1.70 KiB)</code></pre>
+<pre><code>  15.500 μs (73 allocations: 1.70 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>Metal.HostKernel{typeof(calculate_present_values_kernel!), Tuple{MtlDeviceMatrix{Float32, 1}, MtlDeviceVector{Float32, 1}, MtlDeviceMatrix{Float32, 1}}}(calculate_present_values_kernel!, Metal.MTL.MTLComputePipelineStateInstance (object of type AGXG16XFamilyComputePipeline))</code></pre>
@@ -1842,16 +1845,16 @@ Note
 <span id="annotated-cell-14-48"><a href="#annotated-cell-14-48" aria-hidden="true" tabindex="-1"></a><span class="co"># Run the simulation</span></span>
 <span id="annotated-cell-14-49"><a href="#annotated-cell-14-49" aria-hidden="true" tabindex="-1"></a><span class="fu">run_distributed_simulation</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Producer 1: Trade #1 -0.097
-Monitor 1: Received -0.097, Cumulative: -0.097
-Producer 1: Trade #3 0.417
-Monitor 1: Received 0.417, Cumulative: 0.32
-Producer 1: Trade #4 0.379
-Monitor 1: Received 0.379, Cumulative: 0.699
-Producer 1: Trade #5 -0.612
-Monitor 1: Received -0.612, Cumulative: 0.087
-Producer 1: Trade #2 -0.402
-Monitor 1: Received -0.402, Cumulative: -0.315</code></pre>
+<pre><code>Producer 1: Trade #3 -1.949
+Producer 1: Trade #1 0.198
+Monitor 1: Received -1.949, Cumulative: -1.949
+Monitor 1: Received 0.198, Cumulative: -1.751
+Producer 1: Trade #4 0.39
+Monitor 1: Received 0.39, Cumulative: -1.361
+Producer 1: Trade #2 -1.068
+Monitor 1: Received -1.068, Cumulative: -2.429
+Producer 1: Trade #5 -0.992
+Monitor 1: Received -0.992, Cumulative: -3.421</code></pre>
 </div>
 </div>
 <p>Given the similarity to the single-process task-based version above, what’s the motivation for this bothering with a distributed approach? A few differences:</p>
@@ -1880,7 +1883,7 @@ Monitor 1: Received -0.402, Cumulative: -0.315</code></pre>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> <span class="bu">OhMyThreads</span></span>
 <span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> OhMyThreads.<span class="fu">tmapreduce</span>(x <span class="op">-&gt;</span> x, <span class="op">+</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">100_000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  6.667 μs (75 allocations: 4.20 KiB)</code></pre>
+<pre><code>  10.250 μs (75 allocations: 4.20 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>5000050000</code></pre>
@@ -1894,7 +1897,7 @@ Monitor 1: Received -0.402, Cumulative: -0.315</code></pre>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> <span class="bu">ThreadsX</span></span>
 <span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> ThreadsX.<span class="fu">mapreduce</span>(x <span class="op">-&gt;</span> x, <span class="op">+</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">100_000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  47.125 μs (890 allocations: 47.64 KiB)</code></pre>
+<pre><code>  41.625 μs (890 allocations: 47.64 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>5000050000</code></pre>
@@ -1913,10 +1916,10 @@ Monitor 1: Received -0.402, Cumulative: -0.315</code></pre>
 <span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="co"># fast and the overhead of moving the whole collection dominates</span></span>
 <span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">reduce</span>(<span class="op">+</span>, <span class="fu">pmap</span>(x <span class="op">-&gt;</span> <span class="fu">rand</span>((<span class="fl">0</span>, <span class="fl">1</span>)), <span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">^</span><span class="fl">3</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  24.058 ms (5062 allocations: 143.80 KiB)</code></pre>
+<pre><code>  24.309 ms (5062 allocations: 143.80 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>504</code></pre>
+<pre><code>489</code></pre>
 </div>
 </div>
 <div id="38" class="cell" data-execution_count="1">
@@ -1929,10 +1932,10 @@ Monitor 1: Received -0.402, Cumulative: -0.315</code></pre>
 <span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">dist_demo</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  79.042 μs (21 allocations: 880 bytes)</code></pre>
+<pre><code>  77.625 μs (21 allocations: 880 bytes)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>49638</code></pre>
+<pre><code>50216</code></pre>
 </div>
 </div>
 </section>
@@ -1948,11 +1951,11 @@ Monitor 1: Received -0.402, Cumulative: -0.315</code></pre>
 <span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@btime</span> <span class="fu">sum</span>(<span class="op">$</span>x_GPU)</span>
 <span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  4.714 ms (0 allocations: 0 bytes)
-  1.260 ms (398 allocations: 10.66 KiB)</code></pre>
+<pre><code>  4.817 ms (0 allocations: 0 bytes)
+  1.256 ms (397 allocations: 10.48 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>4.9995844f7</code></pre>
+<pre><code>5.0002504f7</code></pre>
 </div>
 </div>
 <p><code>sum(x)</code> compiles to SIMD instructions on the CPU, while using the GPU array type in <code>sum(x_GPU)</code> is enough to let the compiler dispatch on the GPU type and emit efficient, parallelized code for the GPU.</p>
@@ -2030,7 +2033,7 @@ Monitor 1: Received -0.402, Cumulative: -0.315</code></pre>
 <span id="cb50-10"><a href="#cb50-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Finally, this runs:</span></span>
 <span id="cb50-11"><a href="#cb50-11" aria-hidden="true" tabindex="-1"></a><span class="fu">wait</span>(Dagger.<span class="pp">@spawn</span> <span class="fu">println</span>(<span class="st">"b: "</span>, <span class="fu">fetch</span>(b), <span class="st">", c: "</span>, <span class="fu">fetch</span>(c)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>b: 4975.927968929258, c: 0.0</code></pre>
+<pre><code>b: 5011.869231424491, c: 0.0</code></pre>
 </div>
 </div>
 </section>
@@ -2047,13 +2050,25 @@ Monitor 1: Received -0.402, Cumulative: -0.315</code></pre>
 </section>
 <section id="references" class="level2" data-number="11.10">
 <h2 data-number="11.10" class="anchored" data-anchor-id="references"><span class="header-section-number">11.10</span> References</h2>
+<p>The following resources provide additional depth on parallel computing concepts and Julia-specific implementations:</p>
 <ul>
-<li>https://book.sciml.ai/notes/06-The_Different_Flavors_of_Parallelism/</li>
-<li>https://docs.julialang.org/en/v1/manual/parallel-computing/</li>
-<li><a href="https://enccs.github.io/julia-for-hpc/" class="uri">https://enccs.github.io/julia-for-hpc/</a></li>
+<li><span class="citation" data-cites="rackauckas2020parallelism">Rackauckas (<a href="references.html#ref-rackauckas2020parallelism" role="doc-biblioref">2020</a>)</span> provides an excellent overview of parallelism types in the context of scientific computing</li>
+<li><span class="citation" data-cites="juliadocs2024parallel">Julia Documentation (<a href="references.html#ref-juliadocs2024parallel" role="doc-biblioref">2024</a>)</span> is the official Julia documentation on parallel computing constructs</li>
+<li><span class="citation" data-cites="enccs2023juliahpc">ENCCS (<a href="references.html#ref-enccs2023juliahpc" role="doc-biblioref">2023</a>)</span> offers hands-on tutorials for high-performance computing with Julia</li>
 </ul>
 
 
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list" style="display: none">
+<div id="ref-enccs2023juliahpc" class="csl-entry" role="listitem">
+ENCCS. 2023. <span>“Julia for High-Performance Computing.”</span> 2023. <a href="https://enccs.github.io/julia-for-hpc/">https://enccs.github.io/julia-for-hpc/</a>.
+</div>
+<div id="ref-juliadocs2024parallel" class="csl-entry" role="listitem">
+Julia Documentation. 2024. <span>“Parallel Computing.”</span> 2024. <a href="https://docs.julialang.org/en/v1/manual/parallel-computing/">https://docs.julialang.org/en/v1/manual/parallel-computing/</a>.
+</div>
+<div id="ref-rackauckas2020parallelism" class="csl-entry" role="listitem">
+Rackauckas, Chris. 2020. <span>“The Different Flavors of Parallelism.”</span> 2020. <a href="https://book.sciml.ai/notes/06-The_Different_Flavors_of_Parallelism/">https://book.sciml.ai/notes/06-The_Different_Flavors_of_Parallelism/</a>.
+</div>
+</div>
 </section>
 <section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes">
 <hr>

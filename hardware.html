@@ -6,7 +6,6 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="author" content="Alec Loudenback">
 
 <title>9&nbsp; Hardware and Its Implications – Modern Financial Modeling</title>
 <style>
@@ -631,7 +630,7 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./ecosystem.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text"><span class="chapter-number">33</span>&nbsp; <span class="chapter-title">The Julia Ecosystem Today</span></span></a>
+ <span class="menu-text"><span class="chapter-number">33</span>&nbsp; <span class="chapter-title">The Julia Ecosystem for Financial Modeling</span></span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -678,12 +677,6 @@ window.Quarto = {
 
 <div class="quarto-title-meta">
 
-    <div>
-    <div class="quarto-title-meta-heading">Author</div>
-    <div class="quarto-title-meta-contents">
-             <p>Alec Loudenback </p>
-          </div>
-  </div>
     
   
     
@@ -785,11 +778,15 @@ Note
 <p>Memory units at a glance:</p>
 <ul>
 <li>1 bit is a single 0 or 1; 8 bits = 1 byte.</li>
-<li>Binary multiples (common for RAM/caches and many OS readouts):</li>
+<li><strong>Binary multiples</strong> (common for RAM/caches and many OS readouts):
+<ul>
 <li>1 KiB = 1,024 bytes; 1 MiB = 1,024 KiB; 1 GiB = 1,024 MiB.</li>
-<li>Decimal multiples (common for storage devices and network speeds):</li>
-<li>1 kB = 1,000 bytes; 1 MB = 1,000,000 bytes; 1 Gb = 1,000,000,000 bits.</li>
-<li>KB vs Kb: uppercase B = bytes; lowercase b = bits. 1 KB is eight times larger than 1 Kb.</li>
+</ul></li>
+<li><strong>Decimal multiples</strong> (common for storage devices and network speeds):
+<ul>
+<li>1 kB = 1,000 bytes; 1 MB = 1,000,000 bytes; 1 GB = 1,000,000,000 bytes.</li>
+</ul></li>
+<li><strong>Bytes vs bits</strong>: uppercase B = bytes; lowercase b = bits. Network speeds are often quoted in bits (e.g., 1 Gbps = 1 gigabit per second = 125 MB/s).</li>
 </ul>
 <p>Rule of thumb: treat memory sizes (RAM, caches) as base‑2, and disk/network specs as base‑10. The “i” in KiB/MiB/GiB explicitly means base‑2 <span class="math inline">\((2^{10} = 1{,}024)\)</span>.</p>
 </div>
@@ -839,13 +836,14 @@ Tip
 <p>The processor reads cache lines (typically 64 bytes) from caches and moves the needed values into registers and then executes instructions. An example would be to take the bytes from register 10 and add the bytes from register 11 to them. This is really all a processor does at the lowest level: combining bits of data using logical circuits.</p>
 <p>Logical circuits (<strong>transistors</strong>) are an arrangement of wires that output a new electrical signal that varies depending on the input. From a collection of smaller building block gates (e.g.&nbsp;AND, OR, NOR, XOR) more complex operations can be built up<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>, into operations like addition, multiplication, division, etc. Electric impulses move the state of the program forward once time per CPU cycle (controlled by a master “clock” ticking billions of times per second). CPU cycle speed is what’s quoted for chip performance, e.g.&nbsp;when a CPU is advertised as 3.0 GHz (or 3 billion cycles per second).</p>
 <p>The programmer (or compiler, if we are working in a higher level language like Julia) tells the CPU which instruction to run. The set of instructions that are valid for a given processor are called the Instruction Set Architecture, or ISA. In computer Assembly language (roughly one-level above directly manipulating the bits), the instructions are given names like <code>ADD</code>, <code>SUB</code>, <code>MUL</code>, <code>DIV</code>, and <code>MOV</code>. These instructions mirror the raw instruction that is part of the ISA.</p>
-<p>Not all instructions are created equal, however. Some instructions take many CPU cycles to complete. For example, floating point <code>DIV</code> (division) takes 10-20 CPU cycles while <code>ADD</code> only takes a single CPU cycle.</p>
+<p>Not all instructions are created equal, however. Some instructions take many CPU cycles to complete. For example, a floating point division instruction (<code>FDIV</code>) has a latency of 10-20 CPU cycles, while floating point addition (<code>FADD</code>) completes in 3-4 cycles. At 3 GHz, that’s the difference between ~1 ns and ~6 ns for the raw operation.</p>
 <p>Some architecture examples that may be familiar:</p>
 <ul>
-<li><p>Intel x86-64 (a.k.a. AMD64) are common computer processors that use registers that are 64 bits wide (the prior generation was 32 bits wide) and use the <strong>x86</strong> instruction set developed by Intel.</p></li>
-<li><p>ARM chips, including the Apple M-Series processors are characterized by the use of the <strong>ARM</strong> instruction set and recent processors of this kind are also 64 bit.</p></li>
+<li><p><strong>x86-64</strong> (also called AMD64 or Intel 64) processors use 64-bit registers and the x86 instruction set. This architecture dominates desktops, laptops, and servers. The “64” refers to the register width; the prior generation was 32-bit x86.</p></li>
+<li><p><strong>ARM</strong> processors, including Apple’s M-series chips, use the ARM instruction set. The 64-bit variant is called <strong>AArch64</strong> (or ARM64). You’ll see “aarch64” in file paths, download options, and Julia’s <code>Sys.ARCH</code> output when running on these processors.</p></li>
 </ul>
-<p>The ARM architecture is known as a <strong>reduced instruction set chip</strong> (RISC), which means that it has fewer available instructions compared to, e.g.&nbsp;the x86 architecture. The benefit of the reduced instruction set is that it is generally much more power efficient, but comes at the cost of sacrificing specialized instructions such as string manipulation, or in lower-end chips, even the division operation (which have to be implemented via software routines instead of CPU operations). However, for specialized workloads, the availability of a key instruction can make a program run on the CPU 10-100x faster at times. An example of this is that at the time of writing, AVX512 processors are becoming available (see <a href="parallelization.html" class="quarto-xref"><span>Chapter 11</span></a> for a discussion of vectorization) which can benefit some workloads greatly.</p>
+<p>The ARM architecture is a <strong>Reduced Instruction Set Computer</strong> (RISC) design. Despite the name, modern ARM chips have extensive instruction sets including SIMD extensions (NEON, SVE). The “reduced” refers to instruction <em>complexity</em>: each instruction does less work but executes in predictable time, enabling simpler pipelines and better power efficiency. x86’s <strong>Complex Instruction Set Computer</strong> (CISC) heritage means some instructions do more work (e.g., memory access and computation in one instruction) but with variable timing.</p>
+<p>In practice, both architectures have converged: x86 chips decompose complex instructions into simpler micro-operations internally, while ARM has added specialized instructions over time. For specialized workloads, specific instructions can make programs 10-100× faster. For example, Intel’s AVX-512 extensions (see <a href="parallelization.html" class="quarto-xref"><span>Chapter 11</span></a>) can dramatically accelerate vectorizable numerical code, while ARM’s SVE (Scalable Vector Extension) provides similar benefits on that architecture.</p>
 <div class="callout callout-style-default callout-tip callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -871,7 +869,7 @@ Tip
     .p2align    <span class="ansi-yellow-fg">2</span>
 <span class="ansi-bright-red-fg">_julia_myadd_6599:</span>                      <span class="ansi-bright-black-fg">; @julia_myadd_6599</span>
 <span class="ansi-bright-black-fg">; Function Signature: myadd(Int64, Int64, Int64)</span>
-<span class="ansi-bright-black-fg">; ┌ @ /Users/alecloudenback/prog/julia-fin-book/hardware.qmd:119 within `myadd`</span>
+<span class="ansi-bright-black-fg">; ┌ @ /Users/alecloudenback/prog/julia-fin-book/hardware.qmd:121 within `myadd`</span>
 <span class="ansi-bright-black-fg">; %bb.0:                                ; %top</span>
     <span class="ansi-bright-black-fg">;DEBUG_VALUE: myadd:x &lt;- $x0</span>
     <span class="ansi-bright-black-fg">;DEBUG_VALUE: myadd:x &lt;- $x0</span>
@@ -1096,7 +1094,7 @@ Table&nbsp;9.2: How long different actions take on a computer. As an interesting
 <div id="tbl-CPU-ops" class="quarto-float quarto-figure quarto-figure-center anchored">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-CPU-ops-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
-Table&nbsp;9.3: Different operations utilize different levels of required compute. On different hardware, the result may be different depending on the fundamental computational complexity of an operation and what hardware instructions are built into the CPU.
+Table&nbsp;9.3: Benchmarked runtime of Julia functions on Float64 arguments. These timings include function call overhead; raw CPU instruction latencies differ (e.g., hardware division is typically 10-20× slower than addition). The similar times for basic arithmetic reflect that these operations compile to single instructions where the benchmark overhead dominates. The key takeaway is the relative cost of transcendental functions like <code>^</code>, <code>exp</code>, and <code>log</code>.
 </figcaption>
 <div aria-describedby="tbl-CPU-ops-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 <table class="caption-top table">
