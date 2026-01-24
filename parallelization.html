@@ -6,6 +6,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
+<meta name="author" content="Alec Loudenback">
 
 <title>11&nbsp; Parallelization – Modern Financial Modeling</title>
 <style>
@@ -717,6 +718,12 @@ window.Quarto = {
 
 <div class="quarto-title-meta">
 
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Alec Loudenback </p>
+          </div>
+  </div>
     
   
     
@@ -894,11 +901,11 @@ Tip
 <span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@btime</span> <span class="fu">allow_simd</span>(<span class="op">$</span>x)</span>
 <span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  44.166 μs (0 allocations: 0 bytes)
-  4.816 μs (0 allocations: 0 bytes)</code></pre>
+<pre><code>  44.208 μs (0 allocations: 0 bytes)
+  4.821 μs (0 allocations: 0 bytes)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>4994.324781126044</code></pre>
+<pre><code>4989.549241939104</code></pre>
 </div>
 </div>
 <p>In testing the above code, the <code>allow_simd</code> version should be several times faster than the <code>prevent_simd</code> example. The reason is that <code>prevent_simd</code> has a branch (<code>if x &gt; 0</code>) where the behavior of the code may change depending on the value in <code>arr</code>. Conversely, the behavior of <code>allow_simd</code> is always the same in each iteration, no matter the value of <code>x</code>. This allows the compiler to generate vectorized code automatically.</p>
@@ -1029,16 +1036,16 @@ Main: [1.0, 2.0, 0.0, 0.0, 0.0]</code></pre>
 </dl>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Producer: Trade Result #2 1.271
-Monitor: Received 1.271, Cumulative: 1.271
-Producer: Trade Result #1 -0.952
-Monitor: Received -0.952, Cumulative: 0.319
-Producer: Trade Result #4 0.51
-Monitor: Received 0.51, Cumulative: 0.829
-Producer: Trade Result #3 0.416
-Monitor: Received 0.416, Cumulative: 1.245
-Producer: Trade Result #5 0.952
-Monitor: Received 0.952, Cumulative: 2.198</code></pre>
+<pre><code>Producer: Trade Result #2 0.707
+Monitor: Received 0.707, Cumulative: 0.707
+Producer: Trade Result #3 -0.557
+Monitor: Received -0.557, Cumulative: 0.149
+Producer: Trade Result #1 -0.01
+Monitor: Received -0.01, Cumulative: 0.139
+Producer: Trade Result #5 -0.603
+Monitor: Received -0.603, Cumulative: -0.464
+Producer: Trade Result #4 1.331
+Monitor: Received 1.331, Cumulative: 0.868</code></pre>
 </div>
 </div>
 <p>This is really useful for handling events that are “external” to our program. If we were just doing a modeling exercise using static data, then we could control the order of processing and not need to worry about monitoring a volatile source of data. Nonetheless, tasks can still be useful in some cases even if a model is not using “live” data: for example if one of the steps in a model is to load a very large dataset, it may be possible to perform some computations while chunked task requests are queued to load more data from the disk.</p>
@@ -1183,7 +1190,7 @@ Note
 <span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="fu">sum_bad</span>(<span class="fl">100_000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>751860866</code></pre>
+<pre><code>652385996</code></pre>
 </div>
 </div>
 <p>The result will be less than the expected sum (<code>5000050000</code>) due to a race condition. Here’s what happens:</p>
@@ -1257,7 +1264,7 @@ Note
 </dl>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  5.192 μs (72 allocations: 4.16 KiB)</code></pre>
+<pre><code>  4.541 μs (72 allocations: 4.16 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>5000050000</code></pre>
@@ -1303,7 +1310,7 @@ Note
 </dl>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  6.021 ms (199534 allocations: 3.05 MiB)</code></pre>
+<pre><code>  5.799 ms (199514 allocations: 3.05 MiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>5000050000</code></pre>
@@ -1336,7 +1343,7 @@ Note
 </dl>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  1.290 ms (73 allocations: 4.38 KiB)</code></pre>
+<pre><code>  1.342 ms (73 allocations: 4.38 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>5000050000</code></pre>
@@ -1545,12 +1552,12 @@ Note
 </dl>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  1.079 ms (6 allocations: 38.55 MiB)
-  68.958 μs (298 allocations: 8.59 KiB)</code></pre>
+<pre><code>  1.084 ms (6 allocations: 38.55 MiB)
+  73.542 μs (298 allocations: 8.59 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>1×100000 MtlMatrix{Float32, Metal.PrivateStorage}:
- 26.4729  27.8967  27.3278  25.4183  …  23.8243  25.2  26.7409  29.5361</code></pre>
+ 27.2623  25.1957  25.431  26.2077  …  25.7716  24.1154  25.6609  28.0856</code></pre>
 </div>
 </div>
 <p>The testing suggests approximately 200 times faster computation when performed on the GPU. Note however, that does not include the overhead of (1) moving the data to the GPU (in the initial <code>MtlArray(cashflows)</code> call), or (2) returning the data to the CPU (since the return type for the GPU version is <code>MtlArray</code>). We can measure this overhead by wrapping the data transfer inside another function and benchmarking it:</p>
@@ -1567,11 +1574,11 @@ Note
 <span id="annotated-cell-11-10"><a href="#annotated-cell-11-10" aria-hidden="true" tabindex="-1"></a></span>
 <span id="annotated-cell-11-11"><a href="#annotated-cell-11-11" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">GPU_overhead_test</span>(<span class="op">$</span>pvs, <span class="op">$</span>cashflows, <span class="op">$</span>discount_matrices)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  4.228 ms (482 allocations: 413.52 KiB)</code></pre>
+<pre><code>  4.182 ms (482 allocations: 413.52 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>1×100000 Matrix{Float32}:
- 26.4729  27.8967  27.3278  25.4183  …  23.8243  25.2  26.7409  29.5361</code></pre>
+ 27.2623  25.1957  25.431  26.2077  …  25.7716  24.1154  25.6609  28.0856</code></pre>
 </div>
 </div>
 <p>With the additional overhead, the computation on the GPU takes more total time than if the work were done just on the CPU. This is a very simple example, and the balance tips heavily in favor of the GPU when:</p>
@@ -1675,7 +1682,7 @@ Warning
 <span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">$</span>discount_matrices_GPU</span>
 <span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  15.500 μs (73 allocations: 1.70 KiB)</code></pre>
+<pre><code>  16.042 μs (73 allocations: 1.70 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>Metal.HostKernel{typeof(calculate_present_values_kernel!), Tuple{MtlDeviceMatrix{Float32, 1}, MtlDeviceVector{Float32, 1}, MtlDeviceMatrix{Float32, 1}}}(calculate_present_values_kernel!, Metal.MTL.MTLComputePipelineStateInstance (object of type AGXG16XFamilyComputePipeline))</code></pre>
@@ -1845,16 +1852,16 @@ Note
 <span id="annotated-cell-14-48"><a href="#annotated-cell-14-48" aria-hidden="true" tabindex="-1"></a><span class="co"># Run the simulation</span></span>
 <span id="annotated-cell-14-49"><a href="#annotated-cell-14-49" aria-hidden="true" tabindex="-1"></a><span class="fu">run_distributed_simulation</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Producer 1: Trade #3 -1.949
-Producer 1: Trade #1 0.198
-Monitor 1: Received -1.949, Cumulative: -1.949
-Monitor 1: Received 0.198, Cumulative: -1.751
-Producer 1: Trade #4 0.39
-Monitor 1: Received 0.39, Cumulative: -1.361
-Producer 1: Trade #2 -1.068
-Monitor 1: Received -1.068, Cumulative: -2.429
-Producer 1: Trade #5 -0.992
-Monitor 1: Received -0.992, Cumulative: -3.421</code></pre>
+<pre><code>Producer 1: Trade #5 0.878
+Monitor 1: Received 0.878, Cumulative: 0.878
+Producer 1: Trade #3 0.605
+Monitor 1: Received 0.605, Cumulative: 1.483
+Producer 1: Trade #4 0.818
+Monitor 1: Received 0.818, Cumulative: 2.3
+Producer 1: Trade #1 -0.125
+Monitor 1: Received -0.125, Cumulative: 2.175
+Producer 1: Trade #2 -0.458
+Monitor 1: Received -0.458, Cumulative: 1.717</code></pre>
 </div>
 </div>
 <p>Given the similarity to the single-process task-based version above, what’s the motivation for this bothering with a distributed approach? A few differences:</p>
@@ -1883,7 +1890,7 @@ Monitor 1: Received -0.992, Cumulative: -3.421</code></pre>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> <span class="bu">OhMyThreads</span></span>
 <span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> OhMyThreads.<span class="fu">tmapreduce</span>(x <span class="op">-&gt;</span> x, <span class="op">+</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">100_000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  10.250 μs (75 allocations: 4.20 KiB)</code></pre>
+<pre><code>  7.166 μs (75 allocations: 4.20 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>5000050000</code></pre>
@@ -1897,7 +1904,7 @@ Monitor 1: Received -0.992, Cumulative: -3.421</code></pre>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> <span class="bu">ThreadsX</span></span>
 <span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> ThreadsX.<span class="fu">mapreduce</span>(x <span class="op">-&gt;</span> x, <span class="op">+</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">100_000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  41.625 μs (890 allocations: 47.64 KiB)</code></pre>
+<pre><code>  40.875 μs (890 allocations: 47.64 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>5000050000</code></pre>
@@ -1916,10 +1923,10 @@ Monitor 1: Received -0.992, Cumulative: -3.421</code></pre>
 <span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="co"># fast and the overhead of moving the whole collection dominates</span></span>
 <span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">reduce</span>(<span class="op">+</span>, <span class="fu">pmap</span>(x <span class="op">-&gt;</span> <span class="fu">rand</span>((<span class="fl">0</span>, <span class="fl">1</span>)), <span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">^</span><span class="fl">3</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  24.309 ms (5062 allocations: 143.80 KiB)</code></pre>
+<pre><code>  24.194 ms (5062 allocations: 143.80 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>489</code></pre>
+<pre><code>487</code></pre>
 </div>
 </div>
 <div id="38" class="cell" data-execution_count="1">
@@ -1932,10 +1939,10 @@ Monitor 1: Received -0.992, Cumulative: -3.421</code></pre>
 <span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">dist_demo</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  77.625 μs (21 allocations: 880 bytes)</code></pre>
+<pre><code>  71.417 μs (21 allocations: 880 bytes)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>50216</code></pre>
+<pre><code>50006</code></pre>
 </div>
 </div>
 </section>
@@ -1951,11 +1958,11 @@ Monitor 1: Received -0.992, Cumulative: -3.421</code></pre>
 <span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@btime</span> <span class="fu">sum</span>(<span class="op">$</span>x_GPU)</span>
 <span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  4.817 ms (0 allocations: 0 bytes)
-  1.256 ms (397 allocations: 10.48 KiB)</code></pre>
+<pre><code>  4.912 ms (0 allocations: 0 bytes)
+  1.277 ms (397 allocations: 10.48 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>5.0002504f7</code></pre>
+<pre><code>4.999837f7</code></pre>
 </div>
 </div>
 <p><code>sum(x)</code> compiles to SIMD instructions on the CPU, while using the GPU array type in <code>sum(x_GPU)</code> is enough to let the compiler dispatch on the GPU type and emit efficient, parallelized code for the GPU.</p>
@@ -2033,7 +2040,7 @@ Monitor 1: Received -0.992, Cumulative: -3.421</code></pre>
 <span id="cb50-10"><a href="#cb50-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Finally, this runs:</span></span>
 <span id="cb50-11"><a href="#cb50-11" aria-hidden="true" tabindex="-1"></a><span class="fu">wait</span>(Dagger.<span class="pp">@spawn</span> <span class="fu">println</span>(<span class="st">"b: "</span>, <span class="fu">fetch</span>(b), <span class="st">", c: "</span>, <span class="fu">fetch</span>(c)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>b: 5011.869231424491, c: 0.0</code></pre>
+<pre><code>b: 5061.185043247042, c: 0.0</code></pre>
 </div>
 </div>
 </section>
