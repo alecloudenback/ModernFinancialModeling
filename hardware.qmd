@@ -57,13 +57,13 @@ At the very top of the memory hierarchy are **CPU registers**—tiny storage loc
 Memory units at a glance:
 
 -   1 bit is a single 0 or 1; 8 bits = 1 byte.
--   Binary multiples (common for RAM/caches and many OS readouts):
--   1 KiB = 1,024 bytes; 1 MiB = 1,024 KiB; 1 GiB = 1,024 MiB.
--   Decimal multiples (common for storage devices and network speeds):
--   1 kB = 1,000 bytes; 1 MB = 1,000,000 bytes; 1 Gb = 1,000,000,000 bits.
--   KB vs Kb: uppercase B = bytes; lowercase b = bits. 1 KB is eight times larger than 1 Kb.
+-   **Binary multiples** (common for RAM/caches and many OS readouts):
+    -   1 KiB = 1,024 bytes; 1 MiB = 1,024 KiB; 1 GiB = 1,024 MiB.
+-   **Decimal multiples** (common for storage devices and network speeds):
+    -   1 kB = 1,000 bytes; 1 MB = 1,000,000 bytes; 1 GB = 1,000,000,000 bytes.
+-   **Bytes vs bits**: uppercase B = bytes; lowercase b = bits. Network speeds are often quoted in bits (e.g., 1 Gbps = 1 gigabit per second = 125 MB/s).
 
-Rule of thumb: treat memory sizes (RAM, caches) as base‑2, and disk/network specs as base‑10. The “i” in KiB/MiB/GiB explicitly means base‑2 $(2^{10} = 1{,}024)$.
+Rule of thumb: treat memory sizes (RAM, caches) as base‑2, and disk/network specs as base‑10. The "i" in KiB/MiB/GiB explicitly means base‑2 $(2^{10} = 1{,}024)$.
 :::
 
 ### Stack vs Heap
@@ -99,15 +99,17 @@ Logical circuits (**transistors**) are an arrangement of wires that output a new
 
 The programmer (or compiler, if we are working in a higher level language like Julia) tells the CPU which instruction to run. The set of instructions that are valid for a given processor are called the Instruction Set Architecture, or ISA. In computer Assembly language (roughly one-level above directly manipulating the bits), the instructions are given names like `ADD`, `SUB`, `MUL`, `DIV`, and `MOV`. These instructions mirror the raw instruction that is part of the ISA.
 
-Not all instructions are created equal, however. Some instructions take many CPU cycles to complete. For example, floating point `DIV` (division) takes 10-20 CPU cycles while `ADD` only takes a single CPU cycle.
+Not all instructions are created equal, however. Some instructions take many CPU cycles to complete. For example, a floating point division instruction (`FDIV`) has a latency of 10-20 CPU cycles, while floating point addition (`FADD`) completes in 3-4 cycles. At 3 GHz, that's the difference between ~1 ns and ~6 ns for the raw operation.
 
 Some architecture examples that may be familiar:
 
--   Intel x86-64 (a.k.a. AMD64) are common computer processors that use registers that are 64 bits wide (the prior generation was 32 bits wide) and use the **x86** instruction set developed by Intel.
+-   **x86-64** (also called AMD64 or Intel 64) processors use 64-bit registers and the x86 instruction set. This architecture dominates desktops, laptops, and servers. The "64" refers to the register width; the prior generation was 32-bit x86.
 
--   ARM chips, including the Apple M-Series processors are characterized by the use of the **ARM** instruction set and recent processors of this kind are also 64 bit.
+-   **ARM** processors, including Apple's M-series chips, use the ARM instruction set. The 64-bit variant is called **AArch64** (or ARM64). You'll see "aarch64" in file paths, download options, and Julia's `Sys.ARCH` output when running on these processors.
 
-The ARM architecture is known as a **reduced instruction set chip** (RISC), which means that it has fewer available instructions compared to, e.g. the x86 architecture. The benefit of the reduced instruction set is that it is generally much more power efficient, but comes at the cost of sacrificing specialized instructions such as string manipulation, or in lower-end chips, even the division operation (which have to be implemented via software routines instead of CPU operations). However, for specialized workloads, the availability of a key instruction can make a program run on the CPU 10-100x faster at times. An example of this is that at the time of writing, AVX512 processors are becoming available (see @sec-parallelization for a discussion of vectorization) which can benefit some workloads greatly.
+The ARM architecture is a **Reduced Instruction Set Computer** (RISC) design. Despite the name, modern ARM chips have extensive instruction sets including SIMD extensions (NEON, SVE). The "reduced" refers to instruction *complexity*: each instruction does less work but executes in predictable time, enabling simpler pipelines and better power efficiency. x86's **Complex Instruction Set Computer** (CISC) heritage means some instructions do more work (e.g., memory access and computation in one instruction) but with variable timing.
+
+In practice, both architectures have converged: x86 chips decompose complex instructions into simpler micro-operations internally, while ARM has added specialized instructions over time. For specialized workloads, specific instructions can make programs 10-100× faster. For example, Intel's AVX-512 extensions (see @sec-parallelization) can dramatically accelerate vectorizable numerical code, while ARM's SVE (Scalable Vector Extension) provides similar benefits on that architecture.
 
 ::: callout-tip
 Trying to optimize your program via selecting specialized chips should be one of the *last* ways that you seek to optimize runtime, as generally a similar order of magnitude speedup can be achieved through more efficient algorithm design or general parallelization techniques. Developing programs in this way makes the performance *portable*, able to be used on other systems and not just special architectures.
@@ -261,7 +263,7 @@ As introduced in @sec-hardware-processor, calculations on the CPU vary widely. T
 | $abs(a)$               | `abs`          | 1.7                                          |
 +------------------------+----------------+----------------------------------------------+
 
-: Different operations utilize different levels of required compute. On different hardware, the result may be different depending on the fundamental computational complexity of an operation and what hardware instructions are built into the CPU. {#tbl-CPU-ops}
+: Benchmarked runtime of Julia functions on Float64 arguments. These timings include function call overhead; raw CPU instruction latencies differ (e.g., hardware division is typically 10-20× slower than addition). The similar times for basic arithmetic reflect that these operations compile to single instructions where the benchmark overhead dominates. The key takeaway is the relative cost of transcendental functions like `^`, `exp`, and `log`. {#tbl-CPU-ops}
 
 ::: callout-tip
 One way to speed up financial models is to utilize techniques to avoid using the `^` operation, as it's one of the most expensive basic operations, but unfortunately is also one of the most common when dealing with rates and compounding.

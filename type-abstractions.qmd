@@ -18,7 +18,7 @@ Using Julia’s type system lets us express financial instruments and valuation 
 
 ## Using Types to Value a Portfolio
 
-We'll assemble the tools and terminology to value a portfolio of assets by leveraging types (@sec-data-types). Using the constructs from the prior chapter, we can describe portfolio valuation as additively reducing the mapped value of assets. We aim to compute total portfolio value by applying a valuation function to each asset and summing the individual valuations:
+We'll assemble the tools and terminology to value a portfolio of assets by leveraging Julia's type system. Using the constructs from the prior chapter, we can describe portfolio valuation as mapping a value function over assets and summing the results. We aim to compute total portfolio value by applying a valuation function to each asset and summing the individual valuations:
 
 ``` julia
 mapreduce(value,+,portfolio)
@@ -236,7 +236,9 @@ This code:
 mapreduce(asset-> value(asset,econ_baseline), +, portfolio)
 ```
 
-is more verbose than what we set out do at the start (`mapreduce(value,+,portfolio)`) due to the two-argument `value` function requiring a second argument for the economic variables. This works well! However, there is a way to define it which avoids the anonymous function, which in some cases will end up needing to be compiled more frequently than you want it to. Sometimes we want a lightweight, okay-to-compile-on-the-fly function. Other times, we know it's something that will be passed around in compute-intensive parts of the code. A technique in this situation is to define an object which "locks in" one of the arguments but behaves like the anonymous version. There is a pair of types in the Base module, `Fix1` and `Fix2`, which represent partially-applied versions of the two-argument function f, with the first or second argument fixed to the value "x".
+is more verbose than what we set out do at the start (`mapreduce(value,+,portfolio)`) due to the two-argument `value` function requiring a second argument for the economic variables. This works well! However, there is a way to define it which avoids the anonymous function, which in some cases will end up needing to be compiled more frequently than you want it to. Sometimes we want a lightweight, okay-to-compile-on-the-fly function. Other times, we know it's something that will be passed around in compute-intensive parts of the code. 
+
+A technique in this situation is to define an object which "locks in" one of the arguments but behaves like the anonymous version. There is a pair of types in the Base module, `Fix1` and `Fix2`, which represent partially-applied versions of the two-argument function f, with the first or second argument fixed to the value "x".
 
 This is, `Base.Fix1(f, x)` behaves like `y->f(x, y)` and `Base.Fix2(f, x)` behaves like `y->f(y, x)`.
 
@@ -258,7 +260,7 @@ Extending the example, we can use a time-varying risk free rate instead of a con
 econ_sin = EconomicAssumptions(t -> 0.05 + sin(t) / 100)
 ```
 
-Now value will not work, because we've only defined how `value` works on bonds if the given rate is a `Float64` type:
+Now `value` will not work, because we've only defined how `value` works on bonds if the given rate is a `Float64` type:
 
 ```{julia}
 #| error: true
@@ -268,13 +270,13 @@ value(ZeroCouponBond(100.0, 5), econ_sin)
 We can extend our methods to account for this:
 
 ```{julia}
-function value(bond::ZeroCouponBond, r::T) where {T<:Function} # <1>
+function value(bond::ZeroCouponBond, r::Function) # <1>
     return bond.par / (1 + r(bond.tenor))^bond.tenor # <2>
 end
 ```
 
-1.  The `r::T ... where {T<:Function}` says use this method if `r` is any concrete subtype of the (abstract) `Function` type.
-2.  `r` is a function, where we call the time to get the zero coupon bond (a.k.a. spot) rate for the given timepoint.
+1.  The `r::Function` constraint says use this method if `r` is any subtype of the (abstract) `Function` type.
+2.  `r` is a function that we call with the time to get the zero coupon bond (a.k.a. spot) rate for the given timepoint.
 
 Now it works:
 
@@ -282,7 +284,7 @@ Now it works:
 value(ZeroCouponBond(100.0, 5), econ_sin)
 ```
 
-The important thing to note here is that the compiler is using the most specific method of the function (`value(bond::ZeroCouponBond, r::T) where {T<:Function}`). Both the types of the arguments are influencing the decision of which method to use. We could go on to define the appropriate method for `CouponBond` to complete the example.
+The important thing to note here is that the compiler is using the most specific method of the function (`value(bond::ZeroCouponBond, r::Function)`). Both the types of the arguments are influencing the decision of which method to use. To complete the example for `CouponBond`, we would need to define a similar method that calls `r(t)` at each coupon date within the valuation loop.
 
 ## Object-Oriented Design {#sec-object-oriented}
 
@@ -446,8 +448,9 @@ class DeferredAnnuity(InsuranceProduct):
 :::
 ::::::
 
-There are workarounds to handle this, which include:
+There are workarounds to handle this, which include those listed in @tbl-OOP-workarounds.
 
+::: landscape
 +---------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | Workaround to OOP Expression Problem                                                  | Concerns with Workaround                                                                                                                                                                                                                                          |
 +=======================================================================================+===================================================================================================================================================================================================================================================================+
@@ -485,8 +488,9 @@ There are workarounds to handle this, which include:
 | my_policy = MyExtendedWholeLife(face_amount=500000, age=40)                           |                                                                                                                                                                                                                                                                   |
 | ```                                                                                   |                                                                                                                                                                                                                                                                   |
 +---------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+: Workarounds for Object Oriented Programming restrictions. The object oriented paradigm does not allow for extension of **both** representation (data types) and behavior (methods). {#tbl-OOP-workarounds tbl-colwidths="[50,50]"}
+:::
 
-The object oriented paradigm does not allow for extension of **both** representation (data types) and behavior (methods).
 
 In Julia, functions are defined separately from data types. This allows you to add new functions to existing types—even those from external libraries—without altering their original code. Your new functionality works on all instances of the original type, avoiding both the conflicts of patching and the type-checking required by subclassing. whereas a more general, data-oriented approach does facilitate this using Julia's multiple dispatch.
 
@@ -500,62 +504,128 @@ Another issue with inheritance in OO design is the temptation to use it for code
 
 #### Composition over Inheritance
 
-To mitigate some of the problems associated with inheritance, there's a growing preference for *composition*. Composition involves creating objects that contain instances of other objects to achieve complex behaviors. This approach is more flexible than inheritance as it allows for the creation of more modular and reusable code. There is a general preference for "composition over inheritance" among professional developers these days.
+To mitigate some of the problems associated with inheritance, there's a growing preference for *composition*. Composition involves creating objects that contain instances of other objects to achieve complex behaviors. This approach is more flexible than inheritance as it allows for the creation of more modular and reusable code.
 
-In composition, objects are constructed from other objects, and behaviors are delegated to these contained objects. This approach allows for greater flexibility, as it's easier to change the behavior of a system by replacing parts of it without affecting the entire hierarchy, as is often the case with inheritance.
+To see why, consider a concrete problem: we want to model financial instruments that share *some* but not *all* characteristics. A municipal bond is a fixed-income instrument (it has a coupon and tenor), but it's also a listed security (it has a CUSIP identifier). An interest rate swap has fixed-income characteristics on both legs, but isn't a listed security at all. A listed equity option has a CUSIP but no fixed-income characteristics.
 
-Composition looks like this:
+With inheritance, we'd be forced to choose a single parent for each type:
 
-``` julia
+```julia
+# The inheritance approach runs into trouble
+abstract type Asset end
+abstract type FixedIncomeAsset <: Asset end
+abstract type ListedAsset <: Asset end
+
+# But what is a MunicipalBond? It's both fixed income AND listed.
+# We can only pick one parent:
+struct MunicipalBond <: FixedIncomeAsset  # Can't also be <: ListedAsset
+    # ...
+end
+```
+
+There's no natural hierarchy here. A municipal bond isn't "more" of a fixed-income instrument than a listed security—it's both. Inheritance forces us to pick one lineage, and we lose the ability to share behavior along the other dimension.
+
+Composition solves this by building types out of reusable components:
+
+```{julia}
+#| output: false
 struct CUSIP
     code::String
 end
 
-struct FixedBond
+struct FixedIncome
     coupon::Float64
-    tenor::Int64
+    tenor::Int
 end
 
-struct FloatingBond
+struct FloatingRate
     spread::Float64
-    tenor::Int64
+    tenor::Int
 end
-
-struct MunicipalBond
-    cusip::CUSIP
-    fi::FixedBond
-end
-
-struct Swap
-    float_leg::FloatingBond
-    fixed_leg::FixedBond
-end
-
-struct ListedOption
-    cusip::CUSIP
-    #... other data fields
-end
-
-struct UnlistedBond
-    fi::FixedBond
-end
-
-
-
-# define behavior which relies on delegation to components
-last_transaction(c::CUSIP) = # ...perform lookup of data
-last_transaction(asset) = last_transaction(asset.cusip)
-
-duration(f::FixedBond) = # ... calculate duration
-duration(asset) = duration(asset.fi)
 ```
 
-In the above example, there are number of asset classes that have CUSIP related attributes (i.e. the 9 character code) and behavior (e.g. being able to look up transaction data). Other assets have fixed income attributes (e.g. calculating a duration). There's no clear hierarchy here.
+Now we can compose these building blocks into the instruments we need:
 
-Composition lets us bundle the data and behavior together without needing complex chains of inheritance.
+```{julia}
+#| output: false
+struct MunicipalBond      # Has both CUSIP and fixed-income characteristics
+    cusip::CUSIP
+    fi::FixedIncome
+end
 
-::: callout-note
-A CUSIP (Committee on Uniform Security Identification Procedures) number, is a unique nine-character alphanumeric code assigned to securities, such as stocks and bonds, in the United States and Canada. This code is used to facilitate the clearing and settlement process of securities and to uniquely identify them in transactions and records.
+struct Swap               # Two legs, no CUSIP
+    fixed_leg::FixedIncome
+    float_leg::FloatingRate
+end
+
+struct ListedOption       # Has CUSIP, but no fixed-income component
+    cusip::CUSIP
+    strike::Float64
+    expiry::Int
+end
+
+struct PrivatePlacement   # Fixed income, but not listed
+    fi::FixedIncome
+    counterparty::String
+end
+```
+
+::: column-margin
+A CUSIP (Committee on Uniform Security Identification Procedures) number is a unique nine-character alphanumeric code assigned to securities in the United States and Canada, used to identify them in clearing and settlement.
+:::
+
+The key insight is **delegation**: we define behavior on the component types, then delegate to those components from the composite types.
+
+```{julia}
+# Macaulay duration for a fixed-income component
+function duration(fi::FixedIncome, rate)
+    # Simplified duration calculation
+    pv_weighted_time = 0.0
+    pv_total = 0.0
+    for t in 1:fi.tenor
+        cf = t == fi.tenor ? (1 + fi.coupon) : fi.coupon
+        pv = cf / (1 + rate)^t
+        pv_weighted_time += t * pv
+        pv_total += pv
+    end
+    return pv_weighted_time / pv_total
+end
+
+# Delegate: any type with a .fi field can compute duration
+duration(asset::MunicipalBond, rate) = duration(asset.fi, rate)
+duration(asset::PrivatePlacement, rate) = duration(asset.fi, rate)
+```
+
+Now we can use these:
+
+```{julia}
+muni = MunicipalBond(CUSIP("123456789"), FixedIncome(0.05, 10))
+duration(muni, 0.04)
+```
+
+```{julia}
+private = PrivatePlacement(FixedIncome(0.06, 5), "Acme Corp")
+duration(private, 0.04)
+```
+
+The `MunicipalBond` and `PrivatePlacement` types share duration logic through their common `FixedIncome` component—not through a shared parent class. We could similarly define `lookup_trades(c::CUSIP)` and delegate to it from `MunicipalBond` and `ListedOption`, sharing that behavior along an orthogonal dimension.
+
+**When is inheritance appropriate?** Inheritance works well for genuine "is-a" relationships where a single hierarchy makes sense. A `CouponBond` really *is* a kind of `Bond`—there's no ambiguity about where it belongs. The earlier portfolio valuation example in this chapter uses inheritance appropriately: `ZeroCouponBond <: AbstractBond <: AbstractAsset` is a clean hierarchy.
+
+The rule of thumb: use inheritance when types form a natural tree. Use composition when types share characteristics along multiple independent dimensions—which is common in financial modeling, where instruments often combine features (listed vs. private, fixed vs. floating, secured vs. unsecured) in various combinations.
+
+::: callout-tip
+## Working with Nested Immutable Data
+
+One practical consideration with composition: if your composite types are immutable (the default for `struct`), updating a nested field requires creating a new instance. The [Accessors.jl](https://github.com/JuliaObjects/Accessors.jl) package provides convenient syntax for this:
+
+```julia
+using Accessors
+# Create a new MunicipalBond with a different coupon
+updated_muni = @set muni.fi.coupon = 0.055
+```
+
+This returns a new `MunicipalBond` with the nested coupon changed, leaving the original unchanged.
 :::
 
 ## Data-Oriented Design

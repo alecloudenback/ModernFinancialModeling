@@ -2,131 +2,165 @@
 author: Alec Loudenback
 ---
 
-# The Julia Ecosystem Today
+# The Julia Ecosystem for Financial Modeling
 
 ## Chapter Overview
 
-A tour of relevant available packages as of 2023.
+One of Julia's strengths is its rich ecosystem of packages relevant to financial modeling. Rather than building everything from scratch, you can leverage community-maintained libraries that have been tested, optimized, and documented. This chapter provides a tour of packages that financial modelers should know about—many of which appear elsewhere in this book.
 
+## Why Composability Matters
 
-## The Julia Ecosystem
+The Julia ecosystem favors composability and interoperability, enabled by multiple dispatch. Because it's easy to automatically specialize functionality based on the type of data being used, there's much less need to bundle a lot of features within a single package.
 
-The Julia ecosystem favors composability and interoperability, enabled by multiple dispatch. In other words, because it's easy to automatically specialize functionality based on the type of data being used, there's much less need to bundle a lot of features within a single package.
+Julia packages tend to be less vertically integrated because it's easier to pass data around. Contrast this with other ecosystems:
 
-As you'll see, Julia packages tend to be less vertically integrated because it's easier to pass data around. Counterexamples of this in Python and R:
+- NumPy-compatible packages in Python are designed to work with a subset of numerically fast libraries
+- Pandas includes special functions to read CSV, JSON, database connections, etc.—all bundled together
+- The Tidyverse in R has a tightly coupled set of packages that work well together but have limitations with some other R packages
 
-- Numpy-compatible packages that are designed to work with a subset of numerically fast libraries in Python
-- special functions in Pandas to read CSV, JSON, database connections, etc.
-- The Tidyverse in R has a tightly coupled set of packages that works well together but has limitations with some other R packages
+Julia is not perfect in this regard, but it's remarkable how frequently things *just work*. It's not magic—it's the result of language features (particularly multiple dispatch) that make it easy for package developers to write code that composes naturally with other packages.
 
-Julia is not perfect in this regard, but it's neat to see how frequently things *just work*. It's not magic, but because of Julia features outside the scope of this article it's easy for package developers (and you!) to do this.
+Julia also has language-level support for documentation, so packages follow a consistent style of help-text that can be auto-generated into web pages available locally or online.
 
-Julia also has language-level support for documentation, so packages can follow a consistent style of help-text and have the docs be auto-generated into web pages available locally or online.
+::: callout-tip
+## Evaluating Packages
 
-The following highlighted packages were chosen for their relevance to typical actuarial work, with a bias towards those used regularly by the authors. This is a small sampling of the over 6000 registered Julia Packages[^2]
+When evaluating packages, look at the GitHub repository: Is it actively maintained? Are issues being addressed? Does it have tests? A package that was last updated three years ago may still work perfectly, but you should understand what you're getting into before building production systems on it.
+:::
 
-### Data
+## Data Handling
 
-Julia offers a rich data ecosystem with a multitude of available packages. Perhaps at the center of the data ecosystem are [`CSV.jl`](https://github.com/JuliaData/CSV.jl) and [`DataFrames.jl`](https://dataframes.juliadata.org/stable/). `CSV.jl` is for reading and writing files text files (namely CSVs) and offers top-class read and write performance. `DataFrames.jl` is a mature package for working with dataframes, comparable to Pandas or dplyr.
+Julia offers a rich data ecosystem. At the center sit [`CSV.jl`](https://github.com/JuliaData/CSV.jl) and [`DataFrames.jl`](https://dataframes.juliadata.org/stable/).
 
-Other notable packages include [`ODBC.jl`](https://github.com/JuliaDatabases/ODBC.jl), which lets you connect to any database (given you have the right drivers installed), and [`Arrow.jl`](https://github.com/JuliaData/Arrow.jl) which implements the [Apache Arrow](https://arrow.apache.org/) standard in Julia.
+-   [**DataFrames.jl**](https://github.com/JuliaData/DataFrames.jl): The standard tabular data structure in Julia, analogous to pandas in Python or data.frame in R. Essential for working with structured financial data. A mature package with excellent documentation.
+-   [**CSV.jl**](https://github.com/JuliaData/CSV.jl): Fast, flexible CSV reading and writing. Handles the messy reality of real-world data files and offers top-class read and write performance.
+-   [**JSON.jl**](https://github.com/JuliaIO/JSON.jl): Parse and write JSON, the lingua franca of web APIs and configuration files.
+-   [**XLSX.jl**](https://github.com/felipenoris/XLSX.jl): Read and write Excel files, because spreadsheets aren't going away anytime soon.
+-   [**Arrow.jl**](https://github.com/apache/arrow-julia): Interface to the [Apache Arrow](https://arrow.apache.org/) columnar format, useful for large datasets and interoperability with other languages.
+-   [**Tidier.jl**](https://github.com/TidierOrg/Tidier.jl): A meta-package providing tidyverse-style data manipulation for those coming from R.
+-   [**ODBC.jl**](https://github.com/JuliaDatabases/ODBC.jl): Connect to any database (given you have the right drivers installed).
 
-Worth mentioning also is `Dates`, a built-in package making date manipulation straightforward and robust.
+Check out the [JuliaData](https://github.com/JuliaData) organization for more packages and information.
 
-Check out [JuliaData](https://github.com/JuliaData) org for more packages and information.
+## Data Structures and Utilities
 
-### Plotting
+These packages extend Julia's built-in data structures and iteration patterns:
 
-[`Plots.jl`](http://docs.juliaplots.org/latest/) is a meta-package providing an interface to consistently work with several plotting [backends](https://docs.juliaplots.org/latest/backends/), depending if you are trying to emphasize interactivity on the web or print-quality output. You can very easily add animations or change almost any feature of a plot.
+-   [**DataStructures.jl**](https://github.com/JuliaCollections/DataStructures.jl): Additional data structures including heaps, queues, deques, sorted containers, and more.
+-   [**StructArrays.jl**](https://github.com/JuliaArrays/StructArrays.jl): Arrays of structs stored as structs of arrays—provides better memory layout and performance for tabular-like data while maintaining convenient access patterns.
+-   [**Accessors.jl**](https://github.com/JuliaObjects/Accessors.jl): Functional lenses for updating immutable data structures. Particularly useful when working with nested configurations or model parameters.
+-   [**IterTools.jl**](https://github.com/JuliaCollections/IterTools.jl): Extended iteration utilities including partitioning, grouping, and combining iterators.
 
-[`StatsPlots.jl`](https://github.com/JuliaPlots/StatsPlots.jl) extends `Plots.jl` with a focus on data visualization and compatibility with dataframes.
+## Time and Dates
 
-[`Makie.jl`](http://makie.juliaplots.org/dev/) supports GPU-accelerated plotting and can create very rich, [beautiful visualizations](https://lazarusa.github.io/BeautifulMakie/), but its main downside is that it has not yet been optimized to minimize the time-to-first-plot.
+-   **Dates** (standard library): Julia's built-in date and time handling, which is surprisingly capable for most financial applications. Straightforward and robust.
+-   [**BusinessDays.jl**](https://github.com/JuliaFinance/BusinessDays.jl): Holiday calendars and business day calculations—essential for anything involving settlement dates, coupon schedules, or trading calendars.
+-   [**DayCounts.jl**](https://github.com/JuliaFinance/DayCounts.jl): Day count conventions (30/360, ACT/ACT, etc.) used in fixed income calculations.
 
-### Statistics
+## Statistics and Probability
 
-Julia has first-class support for `missing` values, which follows the rules of [three-valued logic](https://en.wikipedia.org/wiki/Three-valued_logic) so other packages don't need to do anything special to incorporate missing values.
+Julia has first-class support for `missing` values, which follows the rules of [three-valued logic](https://en.wikipedia.org/wiki/Three-valued_logic), so other packages don't need to do anything special to incorporate missing values.
 
-[`StatsBase.jl`](https://github.com/JuliaStats/StatsBase.jl) and [`Distributions.jl`](https://github.com/JuliaStats/Distributions.jl) are essentials for a range of statistics functions and probability distributions respectively.
+-   [**Distributions.jl**](https://github.com/JuliaStats/Distributions.jl): A comprehensive library of probability distributions with a consistent interface. Fitting, sampling, and computing densities for dozens of distributions. Essential for any probabilistic work.
+-   [**StatsBase.jl**](https://github.com/JuliaStats/StatsBase.jl): Basic statistical functions beyond what's in the standard library.
+-   [**HypothesisTests.jl**](https://github.com/JuliaStats/HypothesisTests.jl): Statistical hypothesis testing, if you still need to compute p-values.
+-   [**Turing.jl**](https://github.com/TuringLang/Turing.jl): Probabilistic programming and Bayesian inference. Outstanding in its combination of clear model syntax with performance. Described in detail in @sec-statistics.
+-   [**TimeSeries.jl**](https://github.com/JuliaStats/TimeSeries.jl): Time series data structures and analysis.
+-   [**GLM.jl**](https://github.com/JuliaStats/GLM.jl): Generalized linear models, mimicking R's `glm` functionality.
+-   [**LsqFit.jl**](https://github.com/JuliaNLSolvers/LsqFit.jl): Fitting data to non-linear models.
+-   [**MultivariateStats.jl**](https://github.com/JuliaStats/MultivariateStats.jl): Multivariate statistics, including PCA.
 
-Others include:
+You can find more packages at [JuliaStats](https://juliastats.org/).
 
-- [`Turing.jl`](https://turing.ml/stable/), a probabilistic programming (Bayesian statistics) library, which is outstanding in its combination of clear model syntax with performance.
-- [`GLM.jl`](https://github.com/JuliaStats/GLM.jl) for any type of linear modeling (mimicking R's `glm` functionality).
-- [`LsqFit.jl`](https://github.com/JuliaNLSolvers/LsqFit.jl) for fitting data to non-linear models.
-- [`MultivariateStats.jl`](https://github.com/JuliaStats/MultivariateStats.jl) for multivariate statistics, such as PCA.
+## Optimization
 
-You can find more packages and learn about them [here](https://juliastats.org/).
+-   [**Optimization.jl**](https://github.com/SciML/Optimization.jl): A unified interface to dozens of optimization backends. This is the recommended starting point for most optimization problems—it lets you switch between solvers (Optim.jl, NLopt, Ipopt, etc.) without changing your code.
+-   [**JuMP.jl**](https://github.com/jump-dev/JuMP.jl): A modeling language for mathematical optimization (linear, quadratic, mixed-integer, nonlinear). If you've used AMPL, GAMS, or similar tools, JuMP provides comparable expressiveness with Julia's performance.
+-   [**Optim.jl**](https://github.com/JuliaNLSolvers/Optim.jl): Unconstrained and box-constrained optimization algorithms.
+-   [**BlackBoxOptim.jl**](https://github.com/robertfeldt/BlackBoxOptim.jl): Derivative-free optimization for when you can't (or don't want to) compute gradients.
+-   [**Roots.jl**](https://github.com/JuliaMath/Roots.jl): Root-finding algorithms for scalar functions—useful for yield-to-maturity calculations, implied volatility, and similar inversions.
 
+## Automatic Differentiation
 
-### Machine Learning
+Sensitivity testing is very common in financial workflows: understanding the change in one variable in relation to another. In other words, the derivative. Julia has unique capabilities where almost across the entire language and ecosystem, you can take the derivative of entire functions or scripts—not by finite differences, but through automatic application of the chain rule.
 
-[`Flux`](https://fluxml.ai/), [`Gen`](https://www.gen.dev/), [`Knet`](https://github.com/denizyuret/Knet.jl), and [`MLJ`](https://alan-turing-institute.github.io/MLJ.jl/v0.12/) are all very popular machine learning libraries. There are also packages for PyTorch, Tensorflow, and SciKitML available. One advantage for users is that the Julia packages are written in Julia, so it can be easier to adapt or see what's going on in the entire stack. In contrast to this design, PyTorch and Tensorflow are built primarily with C++.
+Key packages include:
 
-Another advantage is that the Julia libraries can use automatic differentiation to optimize on a wider range of data and functions than those built into libraries in other languages.
+-   [**ForwardDiff.jl**](https://github.com/JuliaDiff/ForwardDiff.jl): Forward-mode automatic differentiation. Fast when you have few inputs and many outputs.
+-   [**Mooncake.jl**](https://github.com/compintell/Mooncake.jl): A newer reverse-mode AD package with strong performance characteristics.
+-   [**Zygote.jl**](https://github.com/FluxML/Zygote.jl): Reverse-mode AD, useful when you have many inputs and few outputs (like training neural networks or computing Greeks).
+-   [**Enzyme.jl**](https://github.com/EnzymeAD/Enzyme.jl): High-performance AD that works at the LLVM level, supporting mutation and other patterns that trip up source-to-source AD.
+-   [**DifferentiationInterface.jl**](https://github.com/JuliaDiff/DifferentiationInterface.jl): A unified API for multiple AD backends, so you can switch implementations without rewriting code.
 
-### Differentiable Programming
+Automatic differentiation has uses in optimization, machine learning, sensitivity testing, and risk analysis. See @sec-autodiff for a deeper treatment of automatic differentiation with worked examples, and the [JuliaDiff](https://juliadiff.org/) organization for more.
 
-Sensitivity testing is very common in actuarial workflows: essentially, it's understanding the change in one variable in relation to another. In other words, the derivative!
+## JuliaActuary
 
-Julia has unique capabilities where almost across the entire language and ecosystem, you can take the derivative of entire functions or scripts. For example, the following is real Julia code to automatically calculate the sensitivity of the ending account value with respect to the inputs:
+The [JuliaActuary](https://JuliaActuary.org) organization maintains a suite of packages for actuarial and financial calculations. These packages are designed to work together and integrate well with the broader Julia ecosystem.
 
-```julia-repl
-julia> using Zygote
+-   [**MortalityTables.jl**](https://github.com/JuliaActuary/MortalityTables.jl): Work with standard mortality tables from [mort.SOA.org](https://mort.soa.org) and parametric mortality models. Provides common survival calculations and makes it easy to load, manipulate, and extend mortality assumptions.
 
-julia> function policy_av(pol)
-	COIs = [0.00319, 0.00345, 0.0038, 0.00419, 0.0047, 0.00532]
-	av = 0.0
-	for (i,coi) in enumerate(COIs)
-		av += av * pol.credit_rate
-		av += pol.annual_premium
-		av -= pol.face * coi
-	end
-	return av                # return the final account value
-end
+-   [**LifeContingencies.jl**](https://github.com/JuliaActuary/LifeContingencies.jl): Calculations for life insurance and annuities, including actuarial present values, net premiums, and reserves. Builds on MortalityTables.jl for mortality assumptions.
 
-julia> pol = (annual_premium = 1000, face = 100_000, credit_rate = 0.05);
+-   [**ActuaryUtilities.jl**](https://github.com/JuliaActuary/ActuaryUtilities.jl): Robust and fast calculations for `internal_rate_of_return`, `duration`, `convexity`, `present_value`, `breakeven`, and more. Useful well beyond actuarial work—these are standard financial math functions.
 
-julia> policy_av(pol)        # the ending account value
-4048.08
+-   [**FinanceModels.jl**](https://github.com/JuliaActuary/FinanceModels.jl): Composable contracts, models, and yield curves. Allows modeling of both simple and complex financial instruments with a consistent interface for discounting and valuation.
 
-julia> policy_av'(pol)       # the derivative of the account value with respect to the inputs
-(annual_premium = 6.802, face = -0.0275, credit_rate = 10972.52)
-```
-When executing the code above, Julia isn't just adding a small amount and calculating the finite difference. Differentiation is applied to entire programs through extensive use of basic derivatives and the chain rule. **Automatic differentiation** has uses in optimization, machine learning, sensitivity testing, and risk analysis. You can read more about Julia's autodiff ecosystem [here](https://juliadiff.org/).
+-   [**ExperienceAnalysis.jl**](https://github.com/JuliaActuary/ExperienceAnalysis.jl): Exposure calculations for actuarial experience studies. Handles the details of calculating exposure periods, handling policy anniversaries, and producing the data needed for A/E analysis.
 
-### Utilities
+-   [**EconomicScenarioGenerators.jl**](https://github.com/JuliaActuary/EconomicScenarioGenerators.jl): Interest rate and equity scenario generation for stochastic modeling. Integrates with FinanceModels.jl for consistent discounting across generated scenarios.
 
-There are also a lot of quality-of-life packages, like [`Revise.jl`](https://timholy.github.io/Revise.jl/stable/) which lets you edit code on the fly without needing to re-run entire scripts.
+## Visualization
 
-[`BenchmarkTools.jl`](https://github.com/JuliaCI/BenchmarkTools.jl) makes it incredibly easy to benchmark your code - simply add `@benchmark` in front of what you want to test, and you will be presented with detailed statistics. For example:
+-   [**Makie.jl**](https://github.com/MakieOrg/Makie.jl): A powerful, flexible plotting ecosystem. CairoMakie produces publication-quality static figures; GLMakie provides GPU-accelerated interactive 3D graphics. Can create [beautiful visualizations](https://lazarusa.github.io/BeautifulMakie/).
+-   [**Plots.jl**](https://github.com/JuliaPlots/Plots.jl): A meta-package providing a consistent interface to several plotting [backends](https://docs.juliaplots.org/latest/backends/), depending on whether you're emphasizing interactivity on the web or print-quality output. You can easily add animations or change almost any feature of a plot.
+-   [**AlgebraOfGraphics.jl**](https://github.com/MakieOrg/AlgebraOfGraphics.jl): Grammar-of-graphics style plotting built on Makie, similar to ggplot2 in R.
+-   [**StatsPlots.jl**](https://github.com/JuliaPlots/StatsPlots.jl): Extends Plots.jl with a focus on data visualization and compatibility with DataFrames.
 
-```julia
-julia> using ActuaryUtilities, BenchmarkTools
+## Numerical Computing
 
-julia> @benchmark present_value(0.05,[10,10,10])
+-   **LinearAlgebra** (standard library): BLAS and LAPACK bindings for matrix operations, eigenvalue decomposition, and linear system solving.
+-   [**DifferentialEquations.jl**](https://github.com/SciML/DifferentialEquations.jl): A comprehensive suite for solving ordinary, stochastic, and partial differential equations. Useful for option pricing (Black-Scholes PDE), interest rate models (CIR, Vasicek), and other dynamic systems.
+-   [**Interpolations.jl**](https://github.com/JuliaMath/Interpolations.jl): Interpolation methods for curves and surfaces—essential for yield curve construction and volatility surfaces.
+-   [**QuadGK.jl**](https://github.com/JuliaMath/QuadGK.jl): Adaptive Gauss-Kronrod numerical integration.
 
-BenchmarkTools.Trial: 10000 samples with 994 evaluations.
- Range (min … max):  33.492 ns … 829.015 ns  ┊ GC (min … max): 0.00% … 95.40%
- Time  (median):     34.708 ns               ┊ GC (median):    0.00%
- Time  (mean ± σ):   36.599 ns ±  33.686 ns  ┊ GC (mean ± σ):  4.40% ±  4.55%
+## Parallel and Concurrent Computing
 
-  ▁▃▆▆▆██▇▄▃▂         ▁                                        ▂
-  █████████████▆▆▇█▇████▇██▇█▇█▇▇▆▆▅▅▅▅▅▄▅▄▄▅▅▅▅▄▄▁▅▄▄▅▄▄▅▅▆▅▆ █
-  33.5 ns       Histogram: log(frequency) by time      45.6 ns <
+Julia has built-in support for multithreading and distributed computing, but these packages provide higher-level abstractions that make parallel code easier to write and reason about:
 
- Memory estimate: 112 bytes, allocs estimate: 1.
+-   [**OhMyThreads.jl**](https://github.com/JuliaFolds2/OhMyThreads.jl): Simple, composable multithreading. Provides `tmap`, `tforeach`, `treduce` and other parallel primitives that are easier to use correctly than raw `@threads`.
+-   [**Dagger.jl**](https://github.com/JuliaParallel/Dagger.jl): Task-based parallelism with automatic scheduling. Define your computation as a graph of dependent tasks and let Dagger figure out how to execute them efficiently across threads or machines.
+-   [**Transducers.jl**](https://github.com/JuliaFolds2/Transducers.jl): Composable data transformations that can be executed sequentially, in parallel, or distributed. The same transformation pipeline works whether you're processing a small array or a massive distributed dataset.
 
-```
+## Machine Learning
 
-`Test` is a built-in package for performing testsets, while [`Documenter.jl`](https://github.com/JuliaDocs/Documenter.jl) will build high-quality documentation based on your inline documentation.
+-   [**Flux.jl**](https://fluxml.ai/): Neural networks in pure Julia. Flexible and composable. Written entirely in Julia, so it's easier to adapt or see what's going on in the entire stack.
+-   [**MLJ.jl**](https://github.com/alan-turing-institute/MLJ.jl): A machine learning framework providing a consistent interface to many algorithms, similar to scikit-learn.
+-   [**DecisionTree.jl**](https://github.com/JuliaAI/DecisionTree.jl): Decision trees and random forests.
 
-[`ClipData.jl`](https://github.com/pdeffebach/ClipData.jl) lets you copy and paste from spreadsheets to Julia sessions.
+One advantage for users is that the Julia packages are written in Julia, so automatic differentiation can work across the entire stack. In contrast, PyTorch and TensorFlow are built primarily with C++.
 
-### Other packages
+## Developer Utilities
 
-Julia is a general-purpose language, so you will find packages for web development, graphics, game development, audio production, and much more. You can explore packages (and their dependencies) at https://juliahub.com/.
+There are also a lot of quality-of-life packages for development:
 
-### Actuarial packages
+-   [**Revise.jl**](https://timholy.github.io/Revise.jl/stable/): Edit code on the fly without needing to re-run entire scripts. Essential for interactive development.
+-   [**BenchmarkTools.jl**](https://github.com/JuliaCI/BenchmarkTools.jl): Makes it incredibly easy to benchmark your code—simply add `@benchmark` in front of what you want to test.
+-   [**JET.jl**](https://github.com/aviatesk/JET.jl): Static analysis for Julia code. Catches type errors, unbound variables, and other issues before runtime.
+-   [**Cthulhu.jl**](https://github.com/JuliaDebug/Cthulhu.jl): Interactive exploration of type inference and code generation. When you need to understand why your code is slow, Cthulhu lets you descend into the compiler's view of your functions.
+-   [**Infiltrator.jl**](https://github.com/JuliaDebug/Infiltrator.jl): Drop into an interactive REPL at any point in your code with `@infiltrate`. Useful for debugging complex control flow.
+-   [**Julia VS Code Extension**](https://www.julia-vscode.org/): The primary IDE experience for Julia development. Provides integrated REPL, debugging, profiling, plot viewing, and documentation lookup.
+-   **Test** (standard library): Built-in package for performing test sets.
+-   [**Documenter.jl**](https://github.com/JuliaDocs/Documenter.jl): Build high-quality documentation based on your inline documentation.
+-   [**ClipData.jl**](https://github.com/pdeffebach/ClipData.jl): Copy and paste from spreadsheets to Julia sessions.
 
-Saving the best for last, the next article in the series will dive deeper into actuarial packages, such as those published by [JuliaActuary](https://JuliaActuary.org) for easy mortality table manipulation, common actuarial functions, financial math, and experience analysis.
+## Finding More Packages
+
+This is not an exhaustive list—the Julia ecosystem grows steadily, and new packages appear regularly. Key organizations for financial work include:
+
+-   [**JuliaActuary**](https://github.com/JuliaActuary): Actuarial science and financial modeling packages
+-   [**JuliaMath**](https://github.com/JuliaMath): Mathematical computing
+-   [**JuliaStats**](https://github.com/JuliaStats): Statistics
+-   [**SciML**](https://github.com/SciML): Scientific machine learning and differential equations
+
+Julia is a general-purpose language, so you'll also find packages for web development, graphics, game development, audio production, and much more. You can explore packages (and their dependencies) at [JuliaHub](https://juliahub.com/).

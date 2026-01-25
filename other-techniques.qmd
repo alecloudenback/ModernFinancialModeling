@@ -14,94 +14,199 @@ Pkg.instantiate()
 ENV["DATADEPS_ALWAYS_ACCEPT"] = true
 ```
 
+> "All models are wrong, but some are useful." - George Box (1976)
+
 ## Chapter Overview
 
-Disciplined ways to sanity-check assumptions, keep intermediate results reproducible, and interrogate models from an auditor’s perspective. Pragmatic techniques such as thought experiments, range tests, serialization patterns, memoization, validation workflows, and implied-rate calculations so that large-scale projects stay trustworthy and maintainable.
+A grab-bag of practical techniques for keeping models honest: sanity checks, serialization patterns for reproducibility, validation workflows, and ways to think about whether a model is doing what you think it's doing.
 
-## Conceptual Techniques
+## General Modeling Techniques
 
 ### Taking Things to the Extreme
 
-Consider what happens if something is taken to an extreme. Stress every assumption until it breaks: negative interest rates, zero recovery, perfectly correlated defaults, an illiquid market with no trades, or policy lapses at 100%. Catalogue which parts of the code are robust and which ones fail silently. Extreme thought experiments often surface missing guards, implicit caps/floors, or hidden assumptions in third-party datasets.
+Before trusting any model, ask: what happens at the edges? Set interest rates to zero, or negative. Assume 100% lapse. Perfectly correlated defaults. An illiquid market with zero trades. These extreme scenarios often reveal assumptions you didn't know you had made.
+
+Consider a simple loan loss model. It might work perfectly well under normal conditions, but what happens when recovery rates hit zero? Does the code handle that gracefully, or does it divide by something that's now zero? Extreme thought experiments surface these hidden assumptions before production does.
 
 ### Range Bounding
 
-Sometimes you just need to know that an outcome is within a certain range. Develop a “low” and a “high” estimate using deliberately conservative assumptions; if both bounds clear the hurdle, you have enough evidence without a full stochastic run. This technique is especially useful in early scoping meetings or ad-hoc regulatory requests where a directional answer suffices.
+Sometimes you don't need the answer—you just need to know that the answer is good enough. If both a pessimistic and an optimistic estimate clear your hurdle, you're done.
 
-To take an example from the pages of interview questions: say you need to determine if a mortgaged property's value is greater than the amount of the outstanding loan (say \$100,000). You don't have an appraisal, but know that it's in reasonable condition and that (1) a comparable house with many more issues sold for \$100 per square foot. You also don't know the square footage of the house, but know from the number of rooms and layout that it must be at least 1000 square feet. Therefore you know that the value should at least be greater than:
+Here's a classic example from interview lore: you need to determine whether a mortgaged property's value exceeds the \$100,000 loan balance. No appraisal available. But you know that a comparable house in worse condition sold for \$100 per square foot, and from the floor plan this house must be at least 1,000 square feet. So:
 
 $$
-\frac{\$100}{\text{sq. ft}} \times 1000 \text{sq. ft} = \$100,000 
+\frac{\$100}{\text{sq. ft}} \times 1000 \text{sq. ft} = \$100{,}000
 $$
 
-We'd then conclude that the value of the house very likely exceeds the outstanding balance of the loan and resolves our query without complex modeling or expensive appraisals.
+The property almost certainly exceeds the loan balance. No complex modeling required.
+
+This technique is particularly useful in early scoping meetings or ad-hoc regulatory requests where a directional answer is all you need.
 
 ### Pseudo-Monte Carlo Sanity Checks
 
-Before investing compute time in a massive simulation, run a miniature version that mimics the full workflow but with fixed seeds and a handful of scenarios. This “pseudo-Monte Carlo” run lets you verify that:
+Before committing to a massive simulation run, do a miniature version first. Fix the random seed, use a handful of scenarios, and verify that everything works end-to-end. This catches problems like:
 
--   Random seeds, scenario IDs, and configuration files are captured for reproducibility.
--   Downstream transformations (aggregation, VaR/ECL, attribution) operate correctly on realistic but tiny datasets.
--   Performance bottlenecks show up early; profilers on a small run still reveal poorly vectorized code or serial loops.
+- Configuration files that aren't being read correctly
+- Aggregation logic that breaks on edge cases
+- Performance bottlenecks that will be painful at scale
 
-## Modeling Techniques
+A ten-scenario dry run that takes five seconds can save you from discovering bugs halfway through an overnight batch job.
+
+### Model Validation
+
+#### Static vs. Dynamic
+
+The most common validation approach is static: split your data chronologically, fit on the earlier period, and test on the later period. This tells you how well the model generalizes to unseen data.
+
+```{julia}
+using Random, Statistics, LinearAlgebra
+
+T = 200
+x = rand(T)
+y = 1.0 .+ 2.0 .* x .+ 0.1 .* randn(T)
+
+# Chronological holdout
+cut = 150
+Xtrain = hcat(ones(cut), x[1:cut])
+ytrain = y[1:cut]
+Xtest = hcat(ones(T - cut), x[(cut+1):end])
+ytest = y[(cut+1):end]
+
+θ = Xtrain \ ytrain
+ŷ = Xtest * θ
+
+println("MSE: ", mean((ŷ .- ytest) .^ 2))
+println("MAE: ", mean(abs.(ŷ .- ytest)))
+```
+
+Dynamic validation (sometimes called walk-forward) is more demanding: at each time step, you only use data available up to that point. This mimics how the model would actually be used in production.
+
+```{julia}
+Random.seed!(42)
+
+T = 200
+x = rand(T)
+y = 1.0 .+ 2.0 .* x .+ 0.1 .* randn(T)
+
+initial_window = 60
+sqerrs = Float64[]
+
+for t in (initial_window+1):T
+    Xtr = hcat(ones(t - 1), x[1:(t-1)])
+    ytr = y[1:(t-1)]
+    θ = Xtr \ ytr
+    ŷt = [1.0, x[t]]' * θ
+    push!(sqerrs, (ŷt - y[t])^2)
+end
+
+println("Walk-forward MSE: ", mean(sqerrs))
+```
+
+::: callout-note
+In some contexts, "static" and "dynamic" validation mean something different: static validation checks whether the model reproduces time-zero prices or balances, while dynamic validation checks whether projected cashflows match historical trends.
+:::
+
+#### Implied Rates
+
+Implied rates are a form of model inversion: given an observed price, what rate would produce that price? If your pricing function and your implied-rate function don't round-trip consistently, something is wrong.
+
+```{julia}
+using Zygote
+
+function present_value(rate, cash_flows)
+    sum(cf / (1 + rate)^i for (i, cf) in enumerate(cash_flows))
+end
+
+function implied_rate(cash_flows, price)
+    f(r) = present_value(r, cash_flows) - price
+    # Newton's method using autodiff for the derivative
+    x = 0.05
+    for _ in 1:100
+        fx = f(x)
+        abs(fx) < 1e-6 && return x
+        x -= fx / gradient(f, x)[1]
+    end
+    return NaN  # didn't converge
+end
+
+cash_flows = [100, 100, 100, 100, 1100]
+prices = [950, 1000, 1050]
+
+for price in prices
+    r = implied_rate(cash_flows, price)
+    println("Price $price → rate $(round(r*100, digits=2))%")
+end
+```
+
+::: callout-tip
+JuliaActuary's [FinanceCore.jl](https://github.com/JuliaActuary/FinanceCore.jl) provides a robust `irr` function that handles edge cases better than a hand-rolled Newton's method.
+:::
+
+### Predictive vs. Explanatory Models {#sec-model-assessment}
+
+Models serve different masters. A *predictive* model needs to forecast accurately; an *explanatory* model needs to tell a coherent story about why things happen. The validation approach should match the purpose.
+
+For prediction, pick a loss function that matches how the forecast will be used. If you're forecasting claims payments, RMSE or MAE make sense. If you're estimating Value-at-Risk, use a quantile loss that rewards accurate tail placement. If you're producing full distributions, consider the Brier score or CRPS.
+
+For explanation, the bar is different. Coefficients should have sensible signs and magnitudes—a lapse elasticity of –0.3 per 100 bps rate change is something you can discuss with product actuaries. The model should be stable across different time periods, and it should remain plausible under counterfactual scenarios ("what if we changed surrender charges?").
+
+::: callout-tip
+## Financial Modeling Pro Tip
+
+Align the loss you optimize with the metric you report. If the risk committee cares about 99th percentile losses, train and evaluate on quantile losses—not just RMSE.
+:::
+
+### Causal Modeling
+
+Most financial models capture correlation, not causation. That's often fine for prediction, but dangerous for "what-if" analysis. If you want to know what happens when you *change* something, you need causal reasoning.
+
+Judea Pearl's work on directed acyclic graphs (DAGs) provides a framework for this. The basic idea: draw arrows between variables to represent direct causal influence, then use the graph to determine what you need to control for (and what you shouldn't).
+
+A few patterns come up repeatedly:
+
+**Confounders** drive both the treatment and the outcome. Macro growth affects both lending standards and default rates. If you don't account for it, you'll see a spurious relationship between standards and defaults.
+
+**Mediators** sit on the causal pathway. A capital rule affects lending supply, which affects loan growth. If you control for lending supply, you block part of the effect you're trying to measure.
+
+**Colliders** are caused by two other variables. Regulation intensity and market stress both affect media coverage. If you control for media coverage, you *create* a spurious correlation between regulation and stress.
+
+This matters because financial regulators and boards increasingly ask "what happens if we do X?" Answering that question requires thinking carefully about causal structure, not just fitting the best predictive model. See @pearl2009causality for much more on this topic.
+
+### Other Techniques Worth Knowing
+
+A few topics we won't cover in depth but are worth exploring:
+
+**Quasi-Monte Carlo** uses low-discrepancy sequences (Sobol, Halton) instead of pseudo-random numbers. For high-dimensional integrals like exotic option pricing or nested ALM, this can dramatically reduce variance.
+
+**Variance reduction** techniques—control variates, antithetic paths, stratification—shrink simulation error without adding more scenarios. Useful when estimating Greeks or tail percentiles.
+
+**Scenario reduction** algorithms compress thousands of economic scenarios into a representative subset while preserving risk metrics. Kantorovich distance pruning is one approach.
+
+**Reverse stress testing** inverts the usual question: instead of "what's the loss under scenario X?", ask "what scenario produces loss Y?" This can surface vulnerabilities that standard stress grids miss.
+
+## Programming Techniques
 
 ### Serialization
 
-**Serialization** is the process of converting a data structure or object state into a format that can be easily stored or transmitted, allowing it to be reconstructed later.
+In most finance workflows, the slow part isn't the regression—it's the data prep, calibration, and scenario generation that come before. If you're running the same expensive calibration every time you tweak something downstream, you're wasting compute and making audits harder.
 
-In most finance workflows, the slowest parts are not the regressions themselves; they are the data prep, calibration, and scenario generation steps that lead up to them. If you are pricing thousands of scenarios, rolling a model office forward month-by-month, or recalibrating prepayment and default curves, rerunning those steps on every iteration wastes time and money and complicates audits. Serialization lets you checkpoint those expensive steps and ship lightweight “artifacts” between notebooks, jobs, and environments.
+Serialization lets you checkpoint expensive intermediate results. The question is which format to use:
 
-::: callout-tip
-## Why serialize?
+| Format | Good for | Watch out for |
+|--------|----------|---------------|
+| `Serialization` stdlib | Quick caches, memoization | Breaks across Julia versions |
+| JLD2 | Persisting results across sessions | Still Julia-specific |
+| Arrow/Parquet | Large tables, cross-language sharing | Not for arbitrary Julia types |
+| CSV/JSON/TOML | Configs, small tables, human-readable | Slow, lossy for binary data |
 
--   Speed and cost: avoid recomputing expensive steps (e.g., yield-curve calibration, Monte Carlo paths) between runs.
--   Reproducibility and audit: persist a snapshot of the model office (data, parameters, code version, random seeds) so you can replay it for validation or regulators.
--   Deployment: move model artifacts between environments in a controlled, versioned way.
-:::
-
-What to use when:
-
-| Format/Tool | Pros | Cons | Typical use |
-|:-----------------|:-----------------|:-----------------|:-----------------|
-| Serialization stdlib (.jls) | Fast, no extra dependency, preserves Julia types | Not stable across Julia versions; Julia-only | Short-lived caches, memoization artifacts |
-| JLD2 (.jld2) | Portable binary, stores multiple named arrays/structs, widely used | Extra dependency; still Julia-focused | Persisting model states and results across sessions/machines |
-| Arrow/Parquet | Language-agnostic, columnar, efficient for large tables | Heavier dependency; not for arbitrary Julia structs | Large tabular market/position data for interop |
-| CSV/JSON/TOML | Human-readable, easy diffing/versioning | Larger files, slower, lossy for binary data | Configs, small tables, metadata sidecars |
-
-#### Serialization Principles
-
-Design principles:
-
--   Minimality: Save just enough to reproduce downstream results (parameters, seeds, small derived tables), not entire raw datasets unless necessary.
--   Determinism: Include the random seed and any non-default options so recomputation is bit-for-bit identical when needed.
--   Portability: Prefer concrete, serializable types (structs, arrays, Dict) and stable formats when artifacts will live across Julia versions or be shared with others.
--   Traceability: Attach metadata (model version, code commit, created_at, inputs’ file hashes) so an auditor or colleague can answer “what produced this file?” a year later.
-
-What to serialize vs. recompute:
-
--   Serialize: fitted parameters, calibrated curves, scenario indexes, precomputed shocks, and intermediate aggregates that are expensive but compact.
--   Recompute: anything cheap, or large raw inputs you can reload from a columnar format (Arrow/Parquet).
--   Reference big inputs by path and hash in the artifact’s metadata rather than embedding them.
-
-Operational guidance:
-
--   Version your artifacts: embed minimal metadata (e.g., julia_version, created_at, model_version) and, if possible, a git commit hash for traceability.
--   Keep configs human-readable: store run configuration in JSON/TOML and reference it from binary artifacts.
--   Separate data from models: store large tabular datasets in Arrow/Parquet; store small model objects/results in JLD2/Serialization.
--   Sensitive data: never serialize secrets. Encrypt at rest if files contain PII; control access with OS permissions.
--   Interop: do not deserialize untrusted files. Prefer Arrow/Parquet/CSV for sharing with non-Julia systems.
-
-#### Example: Snapshot a “Model Office” State
-
-Capture parameters, fitted coefficients, seeds, and minimal metadata. Prefer concrete, serializable structs and plain arrays to keep files portable.
+Here's a pattern for saving model state with atomic writes (so you don't end up with half-written files if something crashes):
 
 ```{julia}
 using Dates, Serialization
 
 struct ModelState
     θ::Vector{Float64}        # fitted parameters (example)
-    seed::Int64              # RNG seed used for the run
+    seed::Int64               # RNG seed used for the run
     timestamp::DateTime       # when the snapshot was created
     note::String              # short description
 end
@@ -122,15 +227,10 @@ state = ModelState(θ, 42, now(), "OLS on 2025-08-11")
 
 path = joinpath("artifacts", "model_state.jls")
 atomic_serialize(path, state)
-
 restored = deserialize(path)
 ```
 
-Tip: Keep snapshot files small and focused. Store big inputs (e.g., loan-level data) separately in efficient tabular formats and reference them via metadata (e.g., file hashes/paths) in the snapshot.
-
-#### Example: Cross-session persistence with JLD2
-
--   JLD2 stores multiple named variables in one file and is less brittle across Julia versions than raw Serialization. Good default for sharing artifacts with colleagues.
+For cross-session persistence where you might share artifacts with colleagues, JLD2 is more robust:
 
 ```{julia}
 using JLD2, Random, LinearAlgebra, Dates
@@ -141,59 +241,48 @@ y = X * [1.0, 2.0] .+ 0.1 .* randn(100)
 
 meta = (
     julia_version=string(VERSION),
-    created_at=string(Dates.now()),
-    description="OLS fit for prepayment speed model (toy example)",
+    created_at=string(now()),
+    description="OLS fit example",
 )
 
 mkpath("artifacts")
-file = joinpath("artifacts", "ols_artifact_v2.jld2")
-jldsave(file; θ, meta, X_size=size(X))
+jldsave("artifacts/example.jld2"; θ, meta)
 
-# Load (returns a tuple in the same order)
-θ2, meta2, Xsz2 = JLD2.load(file, "θ", "meta", "X_size")
-
-@assert Xsz2 == (100, 2)
-@assert length(θ2) == 2
-
+θ_loaded, meta_loaded = JLD2.load("artifacts/example.jld2", "θ", "meta")
 ```
 
-#### Example: Disk-Backed Memoization (Cache Expensive Results)
+The key insight: serialize fitted parameters, calibrated curves, and expensive intermediate results. Don't serialize raw data—keep that in efficient columnar formats and reference it by path (and ideally by content hash) in your artifact metadata. And remember that the CPU is fast enough that in many cases it's faster to compute an answer than it is to retreive it from memory.
 
--   Cache outputs keyed by inputs to avoid re-running slow steps (e.g., pricing a large scenario set). Include a label and serialize atomically.
+### Memoization
+
+Memoization is caching function results keyed by their inputs. For expensive computations that get called repeatedly with the same arguments, this can be a huge win.
 
 ```{julia}
 using SHA, Serialization
 
-# Build a stable cache key from a label and arguments
-function cachekey(label::AbstractString, args...; kwargs...)
+function cachekey(label, args...; kwargs...)
     io = IOBuffer()
     print(io, label, '|', args, '|', kwargs)
-    return bytes2hex(sha1(take!(io)))
+    bytes2hex(sha1(take!(io)))
 end
 
-function memoize_to_disk(
-    f;
-    label::AbstractString="f",
-    cache_dir::AbstractString="cache"
-)
+function memoize_to_disk(f; label="f", cache_dir="cache")
     mkpath(cache_dir)
-    return function (args...; kwargs...)
+    function (args...; kwargs...)
         key = cachekey(label, args...; kwargs...)
-        path = joinpath(cache_dir, string(key, ".jls"))
+        path = joinpath(cache_dir, "$key.jls")
         if isfile(path)
             return deserialize(path)
-        else
-            res = f(args...; kwargs...)
-            # Atomic write
-            tmp = tempname(cache_dir)
-            serialize(tmp, res)
-            mv(tmp, path; force=true)
-            return res
         end
+        result = f(args...; kwargs...)
+        tmp = tempname(cache_dir)
+        serialize(tmp, result)
+        mv(tmp, path; force=true)
+        return result
     end
 end
 
-# Example: cache an OLS fit (stand-in for a slow calibration)
+# Wrap an expensive function
 ols = (X, y) -> X \ y
 ols_cached = memoize_to_disk(ols; label="ols_v1")
 
@@ -206,214 +295,9 @@ ols_cached = memoize_to_disk(ols; label="ols_v1")
 ::: callout-tip
 ## Financial Modeling Pro Tip
 
--   For recurring production runs, use a directory convention like `artifacts/YYYY-MM-DD/` with consistent filenames, and clean caches on a schedule to control disk use.
+For recurring production runs, use a directory convention like `artifacts/YYYY-MM-DD/` and clean old caches on a schedule. Otherwise disk usage creeps up over time.
 :::
 
-## Model Validation
+### Automated Benchmarks
 
-### Static and dynamic validation
-
-Static validation typically involves splitting the dataset into training and testing sets, where the testing set is held out and not used during model training. The model is trained on the training set and then evaluated on the held-out testing set to assess its performance. This approach helps to measure how well the model generalizes to unseen data.
-
-The following example shows how to do a static validation in Julia.
-
-```{julia}
-using Random, Statistics, LinearAlgebra
-
-# Synthetic time-indexed data
-T = 200
-x = rand(T)
-y = 1.0 .+ 2.0 .* x .+ 0.1 .* randn(T)  # Vector response
-
-# Chronological holdout (static validation)
-cut = 150
-Xtrain = hcat(ones(cut), x[1:cut])
-ytrain = y[1:cut]
-Xtest = hcat(ones(T - cut), x[(cut+1):end])
-ytest = y[(cut+1):end]
-
-# OLS fit
-θ = Xtrain \ ytrain  # Vector length 2
-
-# Predictions on the holdout
-ŷ = Xtest * θ
-
-# Metrics
-mse = mean((ŷ .- ytest) .^ 2)
-mae = mean(abs.(ŷ .- ytest))
-
-println("Static validation (chronological holdout):")
-println("Mean Squared Error (MSE): ", mse)
-println("Mean Absolute Error (MAE): ", mae)
-```
-
-The following example shows how to do a dynamic validation in Julia.
-
-```{julia}
-using Random, Statistics, LinearAlgebra
-
-# Reproducibility
-Random.seed!(42)
-
-# Simulate a simple linear data-generating process
-T = 200
-x = rand(T)
-y = 1.0 .+ 2.0 .* x .+ 0.1 .* randn(T)  # y is a Vector (not an n×1 matrix)
-
-# Walk-forward expanding-window validation: 1-step-ahead forecasts
-initial_window = 60
-sqerrs = Float64[]
-abserrs = Float64[]
-
-for t in (initial_window+1):T
-    Xtr = hcat(ones(t - 1), x[1:(t-1)])
-    ytr = y[1:(t-1)]
-
-    θ = Xtr \ ytr  # OLS on past data only
-
-    # 1-step-ahead prediction at time t
-    ŷt = [1.0, x[t]]' * θ
-    e = ŷt - y[t]
-
-    push!(sqerrs, e^2)
-    push!(abserrs, abs(e))
-end
-
-println("Dynamic validation (walk-forward expanding window):")
-println("Mean Squared Error (MSE): ", mean(sqerrs))
-println("Mean Absolute Error (MAE): ", mean(abserrs))
-
-```
-
-::: callout-note
-Sometimes static and dynamic validation of a financial model can refer to the following analysis:
-
--   Static validation: whether the model reproduces time zero prices/balances from the model.
--   Dynamic validation: whether the model reproduces flows (e.g. cashflows, settlements) that are in-trend for historical data.
-:::
-
-### Implied rate analysis
-
-Implied rates are rates that are derived from the prices of financial instruments, such as bonds or options. For example, in the context of bonds, the implied rate is the interest rate that equates the present value of future cash flows from the bond (coupons and principal) to its current market price.
-
-```{julia}
-using Zygote
-
-# Define the bond cash flows and prices
-cash_flows = [100, 100, 100, 100, 1000]  # Coupons and principal
-prices = [950, 960, 1010, 1020, 1050]  # Market prices
-
-# Define a function to calculate the present value of cash flows given a rate
-function present_value(rate, cash_flows)
-    pv = 0
-    for (i, cf) in enumerate(cash_flows)
-        pv += cf / (1 + rate)^i
-    end
-    return pv
-end
-
-# Define a function to calculate the implied rate using bisection method
-function implied_rate(cash_flows, price)
-    f(rate) = present_value(rate, cash_flows) - price
-    return rootassign(f, 0.0, 1.0)
-end
-function rootassign(f, l, u)
-    # Define an initial value
-    x = 0.05
-    # tolerance of difference in value
-    tol = 1.0e-6
-    # maximum number of iteration of the algorithm
-    max_iter = 100
-    iter = 0
-    while abs(f(x)) > tol && iter < max_iter
-        x -= f(x) / gradient(f, x)[1]
-        iter += 1
-    end
-    if iter < max_iter && l < x < u
-        return x
-    else
-        return -1.0
-    end
-end
-
-# Calculate implied rates for each bond
-implied_rates = [implied_rate(cash_flows, price) for price in prices]
-# Print the results
-for (i, rate) in enumerate(implied_rates)
-    println("Implied rate for bond $i: $rate")
-end
-```
-
-::: callout-tip
-JuliaActuary's [FinanceCore.jl](https://github.com/JuliaActuary/FinanceCore.jl) provides a fast, robust `irr` function. More related utilities (e.g. present value) are found in [ActuaryUtilities.jl](https://github.com/JuliaActuary/ActuaryUtilities.jl).
-:::
-
-## Predictive vs. Explanatory Model Assessments {#sec-model-assessment}
-
-Financial modelers build models either to **predict** what will happen next (claim counts, RBC ratios, liquidity needs) or to **explain** how a system behaves so they can run “what-if” questions (what drives lapses, how an intervention changes credit take-up). Keep the assessment yardstick tied to that purpose.
-
-### Predictive assessment
-
-State the forecast target up front—point value, percentile, probability, or an entire distribution—and pick a loss function that matches how the result will be used.
-
-**Point forecasts** (paid claims next quarter, book yield, asset growth) favor scale-aware losses such as RMSE and MAE: $$
-\mathrm{RMSE} = \sqrt{\frac{1}{T}\sum_{t=1}^{T}(\hat{y}_t - y_t)^2}, \qquad
-\mathrm{MAE} = \frac{1}{T}\sum_{t=1}^{T}|\hat{y}_t - y_t|.
-$$ Avoid MAPE when volumes can be near zero (e.g., small-line claims); symmetric MAPE variants are safer if you must report a percentage error.
-
-**Quantile forecasts** (Value-at-Risk, Conditional Tail Expectation at level $\tau$) use the pinball loss $$
-L_\tau(\hat{q}_t, y_t) = \bigl(\tau - \mathbf{1}\{y_t < \hat{q}_t\}\bigr)(y_t - \hat{q}_t),
-$$ which directly rewards accurate tail placement.
-
-**Probabilistic forecasts** (default odds, surrender probabilities, full loss distributions) rely on the log score or Brier score for binary events, and Continuous Ranked Probability Score for full distributions. Judge the model on both calibration (does a “5% default” bucket actually default 5% of the time?) and sharpness (are the predictive bands as tight as possible while staying honest?).
-
-**Validation design**: For time-dependent work, roll the origin forward (walk-forward validation) so each backtest only uses information that would have existed at that decision date. Guard against leakage from future accounting closes, and bake in transaction costs, hedging slippage, or operational frictions so the score reflects real implementation.
-
-### Explanatory assessment
-
-Explanatory or structural models earn trust when they give business-friendly answers to “why” questions and remain stable under policy changes.
-
--   **Parameter meaning**: coefficients should carry the expected sign, scale, and units. For example, a lapse elasticity of –0.3 per 100 bps rate increase is easy to discuss with product actuaries.
--   **Data support (“identification”)**: verify the inputs contain enough variation to determine statistical parameters. Data (e.g. financial instruments) must be relevant and not clouded with noise; rank conditions in GMM or regression diagnostics provide quick sanity checks.
--   **Stability across regimes**: rerun the model on pre/post periods (e.g., pre-pandemic vs. pandemic), apply rolling or CUSUM charts, and log any breaks. If coefficients swing wildly, note the limits of any policy recommendations.
--   **Counterfactual credibility**: before using the model for what-if questions (changing credit standards, adjusting caps), demonstrate that the relationships held during past policy shifts or supervised experiments.
--   **Subset/component fit**: report how closely the model matches key summary statistics (loss ratio mean/variance, duration buckets) and at sub-group levels. Highlight the components that drive calibration and acknowledge those it misses.
--   **Sensitivity and uncertainty**: vary inputs and parameters (scenario sweeps, Sobol indices, or even simple ±10% shocks) to show decision makers the range of possible outcomes. Bayesian models should also quote posterior spreads, not just a single best fit.
-
-::: callout-tip
-## Financial Modeling Pro Tip
-
-Align the loss you optimize in estimation with the metric you report in evaluation. If your risk committee cares about 99% tail losses, train and evaluate on quantile/tail losses, not just RMSE.
-:::
-
-### Causal Modeling
-
-Causal Modeling is a burgeoning discipline related to statistics and is used to help practitioners think through *causal* relationships, not just *correlated* relationships. For a more complete introduction, see [@pearl2009causality]. We summarize some key concepts to demonstrate some of the complex relationships that one may want to model. These are important when trying to use models to explain the world - and go beyond mere prediction.
-
-Through thoughtful specification and modeling, you can discern insights about whether your modeled set of relationships is consistent with observed data or not. For example, think about trying to separate an issue like trying to decide if it was plausible that smoking didn't cause lung cancer - lung cancer was just genetic and the same gene that caused lung cancer also caused nicotine cravings (i.e. a desire to smoke). Thoughtful causal modeling was able to prove out undeniably that smoking *causes* lung cancer. This type of analysis can be extended to financial markets and modeling as well.
-
-**Directed acyclic graphs (DAGs)**. Pearl’s structural causal models encode assumptions as arrows between nodes. Each node is a variable (policy rate, lapse rate, capital buffer), arrows represent direct causal influence, and acyclicity enforces a time/order logic. DAGs separate what causes what from any specific estimator and make missing variables explicit—if you leave “regulator pressure” off your solvency model, you must defend that choice.
-
-Relationships in a DAG that commonly arise include the following:
-
--   **Confounder**: a variable that drives both treatment and outcome (e.g., *macro growth* affecting both lending standards and default rates). The confounder must be conditioned on to avoid spurious correlations.
--   **Mediator**: sits on the causal pathway from treatment to outcome (capital rule → *lending supply* → loan growth). Conditioning on it blocks part of the effect, so only do that if you want the direct effect.
--   **Collider**: two arrows pointing into the same node (regulation intensity → media coverage ← market stress). Conditioning on a collider or its descendants opens a bogus association; avoid “collider bias” by not controlling for variables jointly influenced by treatment and outcome (e.g., media coverage in this example).
--   **Instrument**: affects treatment but has no path to the outcome except through that treatment (e.g., randomized audit assignment affecting expense levels). IVs help when confounders are unobserved.
--   **Selection nodes**: explicit triangles showing how the data subset was chosen (e.g., only solvent companies report RBC ratios). Graphing them forces you to check for selection bias.
-
-Think of these as three practical knobs for turning a causal diagram into something you can estimate:
-
--   **Backdoor criterion**. To estimate $P(Y \mid \mathrm{do}(X=x))$, block every path that enters $X$ from the “back door” (i.e., starts with an arrow into $X$) by conditioning on an appropriate set $Z$. Rules: include confounders, avoid mediators, never condition on colliders. Example: evaluating the impact of a hedging overlay ($X$) on surplus volatility ($Y$) while macro stress ($M$) affects both. Conditioning on $M$ (or proxies like credit spreads) satisfies backdoor, letting you use standard regression or inverse propensity weighting.
--   **Front-door criterion**. When confounders of $X \to Y$ are unobserved but you can observe a clean mediator $Z$, identify the effect by modeling $X \to Z$ and $Z \to Y$ separately. Finance example: marketing push ($X$) affects advisor engagement ($Z$), which affects annuity sales ($Y$); if advisor engagement captures the entire pathway, you can recover $X$’s effect even with latent demand cycles.
--   **Do-calculus (three rules)**. Pearl’s algebra lets you manipulate expressions with the do-operator using graphical criteria. Most day-to-day work relies on the backdoor/front-door rules, but do-calculus formalizes when you may swap interventions and observations, add/remove conditioning sets, or break down complex experiments.
-
-It's not (yet) very common, but it may become commonplace to overlay your model assessment framework with the causal lens: predictive models care about accuracy under the observed world, whereas explanatory/structural models must defend their DAG, adjustment set, and intervention mapping. When management asks, “What happens if we raise surrender charges?”, bring the graph, spell out the assumed pathways, and attach sensitivity bands so the recommendation is both technically sound and board-ready.
-
-## Additional Techniques to Explore
-
--   **Low-discrepancy sampling (quasi-Monte Carlo):** Sobol and Halton sequences dramatically reduce variance in multi-factor simulations (exotic option pricing, nested ALM) compared with pure pseudo-random draws.
--   **Variance-reduction tricks:** Control variates, antithetic paths, and stratification shrink simulation error without multiplying run time; use them when estimating Greeks or tail percentiles.
--   **Scenario reduction and clustering:** Algorithms such as forward/backward selection or Kantorovich distance pruning compress thousands of economic scenarios into a representative subset while preserving risk metrics.
--   **Reverse stress testing:** Solve for the joint shocks that breach a target KPI (e.g., solvency ratio) to uncover hidden vulnerabilities that standard stress grids miss.
--   **Automated benchmark suites:** Maintain a lightweight set of benchmark portfolios and vintage runs; rerun them nightly to detect regressions in pricing, cash-flow engines, or calibration pipelines.
+If you have a pricing engine or cash-flow projection that runs nightly, maintain a small set of benchmark portfolios with known expected outputs. Run them automatically and alert if results drift. This catches numerical regressions before they reach production—and gives you confidence when refactoring.

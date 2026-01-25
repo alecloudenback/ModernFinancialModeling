@@ -62,6 +62,7 @@ You can think of computational complexity as a measure of how much work is to be
 
 Further, when we analyze an algorithm recall that ultimately our code gets translated into instructions for the computer hardware. Some instructions are implemented in a way that for any type of number (e.g. floating point), it doesn't matter if the number is `1.0` or `0.41582574300044717`, the operation will take the exact same time and number of instructions to execute (e.g. for the addition operation).
 
+
 Sometimes a higher level operation is implemented in a way that takes many machine instructions. For example, division instructions may require many CPU cycles when compared to addition or multiplication. Sometimes this is an important distinction and sometimes not. For this book we will ignore this granularity of analysis.
 :::
 
@@ -137,7 +138,7 @@ We can categorize the above implementations using a convention called **Big-O No
 |---------------|---------------|---------------|---------------|---------------|
 | `nsum_constant` | fixed | Constant | $O(1)$ | \~1 |
 | `nsum_linear` | $n$ | Linear | $O(n)$ | \~10,000 |
-| `nsum_quadratic` | $n^2 + n ÷ 2$ | Quadratic | $O(n^2)$ | \~100,000,000 |
+| `nsum_quadratic` | $(n^2 + n) / 2$ | Quadratic | $O(n^2)$ | \~100,000,000 |
 
 : Complexity comparison for the three sample cases of summing integers from $1$ to $n$. {#tbl-complexity-sum}
 
@@ -165,7 +166,7 @@ n^2 + \frac{n}{2} &= (10^6)^2 + \frac{10^6}{2} \\
                   &= 10^{12} + \frac{10^6}{2}
 \end{align*}
 
-$10^{12}$ is *significantly* more important than $\frac{10^6}{2}$ (sixty-four million times as important, to be precise). This is why Big-O notation reduces the problem down to only the most significant complexity cost term.
+$10^{12}$ is *significantly* more important than $\frac{10^6}{2}$ (two million times as important, to be precise). This is why Big-O notation reduces the problem down to only the most significant complexity cost term.
 
 If n is small then we don't really care about computational complexity in general. This is a lesson for our efforts as developers: focus on the most intensive parts of calculations when looking to optimize, and don't worry about seldom used portions of the code.
 :::
@@ -346,7 +347,7 @@ end
 
 We can easily verify that the `sha256` hash of `"hello world"` is the same each time, but it's virtually impossible to guess `"hello world"` if we are just given the resulting hash. This is the premise of trying to "crack" a password when the stored password hash is stolen (real systems "salt" and "stretch" hashes to make the attack even harder - these topics are out of scope here).
 
-One way to check if two sets of data are the same is to compute the hash and see if the resulting hashes are equal. For example, maybe you want to see if two data files with different names contain the same data - comparing the hashes is a sure way to determine if they contain the same data.
+One way to check if two sets of data are the same is to compute the hash and see if the resulting hashes are equal. For example, maybe you want to see if two data files with different names contain the same data—if the hashes differ, the files are definitely different; if the hashes match, the files are almost certainly identical (collisions are theoretically possible but astronomically unlikely with cryptographic hashes like SHA-256).
 
 #### Dictionaries
 
@@ -524,13 +525,14 @@ using Random
 
 # Generate a synthetic instance. Pass an RNG for reproducibility.
 function synth_instance(rng::AbstractRNG, n::Int; budget_ratio::Float64=0.35)
-    r = 0.04 .+ 0.08 .* rand(rng, n)            # expected returns in [4%, 12%]
-    c = Float64.(rand(rng, 50:150, n))          # costs (min lot "sizes"), as reals
-    B = budget_ratio * sum(c)                   # budget as a real, not floored
+    r = 0.04 .+ 0.08 .* rand(rng, n)    # expected returns in [4%, 12%]
+    c = Float64.(rand(rng, 50:150, n))  # costs (min lot "sizes"), as reals
+    B = budget_ratio * sum(c)           # budget as a real, not floored
     return r, c, B
 end
 
-# Greedy heuristic: sort by value-to-cost ratio and pack until budget is exhausted.
+# Greedy heuristic: sort by value-to-cost ratio 
+# and pack until budget is exhausted.
 function greedy_knapsack(r::AbstractVector{<:Real},
     c::AbstractVector{<:Real},
     B::Real)
@@ -550,7 +552,8 @@ function greedy_knapsack(r::AbstractVector{<:Real},
     return total, chosen
 end
 
-# Brute-force: enumerate all 2^n subsets (only feasible for small n).
+# Brute-force: enumerate all 2^n subsets 
+# (only feasible for small n).
 function brute_force_knapsack(r::AbstractVector{<:Real},
     c::AbstractVector{<:Real},
     B::Real)
@@ -702,5 +705,5 @@ What this shows in practice:
 
 In realistic portfolio construction, practitioners frequently avoid pure subset selection by relaxing to continuous weights (e.g., mean–variance) or by formulating a mixed‑integer model and using modern MILP solvers. These solvers implement sophisticated branch‑and‑bound/branch‑and‑cut strategies, presolve, and cutting planes. When exact optimality is not essential, heuristics (greedy, local search, genetic/evolutionary methods) can deliver high‑quality portfolios quickly under operational constraints (cardinality, sector caps, turnover budgets).
 
-See @sec-portfolio-optimization for more discussion.
+See @sec-portfolio-optimization for more discussion of portfolio optimization.
 :::
