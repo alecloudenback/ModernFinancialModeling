@@ -2,7 +2,7 @@
 author: Alec Loudenback
 ---
 
-# Auto-differentiation and Asset Liability Management (AAD & ALM)
+# Automatic Differentiation for Asset Liability Management
 
 ```{julia}
 #| echo: false
@@ -122,7 +122,7 @@ begin
             # apply interest credit
             av *= exp(d.rate / 12)
 
-            #determine market comparable rate and surrender rate
+            # determine market comparable rate and surrender rate
             mkt_rate = -log(curve(d.tenor) / curve(t)) / (d.tenor - t)
             rate_diff = mkt_rate - d.rate
             sr = t == d.tenor ? 1.0 : surrender_rate(rate_diff) / 12
@@ -279,7 +279,7 @@ The second element of `vgh_liab` is the partial derivative with respect to each 
 vgh_liab[2]
 ```
 
-This is the sensitivity relative to a full unit change in rates (e.g. `1.0`). So if we wanted to estimate the dollar impact of a 50bps change, we would take `0.005` times the gradient/hessian. Also note these are 'dollar durations' but we could divide by the price to get `effective` or percentage durations:
+This is the sensitivity relative to a full unit change in rates (e.g. `1.0`). So if we wanted to estimate the dollar impact of a 50 basis point (0.50%) change, we would take `0.005` times the gradient/hessian. Also note these are 'dollar durations' but we could divide by the price to get `effective` or percentage durations:
 
 ```{julia}
 -sum(vgh_liab[2]) / vgh_liab[1]
@@ -515,7 +515,7 @@ Production risk teams could rerun this optimization after every major market mov
 Autodiff provides several advantages over traditional finite difference approaches:
 
 - Exact derivatives rather than approximations
-- Single function evaluation computes value and all derivatives
+- Efficient computation of derivatives without separate finite difference passes for each parameter
 - No tuning of step sizes or dealing with numerical artifacts
 - Scales efficiently to high-dimensional parameter spaces
 
@@ -541,10 +541,12 @@ Julia is fastest when all functions are type stable (i.e. the return type can be
 
 ```julia
 function (d::DeferredAnnuity)(curve)
-    av = 1. 
+    av = 1.0
     map(1//12:1//12:d.tenor) do t
-        mkt_rate = -log(curve(d.tenor) / curve(t)) / (d.tenor - t)
+        # apply interest credit
         av *= exp(d.rate / 12)
+        # determine market comparable rate and surrender rate
+        mkt_rate = -log(curve(d.tenor) / curve(t)) / (d.tenor - t)
         rate_diff = mkt_rate - d.rate
         sr = t == d.tenor ? 1.0 : surrender_rate(rate_diff) / 12
         av_surr = av * sr

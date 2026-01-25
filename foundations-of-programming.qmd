@@ -151,7 +151,7 @@ end
 ::: callout-note
 In Julia, the booleans have an integer equality: `true` is equal to `1` (`true == 1`) and `false` is equal to `0` (`false == 0`).
 
-However, `true != 5`. Only `1` is equal to true (in some languages, any non-zero number is "truthy").
+However, `true != 5`. Only `1` is equal to `true` via `==` (in some languages, any non-zero number is "truthy"). Note that `true === 1` is `false` because they are different types.
 :::
 
 Conditionals can be used to assemble different logical paths for the program to follow and the general pattern is an `if` block:
@@ -205,7 +205,7 @@ end
 (5 < 0) || bigger_than_and_print(5, 7)  # prints, returns false
 ```
 
-By contrast, & and \| are non–short-circuit (bitwise/logical) and always evaluate both sides:
+By contrast, `&` and `|` are non–short-circuit (bitwise/logical) and always evaluate both sides:
 
 ```{julia}
 (5 > 0) & bigger_than_and_print(5, 7)   # prints, returns false
@@ -220,7 +220,11 @@ false && error("boom")  # no error (RHS skipped)
 false & error("boom")  # ERROR: boom
 ```
 
-Tips: - Use && and \|\| for control flow on Bool values. - With arrays, use broadcasting: .& and .\| (not &&/\|\|). - With missing data, &&/\|\| require Bool and will error; & and \| propagate missing.
+Tips:
+
+- Use `&&` and `||` for control flow on `Bool` values
+- With arrays, use broadcasting: `.&` and `.|` (not `&&`/`||`)
+- With `missing` data, `&&`/`||` require `Bool` and will error; `&` and `|` propagate `missing`
 :::
 
 ### Equality {#sec-equality}
@@ -428,9 +432,7 @@ And three floating-point numbers:
 14e3      # the same as 14,000.0
 ```
 
-On most systems, `0.2` will be interpreted as a 64-bit floating point type called `Float64` in Julia since most architectures these days are 64-bit[^foundations-of-programming-7], while on a 32-bit system `0.2` would be interpreted as a `Float32`. Given that there are a finite amount of bits attempting to represent a continuous, infinite set of numbers means that some numbers are not able to be represented with perfect precision. For example, if we ask for `0.2`, the closest representations in 64 and 32 bit are:
-
-[^foundations-of-programming-7]: This means that their central processing units (CPUs) use instructions that are 64 bits long.
+On most systems, `0.2` will be interpreted as a 64-bit floating point type called `Float64` in Julia. Unlike integers, floating-point literals are always `Float64` regardless of system architecture. Given that there are a finite amount of bits attempting to represent a continuous, infinite set of numbers means that some numbers are not able to be represented with perfect precision. For example, if we ask for `0.2`, the closest representations in 64 and 32 bit are:
 
 -   `0.20000000298023223876953125` in 32-bit
 
@@ -495,7 +497,7 @@ We can use Julia to introspect its own type hierarchy:
 function print_type_tree(T::Type, indent=0)
     println("  "^indent * string(T))
     for sub in subtypes(T)
-        print_type_tree(sub, indent+1)
+        print_type_tree(sub, indent + 1)
     end
 end
 print_type_tree(Number)
@@ -829,13 +831,13 @@ p3.x, p3.y # <1>
 But wait, didn't tuples let us mix types too via parametric types? Yes, and we can do the same with our type!
 
 ```{julia}
-struct Point{T}
+struct Point{T} #<1>
     x::T
     y::T
 end
 ```
 
-Line 1 The `{T}` after the type's name allows for different `Point`s to be created depending on what the type of the underlying `x` and `y` is.
+1. The `{T}` after the type's name allows for different `Point`s to be created depending on what the type of the underlying `x` and `y` is.
 
 Here's two new points which now have different types:
 
@@ -988,14 +990,13 @@ struct MyDate
     day::Int
 
     function MyDate(y,m,d)
-        if ~(m in 1:12)
+        if !(m in 1:12)
             error("month is not between 1 and 12")
-        elseif ~(d in 1:31)
+        elseif !(d in 1:31)
             error("day is not between 1 and 31")
         else
             return new(y,m,d)
         end
-
     end
                 
 end
@@ -1135,7 +1136,7 @@ Notice the strings preceding the definition of `dist`. In Julia, putting a strin
 
 We learned that `Float64 <: Real` in the type hierarchy. However, note that `Tuple{Float64}` is not a sub-type of `Tuple{Real}`. This is called being **invariant** in type theory... but for our purposes this just practically means that when we define a method we need to specify that we want it to apply to all subtypes.
 
-For example, `myfunction(x::Tuple{Real})` would *not* be called if x was a `Tuple{Float64}` because it's not a sub-type of `Tuple{Real}`. To act the way we want, would define the method with the signature of `myfunction(Tuple{<:Real})` or `myfunction{Tuple{T}} where {T<:Real}`.
+For example, `myfunction(x::Tuple{Real})` would *not* be called if `x` was a `Tuple{Float64}` because it's not a sub-type of `Tuple{Real}`. To act the way we want, we would define the method with the signature of `myfunction(x::Tuple{<:Real})` or `myfunction(x::Tuple{T}) where {T<:Real}`.
 :::
 
 ### Keyword Arguments
@@ -1288,11 +1289,11 @@ What if we had an array of things ("needles") that we wanted to search for? By d
 in.([1, 9], [1 2 3; 4 5 6])
 ```
 
-Effectively, the result above is the result of this broadcasted result:
+Effectively, broadcasting paired up each element of the vector with each row of the matrix:
 
 ``` julia
-in(1, [1,2,3]) # the first row of the above result
-in(9, [4,5,6])
+in(1, [1, 2, 3]) # first element checked against first row
+in(9, [4, 5, 6]) # second element checked against second row
 ```
 
 If we were expecting Julia to return `[true,false]` (that the first needle is in the haystack but the second needle is not), then we need to tell Julia not to broadcast along the second array with `Ref`:

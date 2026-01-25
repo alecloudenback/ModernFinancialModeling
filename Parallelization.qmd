@@ -146,7 +146,9 @@ Other types of parallelism that we will discuss in this chapter have some risk o
 
 ### Hardware
 
-Vectorization is hardware dependent. If the CPU does not support vectorization you will not see speedups from it. Many consumer and professional chips have AVX2 (Advanced Vector Extensions, with the 2 signifying second-generation 256 bit width, allowing four simultaneous 64-bit operations). The next generation is AVX512, having twice the SIMD capacity as AVX2. However, as of 2025 most consumer chips do not yet have that and commercial chips may not actually be faster than the AVX2 due to thermal restrictions (SIMD uses more power and generates more heat).
+Vectorization is hardware dependent. If the CPU does not support vectorization you will not see speedups from it. Many consumer and professional chips have AVX2 (Advanced Vector Extensions 2), which uses 256-bit registers allowing four simultaneous 64-bit floating-point operations. AVX-512, with 512-bit registers (eight simultaneous 64-bit operations), is common on Intel server chips and recent AMD processors. However, AVX-512 can cause thermal throttling on some chips—wider SIMD uses more power and generates more heat—so real-world speedups depend on sustained workloads and cooling.
+
+On ARM processors (AArch64), the equivalent is NEON (128-bit, two 64-bit operations) and the newer SVE/SVE2 (Scalable Vector Extension) which supports variable-width vectors up to 2048 bits. Apple's M-series chips use NEON; ARM server chips like AWS Graviton3 support SVE.
 
 ## Multi-Threading {#sec-multithreading}
 
@@ -289,10 +291,10 @@ digraph G {
 }
 ```
 
-The advantage of threads is that within a single physical processor there may be multiple cores. Those cores can access the shared process memory and run tasks from different threads simultaneously. This is a technique that takes advantage of modern processor architecture wherein several (sometimes as many as 32 or more) cores exist on the same chip.
+The advantage of threads is that within a single physical processor there may be multiple cores. Those cores can access the shared process memory and run tasks from different threads simultaneously. Modern processors commonly have 8-16 cores (consumer) or 64-128+ cores (server), making multi-threading an effective way to utilize available hardware.
 
 ::: callout-note
-Thread jargon varies. A compact glossary helps:
+Thread jargon varies. A compact glossary to help:
 
 - **Hardware threads** are the execution lanes exposed by the CPU. They are what the operating system schedules on each core.
 - **Operating-system threads** are managed by the kernel and generally map one-to-one to hardware threads. They are heavier to create and destroy than Julia tasks.
@@ -438,12 +440,12 @@ Graphics Processing Units (GPUs) and Tensor Processing Units (TPUs) are hardware
 
 GPUs have similar components as the CPU as discussed in @sec-hardware. They have RAM, caches for the cores, and cores that run the coded instructions on the data. The differences from a CPU are primarily:
 
--   A GPU typically has thousands of cores while a CPU generally has single or double digit cores.
-    -   The cores typically operate at a *slower* clock speed than CPUs, relying on the sheer number of cores to perform computations faster.
+-   A GPU typically has thousands of simple cores, while CPUs have fewer but more sophisticated cores (4-16 on consumer chips, up to 128+ on server chips like AMD EPYC or Intel Xeon).
+    -   GPU cores operate at *slower* clock speeds than CPU cores (1-2 GHz vs 3-5 GHz) but achieve throughput through massive parallelism.
 -   The GPU cores essentially have to be running the same set of instructions on all of the data, not unlike vectorization (@sec-vectorization).
     -   GPU code is not suited for code with branching conditions (e.g. `if` statements) and so is more limited in the kinds of computations it can handle compared to the CPU.
--   The RAM is typically much more constrained, typically less than a quarter of what primary RAM might be.
-    -   As a result, GPUs may need strategies to move chunks of data to and from the GPU memory for moderately large datasets. Further, it's actually fairly common to use a lower-precision datatype (e.g. `Float16` or `Float32`) to improve overall program throughput at the cost of some precision.
+-   GPU memory (VRAM) is typically more constrained than system RAM. Consumer GPUs have 8-24 GB; high-end data center GPUs (NVIDIA H100) have up to 80 GB, while system RAM can easily be 128-512 GB on servers.
+    -   As a result, GPUs may need strategies to move chunks of data to and from GPU memory for large datasets. Using lower-precision datatypes (e.g., `Float16` or `Float32` instead of `Float64`) is common to fit more data and improve throughput, though this trades off numerical precision.
 -   The caches are similar in concept to CPU, but unlike most CPU caches, there is relative locality to data (wherein core #1 will have much quicker access to a different subset of data than, say, core #1024).
 -   A GPU is usually a secondary device of sorts: it physically and in device architecture is separate from the CPU. The CPU remains in charge of overall computer execution.
     -   The implication of this (as with any movement of memory) is that there is overhead to moving data to and from the GPU. Your calculations will need to be in the single milliseconds range of time in order to start to see benefit from utilizing a GPU.
@@ -455,15 +457,15 @@ Like the difference between x86 and ARM architectures, GPU also have specific ar
 
 As of the mid 2020s, here are the most important GPU vendors and the associated programming library for utilizing their specific hardware:
 
-| Vendor | Hardware | API Library/Package |
-|------------------------|------------------------|------------------------|
-| NVIDIA | Geforce, GTX/RTX, various Data Center focused hardware | CUDA |
-| AMD | Radeon, various Data Center focused hardware | ROCm |
-| Intel | Core, Xeon, Arc processors | OneAPI |
-| Apple | M Series processors | Metal |
-| Google | Tensor processors | XLA (via TensorFlow or JAX) |
+| Vendor | Hardware Examples | API/Library |
+|--------|-------------------|-------------|
+| NVIDIA | GeForce RTX (consumer), Quadro/RTX A-series (professional), A100/H100/H200 (data center) | CUDA |
+| AMD | Radeon (consumer), Radeon Pro (professional), Instinct MI series (data center) | ROCm (HIP) |
+| Intel | Arc (consumer), Data Center GPU Max / Ponte Vecchio (data center) | oneAPI (SYCL) |
+| Apple | M-series integrated GPU (M1, M2, M3, M4) | Metal |
+| Google | TPU v4, v5 (cloud only) | XLA (via JAX or TensorFlow) |
 
-: Important GPU and TPU vendors and the associated library/interface.
+: GPU and TPU vendors with representative hardware and programming interfaces. NVIDIA dominates the data center market; Apple Metal is only available on macOS/iOS.
 
 ### Utilizing a GPU
 
@@ -530,7 +532,7 @@ discount_matrices_GPU = MtlArray(discount_matrices)
 
 1.  The function `calculate_present_values!` is written the same way as if we were just writing CPU code. Note that we are also passing a pre-allocated vector, `present_values` to store the result. This will allow us to isolate the performance of the computation, rather than including any overhead of allocating the array for the result.
 2.  The code is broadcasted across the first dimension so that the single set of cashflows is discounted for each scenario's discount vector.
-3.  Metal only supports 32 bit floating point (some CUDA hardware will support 64 bit floating point)
+3.  Metal only supports 32-bit floating point (`Float32`) in GPU shaders. NVIDIA data center GPUs (A100, H100) have full-speed FP64; consumer GPUs (RTX series) have heavily throttled FP64 (often 1/64th the FP32 rate). For financial calculations requiring double precision, this is an important hardware consideration.
 4.  Using 100 thousand scenarios for this example.
 5.  `MtlArray(array)` will copy the array values to the GPU.
 6.  Note that the data still lives on the GPU and is of the `MtlMatrix` (a type alias for a 2-D `MtlArray`).
@@ -901,6 +903,8 @@ In practice, you may find that a combination of these approaches is ideal: start
 
 ## References
 
--   https://book.sciml.ai/notes/06-The_Different_Flavors_of_Parallelism/
--   https://docs.julialang.org/en/v1/manual/parallel-computing/
--   <https://enccs.github.io/julia-for-hpc/>
+The following resources provide additional depth on parallel computing concepts and Julia-specific implementations:
+
+- @rackauckas2020parallelism provides an excellent overview of parallelism types in the context of scientific computing
+- @juliadocs2024parallel is the official Julia documentation on parallel computing constructs
+- @enccs2023juliahpc offers hands-on tutorials for high-performance computing with Julia

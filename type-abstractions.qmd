@@ -18,7 +18,7 @@ Using Julia’s type system lets us express financial instruments and valuation 
 
 ## Using Types to Value a Portfolio
 
-We'll assemble the tools and terminology to value a portfolio of assets by leveraging types (@sec-data-types). Using the constructs from the prior chapter, we can describe portfolio valuation as additively reducing the mapped value of assets. We aim to compute total portfolio value by applying a valuation function to each asset and summing the individual valuations:
+We'll assemble the tools and terminology to value a portfolio of assets by leveraging Julia's type system. Using the constructs from the prior chapter, we can describe portfolio valuation as mapping a value function over assets and summing the results. We aim to compute total portfolio value by applying a valuation function to each asset and summing the individual valuations:
 
 ``` julia
 mapreduce(value,+,portfolio)
@@ -270,13 +270,13 @@ value(ZeroCouponBond(100.0, 5), econ_sin)
 We can extend our methods to account for this:
 
 ```{julia}
-function value(bond::ZeroCouponBond, r::T) where {T<:Function} # <1>
+function value(bond::ZeroCouponBond, r::Function) # <1>
     return bond.par / (1 + r(bond.tenor))^bond.tenor # <2>
 end
 ```
 
-1.  The `r::T ... where {T<:Function}` says use this method if `r` is any concrete subtype of the (abstract) `Function` type.
-2.  `r` is a function, where we call the time to get the zero coupon bond (a.k.a. spot) rate for the given timepoint.
+1.  The `r::Function` constraint says use this method if `r` is any subtype of the (abstract) `Function` type.
+2.  `r` is a function that we call with the time to get the zero coupon bond (a.k.a. spot) rate for the given timepoint.
 
 Now it works:
 
@@ -284,7 +284,7 @@ Now it works:
 value(ZeroCouponBond(100.0, 5), econ_sin)
 ```
 
-The important thing to note here is that the compiler is using the most specific method of the function (`value(bond::ZeroCouponBond, r::T) where {T<:Function}`). Both the types of the arguments are influencing the decision of which method to use. We could go on to define the appropriate method for `CouponBond` to complete the example.
+The important thing to note here is that the compiler is using the most specific method of the function (`value(bond::ZeroCouponBond, r::Function)`). Both the types of the arguments are influencing the decision of which method to use. To complete the example for `CouponBond`, we would need to define a similar method that calls `r(t)` at each coupon date within the valuation loop.
 
 ## Object-Oriented Design {#sec-object-oriented}
 
@@ -488,7 +488,7 @@ There are workarounds to handle this, which include those listed in @tbl-OOP-wor
 | my_policy = MyExtendedWholeLife(face_amount=500000, age=40)                           |                                                                                                                                                                                                                                                                   |
 | ```                                                                                   |                                                                                                                                                                                                                                                                   |
 +---------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-: Workarounds for Object Oriented Programming restrictions. The object oriented paradigm does not allow for extension of **both** representation (data types) and behavior (methods). {#tbl-OOP-workarounds tbl-colwidths="\[25,45,30\]"}
+: Workarounds for Object Oriented Programming restrictions. The object oriented paradigm does not allow for extension of **both** representation (data types) and behavior (methods). {#tbl-OOP-workarounds tbl-colwidths="[50,50]"}
 :::
 
 
