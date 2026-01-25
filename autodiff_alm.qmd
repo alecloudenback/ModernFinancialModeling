@@ -14,7 +14,7 @@ Pkg.instantiate()
 
 ## Chapter Overview
 
-Asset liability modeling requires computing derivatives of portfolio values with respect to yield curve changes. Traditional approaches use finite difference methods or analytical approximations, but automatic differentiation ("autodiff" or "AD") provides exact derivatives with minimal additional computation. This chapter demonstrates how to implement ALM workflows using autodiff in Julia.
+Asset liability modeling\index{asset liability management (ALM)}`{=latex}` requires computing derivatives of portfolio values with respect to yield curve changes. Traditional approaches use finite difference methods or analytical approximations, but automatic differentiation ("autodiff" or "AD") provides exact derivatives with minimal additional computation. This chapter demonstrates how to implement ALM workflows using autodiff in Julia.
 
 ```{julia}
 using FinanceCore: Cashflow    # provides Cashflow object
@@ -33,7 +33,7 @@ using OhMyThreads              # multi-threading
 
 ## Interest Rate Curve Setup
 
-We start by constructing a yield curve using cubic spline interpolation:
+We start by constructing a yield curve\index{yield curve}`{=latex}` using cubic spline interpolation:
 
 The `curve` function creates a discount factor curve from zero rates and time points. This curve will serve as input to our `value` function, which makes it straightforward to compute sensitivities by differentiating with respect to the rate parameters.
 
@@ -106,7 +106,7 @@ value(c, FixedBond(0.09, 10, 2))
 
 ## Liability Modeling
 
-Deferred annuities require more complex modeling than fixed bonds due to policyholder behavior (optionality). The surrender rate depends on the difference between market rates and the guaranteed rate. The surrender function chosen below is arbitrary, but follows a typical pattern with much higher surrenders if the market rate on competing instruments is higher than what's currently available. The account value accumulates at the guaranteed rate, and surrenders create negative cashflows representing benefit payments. Lastly, the `annuities` function is a wrapper function we will use to compute the portfolio value and ALM metrics later.
+Deferred annuities\index{deferred annuity}`{=latex}` require more complex modeling than fixed bonds due to policyholder behavior (optionality). The surrender rate\index{surrender rate}`{=latex}` depends on the difference between market rates and the guaranteed rate. The surrender function chosen below is arbitrary, but follows a typical pattern with much higher surrenders if the market rate on competing instruments is higher than what's currently available. The account value accumulates at the guaranteed rate, and surrenders create negative cashflows representing benefit payments. Lastly, the `annuities` function is a wrapper function we will use to compute the portfolio value and ALM metrics later.
 
 ```{julia}
 begin
@@ -272,7 +272,7 @@ The first element of `vgh_liab` is the value of the liability portfolio using th
 vgh_liab[1]
 ```
 
-The second element of `vgh_liab` is the partial derivative with respect to each of the inputs (here, just the `zero_rates` rates that dictate the curve). The sum of the partials is the effective duration of the liabilities. 
+The second element of `vgh_liab` is the partial derivative with respect to each of the inputs (here, just the `zero_rates` rates that dictate the curve). The sum of the partials is the effective duration\index{duration}`{=latex}` of the liabilities. 
 
 ```{julia}
 @show sum(vgh_liab[2])
@@ -312,7 +312,7 @@ The third element of `vgh_liab` is the Hessian matrix, containing all second par
 vgh_liab[3]
 ```
 
-This matrix captures the convexity characteristics of the liability portfolio. The diagonal elements represent "key rate convexities"—how much the duration at each key rate changes as that specific rate moves:
+This matrix captures the convexity\index{convexity}`{=latex}` characteristics of the liability portfolio. The diagonal elements represent "key rate convexities"\index{key rate duration}`{=latex}`—how much the duration at each key rate changes as that specific rate moves:
 
 ```{julia}
 @show diag(vgh_liab[3])

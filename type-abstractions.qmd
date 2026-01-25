@@ -37,7 +37,7 @@ As a preview of why we want to utilize types in our program, there are a number 
 
 1.  **Separate concerns**. For example, deciding how to value an option need not know how we value a bond. The code and associated logic is kept distinct which is easier to reason about and to test.
 2.  **Re-use code**. When a set of types within a hierarchy all share the same logic, then we can define the method at the highest relevant level and avoid writing the method for each possible type. In our simple example we won't get as much benefit here since the hierarchy is simple and the set of types small.
-3.  **Extensibility through dispatch**. By defining types for our assets, we can use multiple dispatch to define specialized behavior for each type. This allows us to write generic code that works with any asset type, and the Julia compiler will automatically select the appropriate method based on the type of the asset at runtime. This is a powerful feature that enables extensibility and modularity in our code.
+3.  **Extensibility through dispatch**`\index{polymorphism}`{=latex}. By defining types for our assets, we can use multiple dispatch to define specialized behavior for each type. This allows us to write generic code that works with any asset type, and the Julia compiler will automatically select the appropriate method based on the type of the asset at runtime. This is a powerful feature that enables extensibility and modularity in our code.
 4.  **Improve readability and clarity**. By defining types for our assets, we make our code more expressive and self-documenting. The types provide a clear indication of what kind of data we are working with, making it easier for other developers (or ourselves in the future) to understand and maintain the codebase.
 5.  **Enable type safety**. By specifying the expected types for function arguments and return values, we can catch type-related errors at compile time rather than at runtime. This helps prevent bugs and makes our code more robust.
 
@@ -142,7 +142,7 @@ end
 
 When a function is called, the computer has to decide which method to use. In the example above, when we want to `value` a `ZeroCouponBond`, does the `value(asset::AbstractBond, r)` or `value(bond::ZeroCouponBond, r)` version get used?
 
-**Dispatch** is the process of determining the right method to use and the rule is that *the most specific defined method gets used*. In this case, that means that even though our `ZeroCouponBond` is an `AbstractBond`, the routine that will used is the most specific `value(bond::ZeroCouponBond, r)`.
+**Dispatch**`\index{dispatch}`{=latex} is the process of determining the right method to use and the rule is that *the most specific defined method gets used*. In this case, that means that even though our `ZeroCouponBond` is an `AbstractBond`, the routine that will used is the most specific `value(bond::ZeroCouponBond, r)`.
 
 Already, this is a powerful tool to simplify our code. Imagine the alternative of a long chain of conditional statements trying to find the right logic to use:
 
@@ -252,7 +252,7 @@ mapreduce(val,+,portfolio)
 
 #### Multiple Dispatch
 
-A more general concept is that of **multiple dispatch**, where the types of *all arguments* are used to determine which method to use. This is a very general paradigm, and in many ways is more extensible than traditional object oriented approaches, (more on that in @sec-object-oriented). What if instead of a scalar interest rate value we wanted to instead pass an object that represented a term structure of interest rates?
+A more general concept is that of **multiple dispatch**`\index{multiple dispatch}`{=latex}, where the types of *all arguments* are used to determine which method to use. This is a very general paradigm, and in many ways is more extensible than traditional object oriented approaches, (more on that in @sec-object-oriented). What if instead of a scalar interest rate value we wanted to instead pass an object that represented a term structure of interest rates?
 
 Extending the example, we can use a time-varying risk free rate instead of a constant. For fun, let's say that the risk free rate has a sinusoidal pattern:
 
@@ -288,7 +288,7 @@ The important thing to note here is that the compiler is using the most specific
 
 ## Object-Oriented Design {#sec-object-oriented}
 
-Object oriented (OO) type systems use the analogy that various parts of the system are their own objects which encapsulate both data and behavior. Object oriented design is often one of the first computer programming abstractions introduced because it is very relatable[^type-abstractions-1], however there are a number of its flaws in over-relying on OO patterns. Julia does not natively have traditional OO classes and types, but much of OO design can be emulated in Julia except for data inheritance.
+Object oriented (OO)`\index{object-oriented programming}`{=latex} type systems use the analogy that various parts of the system are their own objects which encapsulate both data and behavior. Object oriented design is often one of the first computer programming abstractions introduced because it is very relatable[^type-abstractions-1], however there are a number of its flaws in over-relying on OO patterns. Julia does not natively have traditional OO classes and types, but much of OO design can be emulated in Julia except for data inheritance.
 
 [^type-abstractions-1]: "Many people who have no idea how a computer works find the idea of object-oriented programming quite natural. In contrast, many people who have experience with computers initially think there is something strange about object oriented systems.” - David Robson, "Object Oriented Software Systems" in Byte Magazine (1981).
 
@@ -314,7 +314,7 @@ This is an issue with traditional OO designs and that resolves itself so elegant
 
 #### Example: The Expression Problem
 
-A fundamental limitation of OOP is what's called the **Expression Problem**. The challenge (or problem) is that with OOP languages it is difficult to extend both datatypes *and* behavior. In the example that follows, we define types of insurance products with associated methods.
+A fundamental limitation of OOP is what's called the **Expression Problem**`\index{expression problem}`{=latex}. The challenge (or problem) is that with OOP languages it is difficult to extend both datatypes *and* behavior. In the example that follows, we define types of insurance products with associated methods.
 
 Here's the setup: we are modeling insurance contracts and someone has provided a nice library which we will call Insurance.jl and pyInsurance for a Julia and Python package. The package defines datatypes for Term and Whole Life insurance products, as well as a lot of utilities related to calculating premiums and reserves (i.e. performing valuations). Defining the functionality is straightforward enough in both languages/approaches:
 
@@ -496,7 +496,7 @@ In Julia, functions are defined separately from data types. This allows you to a
 
 ### Inheritance
 
-As seen in the prior example, most OO implementations this hierarchy comes with inheriting both data *and* behavior. This is different from Julia where subtypes inherit behavior but not data from the parent type.
+As seen in the prior example, most OO implementations this hierarchy comes with inheriting`\index{inheritance}`{=latex} both data *and* behavior. This is different from Julia where subtypes inherit behavior but not data from the parent type.
 
 Inheriting the data tends to introduce a tight coupling between the parent and the child classes in OO systems. This tight coupling can lead to several issues, particularly as systems grow in complexity. For example, changes in the parent class can inadvertently affect the behavior of all its child classes, which can be problematic if these changes are not carefully managed. This is often referred to as the "fragile base class problem," where base classes are delicate and changes to them can have widespread, unintended consequences.
 
@@ -504,7 +504,7 @@ Another issue with inheritance in OO design is the temptation to use it for code
 
 #### Composition over Inheritance
 
-To mitigate some of the problems associated with inheritance, there's a growing preference for *composition*. Composition involves creating objects that contain instances of other objects to achieve complex behaviors. This approach is more flexible than inheritance as it allows for the creation of more modular and reusable code.
+To mitigate some of the problems associated with inheritance, there's a growing preference for *composition*`\index{composition over inheritance}`{=latex}. Composition involves creating objects that contain instances of other objects to achieve complex behaviors. This approach is more flexible than inheritance as it allows for the creation of more modular and reusable code.
 
 To see why, consider a concrete problem: we want to model financial instruments that share *some* but not *all* characteristics. A municipal bond is a fixed-income instrument (it has a coupon and tenor), but it's also a listed security (it has a CUSIP identifier). An interest rate swap has fixed-income characteristics on both legs, but isn't a listed security at all. A listed equity option has a CUSIP but no fixed-income characteristics.
 
@@ -571,7 +571,7 @@ end
 ```
 
 ::: column-margin
-A CUSIP (Committee on Uniform Security Identification Procedures) number is a unique nine-character alphanumeric code assigned to securities in the United States and Canada, used to identify them in clearing and settlement.
+A CUSIP`\index{CUSIP}`{=latex} (Committee on Uniform Security Identification Procedures) number is a unique nine-character alphanumeric code assigned to securities in the United States and Canada, used to identify them in clearing and settlement.
 :::
 
 The key insight is **delegation**: we define behavior on the component types, then delegate to those components from the composite types.
@@ -630,7 +630,7 @@ This returns a new `MunicipalBond` with the nested coupon changed, leaving the o
 
 ## Data-Oriented Design
 
-Data-Oriented Programming (DOP), especially in a computational field like financial modeling, is an approach that prioritizes the data itself—its structure, its layout in memory, and how it’s processed in bulk. This stands in contrast to Object-Oriented Programming, which prioritizes encapsulating data within objects and interacting with that data through the object's methods.
+Data-Oriented Programming (DOP)`\index{data-oriented design}`{=latex}, especially in a computational field like financial modeling, is an approach that prioritizes the data itself—its structure, its layout in memory, and how it’s processed in bulk. This stands in contrast to Object-Oriented Programming, which prioritizes encapsulating data within objects and interacting with that data through the object's methods.
 
 DOP separates the data from the behavior:
 
