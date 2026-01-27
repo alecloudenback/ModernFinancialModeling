@@ -23,13 +23,13 @@ A computer handles data at rest (in memory) or data being acted upon (processed)
 
 ## Memory and Moving Data Around
 
-The core of modeling on computers is to perform computations on data, but unfortunately the speed at which data can be *accessed* has grown much slower than the rate the actual computations can be performed. Further, the size of the available persistent data storage (HDDs/SSDs) has ballooned, exacerbating the problem: the overall throughput of memory is the typical workflow constraint. To try to address the bottleneck (memory throughput), solutions have been developed to create a pipeline to efficiently shuttle data to and from the processor and the persistent storage. This memory and processing architecture applies at both the single computer level as well as extending to workflows between different data stores and computers.
+The core of modeling on computers is to perform computations on data, but unfortunately the speed at which data can be *accessed* has grown much slower than the rate the actual computations can be performed. This is often called the **memory bottleneck**`\index{memory bottleneck}`{=latex}. Further, the size of the available persistent data storage (HDDs/SSDs) has ballooned, exacerbating the problem: the overall throughput of memory is the typical workflow constraint. To try to address the bottleneck (memory throughput), solutions have been developed to create a pipeline to efficiently shuttle data to and from the processor and the persistent storage. This memory and processing architecture applies at both the single computer level as well as extending to workflows between different data stores and computers.
 
 We will focus primarily on the architecture of a single computer, as even laptop computers today contain enough power for most modeling tasks, *if the computer is used effectively*. Further, learning how to optimize a program for a single computer/processor is almost always a precursor step to effective parallelization as well.
 
 ### Memory Types and Location
 
-Memory has an inverse relationship between size and proximity to the central processing unit (CPU). The closer the data is to the processor units, the smaller the storage and the less likely the data will persist at that location for very long.
+Memory has an inverse relationship between size and proximity to the central processing unit (CPU)`\index{CPU}`{=latex}. The closer the data is to the processor units, the smaller the storage and the less likely the data will persist at that location for very long.
 
 +----------------+---------------------+---------------------------------------------+----------------------------+
 | Kind           | Typical capacity    | Typical latency                             | Persistence                |
@@ -47,11 +47,11 @@ Memory has an inverse relationship between size and proximity to the central pro
 | CPU Registers  | a few hundred bytes | single-cycle access                         | Volatile                   |
 +----------------+---------------------+---------------------------------------------+----------------------------+
 
-After requesting data from a persistent location like a Solid State Drive (SSD), the memory is read into Random Access Memory (RAM). The advantage of RAM over a persistent location is speed - typically that memory can be accessed and modified many times faster than the persistent data location. The tradeoff is that RAM is not persistent: when the computer is powered down, the RAM loses the information stored within.
+After requesting data from a persistent location like a Solid State Drive (SSD)`\index{SSD}`{=latex}, the memory is read into Random Access Memory (RAM)`\index{RAM}`{=latex}. The advantage of RAM over a persistent location is speed - typically that memory can be accessed and modified many times faster than the persistent data location. The tradeoff is that RAM is not persistent: when the computer is powered down, the RAM loses the information stored within.
 
-When data is needed by the CPU, data is read from RAM into a small hierarchy of caches before being accessed by the CPU. The **CPU caches** are small and very fast, and they move data in fixed-size ‘cache lines’ (typically 64 bytes). The caches are also physically co-located with the CPU for efficiency. Data is organized and funneled through the caches as an intermediary between the CPU and RAM and is fed from Level 3 (L3) cache in steps down to L1 cache as the data gets closer to the processor.
+When data is needed by the CPU, data is read from RAM into a small hierarchy of caches before being accessed by the CPU. The **CPU caches**`\index{CPU cache}`{=latex} are small and very fast, and they move data in fixed-size 'cache lines'`\index{cache line}`{=latex} (typically 64 bytes). The caches are also physically co-located with the CPU for efficiency. Data is organized and funneled through the caches as an intermediary between the CPU and RAM and is fed from Level 3 (L3) cache in steps down to L1 cache as the data gets closer to the processor.
 
-At the very top of the memory hierarchy are **CPU registers**—tiny storage locations on the chip that the processor can read and write in a single cycle. This is where the CPU actually performs calculations. The CPU’s execution units operate on values held in registers. Most arithmetic, logical, and comparison instructions take their operands from registers and write results back to registers; separate load/store instructions move data between memory and registers.
+At the very top of the memory hierarchy`\index{memory hierarchy}`{=latex} are **CPU registers**`\index{registers}`{=latex}—tiny storage locations on the chip that the processor can read and write in a single cycle. This is where the CPU actually performs calculations. The CPU’s execution units operate on values held in registers. Most arithmetic, logical, and comparison instructions take their operands from registers and write results back to registers; separate load/store instructions move data between memory and registers.
 
 ::: callout-note
 Memory units at a glance:
@@ -70,9 +70,9 @@ Rule of thumb: treat memory sizes (RAM, caches) as base‑2, and disk/network sp
 
 Sitting within the RAM region of memory are two sections called Stack and Heap. These are places where variables created from our program's code can be stored. In both cases, the program will request memory space but they have some differences to be aware of.
 
--   The **stack** stores small, fixed-size (known bit length), data and program components. The stack is a last-in-first-out queue of data that is able to be written to and read from very quickly. The stack is CPU cache friendly.
+-   The **stack**`\index{stack}`{=latex} stores small, fixed-size (known bit length), data and program components. The stack is a last-in-first-out queue of data that is able to be written to and read from very quickly. The stack is CPU cache friendly.
 
--   The **heap** is a region which can be dynamically sized and has random read/write (you need not access the data in a particular order). The heap is much slower but more flexible. The heap is not very CPU cache friendly.
+-   The **heap**`\index{heap}`{=latex} is a region which can be dynamically sized and has random read/write (you need not access the data in a particular order). The heap is much slower but more flexible. The heap is not very CPU cache friendly.
 
 ::: callout-tip
 ## Why this matters for models
@@ -83,7 +83,7 @@ When a Monte Carlo engine allocates a new vector for every inner-loop step, it i
 
 #### Garbage Collector
 
-The **garbage collector** is a program that gets run to free up previously requested/allocated memory. It accomplishes this by keeping track of references to data in memory by section of your code. If a section of code is no longer reachable (e.g. inside a function that will never get called again, or a loop that ran earlier in the program but is now complete), then, periodically, the garbage collector will pause execution of the primary program in order to "sweep" the memory. This step marks the space as able to be reused by your program or the operating system.
+The **garbage collector**`\index{garbage collector}`{=latex} is a program that gets run to free up previously requested/allocated memory. It accomplishes this by keeping track of references to data in memory by section of your code. If a section of code is no longer reachable (e.g. inside a function that will never get called again, or a loop that ran earlier in the program but is now complete), then, periodically, the garbage collector will pause execution of the primary program in order to "sweep" the memory. This step marks the space as able to be reused by your program or the operating system.
 
 ::: callout-tip
 Julia uses a generational, stop-the-world garbage collector to reclaim heap memory that is no longer reachable by your program. Periodically, execution pauses briefly while the GC identifies unreachable objects and frees them. In performance-sensitive code, reducing heap allocations (e.g., by reusing buffers, working in-place, and writing type-stable code) minimizes GC pressure and improves throughput.
@@ -93,21 +93,21 @@ Julia uses a generational, stop-the-world garbage collector to reclaim heap memo
 
 The processor reads cache lines (typically 64 bytes) from caches and moves the needed values into registers and then executes instructions. An example would be to take the bytes from register 10 and add the bytes from register 11 to them. This is really all a processor does at the lowest level: combining bits of data using logical circuits.
 
-Logical circuits (**transistors**) are an arrangement of wires that output a new electrical signal that varies depending on the input. From a collection of smaller building block gates (e.g. AND, OR, NOR, XOR) more complex operations can be built up[^hardware-1], into operations like addition, multiplication, division, etc. Electric impulses move the state of the program forward once time per CPU cycle (controlled by a master "clock" ticking billions of times per second). CPU cycle speed is what's quoted for chip performance, e.g. when a CPU is advertised as 3.0 GHz (or 3 billion cycles per second).
+Logical circuits (**transistors**`\index{transistors}`{=latex}) are an arrangement of wires that output a new electrical signal that varies depending on the input. From a collection of smaller building block gates (e.g. AND, OR, NOR, XOR) more complex operations can be built up[^hardware-1], into operations like addition, multiplication, division, etc. Electric impulses move the state of the program forward once time per CPU cycle (controlled by a master "clock" ticking billions of times per second). CPU cycle speed is what's quoted for chip performance, e.g. when a CPU is advertised as 3.0 GHz (or 3 billion cycles per second).
 
 [^hardware-1]: In fact, only two logical gates are needed to reproduce all boolean logical gates: NAND (Not AND) and NOR gates can be composed to create AND, OR, NOR, etc. gates.
 
-The programmer (or compiler, if we are working in a higher level language like Julia) tells the CPU which instruction to run. The set of instructions that are valid for a given processor are called the Instruction Set Architecture, or ISA. In computer Assembly language (roughly one-level above directly manipulating the bits), the instructions are given names like `ADD`, `SUB`, `MUL`, `DIV`, and `MOV`. These instructions mirror the raw instruction that is part of the ISA.
+The programmer (or compiler`\index{compiler}`{=latex}, if we are working in a higher level language like Julia) tells the CPU which instruction to run. The set of instructions that are valid for a given processor are called the Instruction Set Architecture, or ISA`\index{ISA (Instruction Set Architecture)}`{=latex}. In computer Assembly language (roughly one-level above directly manipulating the bits), the instructions are given names like `ADD`, `SUB`, `MUL`, `DIV`, and `MOV`. These instructions mirror the raw instruction that is part of the ISA.
 
 Not all instructions are created equal, however. Some instructions take many CPU cycles to complete. For example, a floating point division instruction (`FDIV`) has a latency of 10-20 CPU cycles, while floating point addition (`FADD`) completes in 3-4 cycles. At 3 GHz, that's the difference between ~1 ns and ~6 ns for the raw operation.
 
 Some architecture examples that may be familiar:
 
--   **x86-64** (also called AMD64 or Intel 64) processors use 64-bit registers and the x86 instruction set. This architecture dominates desktops, laptops, and servers. The "64" refers to the register width; the prior generation was 32-bit x86.
+-   **x86-64**`\index{x86-64}`{=latex} (also called AMD64 or Intel 64) processors use 64-bit registers and the x86 instruction set. This architecture dominates desktops, laptops, and servers. The "64" refers to the register width; the prior generation was 32-bit x86.
 
--   **ARM** processors, including Apple's M-series chips, use the ARM instruction set. The 64-bit variant is called **AArch64** (or ARM64). You'll see "aarch64" in file paths, download options, and Julia's `Sys.ARCH` output when running on these processors.
+-   **ARM**`\index{ARM}`{=latex} processors, including Apple's M-series chips, use the ARM instruction set. The 64-bit variant is called **AArch64**`\index{AArch64}`{=latex} (or ARM64). You'll see "aarch64" in file paths, download options, and Julia's `Sys.ARCH` output when running on these processors.
 
-The ARM architecture is a **Reduced Instruction Set Computer** (RISC) design. Despite the name, modern ARM chips have extensive instruction sets including SIMD extensions (NEON, SVE). The "reduced" refers to instruction *complexity*: each instruction does less work but executes in predictable time, enabling simpler pipelines and better power efficiency. x86's **Complex Instruction Set Computer** (CISC) heritage means some instructions do more work (e.g., memory access and computation in one instruction) but with variable timing.
+The ARM architecture is a **Reduced Instruction Set Computer** (RISC)`\index{RISC}`{=latex} design. Despite the name, modern ARM chips have extensive instruction sets including SIMD extensions (NEON, SVE). The "reduced" refers to instruction *complexity*: each instruction does less work but executes in predictable time, enabling simpler pipelines and better power efficiency. x86's **Complex Instruction Set Computer** (CISC)`\index{CISC}`{=latex} heritage means some instructions do more work (e.g., memory access and computation in one instruction) but with variable timing.
 
 In practice, both architectures have converged: x86 chips decompose complex instructions into simpler micro-operations internally, while ARM has added specialized instructions over time. For specialized workloads, specific instructions can make programs 10-100× faster. For example, Intel's AVX-512 extensions (see @sec-parallelization) can dramatically accelerate vectorizable numerical code, while ARM's SVE (Scalable Vector Extension) provides similar benefits on that architecture.
 
@@ -122,7 +122,7 @@ myadd(x, y, z) = x + y + z
 @code_native myadd(1, 2, 3)
 ```
 
-Compilers are complex, hyper-optimized programs which turn your source code into the raw bits executed by the computer. Key steps in the process of converting Julia code you write all the way to binary machine instructions include the items in @tbl-compiler-steps. Note the Julia `@code_...` macros allow the programmer to inspect the intermediate representations.
+Compilers are complex, hyper-optimized programs which turn your source code into the raw bits executed by the computer. Key steps in the process of converting Julia code you write all the way to binary machine instructions`\index{machine instructions}`{=latex} include the items in @tbl-compiler-steps. Note the Julia `@code_...` macros allow the programmer to inspect the intermediate representations.
 
 ::: landscape
 +------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------+
@@ -130,7 +130,7 @@ Compilers are complex, hyper-optimized programs which turn your source code into
 +====================================+=====================================================================================================================================================================================================+======================================================================================+
 | Julia Source Code                  | The level written by the programmer in a high level language.                                                                                                                                       | `myadd(x,y,z) = x + y + z`                                                           |
 +------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------+
-| Lowered Abstract Syntax Tree (AST) | An intermediate representation of the code after the first stage of compilation, where the high-level syntax is simplified into a more structured form that's easier for the compiler to work with. | ``` julia-repl                                                                       |
+| Lowered Abstract Syntax Tree (AST)`\index{AST (Abstract Syntax Tree)}`{=latex} | An intermediate representation of the code after the first stage of compilation, where the high-level syntax is simplified into a more structured form that's easier for the compiler to work with. | ``` julia-repl                                                                       |
 |                                    |                                                                                                                                                                                                     | julia> @code_lowered myadd(1,2,3)                                                    |
 |                                    |                                                                                                                                                                                                     | CodeInfo(                                                                            |
 |                                    |                                                                                                                                                                                                     | 1 ─ %1 = x + y + z                                                                   |
@@ -138,7 +138,7 @@ Compilers are complex, hyper-optimized programs which turn your source code into
 |                                    |                                                                                                                                                                                                     | )                                                                                    |
 |                                    |                                                                                                                                                                                                     | ```                                                                                  |
 +------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------+
-| LLVM                               | Low-Level Virtual Machine language, which is a massively popular compiler used by languages like Julia and Rust. The core logic are the three lines with `add`, `add`, and `ret`.                   | ``` julia-repl                                                                       |
+| LLVM`\index{LLVM}`{=latex}         | Low-Level Virtual Machine language, which is a massively popular compiler used by languages like Julia and Rust. The core logic are the three lines with `add`, `add`, and `ret`.                   | ``` julia-repl                                                                       |
 |                                    |                                                                                                                                                                                                     | julia> @code_llvm myadd(1,2,3)                                                       |
 |                                    | Note that the the `add` instruction is `add i64` which means an addition operation of 64 bit integers.                                                                                              | ;  @ REPL[7]:1 within `myadd`                                                        |
 |                                    |                                                                                                                                                                                                     | define i64 @julia_myadd_2022(i64 signext %0, i64 signext %1, i64 signext %2) #0 {    |
@@ -180,10 +180,10 @@ Transistors are the building-block that creates the CPU and enables the physical
 
 To obtain increasing performance, two main strategies have been employed in lieu of throwing more transistors into a single core:
 
-1.  **Parallelism:** utilize multiple, separate cores and operate in an increasingly parallel way.
+1.  **Parallelism**`\index{parallelism}`{=latex}: utilize multiple, separate cores and operate in an increasingly parallel way.
 2.  **Microarchitectural techniques:** clever tricks to predict, schedule, and optimize the computations to make better use of the memory pipeline and otherwise idle CPU cycles.
 
-We will cover techniques to utilize concurrent/parallel processing in @sec-parallelization. As for the second technique, it is capable of very impressive accelerations (on the order 2x to 100x faster than a naive implementation. However, it has sometimes caused issues. There have been some famous security vulnerabilities such as Spectre and Meltdown, which exploited speculative execution – a technique used to optimize CPU performance which will execute code *before being explicitly asked to* because the scheduler *anticipates* the next steps (with very good, but imperfect accuracy).
+We will cover techniques to utilize concurrent/parallel processing in @sec-parallelization. As for the second technique, it is capable of very impressive accelerations (on the order 2x to 100x faster than a naive implementation. However, it has sometimes caused issues. There have been some famous security vulnerabilities such as Spectre`\index{Spectre}`{=latex} and Meltdown`\index{Meltdown}`{=latex}, which exploited speculative execution`\index{speculative execution}`{=latex} – a technique used to optimize CPU performance which will execute code *before being explicitly asked to* because the scheduler *anticipates* the next steps (with very good, but imperfect accuracy).
 
 For practitioners this means: expect hardware vendors to keep adding cores, vector units, and specialised instructions (AVX, SVE, BF16) while single-thread speed inches forward. Models that parallelise cleanly—scenario loops, policy seriatim projections, P&L explain—will benefit automatically from newer CPUs. Models that rely on single-core performance or constantly move data back and forth to main memory will hit a wall regardless of silicon improvements.
 
@@ -206,7 +206,7 @@ For finance workloads you control the pick list: structuring arrays so related f
 ::: callout-tip
 ## Financial Modeling Pro Tip
 
-Julia arrays are column-major. Access memory contiguously to exploit caches:
+Julia arrays are column-major`\index{column-major}`{=latex}. Access memory contiguously to exploit caches:
 ```julia
 X = randn(10_000, 100)  # rows × cols
 # Fast: process columns (contiguous memory)
