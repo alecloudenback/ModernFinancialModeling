@@ -12,6 +12,7 @@ author:
 using Pkg
 Pkg.activate("env/scenario")
 Pkg.instantiate()
+using Statistics  # for quantile in scenario band plots
 ```
 
 > "Scenarios are the rehearsal of possible futures. They are not predictions, but pathways that help us prepare for the unknown." — Peter Schwartz
@@ -99,7 +100,7 @@ where
 The following code shows a simplified implementation of a CIR model. The specification of $dr$ can be changed to make it a Vasicek model.
 
 ```{julia}
-using Random, CairoMakie
+using Random, Statistics, CairoMakie
 
 # Function to simulate CIR process
 function cir_simulation(
@@ -143,14 +144,22 @@ let
     # Run CIR simulation
     cir_paths = cir_simulation(rng, κ, θ, σ, r₀, Δt, num_steps, num_simulations)
 
-    # Plot the simulated interest rate paths
+    # Compute percentiles across simulations at each time step
+    ti = 0:(num_steps-1)
+    p05 = [quantile(cir_paths[i, :], 0.05) for i in 1:num_steps]
+    p25 = [quantile(cir_paths[i, :], 0.25) for i in 1:num_steps]
+    p50 = [quantile(cir_paths[i, :], 0.50) for i in 1:num_steps]
+    p75 = [quantile(cir_paths[i, :], 0.75) for i in 1:num_steps]
+    p95 = [quantile(cir_paths[i, :], 0.95) for i in 1:num_steps]
+
+    # Plot shaded bands
     f = Figure()
     ax = Axis(f[1, 1], xlabel="Trading days",
         ylabel="Short rate", title="CIR paths")
-    ti = 0:(num_steps-1)
-    for i in 1:num_simulations
-        lines!(ax, ti, cir_paths[:, i], color=:steelblue, linewidth=0.8)
-    end
+    band!(ax, ti, p05, p95, color=(:steelblue, 0.2), label="5th–95th percentile")
+    band!(ax, ti, p25, p75, color=(:steelblue, 0.4), label="25th–75th percentile")
+    lines!(ax, ti, p50, color=:steelblue, linewidth=2, label="Median")
+    axislegend(ax, position=:rb)
     f
 end
 ```
@@ -169,7 +178,7 @@ $$
 where $\chi'^2_{d}(\lambda)$ means the non-central chi-square distribution with $d$ degrees of freedom and a non-centrality parameter $λ$. The following code shows an exact implementation of a CIR model.
 
 ```{julia}
-using Random, CairoMakie, Distributions
+using Random, Statistics, CairoMakie, Distributions
 
 function cir_exact_paths(
     rng::AbstractRNG, κ, θ, σ, r₀, T, num_steps, num_sims)
@@ -204,13 +213,22 @@ let
 
     tgrid, rpaths = cir_exact_paths(rng, κ, θ, σ, r₀, T, nsteps, nsims)
 
-    # Plot
+    # Compute percentiles across simulations at each time step
+    nsteps_total = length(tgrid)
+    p05 = [quantile(rpaths[i, :], 0.05) for i in 1:nsteps_total]
+    p25 = [quantile(rpaths[i, :], 0.25) for i in 1:nsteps_total]
+    p50 = [quantile(rpaths[i, :], 0.50) for i in 1:nsteps_total]
+    p75 = [quantile(rpaths[i, :], 0.75) for i in 1:nsteps_total]
+    p95 = [quantile(rpaths[i, :], 0.95) for i in 1:nsteps_total]
+
+    # Plot shaded bands
     fig = Figure(size=(800, 500))
     ax = Axis(fig[1, 1], xlabel="Time (years)",
         ylabel="Short rate", title="Exact CIR Simulation")
-    for path in 1:nsims
-        lines!(ax, tgrid, rpaths[:, path], color=:steelblue, linewidth=0.8)
-    end
+    band!(ax, collect(tgrid), p05, p95, color=(:steelblue, 0.2), label="5th–95th percentile")
+    band!(ax, collect(tgrid), p25, p75, color=(:steelblue, 0.4), label="25th–75th percentile")
+    lines!(ax, collect(tgrid), p50, color=:steelblue, linewidth=2, label="Median")
+    axislegend(ax, position=:rb)
     fig
 end
 ```
@@ -232,7 +250,7 @@ where
 -   $dW(t)$ is a Wiener process or Brownian motion, representing a random shock.
 
 ```{julia}
-using DataInterpolations, Random, CairoMakie
+using DataInterpolations, Random, Statistics, CairoMakie
 
 function hull_white_theta_timevar_sigma(years, prices, σt; a::Float64)
     n = length(years)
@@ -319,16 +337,25 @@ let
         end
     end
 
-    # Plot
+    # Compute percentiles across simulations at each time step
+    nsteps_total = length(years)
+    p05 = [quantile(rpaths[i, :], 0.05) for i in 1:nsteps_total]
+    p25 = [quantile(rpaths[i, :], 0.25) for i in 1:nsteps_total]
+    p50 = [quantile(rpaths[i, :], 0.50) for i in 1:nsteps_total]
+    p75 = [quantile(rpaths[i, :], 0.75) for i in 1:nsteps_total]
+    p95 = [quantile(rpaths[i, :], 0.95) for i in 1:nsteps_total]
+
+    # Plot shaded bands
     fig = Figure(size=(800, 500))
     ax = Axis(
         fig[1, 1],
         xlabel="Time (years)",
         ylabel="Short rate",
         title="Hull–White Simulation with time-dependent θ(t) and σ(t)")
-    for path in 1:nsim
-        lines!(ax, years, rpaths[:, path])
-    end
+    band!(ax, years, p05, p95, color=(:steelblue, 0.2), label="5th–95th percentile")
+    band!(ax, years, p25, p75, color=(:steelblue, 0.4), label="25th–75th percentile")
+    lines!(ax, years, p50, color=:steelblue, linewidth=2, label="Median")
+    axislegend(ax, position=:rb)
     fig
 end
 ```
@@ -353,7 +380,7 @@ where
 -   $dW(t)$ is a Wiener process or Brownian motion, representing a random shock.
 
 ```{julia}
-using Random, CairoMakie
+using Random, Statistics, CairoMakie
 
 # Function to simulate GBM
 function gbm_simulation(
@@ -393,12 +420,21 @@ let
     # Run GBM simulation
     gbm_paths = gbm_simulation(rng, μ, σ, S₀, Δt, num_steps, num_simulations)
 
-    # Plot the simulated stock price paths
+    # Compute percentiles across simulations at each time step
+    ti = 1:num_steps
+    p05 = [quantile(gbm_paths[i, :], 0.05) for i in 1:num_steps]
+    p25 = [quantile(gbm_paths[i, :], 0.25) for i in 1:num_steps]
+    p50 = [quantile(gbm_paths[i, :], 0.50) for i in 1:num_steps]
+    p75 = [quantile(gbm_paths[i, :], 0.75) for i in 1:num_steps]
+    p95 = [quantile(gbm_paths[i, :], 0.95) for i in 1:num_steps]
+
+    # Plot shaded bands
     f = Figure()
-    ax = Axis(f[1, 1], xlabel="Year", ylabel="Price", title="GBM price scenarios")
-    for i in 1:num_simulations
-        lines!(ax, 1:num_steps, gbm_paths[:, i])
-    end
+    ax = Axis(f[1, 1], xlabel="Trading days", ylabel="Price", title="GBM price scenarios")
+    band!(ax, collect(ti), p05, p95, color=(:steelblue, 0.2), label="5th–95th percentile")
+    band!(ax, collect(ti), p25, p75, color=(:steelblue, 0.4), label="25th–75th percentile")
+    lines!(ax, collect(ti), p50, color=:steelblue, linewidth=2, label="Median")
+    axislegend(ax, position=:lt)
     f
 end
 ```
@@ -421,7 +457,7 @@ $$
 -   $\omega$, $\alpha_1$, $\beta_1$ are model parameters
 
 ```{julia}
-using Random, CairoMakie
+using Random, Statistics, CairoMakie
 
 # Function to simulate GARCH(1,1) volatility
 function garch_simulation(rng::AbstractRNG, ω, α₁, β₁, num_steps, num_sims)
@@ -460,16 +496,25 @@ let
     # Run GARCH simulation
     garch_paths = garch_simulation(rng, ω, α₁, β₁, num_steps, num_simulations)
 
-    # Plot the simulated volatility paths
+    # Compute percentiles across simulations at each time step
+    ti = 1:num_steps
+    p05 = [quantile(garch_paths[i, :], 0.05) for i in 1:num_steps]
+    p25 = [quantile(garch_paths[i, :], 0.25) for i in 1:num_steps]
+    p50 = [quantile(garch_paths[i, :], 0.50) for i in 1:num_steps]
+    p75 = [quantile(garch_paths[i, :], 0.75) for i in 1:num_steps]
+    p95 = [quantile(garch_paths[i, :], 0.95) for i in 1:num_steps]
+
+    # Plot shaded bands
     f = Figure()
     ax = Axis(
         f[1, 1],
         xlabel="Trading days", ylabel="Volatility",
         title="GARCH(1, 1) conditional volatility"
     )
-    for i in 1:num_simulations
-        lines!(ax, 1:num_steps, garch_paths[:, i])
-    end
+    band!(ax, collect(ti), p05, p95, color=(:steelblue, 0.2), label="5th–95th percentile")
+    band!(ax, collect(ti), p25, p75, color=(:steelblue, 0.4), label="25th–75th percentile")
+    lines!(ax, collect(ti), p50, color=:steelblue, linewidth=2, label="Median")
+    axislegend(ax, position=:rt)
     f
 end
 ```
