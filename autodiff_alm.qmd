@@ -14,7 +14,7 @@ Pkg.instantiate()
 
 ## Chapter Overview
 
-Asset liability modeling\index{asset liability management (ALM)}`{=latex}` requires computing derivatives of portfolio values with respect to yield curve changes. Traditional approaches use finite difference methods or analytical approximations, but automatic differentiation ("autodiff" or "AD") provides exact derivatives with minimal additional computation. This chapter demonstrates how to implement ALM workflows using autodiff in Julia.
+Asset liability modeling`\index{asset liability management (ALM)}`{=latex} requires computing derivatives of portfolio values with respect to yield curve changes. Traditional approaches use finite difference methods or analytical approximations, but automatic differentiation ("autodiff" or "AD") provides exact derivatives with minimal additional computation. This chapter demonstrates how to implement ALM workflows using autodiff in Julia.
 
 ```{julia}
 using FinanceCore: Cashflow    # provides Cashflow object
@@ -33,7 +33,7 @@ using OhMyThreads              # multi-threading
 
 ## Interest Rate Curve Setup
 
-We start by constructing a yield curve\index{yield curve}`{=latex}` using cubic spline interpolation:
+We start by constructing a yield curve`\index{yield curve}`{=latex} using cubic spline interpolation:
 
 The `curve` function creates a discount factor curve from zero rates and time points. This curve will serve as input to our `value` function, which makes it straightforward to compute sensitivities by differentiating with respect to the rate parameters.
 
@@ -106,7 +106,7 @@ value(c, FixedBond(0.09, 10, 2))
 
 ## Liability Modeling
 
-Deferred annuities\index{deferred annuity}`{=latex}` require more complex modeling than fixed bonds due to policyholder behavior (optionality). The surrender rate\index{surrender rate}`{=latex}` depends on the difference between market rates and the guaranteed rate. The surrender function chosen below is arbitrary, but follows a typical pattern with much higher surrenders if the market rate on competing instruments is higher than what's currently available. The account value accumulates at the guaranteed rate, and surrenders create negative cashflows representing benefit payments. Lastly, the `annuities` function is a wrapper function we will use to compute the portfolio value and ALM metrics later.
+Deferred annuities`\index{deferred annuity}`{=latex} require more complex modeling than fixed bonds due to policyholder behavior (optionality). The surrender rate`\index{surrender rate}`{=latex} depends on the difference between market rates and the guaranteed rate. The surrender function chosen below is arbitrary, but follows a typical pattern with much higher surrenders if the market rate on competing instruments is higher than what's currently available. The account value accumulates at the guaranteed rate, and surrenders create negative cashflows representing benefit payments. Lastly, the `annuities` function is a wrapper function we will use to compute the portfolio value and ALM metrics later.
 
 ```{julia}
 begin
@@ -151,7 +151,7 @@ begin
 end
 ```
 
-Here's what the surrender rate behavior looks like for different levels of market rates compared to the a 3% crediting rate.
+Here's what the surrender rate behavior looks like for different levels of market rates compared to a 3% crediting rate.
 
 ```{julia}
 let
@@ -188,7 +188,7 @@ end
 
 Later on we will generate vectors of vectors of cashflows without any guarantee that the timepoints will line up, making aggregating cashflows by timepoints a non-obvious task. There are many ways to accomplish this, but [I like Transducers](https://juliaactuary.github.io/FinanceModels.jl/dev/faq/#Why-does-the-package-rely-on-using-Transducers?). 
 
-Transducers are unfamiliar to many people, and don't let the presence deter you from the main points of this post. The details aren't central to the point of this blog post so just skip over if confusing.
+Transducers are unfamiliar to many people, and don't let their presence deter you from the main points of this chapter. The details aren't central to the point of this chapter so just skip over if confusing.
 
 ```{julia}
 function consolidate(cashflows)
@@ -215,7 +215,7 @@ consolidate(cashflow_vectors);
 ```
 :::
 
-Here's a visualization of the liability cashflows, showing that when the interest rates are bumped up slightly, that there is more surrenders that occur earlier on (so there's fewer policies around at the time of each maturity). Negative cashflows are outflows:
+Here's a visualization of the liability cashflows, showing that when the interest rates are bumped up slightly, that there are more surrenders that occur earlier on (so there's fewer policies around at the time of each maturity). Negative cashflows are outflows:
 
 
 ```{julia}
@@ -272,7 +272,7 @@ The first element of `vgh_liab` is the value of the liability portfolio using th
 vgh_liab[1]
 ```
 
-The second element of `vgh_liab` is the partial derivative with respect to each of the inputs (here, just the `zero_rates` rates that dictate the curve). The sum of the partials is the effective duration\index{duration}`{=latex}` of the liabilities. 
+The second element of `vgh_liab` is the partial derivative with respect to each of the inputs (here, just the `zero_rates` rates that dictate the curve). The sum of the partials is the effective duration`\index{duration}`{=latex} of the liabilities. 
 
 ```{julia}
 @show sum(vgh_liab[2])
@@ -312,7 +312,7 @@ The third element of `vgh_liab` is the Hessian matrix, containing all second par
 vgh_liab[3]
 ```
 
-This matrix captures the convexity\index{convexity}`{=latex}` characteristics of the liability portfolio. The diagonal elements represent "key rate convexities"\index{key rate duration}`{=latex}`—how much the duration at each key rate changes as that specific rate moves:
+This matrix captures the convexity`\index{convexity}`{=latex} characteristics of the liability portfolio. The diagonal elements represent "key rate convexities"`\index{key rate duration}`{=latex}—how much the duration at each key rate changes as that specific rate moves:
 
 ```{julia}
 @show diag(vgh_liab[3])
@@ -380,7 +380,7 @@ vgh_assets = [
 
 This optimization function uses functionality from [JuMP](https://jump.dev), a robust optimization library in Julia.
 
-With derivatives available, we can optimize the asset portfolio to match liability characteristics.The optimization maximizes asset yield while constraining the difference between asset and liability key rate durations. This ensures that small yield curve movements don't create large changes in surplus.
+With derivatives available, we can optimize the asset portfolio to match liability characteristics. The optimization maximizes asset yield while constraining the difference between asset and liability key rate durations. This ensures that small yield curve movements don't create large changes in surplus.
 
 ```{julia}
 function optimize_portfolio(
@@ -521,14 +521,14 @@ Autodiff provides several advantages over traditional finite difference approach
 
 For ALM applications, this means more accurate risk measurement and the ability to optimize portfolios with complex constraints that would be computationally expensive using traditional methods.
 
-Here, we value 100,000 interest-sensitive policies with a monthly timestep for up to 20 years *and* compute 1st and 2nd order partial sensitives extremely quickly:
+Here, we value 100,000 interest-sensitive policies with a monthly timestep for up to 20 years *and* compute 1st and 2nd order partial sensitivities extremely quickly:
 
 ```{julia}
 f = z -> annuities(z, liabilities)
 @btime value_gradient_and_hessian($f, AutoForwardDiff(), $zero_rates);
 ```
 
-However, there's still some performance left on the table! the `(d::DeferredAnnuity)(curve)` function defined above is not type stable. In the appendix to this post, we'll cover a way to improve the performance even more.
+However, there's still some performance left on the table! The `(d::DeferredAnnuity)(curve)` function defined above is not type stable. In the appendix to this chapter, we'll cover a way to improve the performance even more.
 
 ## Conclusion
 
@@ -556,7 +556,7 @@ function (d::DeferredAnnuity)(curve)
 end
 ```
 
-An alterative would be to write a `for` loop and initialize an array to hold the cashflows. The challenge with that is to concretely define the output type of the resulting array. Particularly when combine with AD, the types within the program are no longer basic floats and integers, as we have dual numbers and more complex types running through our functions. 
+An alternative would be to write a `for` loop and initialize an array to hold the cashflows. The challenge with that is to concretely define the output type of the resulting array. Particularly when combined with AD, the types within the program are no longer basic floats and integers, as we have dual numbers and more complex types running through our functions. 
 
 
 To maintain most of the simplicity, an alternative approach[^zulip] is to use small, immutable containers from [MicroCollections.jl](https://juliahub.com/ui/Packages/General/MicroCollections) and combine them with [BangBang.jl](https://juliahub.com/ui/Packages/General/BangBang). Then, instead of using `map` we will write a regular loop. The macro `@unroll` is defined to unroll the first `N` iterations of the loop. This means that the macro transforms the source code to explicitly write out the first two loops. An example of this might be as follows where two iterations of the loop are unrolled.
