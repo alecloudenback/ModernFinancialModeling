@@ -44,7 +44,7 @@ This technique is particularly useful in early scoping meetings or ad-hoc regula
 
 ### Pseudo-Monte Carlo Sanity Checks
 
-Before committing to a massive simulation run, do a miniature version first. Fix the random seed, use a handful of scenarios, and verify that everything works end-to-end. This catches problems like:
+Before committing to a massive simulation run, do a miniature version first. Fix the random seed, use a handful of scenarios, and verify that everything works end to end. This catches problems like:
 
 - Configuration files that aren't being read correctly
 - Aggregation logic that breaks on edge cases
@@ -56,7 +56,7 @@ A ten-scenario dry run that takes five seconds can save you from discovering bug
 
 #### Static vs. Dynamic
 
-Model validation\index{model validation}`{=latex}` is essential. The most common validation approach is static: split your data chronologically, fit on the earlier period, and test on the later period. This tells you how well the model generalizes to unseen data.
+Model validation`\index{model validation}`{=latex} is essential. The most common validation approach is static: split your data chronologically, fit on the earlier period, and test on the later period. This tells you how well the model generalizes to unseen data.
 
 ```{julia}
 using Random, Statistics, LinearAlgebra
@@ -79,7 +79,7 @@ println("MSE: ", mean((ŷ .- ytest) .^ 2))
 println("MAE: ", mean(abs.(ŷ .- ytest)))
 ```
 
-Dynamic validation (sometimes called walk-forward validation\index{walk-forward validation}`{=latex}`) is more demanding: at each time step, you only use data available up to that point. This mimics how the model would actually be used in production.
+Dynamic validation (sometimes called walk-forward validation`\index{walk-forward validation}`{=latex}) is more demanding: at each time step, you only use data available up to that point. This mimics how the model would actually be used in production.
 
 ```{julia}
 Random.seed!(42)
@@ -158,19 +158,19 @@ Align the loss you optimize with the metric you report. If the risk committee ca
 
 ### Causal Modeling
 
-Causal modeling\index{causal modeling}`{=latex}` addresses an important distinction: most financial models capture correlation, not causation. That's often fine for prediction, but dangerous for "what-if" analysis. If you want to know what happens when you *change* something, you need causal reasoning.
+Causal modeling`\index{causal modeling}`{=latex} addresses an important distinction: most financial models capture correlation, not causation. That's often fine for prediction, but dangerous for "what-if" analysis. If you want to know what happens when you *change* something, you need causal reasoning.
 
 Judea Pearl's work on directed acyclic graphs (DAGs) provides a framework for this. The basic idea: draw arrows between variables to represent direct causal influence, then use the graph to determine what you need to control for (and what you shouldn't).
 
 A few patterns come up repeatedly:
 
-**Confounders**\index{confounders}`{=latex}` drive both the treatment and the outcome. Macro growth affects both lending standards and default rates. If you don't account for it, you'll see a spurious relationship between standards and defaults.
+**Confounders**`\index{confounders}`{=latex} drive both the treatment and the outcome. Macro growth affects both lending standards and default rates. If you don't account for it, you'll see a spurious relationship between standards and defaults.
 
 **Mediators** sit on the causal pathway. A capital rule affects lending supply, which affects loan growth. If you control for lending supply, you block part of the effect you're trying to measure.
 
 **Colliders** are caused by two other variables. Regulation intensity and market stress both affect media coverage. If you control for media coverage, you *create* a spurious correlation between regulation and stress.
 
-This matters because financial regulators and boards increasingly ask "what happens if we do X?" Answering that question requires thinking carefully about causal structure, not just fitting the best predictive model. See @pearl2009causality for much more on this topic.
+This matters because financial regulators and boards increasingly ask "what happens if we do X?" Answering that question requires thinking carefully about causal structure, not just fitting the best predictive model. See @pearl2009causality for more on this topic.
 
 ### Other Techniques Worth Knowing
 
@@ -188,7 +188,7 @@ A few topics we won't cover in depth but are worth exploring:
 
 ### Serialization
 
-Serialization\index{serialization}`{=latex}` is important because in most finance workflows, the slow part isn't the regression—it's the data prep, calibration, and scenario generation that come before. If you're running the same expensive calibration every time you tweak something downstream, you're wasting compute and making audits harder.
+Serialization`\index{serialization}`{=latex} is important because in most finance workflows, the slow part isn't the regression—it's the data prep, calibration, and scenario generation that come before. If you're running the same expensive calibration every time you tweak something downstream, you're wasting compute and making audits harder.
 
 Serialization lets you checkpoint expensive intermediate results. The question is which format to use:
 
@@ -230,7 +230,7 @@ atomic_serialize(path, state)
 restored = deserialize(path)
 ```
 
-For cross-session persistence where you might share artifacts with colleagues, JLD2\index{JLD2.jl}`{=latex}` is more robust:
+For cross-session persistence where you might share artifacts with colleagues, JLD2`\index{JLD2.jl}`{=latex} is more robust.
 
 ```{julia}
 using JLD2, Random, LinearAlgebra, Dates
@@ -251,11 +251,11 @@ jldsave("artifacts/example.jld2"; θ, meta)
 θ_loaded, meta_loaded = JLD2.load("artifacts/example.jld2", "θ", "meta")
 ```
 
-The key insight: serialize fitted parameters, calibrated curves, and expensive intermediate results. Don't serialize raw data—keep that in efficient columnar formats and reference it by path (and ideally by content hash) in your artifact metadata. And remember that the CPU is fast enough that in many cases it's faster to compute an answer than it is to retreive it from memory.
+The key insight: serialize fitted parameters, calibrated curves, and expensive intermediate results. Don't serialize raw data—keep that in efficient columnar formats and reference it by path (and ideally by content hash) in your artifact metadata. And remember that the CPU is fast enough that in many cases it's faster to compute an answer than it is to retrieve it from memory.
 
 ### Memoization
 
-Memoization\index{memoization}`{=latex}` is caching function results keyed by their inputs. For expensive computations that get called repeatedly with the same arguments, this can be a huge win.
+Memoization`\index{memoization}`{=latex} is caching function results keyed by their inputs. For expensive computations that get called repeatedly with the same arguments, this can be a huge win.
 
 ```{julia}
 using SHA, Serialization

@@ -68,7 +68,7 @@ end
 
 1.  Declare variables to keep track of the discount rate and running total for the present value `pv`
 2.  Loop over the length of the cashflow vector.
-3.  At each step of the loop, look up (via index `i`) update the discount factor to account for the prevailing rate and add the discounted cashflow to the running total present value.
+3.  At each step of the loop, look up (via index `i`), update the discount factor to account for the prevailing rate, and add the discounted cashflow to the running total present value.
 
 This style is simple, digestible, and clear. If we were performing the calculation by hand, it would likely follow a pattern very similar to this. Look up the first cashflow and discount rate, compute a discount factor, and subtotal the value. Repeat for the next set of values.
 
@@ -92,7 +92,7 @@ eachindex(cf_bond) # an efficient index iterator
 
 Lazy evaluation`\index{lazy evaluation}`{=latex}: the result, `{julia} eachindex(cf_bond)`, returns an efficient iterator over valid indices (e.g., `Base.OneTo(5)` for a `Vector`). Iterators represent sequences without allocating per-element containers. You can traverse them directly, or materialize them if needed with collect.
 
-An analogy is that we can write the "set of all numbers from 1 to 100" without writing out each of the 100 numbers, but we are referring to the same thing. In practice this means we can iterate over scenario paths, coupon dates, or bucketized tenors without allocating temporary arrays, which keeps the garbage collector quiet during valuation runs.
+An analogy is that we can write the "set of all numbers from 1 to 100" without writing out each of the 100 numbers, but we are referring to the same thing. In practice, this means we can iterate over scenario paths, coupon dates, or bucketized tenors without allocating temporary arrays, which keeps the garbage collector quiet during valuation runs.
 
 An example of operating on a lazy iterator, is that we could find the largest index:
 
@@ -134,7 +134,7 @@ We can get the value and the associated index with `enumerate`:
 collect(enumerate(cf_bond))
 ```
 
-This would allow us to skip the step of needing to look up the bond's cashflows. However, we can go even further by just asking for value associated with both collections. With `zip` (named because it's sort of like zipping up two collections together), we get an iterator that provides the values of the underlying collections:
+This would allow us to skip the step of needing to look up the bond's cashflows. However, we can go even further by just asking for the values associated with both collections. With `zip` (named because it's sort of like zipping up two collections together), we get an iterator that provides the values of the underlying collections:
 
 ```{julia}
 collect(zip(cf_bond, rate))
@@ -163,7 +163,7 @@ The primary downsides to iterative approaches to algorithms are:
 ::: callout-tip
 In the imperative style, we mentioned needing to explicitly handle program state. In general, it's advisable to minimize as many temporary state variables as possible - more mutability tends to produce more complex, difficult to maintain code. An example of maintaining state in the examples above is keeping track of the current index as well as interim `pv` and `discount` variables.
 
-Avoiding modifying values is often avoidable by restructuring the logic, using functional techniques, or finding the right abstractions. However, sometimes for performance reasons, clarity, or expediency you may find modifying state to be the preferred option and that's okay.
+Modifying values is often avoidable by restructuring the logic, using functional techniques, or finding the right abstractions. However, sometimes for performance reasons, clarity, or expediency you may find modifying state to be the preferred option and that's okay.
 :::
 
 ## Functional Techniques and Terminology
@@ -205,14 +205,14 @@ Avoiding modifying values is often avoidable by restructuring the logic, using f
 |                          |                                                                                                                                       | ) # 15        |
 |                          |                                                                                                                                       | ```           |
 +--------------------------+---------------------------------------------------------------------------------------------------------------------------------------+---------------+
-| `accumulate(op,v)`       | Apply `op` along `v` , creating a vector with the cumulative result.                                                                  | ``` julia     |
+| `accumulate(op,v)`       | Apply `op` along `v`, creating a vector with the cumulative result.                                                                  | ``` julia     |
 |                          |                                                                                                                                       | accumulate(   |
 |                          |                                                                                                                                       |     +,        |
 |                          |                                                                                                                                       |     [1,3,5]   |
 |                          |                                                                                                                                       | ) # [1, 4, 9] |
 |                          |                                                                                                                                       | ```           |
 +--------------------------+---------------------------------------------------------------------------------------------------------------------------------------+---------------+
-| `filter(f,v)`            | Apply `f` along `v` and return a copy of `v` with elements where `f` is true                                                          | ``` julia     |
+| `filter(f,v)`            | Apply `f` along `v` and return a copy of `v` with elements where `f` is true.                                                          | ``` julia     |
 |                          |                                                                                                                                       | filter(       |
 |                          |                                                                                                                                       |     >=(3),    |
 |                          |                                                                                                                                       |     [1,3,5]   |
@@ -234,7 +234,7 @@ Let's build a version of the present value calculation using the functional buil
 
 ### `map`
 
-**`map`**`\index{map (function)}`{=latex} is so named for the mathematical concept of mapping an input to an output. Here, it's effectively the same thing. We take a collection and use the given function to calculate an output. The size of the output equals the size of the input.
+**`map`** `\index{map (function)}`{=latex} is so named for the mathematical concept of mapping an input to an output. Here, it's effectively the same thing. We take a collection and use the given function to calculate an output. The size of the output equals the size of the input.
 
 First, we will use `map` to compute the one-period discount factors:
 
@@ -321,7 +321,7 @@ Not only does this have the advantage of being clearer, more concise, and less w
 
 ### `accumulate`
 
-`accumulate`\index{accumulate (function)}`{=latex} takes an operation and a collection and returns a collection where each element is the cumulative result of applying the operation from the first element to the current one. For example, to calculate the cumulative product of the one-period discount factors:
+`accumulate` `\index{accumulate (function)}`{=latex} takes an operation and a collection and returns a collection where each element is the cumulative result of applying the operation from the first element to the current one. For example, to calculate the cumulative product of the one-period discount factors:
 
 ```{julia}
 let
@@ -419,7 +419,7 @@ accumulate(*, ["a", "b", "c"], init="")
 
 ### `reduce`
 
-`reduce`\index{reduce (function)}`{=latex} takes an operation and a collection and applies the operation repeatedly to pairs of elements until there is only a single value left.
+`reduce` `\index{reduce (function)}`{=latex} takes an operation and a collection and applies the operation repeatedly to pairs of elements until there is only a single value left.
 
 For example, we start with the calculation of the vector of discounted cashflows
 
@@ -492,7 +492,7 @@ end
 
 ### `mapreduce` {#sec-map-reduce}
 
-We can combine `map`, `accumulate` and `reduce` to concisely calculate the present value`\index{present value}`{=latex} in a functional style using `mapreduce`\index{mapreduce (function)}`{=latex}. This calculates the discount factors, applies them to the cashflows with map, and sums the result with a reduction:
+We can combine `map`, `accumulate` and `reduce` to concisely calculate the present value`\index{present value}`{=latex} in a functional style using `mapreduce` `\index{mapreduce (function)}`{=latex}. This calculates the discount factors, applies them to the cashflows with map, and sums the result with a reduction:
 
 ```{julia}
 dfs = accumulate(*, map(x -> 1 / (1 + x), rate)) # <1>
@@ -515,7 +515,7 @@ This completes the example of using a functional approach to determine the prese
 
 For completeness, we will also cover `filter` even though it's not necessary for the bond cashflow example.
 
-`filter`\index{filter (function)}`{=latex} does what you might think - filter a collection based on some criterion that can be determined as true or false.
+`filter` `\index{filter (function)}`{=latex} does what you might think - filter a collection based on some criterion that can be determined as true or false.
 
 For example filtering out even numbers using the `isodd` function:
 
@@ -642,7 +642,7 @@ One of the best things about Julia is how natural it can be to mix different sty
 
 Part of the "curse" is that: because there's so much freedom in what can be expressed in the language, there's not an obvious "best" way of doing things. This can lead to decision paralysis where you are trying to over-analyze what's the best way to write part of your code. Our advice: *don't worry about it!* A working implementation of something is better than an over-optimized idea.
 
-The other part of the "curse" is that because it is relatively easy to implement so many things from the building blocks that Julia provides and compose them together to do what you want. This has a downside because the general approach to packages is smaller, standalone pieces that you compose as needed. For example, consider Python's Pandas library, upon which Python's data science community was built. It came bundled with a CSV reader, Excel reader, Database reader, DataFrame type, visualization library, and statistical functions. In Julia, each of those are separate packages that specialize for the respective topics. This is advantageous in that they can progress independently from one another, you don't have to include functionality that you don't need, and you can mix and match libraries depending on your preference.
+The other part of the "curse" is that it is relatively easy to implement so many things from the building blocks that Julia provides and compose them together to do what you want. This has a downside because the general approach to packages is smaller, standalone pieces that you compose as needed. For example, consider Python's Pandas library, upon which Python's data science community was built. It came bundled with a CSV reader, Excel reader, Database reader, DataFrame type, visualization library, and statistical functions. In Julia, each of those are separate packages that specialize for the respective topics. This is advantageous in that they can progress independently from one another, you don't have to include functionality that you don't need, and you can mix and match libraries depending on your preference.
 :::
 
 ## Array-Oriented Styles {#sec-array-oriented-styles}
@@ -685,7 +685,7 @@ The downsides to this style are:
 
 ## Recursion
 
-A **recursive function**`\index{recursion}`{=latex} which is a pattern where current steps are defined in a way that depends on previous steps. Typically, an explicit starting condition is also required to be specified.
+A **recursive function**`\index{recursion}`{=latex} is a pattern where current steps are defined in a way that depends on previous steps. Typically, an explicit starting condition is also required to be specified.
 
 The Fibonacci sequence`\index{Fibonacci sequence}`{=latex} is a classic example of a recursive algorithm, with the starting conditions of $n$ specified for the first two steps:
 

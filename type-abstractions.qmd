@@ -142,7 +142,7 @@ end
 
 When a function is called, the computer has to decide which method to use. In the example above, when we want to `value` a `ZeroCouponBond`, does the `value(asset::AbstractBond, r)` or `value(bond::ZeroCouponBond, r)` version get used?
 
-**Dispatch**`\index{dispatch}`{=latex} is the process of determining the right method to use and the rule is that *the most specific defined method gets used*. In this case, that means that even though our `ZeroCouponBond` is an `AbstractBond`, the routine that will used is the most specific `value(bond::ZeroCouponBond, r)`.
+**Dispatch**`\index{dispatch}`{=latex} is the process of determining the right method to use and the rule is that *the most specific defined method gets used*. In this case, that means that even though our `ZeroCouponBond` is an `AbstractBond`, the routine that will be used is the most specific `value(bond::ZeroCouponBond, r)`.
 
 Already, this is a powerful tool to simplify our code. Imagine the alternative of a long chain of conditional statements trying to find the right logic to use:
 
@@ -232,15 +232,15 @@ mapreduce(asset -> value(asset,econ_baseline), +, portfolio)
 ::: callout-note
 This code:
 
-```         
+```
 mapreduce(asset-> value(asset,econ_baseline), +, portfolio)
 ```
 
-is more verbose than what we set out do at the start (`mapreduce(value,+,portfolio)`) due to the two-argument `value` function requiring a second argument for the economic variables. This works well! However, there is a way to define it which avoids the anonymous function, which in some cases will end up needing to be compiled more frequently than you want it to. Sometimes we want a lightweight, okay-to-compile-on-the-fly function. Other times, we know it's something that will be passed around in compute-intensive parts of the code. 
+is more verbose than what we set out to do at the start (`mapreduce(value,+,portfolio)`) due to the two-argument `value` function requiring a second argument for the economic variables. This works well! However, there is a way to define it which avoids the anonymous function, which in some cases will end up needing to be compiled more frequently than you want it to. Sometimes we want a lightweight, okay-to-compile-on-the-fly function. Other times, we know it's something that will be passed around in compute-intensive parts of the code. 
 
-A technique in this situation is to define an object which "locks in" one of the arguments but behaves like the anonymous version. There is a pair of types in the Base module, `Fix1` and `Fix2`, which represent partially-applied versions of the two-argument function f, with the first or second argument fixed to the value "x".
+A technique in this situation is to define an object that "locks in" one of the arguments but behaves like the anonymous version. There is a pair of types in the Base module, `Fix1` and `Fix2`, which represent partially-applied versions of the two-argument function f, with the first or second argument fixed to the value "x".
 
-This is, `Base.Fix1(f, x)` behaves like `y->f(x, y)` and `Base.Fix2(f, x)` behaves like `y->f(y, x)`.
+That is, `Base.Fix1(f, x)` behaves like `y->f(x, y)` and `Base.Fix2(f, x)` behaves like `y->f(y, x)`.
 
 In the context of our valuation model, this would look like:
 
@@ -288,7 +288,7 @@ The important thing to note here is that the compiler is using the most specific
 
 ## Object-Oriented Design {#sec-object-oriented}
 
-Object oriented (OO)`\index{object-oriented programming}`{=latex} type systems use the analogy that various parts of the system are their own objects which encapsulate both data and behavior. Object oriented design is often one of the first computer programming abstractions introduced because it is very relatable[^type-abstractions-1], however there are a number of its flaws in over-relying on OO patterns. Julia does not natively have traditional OO classes and types, but much of OO design can be emulated in Julia except for data inheritance.
+Object-oriented (OO)`\index{object-oriented programming}`{=latex} type systems use the analogy that various parts of the system are their own objects that encapsulate both data and behavior. Object oriented design is often one of the first computer programming abstractions introduced because it is very relatable[^type-abstractions-1], however there are a number of flaws in over-relying on OO patterns. Julia does not natively have traditional OO classes and types, but much of OO design can be emulated in Julia except for data inheritance.
 
 [^type-abstractions-1]: "Many people who have no idea how a computer works find the idea of object-oriented programming quite natural. In contrast, many people who have experience with computers initially think there is something strange about object oriented systems.” - David Robson, "Object Oriented Software Systems" in Byte Magazine (1981).
 
@@ -302,13 +302,13 @@ For readers without background in OO programming, the main features of OO langua
 -   Functions that depend on the type of the object need to be ascribed to a single class and then can dispatch more specifically on the given argument's type.
 :::
 
-We bring up object oriented design for comparison's sake, but think that ultimately choosing a data driven or functional design is better for financial modeling. Of course, many robust, well-used financial models have been built this way but in our experience the abstractions become unnatural. Additionally, maintenance becomes unwieldy beyond simple examples. We'll now discuss some of the aspects of OO design and why the overuse of OO is not preferred.
+We bring up object-oriented design for comparison's sake, but think that ultimately choosing a data-driven or functional design is better for financial modeling. Of course, many robust, well-used financial models have been built this way but in our experience the abstractions become unnatural. Additionally, maintenance becomes unwieldy beyond simple examples. We'll now discuss some of the aspects of OO design and why the overuse of OO is not preferred.
 
 ### Assigning Behavior
 
 Needing to assign methods to a single class can lead to awkward design limitations - when multiple objects are involved in a computation, why dictate that only one of them "controls" the logic?
 
-The `value` function is a good example of this. If we had to assign `value` to one of the objects involved, should it be the economic parameter object or the asset objects? The choice is not obvious at all. Isn't it the market (economic parameters) that determines the value? But then if `value` were to be a method wholly owned by the economic parameters, how could it possible define in advance the valuation semantics of all types of assets? What if one wanted to extend the valuation to a new asset class? Downstream users or developers would need to modify the economic types to handle new assets they wanted to value. However, because the economic types were owned by an upstream package, they can't be extended this way.
+The `value` function is a good example of this. If we had to assign `value` to one of the objects involved, should it be the economic parameter object or the asset objects? The choice is not obvious at all. Isn't it the market (economic parameters) that determines the value? But then if `value` were to be a method wholly owned by the economic parameters, how could it possibly define in advance the valuation semantics of all types of assets? What if one wanted to extend the valuation to a new asset class? Downstream users or developers would need to modify the economic types to handle new assets they wanted to value. However, because the economic types were owned by an upstream package, they can't be extended this way.
 
 This is an issue with traditional OO designs and that resolves itself so elegantly with multiple dispatch.
 
@@ -401,7 +401,7 @@ class WholeLife(InsuranceProduct):
 
 Now, say that we want to utilize this package and extend the behavior. Specifically, we want to add a Deferred Annuity type and add functionality (for all products) related to determining a cash surrender value.
 
-We run into limitations with Python version. We can extend a new representation (dataclass), but adding new functionality (e.g. `cash_value`) requires modifying other classes which you may not own and for which the method not apply.
+We run into limitations with Python version. We can extend a new representation (dataclass), but adding new functionality (e.g. `cash_value`) requires modifying other classes which you may not own and for which the method may not apply.
 
 :::::: {.columns .column-body-outset}
 ::: {.column width="43%"}
@@ -492,11 +492,11 @@ There are workarounds to handle this, which include those listed in @tbl-OOP-wor
 :::
 
 
-In Julia, functions are defined separately from data types. This allows you to add new functions to existing types—even those from external libraries—without altering their original code. Your new functionality works on all instances of the original type, avoiding both the conflicts of patching and the type-checking required by subclassing. whereas a more general, data-oriented approach does facilitate this using Julia's multiple dispatch.
+In Julia, functions are defined separately from data types. This allows you to add new functions to existing types—even those from external libraries—without altering their original code. Your new functionality works on all instances of the original type, avoiding both the conflicts of patching and the type-checking required by subclassing. Julia's multiple dispatch facilitates a more general, data-oriented approach.
 
 ### Inheritance
 
-As seen in the prior example, most OO implementations this hierarchy comes with inheriting`\index{inheritance}`{=latex} both data *and* behavior. This is different from Julia where subtypes inherit behavior but not data from the parent type.
+As seen in the prior example, in most OO implementations this hierarchy comes with inheriting`\index{inheritance}`{=latex} both data *and* behavior. This is different from Julia where subtypes inherit behavior but not data from the parent type.
 
 Inheriting the data tends to introduce a tight coupling between the parent and the child classes in OO systems. This tight coupling can lead to several issues, particularly as systems grow in complexity. For example, changes in the parent class can inadvertently affect the behavior of all its child classes, which can be problematic if these changes are not carefully managed. This is often referred to as the "fragile base class problem," where base classes are delicate and changes to them can have widespread, unintended consequences.
 
@@ -504,7 +504,7 @@ Another issue with inheritance in OO design is the temptation to use it for code
 
 #### Composition over Inheritance
 
-To mitigate some of the problems associated with inheritance, there's a growing preference for *composition*`\index{composition over inheritance}`{=latex}. Composition involves creating objects that contain instances of other objects to achieve complex behaviors. This approach is more flexible than inheritance as it allows for the creation of more modular and reusable code.
+To mitigate some of the problems associated with inheritance, there is a growing preference for *composition*`\index{composition over inheritance}`{=latex}. Composition involves creating objects that contain instances of other objects to achieve complex behaviors. This approach is more flexible than inheritance as it allows for the creation of more modular and reusable code.
 
 To see why, consider a concrete problem: we want to model financial instruments that share *some* but not *all* characteristics. A municipal bond is a fixed-income instrument (it has a coupon and tenor), but it's also a listed security (it has a CUSIP identifier). An interest rate swap has fixed-income characteristics on both legs, but isn't a listed security at all. A listed equity option has a CUSIP but no fixed-income characteristics.
 

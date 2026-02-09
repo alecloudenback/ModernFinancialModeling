@@ -19,13 +19,13 @@ Logging.disable_logging(Logging.Warn);
 
 ## Chapter Overview
 
-An example of using a Bayesian\index{Bayesian inference}`{=latex}` MCMC\index{Markov chain Monte Carlo (MCMC)}`{=latex}` approach with Turing.jl\index{Turing.jl}`{=latex}` to fitting a mortality curve to sample data, with multi-level models and censored data.
+An example of using a Bayesian`\index{Bayesian inference}`{=latex} MCMC`\index{Markov chain Monte Carlo (MCMC)}`{=latex} approach with Turing.jl`\index{Turing.jl}`{=latex} to fit a mortality curve to sample data, with multi-level models and censored data.
 
 ## Generating fake data
 
 The problem of interest is to look at mortality rates, which are given in terms of exposures (whether or not a life experienced a death in a given year).
 
-We'll grab some example rates from an insurance table, which has a "selection" component: When someone enters observation, say at age 50, their mortality is path dependent (so for someone who started being observed at 50 will have a different risk/mortality rate at age 55 than someone who started being observed at 45).
+We'll grab some example rates from an insurance table, which has a "selection" component: When someone enters observation, say at age 50, their mortality is path dependent (so someone who started being observed at 50 will have a different risk/mortality rate at age 55 than someone who started being observed at 45).
 
 Additionally, there may be additional groups of interest, such as:
 
@@ -129,8 +129,8 @@ end
 Estimate $q$, the average mortality rate, not accounting for any variation within the population/sample. Our model is defined as:
 
 $$
-q ~\text{Beta}(1,1)
-p(\text{death}) ~ \text{Binomial}(q)
+q \sim \text{Beta}(1,1)
+p(\text{death}) \sim \text{Binomial}(q)
 $$
 
 ```{julia}
@@ -147,7 +147,7 @@ m1 = mortality(data.exposures, data.deaths)
 
 ### Sampling from the posterior
 
-We use a No-U-Turn-Sampler (NUTS)\index{NUTS (No-U-Turn Sampler)}`{=latex}` technique to sample multiple chains at once:
+We use a No-U-Turn-Sampler (NUTS)`\index{NUTS (No-U-Turn Sampler)}`{=latex} technique to sample multiple chains at once:
 
 ```{julia}
 num_chains = 4
@@ -161,7 +161,7 @@ Here, we have asked for the outcomes to be modeled via a single parameter for th
 sum(data.deaths) / sum(data.exposures)
 ```
 
-However, We can see that the sampling of possible posterior parameters doesn't really fit the data very well since our model was so simplified. The lines represent the posterior binomial probability.
+However, we can see that the sampling of possible posterior parameters doesn't really fit the data very well since our model was so simplified. The lines represent the posterior binomial probability.
 
 This is saying that for the observed data, if there really is just a single probability `p` that governs the true process that came up with the data, there's a pretty narrow range of values it could possibly be:
 
@@ -198,9 +198,9 @@ end
 
 ## 2. Parametric model
 
-In this example, we utilize a [MakehamBeard](https://juliaactuary.github.io/MortalityTables.jl/stable/ParametricMortalityModels/#MortalityTables.MakehamBeard)\index{Makeham-Beard model}`{=latex}` parameterization because it's already very similar in form to a [logistic function](https://en.wikipedia.org/wiki/Logistic_function). This is important because our desired output is a probability (ie the probability of a death at a given age), so the value must be constrained to be in the interval between zero and one.
+In this example, we utilize a [MakehamBeard](https://juliaactuary.github.io/MortalityTables.jl/stable/ParametricMortalityModels/#MortalityTables.MakehamBeard)`\index{Makeham-Beard model}`{=latex} parameterization because it's already very similar in form to a [logistic function](https://en.wikipedia.org/wiki/Logistic_function). This is important because our desired output is a probability (ie the probability of a death at a given age), so the value must be constrained to be in the interval between zero and one.
 
-The **prior**\index{prior (Bayesian)}`{=latex}` values for `a`,`b`,`c`, and `k` are chosen to constrain the hazard (mortality) rate to be between zero and one.
+The **prior**`\index{prior (Bayesian)}`{=latex} values for `a`, `b`, `c`, and `k` are chosen to constrain the hazard (mortality) rate to be between zero and one.
 
 This isn't an ideal parameterization (e.g. we aren't including information about the select underwriting period), but is an example of utilizing Bayesian techniques on life experience data.
 
@@ -232,7 +232,7 @@ chain2 = sample(m2, NUTS(), MCMCThreads(), 400, num_chains)
 
 ### Plotting samples from the posterior
 
-We can see that the sampling of possible posterior\index{posterior (Bayesian)}`{=latex}` parameters fits the data well:
+We can see that the sampling of possible posterior`\index{posterior (Bayesian)}`{=latex} parameters fits the data well:
 
 ```{julia}
 let
@@ -305,11 +305,11 @@ let
 end
 ```
 
-Recall that the lines are not plotting the possible outcomes of the claims rates, but the *mean* claims rate for the given age. 
+Recall that the lines are not plotting the possible outcomes of the claim rates, but the *mean* claim rate for the given age. 
 
 ## 3. Multi-level model
 
-This model extends the prior to create a multi-level model\index{multi-level model}`{=latex}`. Each risk class (`risk_level`) gets its own $a$ parameter in the `MakehamBeard` model. The prior for $a_i$ is determined by the hyper-parameter $\bar{a}$.
+This model extends the prior to create a multi-level model`\index{multi-level model}`{=latex}. Each risk class (`risk_level`) gets its own $a$ parameter in the `MakehamBeard` model. The prior for $a_i$ is determined by the hyper-parameter $\bar{a}$.
 
 ```{julia}
 @model function mortality3(ages, exposures, risk_levels, deaths, n_risk_levels)
@@ -376,11 +376,11 @@ let
 end
 ```
 
-Again, the lines are not plotting the possible outcomes of the claims rates, but the *mean* claims rate for the given age and risk class.
+Again, the lines are not plotting the possible outcomes of the claim rates, but the *mean* claim rate for the given age and risk class.
 
 ## Handling non-unit exposures
 
-The key is to use the Poisson distribution, which is a continuous approximation to the Binomial distribution:
+The key is to use the Poisson distribution, which is a limiting approximation to the Binomial distribution:
 
 ```{julia}
 @model function mortality4(ages, exposures, risk_levels, deaths, n_risk_levels)
@@ -452,7 +452,7 @@ end
 
 We can generate predictive estimates by passing a vector of `missing` in place of the outcome variables and then calling `predict`.
 
-We get a table of values where each row is the the prediction implied by the corresponding chain sample, and the columns are the predicted value for each of the outcomes in our original dataset.
+We get a table of values where each row is the prediction implied by the corresponding chain sample, and the columns are the predicted value for each of the outcomes in our original dataset.
 
 ```{julia}
 # Create model with missing deaths to generate predictions

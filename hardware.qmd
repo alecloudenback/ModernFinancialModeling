@@ -17,7 +17,7 @@ A basic understanding of computing hardware is essential for optimizing financia
 
 ## Introduction
 
-The quote that opens the chapter is a silly way of describing that most modern computers are made with silicon, a common mineral found in rocks. However, we will not concern ourselves with the raw materials of computers and instead will focus on the key architectural aspect.
+The quote that opens the chapter is a silly way of describing that most modern computers are made with silicon, a common mineral found in rocks. However, we will not concern ourselves with the raw materials of computers and instead will focus on the key architectural aspects.
 
 A computer handles data at rest (in memory) or data being acted upon (processed). This chapter will try to explain both of those processes in a way that reveals key reasons why different approaches to programming can yield different results in terms of processing speed, memory usage, and compiled outputs. The goal is not to turn you into a hardware designer, but to help you reason about why one valuation run takes seconds while another takes hours.
 
@@ -47,9 +47,9 @@ Memory has an inverse relationship between size and proximity to the central pro
 | CPU Registers  | a few hundred bytes | single-cycle access                         | Volatile                   |
 +----------------+---------------------+---------------------------------------------+----------------------------+
 
-After requesting data from a persistent location like a Solid State Drive (SSD)`\index{SSD}`{=latex}, the memory is read into Random Access Memory (RAM)`\index{RAM}`{=latex}. The advantage of RAM over a persistent location is speed - typically that memory can be accessed and modified many times faster than the persistent data location. The tradeoff is that RAM is not persistent: when the computer is powered down, the RAM loses the information stored within.
+After requesting data from a persistent location like a Solid State Drive (SSD)`\index{SSD}`{=latex}, the memory is read into Random Access Memory (RAM)`\index{RAM}`{=latex}. The advantage of RAM over a persistent location is speed—typically that memory can be accessed and modified many times faster than the persistent data location. The tradeoff is that RAM is not persistent: when the computer is powered down, the RAM loses the information stored within.
 
-When data is needed by the CPU, data is read from RAM into a small hierarchy of caches before being accessed by the CPU. The **CPU caches**`\index{CPU cache}`{=latex} are small and very fast, and they move data in fixed-size 'cache lines'`\index{cache line}`{=latex} (typically 64 bytes). The caches are also physically co-located with the CPU for efficiency. Data is organized and funneled through the caches as an intermediary between the CPU and RAM and is fed from Level 3 (L3) cache in steps down to L1 cache as the data gets closer to the processor.
+When data is needed by the CPU, it is read from RAM into a small hierarchy of caches before being accessed by the CPU. The **CPU caches**`\index{CPU cache}`{=latex} are small and very fast, and they move data in fixed-size 'cache lines'`\index{cache line}`{=latex} (typically 64 bytes). The caches are also physically co-located with the CPU for efficiency. Data is organized and funneled through the caches as an intermediary between the CPU and RAM and is fed from Level 3 (L3) cache in steps down to L1 cache as the data gets closer to the processor.
 
 At the very top of the memory hierarchy`\index{memory hierarchy}`{=latex} are **CPU registers**`\index{registers}`{=latex}—tiny storage locations on the chip that the processor can read and write in a single cycle. This is where the CPU actually performs calculations. The CPU’s execution units operate on values held in registers. Most arithmetic, logical, and comparison instructions take their operands from registers and write results back to registers; separate load/store instructions move data between memory and registers.
 
@@ -70,7 +70,7 @@ Rule of thumb: treat memory sizes (RAM, caches) as base‑2, and disk/network sp
 
 Sitting within the RAM region of memory are two sections called Stack and Heap. These are places where variables created from our program's code can be stored. In both cases, the program will request memory space but they have some differences to be aware of.
 
--   The **stack**`\index{stack}`{=latex} stores small, fixed-size (known bit length), data and program components. The stack is a last-in-first-out queue of data that is able to be written to and read from very quickly. The stack is CPU cache friendly.
+-   The **stack**`\index{stack}`{=latex} stores small, fixed-size (known bit length) data and program components. The stack is a last-in-first-out queue of data that is able to be written to and read from very quickly. The stack is CPU cache friendly.
 
 -   The **heap**`\index{heap}`{=latex} is a region which can be dynamically sized and has random read/write (you need not access the data in a particular order). The heap is much slower but more flexible. The heap is not very CPU cache friendly.
 
@@ -93,7 +93,7 @@ Julia uses a generational, stop-the-world garbage collector to reclaim heap memo
 
 The processor reads cache lines (typically 64 bytes) from caches and moves the needed values into registers and then executes instructions. An example would be to take the bytes from register 10 and add the bytes from register 11 to them. This is really all a processor does at the lowest level: combining bits of data using logical circuits.
 
-Logical circuits (**transistors**`\index{transistors}`{=latex}) are an arrangement of wires that output a new electrical signal that varies depending on the input. From a collection of smaller building block gates (e.g. AND, OR, NOR, XOR) more complex operations can be built up[^hardware-1], into operations like addition, multiplication, division, etc. Electric impulses move the state of the program forward once time per CPU cycle (controlled by a master "clock" ticking billions of times per second). CPU cycle speed is what's quoted for chip performance, e.g. when a CPU is advertised as 3.0 GHz (or 3 billion cycles per second).
+Logical circuits (**transistors**`\index{transistors}`{=latex}) are an arrangement of wires that output a new electrical signal that varies depending on the input. From a collection of smaller building block gates (e.g. AND, OR, NOR, XOR) more complex operations can be built up[^hardware-1], into operations like addition, multiplication, division, etc. Electric impulses move the state of the program forward once per CPU cycle (controlled by a master "clock" ticking billions of times per second). CPU cycle speed is what's quoted for chip performance, e.g. when a CPU is advertised as 3.0 GHz (or 3 billion cycles per second).
 
 [^hardware-1]: In fact, only two logical gates are needed to reproduce all boolean logical gates: NAND (Not AND) and NOR gates can be composed to create AND, OR, NOR, etc. gates.
 
@@ -140,7 +140,7 @@ Compilers are complex, hyper-optimized programs which turn your source code into
 +------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------+
 | LLVM                               | Low-Level Virtual Machine language, which is a massively popular compiler used by languages like Julia and Rust. The core logic are the three lines with `add`, `add`, and `ret`.                   | ``` julia-repl                                                                       |
 |                                    |                                                                                                                                                                                                     | julia> @code_llvm myadd(1,2,3)                                                       |
-|                                    | Note that the the `add` instruction is `add i64` which means an addition operation of 64 bit integers.                                                                                              | ;  @ REPL[7]:1 within `myadd`                                                        |
+|                                    | Note that the `add` instruction is `add i64`, which means an addition operation of 64-bit integers.                                                                                              | ;  @ REPL[7]:1 within `myadd`                                                        |
 |                                    |                                                                                                                                                                                                     | define i64 @julia_myadd_2022(i64 signext %0, i64 signext %1, i64 signext %2) #0 {    |
 |                                    |                                                                                                                                                                                                     | top:                                                                                 |
 |                                    |                                                                                                                                                                                                     | ; ┌ @ operators.jl:587 within `+` @ int.jl:87                                        |
@@ -183,7 +183,7 @@ To obtain increasing performance, two main strategies have been employed in lieu
 1.  **Parallelism**`\index{parallelism}`{=latex}: utilize multiple, separate cores and operate in an increasingly parallel way.
 2.  **Microarchitectural techniques:** clever tricks to predict, schedule, and optimize the computations to make better use of the memory pipeline and otherwise idle CPU cycles.
 
-We will cover techniques to utilize concurrent/parallel processing in @sec-parallelization. As for the second technique, it is capable of very impressive accelerations (on the order 2x to 100x faster than a naive implementation. However, it has sometimes caused issues. There have been some famous security vulnerabilities such as Spectre`\index{Spectre}`{=latex} and Meltdown`\index{Meltdown}`{=latex}, which exploited speculative execution`\index{speculative execution}`{=latex} – a technique used to optimize CPU performance which will execute code *before being explicitly asked to* because the scheduler *anticipates* the next steps (with very good, but imperfect accuracy).
+We will cover techniques to utilize concurrent/parallel processing in @sec-parallelization. As for the second technique, it is capable of very impressive accelerations (on the order of 2x to 100x faster than a naive implementation). However, it has sometimes caused issues. There have been some famous security vulnerabilities such as Spectre`\index{Spectre}`{=latex} and Meltdown`\index{Meltdown}`{=latex}, which exploited speculative execution`\index{speculative execution}`{=latex} – a technique used to optimize CPU performance which will execute code *before being explicitly asked to* because the scheduler *anticipates* the next steps (with very good, but imperfect accuracy).
 
 For practitioners this means: expect hardware vendors to keep adding cores, vector units, and specialised instructions (AVX, SVE, BF16) while single-thread speed inches forward. Models that parallelise cleanly—scenario loops, policy seriatim projections, P&L explain—will benefit automatically from newer CPUs. Models that rely on single-core performance or constantly move data back and forth to main memory will hit a wall regardless of silicon improvements.
 
@@ -197,7 +197,7 @@ There are a lot more optimizations along the way:
 
 -   Since the items are already mostly arranged so that related items are next to each other, the conveyor belt will bring nearby items at the same time it brings the requested item (memory blocks).
 
--   If an item usually ordered after another one is, the conveyor system will start to bring that second item as soon as the first one is ordered (prefetching).
+-   If an item is usually ordered after another one, the conveyor system will start to bring that second item as soon as the first one is ordered (prefetching).
 
 -   Different types of packaging stations might be used for specialized items (e.g. vector processing or cryptography instructions in the CPU).
 
@@ -239,7 +239,7 @@ Representative time is given in @tbl-computer-speeds for a variety of common act
 
 : How long different actions take on a computer. As an interesting yardstick, the distance a beam of light travels is also given to provide a sense of scale (this comparison originally comes from Admiral Grace Hopper). Source for the timings comes from: <https://cs.brown.edu/courses/csci0300/2022/assign/labs/lab4.html>. Also note that timings vary substantially by hardware and workload; treat these as order-of-magnitude references. {#tbl-computer-speeds}
 
-As introduced in @sec-hardware-processor, calculations on the CPU vary widely. Take, for example, @tbl-CPU-ops shows runtime varying quite a bit for common mathematical operations. Despite mathematically all essentially being elementary operations, the compute intensity varies widely:
+As introduced in @sec-hardware-processor, calculations on the CPU vary widely. For example, @tbl-CPU-ops shows runtime varying quite a bit for common mathematical operations. Despite mathematically all essentially being elementary operations, the compute intensity varies widely:
 
 +------------------------+----------------+----------------------------------------------+
 | Mathematical Operation | Julia Function | Runtime in nanoseconds (`Float64` arguments) |

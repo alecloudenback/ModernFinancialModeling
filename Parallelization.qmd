@@ -21,9 +21,9 @@ Fundamentals of parallel workloads, different mechanisms to distribute work: vec
 
 ## Amdahl's Law and the Limits of Parallel Computing
 
-An important ground-truth in computing is that there is an upper limit to how fast a workload can be sped up through distributing the workload among multiple processor units. For example, if there is a modeling workload wherein 90% of the work is independent (say policy or asset level calculations) and the remaining 10% of the workload is an aggregate (say company or portfolio level), then the theoretical maximum speedup of the process is 10x faster (1 / 90% parallelizable load). This is captured in a law known as **Amdahl's Law**`\index{Amdahl's Law}`{=latex} and it reflects the *theoretical* maximum speedup a workload could see. In practice, the speedup is worse than this due to overhead of moving data around, scheduling the tasks, and aggregating results. This is why in many cases a good effort in sequential workloads (see @sec-performance-single) is often a more fruitful effort than trying to parallelize some workloads.
+An important ground truth in computing is that there is an upper limit to how fast a workload can be sped up through distributing the workload among multiple processor units. For example, if there is a modeling workload wherein 90% of the work is independent (say policy or asset level calculations) and the remaining 10% of the workload is an aggregate (say company or portfolio level), then the theoretical maximum speedup of the process is 10x faster (1 / 90% parallelizable load). This is captured in a law known as **Amdahl's Law**`\index{Amdahl's Law}`{=latex}, and it reflects the *theoretical* maximum speedup a workload could see. In practice, the speedup is worse than this due to overhead of moving data around, scheduling the tasks, and aggregating results. This is why in many cases a good effort in sequential workloads (see @sec-performance-single) is often a more fruitful effort than trying to parallelize some workloads.
 
-That said, there are still many modeling use-cases for parallelization. Modern investment and insurance portfolios can easily contain hundreds of thousands or millions of seriatim holdings. In many cases, these can be evaluated independently, though often there is interaction with the total portfolio (contract dividends, non-guaranteed elements, profit sharing, etc.). Further, even if the holdings are not parallelizable across the holdings dimension, we are often interested in independent evaluations across economic scenarios which is amenable to parallelization.
+That said, there are still many modeling use-cases for parallelization. Modern investment and insurance portfolios can easily contain hundreds of thousands or millions of seriatim holdings. In many cases, these can be evaluated independently, though often there is interaction with the total portfolio (contract dividends, non-guaranteed elements, profit sharing, etc.). Further, even if the holdings are not parallelizable across the holdings dimension, we are often interested in independent evaluations across economic scenarios, which is amenable to parallelization.
 
 $$
 S(n) = \frac{1}{(1-p) + \frac{p}{n}}
@@ -96,7 +96,7 @@ Parallel processing comes in different flavors and is related to the details of 
 
 ## Vectorization {#sec-vectorization}
 
-**Vectorization**`\index{vectorization}`{=latex} in the context of parallel processing refers to special circuits within the CPU wherein the CPU will load multiple data units (e.g. 4 or 8 floating point numbers) in a contiguous block and perform the same instruction on them at the same time. This is also known as **SIMD, or Single-Instruction Multiple Data**`\index{SIMD}`{=latex}. Think of it like a `for` loop where instead of each iteration doing one operation, instead it does four or eight at a time.
+**Vectorization**`\index{vectorization}`{=latex} in the context of parallel processing refers to special circuits within the CPU wherein the CPU will load multiple data units (e.g. 4 or 8 floating point numbers) in a contiguous block and perform the same instruction on them at the same time. This is also known as **SIMD, or Single-Instruction Multiple Data**`\index{SIMD}`{=latex}. Think of it like a `for` loop where each iteration does four or eight operations at a time instead of one.
 
 The requirements for SIMD-able code are that:
 
@@ -491,7 +491,7 @@ The benefit of the consistency of the higher level libraries we will use here is
 [^parallelization-3]: The [KernelAbstractions.jl](https://github.com/JuliaGPU/KernelAbstractions.jl) library actually allows you to write generic kernels which then get compiled into different code depending on the backend you are using.
 
 ::: callout-note
-This book will be rendered on a Mac and therefore the examples will use Metal in order to run computational cells, however we'll show a CUDA translation for some of the examples in order to show the straight-forward nature of translating higher level GPU code in Julia is.
+This book will be rendered on a Mac and therefore the examples will use Metal in order to run computational cells, however we'll show a CUDA translation for some of the examples in order to show how straightforward translating higher level GPU code in Julia is.
 :::
 
 | GPU API | GPU Array Type | Kernel Macro |
@@ -575,7 +575,7 @@ The key ideas here are that we need to manually specify several aspects which ca
 
 The GPU libraries in Julia abstract much of the low level programming typically necessary for this style of programming, but we still need to explicitly look at:
 
-1.  How the GPU will iterate across different cores/threads threads.
+1.  How the GPU will iterate across different cores/threads.
 2.  How many threads to utilize, the optimal number depends on the shape of the computation (long vectors, multi-dimensional arrays), memory constraints, and hardware specifics.
 
 -   GPU threads: Individual units of execution within a kernel. Each thread runs the same kernel code but operates on a different portion of the data.
@@ -743,12 +743,12 @@ end
 run_distributed_simulation()
 ```
 
-Given the similarity to the single-process task-based version above, what's the motivation for this bothering with a distributed approach? A few differences:
+Given the similarity to the single-process task-based version above, what's the motivation for bothering with a distributed approach? A few differences:
 
--   In this simplified example, we are simply starting additional Julia processes on the same machine. Like a threaded approach, the work will be split across the same multi-core processor. In this context, the main difference is that the processes do not share memory.
+-   In this simplified example, we are simply starting additional Julia processes on the same machine. Like with a threaded approach, the work will be split across the same multi-core processor. In this context, the main difference is that the processes do not share memory.
     -   Communicating across processes generally has a little bit more overhead than communicating across threads.
--   If distributing across machines, avoiding memory sharing is advantageous if using the different machines that have their own memory stores, which need not compete with the main process (such as distributed chunks of large datasets). This essentially helps with memory constrained problems since you are no longer limited by the memory size or throughput of a single machine.
--   The worker processors don't need to be the same architecture as the main processor, allowing usage of different machines or cloud computing that is communicating with a local main process.
+-   If distributing across machines, avoiding memory sharing is advantageous if using different machines that have their own memory stores, which need not compete with the main process (such as distributed chunks of large datasets). This essentially helps with memory constrained problems since you are no longer limited by the memory size or throughput of a single machine.
+-   The worker processors don't need to be the same architecture as the main processor, allowing use of different machines or cloud computing that is communicating with a local main process.
 
 ## Parallel Programming Models {#sec-parallel-programming-models}
 
@@ -758,7 +758,7 @@ It is possible, if you are willing to give up some fine-grained control, to util
 
 ### Map-Reduce
 
-Map-Reduce`\index{map-reduce}`{=latex} (@sec-map-reduce) operations are inherently parallelizable and various libraries provide parallelized versions of the base `mapreduce`. This is the workhorse function of many 'big data' workloads and many statistical operations are versions of `mapreduce`.
+Map-Reduce`\index{map-reduce}`{=latex} (@sec-map-reduce) operations are inherently parallelizable and various libraries provide parallelized versions of the base `mapreduce`. This is the workhorse function of many 'big data' workloads, and many statistical operations are versions of `mapreduce`.
 
 #### Multi-Threading
 
@@ -786,12 +786,12 @@ import ThreadsX
 
 `@distributed (op) for x in collection; f(x); end` is a way to write the loop with the reduction `op` for which the `f` need not be costly.
 
-The difference between the two approaches is that with `pmap`, `collection` is made available to all workers. In the `@distributed` approach, the collection is partitioned and only a subset is sent to the designated workers.
+The difference between the two approaches is that, with `pmap`, `collection` is made available to all workers. In the `@distributed` approach, the collection is partitioned and only a subset is sent to the designated workers.
 
 Here's an example of both of these, calculating a simple example of counting coin flips:
 
 ```{julia}
-# this is a example of poor utilization of pmap, since the operation is 
+# this is an example of poor utilization of pmap, since the operation is 
 # fast and the overhead of moving the whole collection dominates
 @btime reduce(+, pmap(x -> rand((0, 1)), 1:10^3))
 ```
@@ -809,7 +809,7 @@ end
 
 ### Array-Based
 
-Array based approaches will often utilize the parallelism of SIMD on the CPU or many cores on the GPU. It's as simple as using generic library calls which will often be optimized at the compiler level. Examples:
+Array-based approaches will often utilize the parallelism of SIMD on the CPU or many cores on the GPU. It's as simple as using generic library calls which will often be optimized at the compiler level. Examples:
 
 ```{julia}
 let
@@ -826,7 +826,7 @@ Distributed array types allow for large datasets to effectively be partitioned a
 
 ### Loop-Based
 
-Loops which don't have race conditions can easily become multi-threaded. Here, we have three versions of updating a collection to square the contained values:
+Loops that don't have race conditions can easily become multi-threaded. Here, we have three versions of updating a collection to square the contained values:
 
 Basic single-threaded:
 
@@ -840,7 +840,7 @@ let v = collect(1:10000)
 end
 ```
 
-Using multi-threading
+Using multi-threading:
 
 ```{julia}
 let v = collect(1:10000)
@@ -869,7 +869,7 @@ For more advanced usage, including handling shared memory see @sec-multi-device 
 
 ### Task-Based
 
-Task based approaches`\index{task-based parallelism}`{=latex} attempt to abstract the scheduling and distribution of work from the user. Instead of saying how the computation should be done, the user specifies the intended operations and allows the library to handle the workflow. The main library for this in Julia is [Dagger.jl](https://juliaparallel.org/Dagger.jl/dev/darray/).
+Task-based approaches`\index{task-based parallelism}`{=latex} attempt to abstract the scheduling and distribution of work from the user. Instead of saying how the computation should be done, the user specifies the intended operations and allows the library to handle the workflow. The main library for this in Julia is [Dagger.jl](https://juliaparallel.org/Dagger.jl/dev/darray/).
 
 Effectively, the library establishes a network topology (a map of how different processor nodes can communicate) and models the work as a directed, acyclic graph (a DAG, which is like a map of how the work is related). The library is then able to assign the work in the appropriate order to the available computation devices. The benefit of this is most apparent with complex workflows or network topologies where it would be difficult to manually assign, communicate, and schedule the workflow.
 
