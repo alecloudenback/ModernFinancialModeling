@@ -858,7 +858,7 @@ window.Quarto = {
 <section id="dispatch" class="level3" data-number="7.4.1">
 <h3 data-number="7.4.1" class="anchored" data-anchor-id="dispatch"><span class="header-section-number">7.4.1</span> Dispatch</h3>
 <p>When a function is called, the computer has to decide which method to use. In the example above, when we want to <code>value</code> a <code>ZeroCouponBond</code>, does the <code>value(asset::AbstractBond, r)</code> or <code>value(bond::ZeroCouponBond, r)</code> version get used?</p>
-<p><strong>Dispatch</strong> is the process of determining the right method to use and the rule is that <em>the most specific defined method gets used</em>. In this case, that means that even though our <code>ZeroCouponBond</code> is an <code>AbstractBond</code>, the routine that will used is the most specific <code>value(bond::ZeroCouponBond, r)</code>.</p>
+<p><strong>Dispatch</strong> is the process of determining the right method to use and the rule is that <em>the most specific defined method gets used</em>. In this case, that means that even though our <code>ZeroCouponBond</code> is an <code>AbstractBond</code>, the routine that will be used is the most specific <code>value(bond::ZeroCouponBond, r)</code>.</p>
 <p>Already, this is a powerful tool to simplify our code. Imagine the alternative of a long chain of conditional statements trying to find the right logic to use:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># don't do this!</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">value</span>(asset,r)</span>
@@ -944,9 +944,9 @@ Note
 <div class="callout-body-container callout-body">
 <p>This code:</p>
 <pre><code>mapreduce(asset-&gt; value(asset,econ_baseline), +, portfolio)</code></pre>
-<p>is more verbose than what we set out do at the start (<code>mapreduce(value,+,portfolio)</code>) due to the two-argument <code>value</code> function requiring a second argument for the economic variables. This works well! However, there is a way to define it which avoids the anonymous function, which in some cases will end up needing to be compiled more frequently than you want it to. Sometimes we want a lightweight, okay-to-compile-on-the-fly function. Other times, we know it’s something that will be passed around in compute-intensive parts of the code.</p>
-<p>A technique in this situation is to define an object which “locks in” one of the arguments but behaves like the anonymous version. There is a pair of types in the Base module, <code>Fix1</code> and <code>Fix2</code>, which represent partially-applied versions of the two-argument function f, with the first or second argument fixed to the value “x”.</p>
-<p>This is, <code>Base.Fix1(f, x)</code> behaves like <code>y-&gt;f(x, y)</code> and <code>Base.Fix2(f, x)</code> behaves like <code>y-&gt;f(y, x)</code>.</p>
+<p>is more verbose than what we set out to do at the start (<code>mapreduce(value,+,portfolio)</code>) due to the two-argument <code>value</code> function requiring a second argument for the economic variables. This works well! However, there is a way to define it which avoids the anonymous function, which in some cases will end up needing to be compiled more frequently than you want it to. Sometimes we want a lightweight, okay-to-compile-on-the-fly function. Other times, we know it’s something that will be passed around in compute-intensive parts of the code.</p>
+<p>A technique in this situation is to define an object that “locks in” one of the arguments but behaves like the anonymous version. There is a pair of types in the Base module, <code>Fix1</code> and <code>Fix2</code>, which represent partially-applied versions of the two-argument function f, with the first or second argument fixed to the value “x”.</p>
+<p>That is, <code>Base.Fix1(f, x)</code> behaves like <code>y-&gt;f(x, y)</code> and <code>Base.Fix2(f, x)</code> behaves like <code>y-&gt;f(y, x)</code>.</p>
 <p>In the context of our valuation model, this would look like:</p>
 <div id="20" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>val <span class="op">=</span> <span class="bu">Base</span>.<span class="fu">Fix2</span>(value,econ_baseline)</span>
@@ -1027,7 +1027,7 @@ Stacktrace:
 </section>
 <section id="sec-object-oriented" class="level2 page-columns page-full" data-number="7.5">
 <h2 data-number="7.5" class="anchored" data-anchor-id="sec-object-oriented"><span class="header-section-number">7.5</span> Object-Oriented Design</h2>
-<p>Object oriented (OO) type systems use the analogy that various parts of the system are their own objects which encapsulate both data and behavior. Object oriented design is often one of the first computer programming abstractions introduced because it is very relatable<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>, however there are a number of its flaws in over-relying on OO patterns. Julia does not natively have traditional OO classes and types, but much of OO design can be emulated in Julia except for data inheritance.</p>
+<p>Object-oriented (OO) type systems use the analogy that various parts of the system are their own objects that encapsulate both data and behavior. Object oriented design is often one of the first computer programming abstractions introduced because it is very relatable<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>, however there are a number of flaws in over-relying on OO patterns. Julia does not natively have traditional OO classes and types, but much of OO design can be emulated in Julia except for data inheritance.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -1046,11 +1046,11 @@ Note
 </ul>
 </div>
 </div>
-<p>We bring up object oriented design for comparison’s sake, but think that ultimately choosing a data driven or functional design is better for financial modeling. Of course, many robust, well-used financial models have been built this way but in our experience the abstractions become unnatural. Additionally, maintenance becomes unwieldy beyond simple examples. We’ll now discuss some of the aspects of OO design and why the overuse of OO is not preferred.</p>
+<p>We bring up object-oriented design for comparison’s sake, but think that ultimately choosing a data-driven or functional design is better for financial modeling. Of course, many robust, well-used financial models have been built this way but in our experience the abstractions become unnatural. Additionally, maintenance becomes unwieldy beyond simple examples. We’ll now discuss some of the aspects of OO design and why the overuse of OO is not preferred.</p>
 <section id="assigning-behavior" class="level3 page-columns page-full" data-number="7.5.1">
 <h3 data-number="7.5.1" class="anchored" data-anchor-id="assigning-behavior"><span class="header-section-number">7.5.1</span> Assigning Behavior</h3>
 <p>Needing to assign methods to a single class can lead to awkward design limitations - when multiple objects are involved in a computation, why dictate that only one of them “controls” the logic?</p>
-<p>The <code>value</code> function is a good example of this. If we had to assign <code>value</code> to one of the objects involved, should it be the economic parameter object or the asset objects? The choice is not obvious at all. Isn’t it the market (economic parameters) that determines the value? But then if <code>value</code> were to be a method wholly owned by the economic parameters, how could it possible define in advance the valuation semantics of all types of assets? What if one wanted to extend the valuation to a new asset class? Downstream users or developers would need to modify the economic types to handle new assets they wanted to value. However, because the economic types were owned by an upstream package, they can’t be extended this way.</p>
+<p>The <code>value</code> function is a good example of this. If we had to assign <code>value</code> to one of the objects involved, should it be the economic parameter object or the asset objects? The choice is not obvious at all. Isn’t it the market (economic parameters) that determines the value? But then if <code>value</code> were to be a method wholly owned by the economic parameters, how could it possibly define in advance the valuation semantics of all types of assets? What if one wanted to extend the valuation to a new asset class? Downstream users or developers would need to modify the economic types to handle new assets they wanted to value. However, because the economic types were owned by an upstream package, they can’t be extended this way.</p>
 <p>This is an issue with traditional OO designs and that resolves itself so elegantly with multiple dispatch.</p>
 <section id="example-the-expression-problem" class="level4 page-columns page-full" data-number="7.5.1.1">
 <h4 data-number="7.5.1.1" class="anchored" data-anchor-id="example-the-expression-problem"><span class="header-section-number">7.5.1.1</span> Example: The Expression Problem</h4>
@@ -1126,7 +1126,7 @@ Note
 </div>
 </div>
 <p>Now, say that we want to utilize this package and extend the behavior. Specifically, we want to add a Deferred Annuity type and add functionality (for all products) related to determining a cash surrender value.</p>
-<p>We run into limitations with Python version. We can extend a new representation (dataclass), but adding new functionality (e.g.&nbsp;<code>cash_value</code>) requires modifying other classes which you may not own and for which the method not apply.</p>
+<p>We run into limitations with Python version. We can extend a new representation (dataclass), but adding new functionality (e.g.&nbsp;<code>cash_value</code>) requires modifying other classes which you may not own and for which the method may not apply.</p>
 <div class="columns column-body-outset">
 <div class="column" style="width:43%;">
 <p><strong>Julia (Multiple Dispatch)</strong></p>
@@ -1226,17 +1226,17 @@ Table&nbsp;7.1: Workarounds for Object Oriented Programming restrictions. The ob
 </figure>
 </div>
 </div>
-<p>In Julia, functions are defined separately from data types. This allows you to add new functions to existing types—even those from external libraries—without altering their original code. Your new functionality works on all instances of the original type, avoiding both the conflicts of patching and the type-checking required by subclassing. whereas a more general, data-oriented approach does facilitate this using Julia’s multiple dispatch.</p>
+<p>In Julia, functions are defined separately from data types. This allows you to add new functions to existing types—even those from external libraries—without altering their original code. Your new functionality works on all instances of the original type, avoiding both the conflicts of patching and the type-checking required by subclassing. Julia’s multiple dispatch facilitates a more general, data-oriented approach.</p>
 </section>
 </section>
 <section id="inheritance" class="level3 page-columns page-full" data-number="7.5.2">
 <h3 data-number="7.5.2" class="anchored" data-anchor-id="inheritance"><span class="header-section-number">7.5.2</span> Inheritance</h3>
-<p>As seen in the prior example, most OO implementations this hierarchy comes with inheriting both data <em>and</em> behavior. This is different from Julia where subtypes inherit behavior but not data from the parent type.</p>
+<p>As seen in the prior example, in most OO implementations this hierarchy comes with inheriting both data <em>and</em> behavior. This is different from Julia where subtypes inherit behavior but not data from the parent type.</p>
 <p>Inheriting the data tends to introduce a tight coupling between the parent and the child classes in OO systems. This tight coupling can lead to several issues, particularly as systems grow in complexity. For example, changes in the parent class can inadvertently affect the behavior of all its child classes, which can be problematic if these changes are not carefully managed. This is often referred to as the “fragile base class problem,” where base classes are delicate and changes to them can have widespread, unintended consequences.</p>
 <p>Another issue with inheritance in OO design is the temptation to use it for code reuse, which can lead to inappropriate hierarchies. Developers might create deep inheritance structures just to reuse code, leading to a scenario where classes are not logically related but are forced into a hierarchy. This can make the system harder to understand and maintain.</p>
 <section id="composition-over-inheritance" class="level4 page-columns page-full" data-number="7.5.2.1">
 <h4 data-number="7.5.2.1" class="anchored" data-anchor-id="composition-over-inheritance"><span class="header-section-number">7.5.2.1</span> Composition over Inheritance</h4>
-<p>To mitigate some of the problems associated with inheritance, there’s a growing preference for <em>composition</em>. Composition involves creating objects that contain instances of other objects to achieve complex behaviors. This approach is more flexible than inheritance as it allows for the creation of more modular and reusable code.</p>
+<p>To mitigate some of the problems associated with inheritance, there is a growing preference for <em>composition</em>. Composition involves creating objects that contain instances of other objects to achieve complex behaviors. This approach is more flexible than inheritance as it allows for the creation of more modular and reusable code.</p>
 <p>To see why, consider a concrete problem: we want to model financial instruments that share <em>some</em> but not <em>all</em> characteristics. A municipal bond is a fixed-income instrument (it has a coupon and tenor), but it’s also a listed security (it has a CUSIP identifier). An interest rate swap has fixed-income characteristics on both legs, but isn’t a listed security at all. A listed equity option has a CUSIP but no fixed-income characteristics.</p>
 <p>With inheritance, we’d be forced to choose a single parent for each type:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb34"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co"># The inheritance approach runs into trouble</span></span>
