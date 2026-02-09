@@ -81,9 +81,9 @@ let
 end
 ```
 
-Central differences usually beat forward or backward differences in accuracy, but the extra evaluation can matter when the underlying function is expensive. Take, for example, the process of optimizing a function to find a maxima or minima.
+Central differences usually beat forward or backward differences in accuracy, but the extra evaluation can matter when the underlying function is expensive. Take, for example, the process of optimizing a function to find a maximum or minimum.
 
-Maxima-finding algorithms usually involve guessing an initial point, evaluating the function at that point, and determining what the derivative of the function is at that point. Both items are used to update the guess to one that's closer to the solution. This approach is used in many optimization algorithms such as Newton's Method. At each step you need to evaluate the function three times: at $x$, $x+\epsilon$, and $x-\epsilon$. With forward (or backward) finite differences, you can often reuse the prior evaluation at $x$ from the previous iteration, thereby saving an expensive computation.
+Maximum-finding algorithms usually involve guessing an initial point, evaluating the function at that point, and determining what the derivative of the function is at that point. Both items are used to update the guess to one that's closer to the solution. This approach is used in many optimization algorithms such as Newton's Method. At each step you need to evaluate the function three times: at $x$, $x+\epsilon$, and $x-\epsilon$. With forward (or backward) finite differences, you can often reuse the prior evaluation at $x$ from the previous iteration, thereby saving an expensive computation.
 
 There are additional challenges with the finite differentiation method. In practice, we are often interested in much more complex functions than $x^2$. For example, we may actually be interested in the sum of a series that is many elements long or contains more complex operations than basic algebra. In the prior example, the $\epsilon$ is set unusually wide for demonstration purposes. As $\epsilon$ grows smaller, the accuracy of all three finite difference methods generally improves. However, it is not always the case: for sufficiently small $\epsilon$ the subtraction $f(x_0+\epsilon) - f(x_0)$ can lose significant digits due to floating-point round-off, corrupting the derivative estimate.
 
@@ -122,7 +122,7 @@ A few observations:
 1.  At virtually every value of `ϵ` we observe some error from the true derivative.
 2.  That error is the sum of two parts:
     1.  **Truncation error** is inherent in that we are using a given non-zero value for `ϵ` and not determining the limiting analytic value as $\epsilon \to 0$. The larger $\epsilon$ is, the larger the truncation error.
-    2.  **Roundoff error** which arises due to the limited precision of floating point math.
+    2.  **Roundoff error**, which arises due to the limited precision of floating point math.
 
 The implications of this are that we need to often be careful about the choice of `ϵ`, as the optimal choice will vary depending on the function and the point we are attempting to evaluate. This presents a number of practical difficulties in various algorithms.
 
@@ -132,7 +132,7 @@ Despite the accuracy and computational overhead, finite differences can be very 
 
 ## Automatic Differentiation
 
-**Automatic differentiation**`\index{automatic differentiation}`{=latex} is essentially the practice of defining algorithmically what the derivatives of function should be. We are able to do this through a creative application of the chain rule`\index{chain rule}`{=latex}. Recall that the **chain rule** allows us to compute the derivative of a composite function using the derivatives of the component functions:
+**Automatic differentiation**`\index{automatic differentiation}`{=latex} is essentially the practice of defining algorithmically what the derivatives of a function should be. We are able to do this through a creative application of the chain rule`\index{chain rule}`{=latex}. Recall that the **chain rule** allows us to compute the derivative of a composite function using the derivatives of the component functions:
 
 $$
 h(x)=f(g(x))
@@ -140,17 +140,17 @@ $$ $$
 h'(x) = f'(g(x)) g'(x)
 $$
 
-Using this rule, we can define how elementary operations act when differentiated. Combined with the fact that most computer code is building up from a bunch of elementary operations, we can get a very long way in differentiating complex functions.
+Using this rule, we can define how elementary operations act when differentiated. Combined with the fact that most computer code is built up from a bunch of elementary operations, we can get a very long way in differentiating complex functions.
 
 ### Dual Numbers
 
-To understand where we are going, let's remind ourselves about complex numbers. Complex numbers are of the form which has a real part ($r$) and an imaginary part ($iq$):
+To understand where we are going, let's remind ourselves about complex numbers. Complex numbers have a form which has a real part ($r$) and an imaginary part ($iq$):
 
 $$
 r+iq
 $$
 
-By definition we say that $i^2 = -1$. This is useful because it allows us to perform certain types of operations (e.g. finding a square root of a negative number) that is otherwise unsolvable with just the real numbers[^autodiff-1]. After defining how the normal algebraic operations (addition, multiplication, etc.) work for the imaginary number, we are able to utilize the imaginary numbers for a variety of practical mathematical tasks.
+By definition we say that $i^2 = -1$. This is useful because it allows us to perform certain types of operations (e.g. finding a square root of a negative number) that are otherwise unsolvable with just the real numbers[^autodiff-1]. After defining how the normal algebraic operations (addition, multiplication, etc.) work for the imaginary number, we are able to utilize the imaginary numbers for a variety of practical mathematical tasks.
 
 [^autodiff-1]: Richard Feynman has a wonderful, short lecture on algebra here: https://www.feynmanlectures.caltech.edu/I_22.html
 
@@ -286,7 +286,7 @@ using BenchmarkTools
 In performing this computation, the compiler has been able to optimize it such that we effectively are able to compute the function and its derivative at less than two times the cost of the base function evaluation. As the function gets more complex, the overhead does increase but is still generally preferred over finite differentiation. This advantage becomes more pronounced as we contemplate derivatives with respect to many variables at once or for higher-order derivatives.
 
 ::: callout-note
-In fact, it's largely due to the advances in applications of automatic differentiation that has led to the explosion of machine learning and artificial intelligence techniques in the 2010s/2020s. The "learning" process relies on solving parameter weights and would be too computationally expensive if using finite differences.
+In fact, it's largely due to the advances in applications of automatic differentiation that have led to the explosion of machine learning and artificial intelligence techniques in the 2010s/2020s. The "learning" process relies on solving parameter weights and would be too computationally expensive if using finite differences.
 
 These applications of AD in specialized C++ libraries underpin the libraries like PyTorch, TensorFlow, and Keras. These libraries specialize in allowing for AD on a limited subset of operations. Julia's available AD libraries are more general and can be applied to many more scenarios.
 :::
@@ -364,10 +364,10 @@ ForwardDiff.gradient(eurocall, params)
 
 -   Entry 1: delta $\partial C / \partial S$
 -   Entry 2: sensitivity to strike $\partial C / \partial K$ (no standard Greek)
--   Entry 3: $\partial C / \partial \tau$, which is the negative of the market convention “theta” ($\Theta = \partial C / \partial t = -\partial C / \partial \tau$)
+-   Entry 3: $\partial C / \partial \tau$, which is the negative of the market convention theta ($\Theta = \partial C / \partial t = -\partial C / \partial \tau$)
 -   Entry 4: rho $\partial C / \partial r$
 -   Entry 5: vega $\partial C / \partial \sigma$
--   Entry 6: dividend rho (often denoted “phi”) $\partial C / \partial q$
+-   Entry 6: dividend rho (often denoted phi) $\partial C / \partial q$
 
 We can also get the second order greeks with another call. This includes many uncommon second order partial derivatives, but the popular *gamma* is in the `[1,1]` position for example:
 

@@ -186,7 +186,7 @@ end
 ::: {.callout-note collapse="true"}
 ## Consolidating Cashflows
 
-Later on we will generate vectors of vectors of cashflows without any guarantee that the timepoints will line up, making aggregating cashflows by timepoints a non-obvious task. There are many ways to accomplish this, but [I like Transducers](https://juliaactuary.github.io/FinanceModels.jl/dev/faq/#Why-does-the-package-rely-on-using-Transducers?). 
+Later on we will generate vectors of vectors of cashflows without any guarantee that the timepoints will line up, making aggregating cashflows by timepoint a non-obvious task. There are many ways to accomplish this, but [I like Transducers](https://juliaactuary.github.io/FinanceModels.jl/dev/faq/#Why-does-the-package-rely-on-using-Transducers?). 
 
 Transducers are unfamiliar to many people, and don't let their presence deter you from the main points of this chapter. The details aren't central to the point of this chapter so just skip over if confusing.
 
@@ -215,7 +215,7 @@ consolidate(cashflow_vectors);
 ```
 :::
 
-Here's a visualization of the liability cashflows, showing that when the interest rates are bumped up slightly, that there are more surrenders that occur earlier on (so there's fewer policies around at the time of each maturity). Negative cashflows are outflows:
+Here's a visualization of the liability cashflows, showing that when the interest rates are bumped up slightly, there are more surrenders that occur earlier on (so there are fewer policies around at the time of each maturity). Negative cashflows are outflows:
 
 
 ```{julia}
@@ -272,14 +272,14 @@ The first element of `vgh_liab` is the value of the liability portfolio using th
 vgh_liab[1]
 ```
 
-The second element of `vgh_liab` is the partial derivative with respect to each of the inputs (here, just the `zero_rates` rates that dictate the curve). The sum of the partials is the effective duration`\index{duration}`{=latex} of the liabilities. 
+The second element of `vgh_liab` is the partial derivative with respect to each of the inputs (here, just the `zero_rates` that dictate the curve). The sum of the partials is the effective duration`\index{duration}`{=latex} of the liabilities. 
 
 ```{julia}
 @show sum(vgh_liab[2])
 vgh_liab[2]
 ```
 
-This is the sensitivity relative to a full unit change in rates (e.g. `1.0`). So if we wanted to estimate the dollar impact of a 50 basis point (0.50%) change, we would take `0.005` times the gradient/hessian. Also note these are 'dollar durations' but we could divide by the price to get `effective` or percentage durations:
+This is the sensitivity relative to a full unit change in rates (e.g. `1.0`). So if we wanted to estimate the dollar impact of a 50 basis point (0.50%) change, we would take `0.005` times the gradient/Hessian. Also note these are dollar durations but we could divide by the price to get effective or percentage durations:
 
 ```{julia}
 -sum(vgh_liab[2]) / vgh_liab[1]
@@ -537,7 +537,7 @@ The Julia ecosystem supports this workflow through packages like `Differentiatio
 
 ## Appendix: Even more performance (Advanced)
 
-Julia is fastest when all functions are type stable (i.e. the return type can be inferred at compile time). Looking back at the function defined above, the issue is that the `av` function is defined outside of the scope used within the `map` block. This means that the compiler can't be sure that `av` won't be modified while being used within the `map`. Therefore, `av` gets 'boxed' and held as an `Any` type. This type uncertainty propagates to the value returned from the `(d::DeferredAnnuity)(curve)` function:
+Julia is fastest when all functions are type stable (i.e. the return type can be inferred at compile time). Looking back at the function defined above, the issue is that the `av` variable is defined outside of the scope used within the `map` block. This means that the compiler can't be sure that `av` won't be modified while being used within the `map`. Therefore, `av` gets boxed and held as an `Any` type. This type uncertainty propagates to the value returned from the `(d::DeferredAnnuity)(curve)` function:
 
 ```julia
 function (d::DeferredAnnuity)(curve)
@@ -556,10 +556,10 @@ function (d::DeferredAnnuity)(curve)
 end
 ```
 
-An alternative would be to write a `for` loop and initialize an array to hold the cashflows. The challenge with that is to concretely define the output type of the resulting array. Particularly when combined with AD, the types within the program are no longer basic floats and integers, as we have dual numbers and more complex types running through our functions. 
+An alternative would be to write a `for` loop and initialize an array to hold the cashflows. The challenge with that is to concretely define the output type of the resulting array. Particularly when combined with AD, the types within the program are no longer basic floats and integers; we have dual numbers and more complex types running through our functions. 
 
 
-To maintain most of the simplicity, an alternative approach[^zulip] is to use small, immutable containers from [MicroCollections.jl](https://juliahub.com/ui/Packages/General/MicroCollections) and combine them with [BangBang.jl](https://juliahub.com/ui/Packages/General/BangBang). Then, instead of using `map` we will write a regular loop. The macro `@unroll` is defined to unroll the first `N` iterations of the loop. This means that the macro transforms the source code to explicitly write out the first two loops. An example of this might be as follows where two iterations of the loop are unrolled.
+To maintain most of the simplicity, an alternative approach[^zulip] is to use small, immutable containers from [MicroCollections.jl](https://juliahub.com/ui/Packages/General/MicroCollections) and combine them with [BangBang.jl](https://juliahub.com/ui/Packages/General/BangBang). Then, instead of using `map`, we will write a regular loop. The macro `@unroll` is defined to unroll the first `N` iterations of the loop. This means that the macro transforms the source code to explicitly write out the first two loops. An example of this might be as follows, where two iterations of the loop are unrolled.
 
 ```julia
 function basic_loop()
@@ -660,7 +660,7 @@ function (d::DeferredAnnuity)(curve)
 end;
 ```
 
-1. We tell the `out` vector how many elements to expect
+1. We tell the `out` vector how many elements to expect.
 2. We unroll two iterations of the loop so that the compiler can use the calculated result to determine the type of the output container.
 3. We use `setindex!!` from BangBang to efficiently update the output vector and its type.
 
@@ -671,4 +671,4 @@ f = z -> annuities(z, liabilities)
 @btime value_gradient_and_hessian($f, AutoForwardDiff(), $zero_rates);
 ```
 
-[^zulip]: With thanks to the helpful persons on the Julia Zulip and in particular Mason Protter for this approach. 
+[^zulip]: With thanks to the helpful people on the Julia Zulip and in particular Mason Protter for this approach. 

@@ -21,7 +21,7 @@ With Julia: math-heavy code looks like math; it's easy to pick up, and quick to 
 
 Julia's popularity continues to grow across many fields, with a growing body of online references, tutorials, videos, and print media to learn from.
 
-Large financial services organizations have already started realizing gains: BlackRock's Aladdin portfolio modeling, the Federal Reserve's economic simulations, and Aviva's Solvency II-compliant modeling[^why-julia-2]. The last of these has a [great talk on YouTube](https://www.youtube.com/watch?v=__gMirBBNXY) by Aviva's Tim Thornham, which showcases an on-the-ground view of what difference the right choice of technology and programming language can make. Moving from their vendor-supplied modeling solution was **1000x faster, took 1/10 the amount of code, and was implemented 10x faster**.
+Large financial services organizations have already started realizing gains: BlackRock's Aladdin portfolio modeling, the Federal Reserve's economic simulations, and Aviva's Solvency II-compliant modeling[^why-julia-2]. The last of these has a [great talk on YouTube](https://www.youtube.com/watch?v=__gMirBBNXY) by Aviva's Tim Thornham that showcases an on-the-ground view of what difference the right choice of technology and programming language can make. Moving from their vendor-supplied modeling solution was **1000x faster, took 1/10 the amount of code, and was implemented 10x faster**.
 
 [^why-julia-2]: [Aviva Case Study](https://juliacomputing.com/case-studies/aviva.html)
 
@@ -96,9 +96,9 @@ end
 
 It's almost exactly how you'd specify it in English. No joins, no boilerplate, no fiddling with complicated syntax. You express ideas the way you think of them—not as a series of dataframe joins or row/column coordinates on a spreadsheet.
 
-We defined `retained` and adapted it to mean related but different things depending on context. We didn't have to define `retained_life(...)` and `retained_pol(...)` because Julia can **dispatch**`\index{multiple dispatch}`{=latex} based on what you give it (this is a more powerful, generalized version of method dispatch commonly used in object-oriented programming; see @sec-data-types for more).
+We defined `retained` and adapted it to mean related but different things depending on the context. We didn't have to define `retained_life(...)` and `retained_pol(...)` because Julia can **dispatch**`\index{multiple dispatch}`{=latex} based on what you give it (this is a more powerful, generalized version of method dispatch commonly used in object-oriented programming; see @sec-data-types for more).
 
-Let's use the above code in practice then.
+Let's use the above code in practice.
 
 ```{julia}
 #| code-overflow: wrap
@@ -161,7 +161,7 @@ In Julia, rand dispatches on the argument’s type: arrays, distributions, and c
 
 As stated in the [journal Nature](https://www.nature.com/articles/d41586-019-02310-3), "Come for the Syntax, Stay for the Speed".
 
-Earlier we described Aviva's Solvency II compliance modeling, which ran 1000x faster than the prior vendor solution mentioned earlier: what does it mean to be 1000x faster at something? It's the difference between something taking 10 seconds instead of 3 hours — or 1 hour instead of 42 days.
+Earlier we described Aviva's Solvency II compliance modeling, which ran 1000x faster than the prior vendor solution: what does it mean to be 1000x faster at something? It's the difference between something taking 10 seconds instead of 3 hours — or 1 hour instead of 42 days.
 
 With this difference in speed, you would be able to complete existing processes much faster, or extend the analysis further. This speed could allow you to do new things: a stochastic analysis of life-level claims, machine learning with your experience data, or perform much more frequent valuation.
 
@@ -247,7 +247,7 @@ sig <- 0.15
 Call(S,K,t,r,sig) # 58.81977
 ```
 
-We find in @tbl-bsm-benchmark that despite the syntactic similarity, Julia is much faster than the other two. Exact numbers vary by hardware and implementation choices; the key point is that you can write high-level Julia and still get C-like performance.
+We find in @tbl-bsm-benchmark that, despite the syntactic similarity, Julia is much faster than the other two. Exact numbers vary by hardware and implementation choices; the key point is that you can write high-level Julia and still get C-like performance.
 
 +-----------+------------------------------+----------------------+---------------+
 | Language  | Median *(nanoseconds)*       | Mean *(nanoseconds)* | Relative Mean |
@@ -259,18 +259,18 @@ We find in @tbl-bsm-benchmark that despite the syntactic similarity, Julia is mu
 | Julia     | 41.0                         | 41.6                 | 1.0           |
 +-----------+------------------------------+----------------------+---------------+
 
-: On our test machine, a scalar BSM pricing function implemented in idiomatic Julia ran in tens of nanoseconds per call after JIT warmup. Comparable R code ran in a few microseconds, and a pure-Python version (without vectorized NumPy) ran orders of magnitude slower. Python's `timeit` library doesn't calculate median, so it is not available. {#tbl-bsm-benchmark}
+: On our test machine, a scalar BSM pricing function implemented in idiomatic Julia ran in tens of nanoseconds per call after JIT warmup. Comparable R code ran in a few microseconds, and a pure-Python version (without vectorized NumPy) ran orders of magnitude slower. Python's `timeit` library does not calculate the median, so it is not available. {#tbl-bsm-benchmark}
 
 ### Development Speed
 
 Speed is not just great for improvement in production processes. During development, it’s really helpful too. When building something, the faster feedback loop allows for more productive development. The build, test, fix, iteration cycle goes faster this way.
 
-Admittedly, most workflows don't see a 1000x speedup, but 10x to 1000x is a very common range of speed differences vs R or Python or MATLAB.
+Admittedly, most workflows don't see a 1000x speedup, but 10x to 1000x is a very common range of speed differences versus R, Python, or MATLAB.
 
 ::: callout-note
 Sometimes you will see less of a speed difference; R and Python have already circumvented this and written much core code in low-level languages. This is what's called the "two-language" problem where the language productive to write in isn't very fast. For example, [more than half of R packages use C/C++/Fortran](https://developer.r-project.org/Blog/public/2019/03/28/use-of-c---in-packages/) and core packages in Python like Pandas, PyTorch, NumPy, SciPy, etc. do this too.
 
-Within the bounds of the optimized R/Python libraries, you can leverage this work. Extending it can be difficult: what if you have a custom retention management system running on millions of policies every night? In technical terms, libraries like NumPy are not able to handle custom data types, and instead limit use to pre-built types within the library. In contrast, all types in Julia are effectively equal, even ones that you might create yourself.
+Within the bounds of the optimized R/Python libraries, you can leverage this work. Extending it can be difficult. What if you have a custom retention management system running on millions of policies every night? In technical terms, libraries like NumPy are not able to handle custom data types, and instead limit use to pre-built types within the library. In contrast, all types in Julia are effectively equal, even ones that you might create yourself.
 
 Julia packages you are using are almost always written in pure Julia: you can see what's going on, learn from them, or even contribute a package of your own!
 :::
@@ -283,7 +283,7 @@ Julia is easy to write, learn, and be productive in:
     -   Very permissive licenses, facilitating the use in commercial environments (same with most packages)
 -   Large and growing set of available packages
 -   Write how you like because it's multi-paradigm: vector-izable (R), object-oriented (Python), functional (Lisp), or detail-oriented (C)
--   Built-in package manager, documentation, and testing-library
+-   Built-in package manager, documentation, and testing library
 -   Jupyter Notebook support (it's in the name! **Ju**lia-**Pyt**hon-**R**)
 -   Many small, nice things that add up:
     -   Unicode characters like `α` or `β`
@@ -311,12 +311,12 @@ Julia is fast because it's compiled, unlike R and Python where (loosely speaking
 
 [^why-julia-3]: Julia can also precompile code ahead of time to avoid the latency involved with running a function for the first time each time a Julia session is started.
 
-A hypothetical example: running 10,000 stochastic projections where Julia needs to pre-compile but then runs each 10x faster:
+A hypothetical example: running 10,000 stochastic projections where Julia needs to precompile but then runs each 10x faster:
 
 -   Julia runs in 2 minutes: the first projection takes 1 second to compile and run; the remaining 9,999 projections only take 10 ms.
 -   Python runs in 17 minutes: 100 ms for each computation.
 
-Typically compilation is very fast (milliseconds), but in the most complicated cases it can be several seconds. The most common example is the "time-to-first-plot"`\index{time-to-first-plot}`{=latex} issue: super-flexible plotting libraries have a lot to pre-compile. It can take several seconds to display the first plot after starting Julia, but then it's remarkably quick and easy to create an animation of your model results (which requires repeated evaluation of the plot). This is a solvable problem receiving attention from core developers and is improving with new Julia releases.
+Typically, compilation is very fast (milliseconds), but in the most complicated cases it can be several seconds. The most common example is the "time-to-first-plot"`\index{time-to-first-plot}`{=latex} issue: super-flexible plotting libraries have a lot to precompile. It can take several seconds to display the first plot after starting Julia, but then it's remarkably quick and easy to create an animation of your model results (which requires repeated evaluation of the plot). This is a solvable problem receiving attention from core developers and is improving with new Julia releases.
 
 For users working with a lot of data or complex calculations (like actuaries!), the runtime speedup is worth a few seconds at the start.
 
@@ -338,7 +338,7 @@ There are thousands of publicly available packages already published. It's also 
 
 Another powerful aspect of the package ecosystem is that due to the language design, packages can be combined/extended in ways that are difficult for other common languages. This means that Julia packages are often interoperable without any additional coordination.
 
-For example, packages that operate on data tables work without issue together in Julia. In R/Python, many features tend to come bundled in a giant singular package like Python’s Pandas which has Input/Output, Date manipulation, plotting, resampling, and more. There’s a new Consortium for Python Data API Standards which seeks to harmonize the different packages in Python to make them more consistent (R’s Tidyverse plays a similar role in coordinating their subset of the package ecosystem).
+For example, packages that operate on data tables work together without issue in Julia. In R/Python, many features tend to come bundled in a giant singular package like Python's Pandas, which has Input/Output, date manipulation, plotting, resampling, and more. There’s a new Consortium for Python Data API Standards which seeks to harmonize the different packages in Python to make them more consistent (R’s Tidyverse plays a similar role in coordinating their subset of the package ecosystem).
 
 In Julia, packages tend to be more plug-and-play. For example, every time you load a CSV you might not want a dataframe (maybe you want a matrix or a plot instead). To load data into a dataframe, the Julia practice is to use both the CSV and DataFrames packages, separating concerns and composing dependencies as necessary. Some users may prefer the Python/R approach of less modular but more all-inclusive packages.
 

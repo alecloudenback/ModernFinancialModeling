@@ -48,7 +48,7 @@ using CairoMakie
 
 Our core unit of simulation will be a single life insurance `Policy`. Important characteristics include: the age a policy was issued at, the sex of the insured, and risk class to determine the assumed mortality rate. To make the example more realistic and demonstrate how it might look for a real block of inforce policies, additional fields have been included such as ID (not really used, but a common identifier) and `COLA` which is a cost-of-living-adjustment, used to modify the policy benefit through time. To be clear: the `Policy` type has more fields than will actually be used in the calculations, with the purpose to show how typical fields used in practice might be defined.
 
-Before we define the core `Policy` type, there's a couple of types we might consider defining that would subsequently get used by `Policy`: types representing sex and risk class. A typical approach might be to simply define associated types, like this:
+Before we define the core `Policy` type, there are a couple of types we might consider defining that would subsequently get used by `Policy`: types representing sex and risk class. A typical approach might be to simply define associated types, like this:
 
 ``` julia
 abstract type Sex end
@@ -198,7 +198,7 @@ The overall flow of the model loop will be as follows:
 1.  Determine some initialized values for each policy at the start of the projection.
 2.  Step through annual timesteps and simulate whether a death has occurred.
     1.  If a death has occurred, log the benefit paid out.
-    2.  If a death has not occurred, keep track of the remaining lives inforce and increment policy values.
+    2.  If a death has not occurred, keep track of the remaining lives in force and increment policy values.
 
 The code is shown first and then discussion will follow it:
 
@@ -233,7 +233,7 @@ function pol_project!(out, policy, params)
 end
 ```
 
-1.  `inbounds` turns off bounds-checking, which makes hot loops faster but first write loop without it to ensure you don't create an error (will crash if you have the error without bounds checking)
+1.  `inbounds` turns off bounds-checking, which makes hot loops faster but first write the loop without it to ensure you don't create an error (will crash if you have the error without bounds checking)
 2.  Note that the loop is iterating down a column (i.e. across rows) for efficiency (since Julia is column-major).
 
 ### Inputs and Outputs
@@ -270,7 +270,7 @@ params = (
 );
 ```
 
-Having defined the model behavior at the unit of the policy above, we now need to define how the model should iterate over the entire population of interest. Given a vector of `Policy`s in the `policies` argument, the `project` function will:
+Having defined the model behavior at the level of the policy above, we now need to define how the model should iterate over the entire population of interest. Given a vector of `Policy`s in the `policies` argument, the `project` function will:
 
 1.  Create output containers for each thread chunk.
 2.  Split work across threads using `ChunkSplitters`, with each thread processing its chunk independently.
@@ -323,7 +323,7 @@ project(repeat(policies, 100_000), params); # <1>
 
 ### Stochastic Projection
 
-This defines a loop to calculate the results `n` times (this is only running the two policies in the sample data `n` times). This is emulating running our population of policies through $n$ stochastic scenarios, similar to what might be done for a risk or pricing exercise.
+This defines a loop to calculate the results `n` times (this is only running the two policies in the sample data `n` times). This emulates running our population of policies through $n$ stochastic scenarios, similar to what might be done for a risk or pricing exercise.
 
 ```{julia}
 function stochastic_proj(policies, params, n)
@@ -369,7 +369,7 @@ end
 
 ## Benchmarking
 
-Many millions of policies able to be stochastically projected per second using a laptop computer[^stochastic-mortality-1]:
+Many millions of policies are able to be stochastically projected per second using a laptop computer[^stochastic-mortality-1]:
 
 [^stochastic-mortality-1]: See the Colophon section in the Introduction for details on the hardware used to render this book.
 

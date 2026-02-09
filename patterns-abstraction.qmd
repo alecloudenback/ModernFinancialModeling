@@ -25,13 +25,13 @@ Section @sec-elements-programming described a number of tools that we can utiliz
 
 ## Principles for Abstraction
 
-@tbl-abstraction-principles lists of some principles that arise when developing a particular abstraction. Not all abstractions serve all of these purposes but generally fit one or more of them. These principles provide guidance for creating abstractions that are modular, reusable, and maintainable. By following these principles, developers can create financial models that are easier to understand, extend, and adapt to changing requirements.
+@tbl-abstraction-principles lists some principles that arise when developing a particular abstraction. Not all abstractions serve all of these purposes but generally fit one or more of them. These principles provide guidance for creating abstractions that are modular, reusable, and maintainable. By following these principles, developers can create financial models that are easier to understand, extend, and adapt to changing requirements.
 
 ::: landscape
 | Principle | What | Why | Example |
 |-------------------|------------------|------------------|------------------|
 | Separation of Concerns`\index{separation of concerns}`{=latex} | Divide the system into distinct parts, each addressing a separate concern. | Promote modularity and reduce coupling between components. | Separating data retrieval, data processing, and output generation steps in a process. |
-| Encapsulation`\index{encapsulation}`{=latex} | Hide the internal details of a component and expose only a clean, well-defined set of functionality (interface). | Don't let other parts of the program modify internal data and make the system easier to understand and maintain. | Defining a type or module with well defined behavior and responsibility. |
+| Encapsulation`\index{encapsulation}`{=latex} | Hide the internal details of a component and expose only a clean, well-defined set of functionality (interface). | Don't let other parts of the program modify internal data and make the system easier to understand and maintain. | Defining a type or module with well-defined behavior and responsibility. |
 | Composability`\index{composability}`{=latex} | Design simple components that can be combined to create more complex behaviors, rather than a single component that attempts to handle all behavior. | Promote reuse and allow for the components to be combined creatively. | Separate details about economic conditions into different types than contracts/instruments. |
 | Generalization`\index{generalization}`{=latex} | Identify common patterns and create generic components that can be specialized as needed. Often this means identifying common behaviors that arise repeatedly in a model. | Avoid duplication and make the system more expressive and extensible. | Defining a generic `Instrument` type that can be specialized for different asset classes. |
 
@@ -48,11 +48,11 @@ This strategy groups together components within a model that behave similarly. S
 
 #### Domain Expertise
 
-It may be that components of the model require sufficient expertise that different persons or groups are involved in the development. This may warrant separating a model’s design so that different groups can focus on narrower aspects, regardless of similarities among components. For example, at a higher vertical level of abstraction, financial derivatives may fall under similar grouping, but sufficient differences exist for equity credit or foreign exchange derivatives that the model should separate those three asset classes for development purposes.
+It may be that components of the model require sufficient expertise that different persons or groups are involved in the development. This may warrant separating a model's design so that different groups can focus on more specific aspects, regardless of similarities among components. For example, at a higher vertical level of abstraction, financial derivatives may fall under similar grouping, but sufficient differences exist for equity credit or foreign exchange derivatives that the model should separate those three asset classes for development purposes.
 
 #### Composability versus All-in-One
 
-For some model design goals, it may be warranted to attempt to bundle together more functionality instead of allowing users to compose a functionality that comes from different packages. For example, perhaps a certain visualization of model results is particularly useful, not easy to create from scratch, and widely desired to see the model output visualized that way. Instead of relying on the user to install a separate visualization package and develop the visualization themselves, it could make sense to bundle visualization functionality with a model that is otherwise unconcerned with graphical capabilities.
+For some model design goals, it may be warranted to bundle together more functionality instead of allowing users to compose functionality that comes from different packages. For example, perhaps a certain visualization of model results is particularly useful, not easy to create from scratch, and it is widely desired to see the model output visualized that way. Instead of relying on the user to install a separate visualization package and develop the visualization themselves, it could make sense to bundle visualization functionality with a model that is otherwise unconcerned with graphical capabilities.
 
 In general, loosely coupled systems are preferred—you want to pick and choose which components you use while ensuring they work well together.
 
@@ -66,7 +66,7 @@ In general, loosely coupled systems are preferred—you want to pick and choose 
 When looking up a ticker for a market quote, one need not be mindful of the underlying realtime databases, networking, rendering text to the screen, memory management, etc. The interface is "put in symbol, get out number". By design, there are multiple layers of interfaces and abstractions used under the hood, but the financial modeler need only be actively concerned about the points that he or she comes in contact with, not the entire chain of complexity.
 :::
 
-For a financial model, there might be interfaces for bonds or for interest rate swaps, and separate interfaces for calculating risk metrics or visualizing results. Good design separates visualization concerns from contract mechanics and other domain logic. Open-source ecosystems (for visualization, data frames, file I/O, statistics, etc.) make these boundaries easier to see; the hard part is drawing similar boundaries inside your financial model.
+For a financial model, there might be interfaces for bonds or interest rate swaps, and separate interfaces for calculating risk metrics or visualizing results. Good design separates visualization concerns from contract mechanics and other domain logic. Open-source ecosystems (for visualization, data frames, file I/O, statistics, etc.) make these boundaries easier to see; the hard part is drawing similar boundaries inside your financial model.
 
 However, it's often difficult to find where to draw lines within financial models. For example, should bonds and interest-rate swaps be in separate packages? Or both part of a broader fixed income package? This is where much of the art and domain expertise of the financial professional comes to bear in modeling. There would be no way for a pure software engineer to think about the right design for the system without understanding how underlying components share similarities or differences and how those components interact.
 
@@ -82,7 +82,7 @@ A well-designed interface should follow these principles:
 
 ### Interfaces: A Financial Modeling Case Study
 
-As a case study, we'll look at the FinanceModels.jl`\index{FinanceModels.jl}`{=latex} and related packages to discuss some of the background and design choices that went into the functionality. This suite was written by one of the authors and is publicly available as set of installable Julia packages.
+As a case study, we will look at the FinanceModels.jl`\index{FinanceModels.jl}`{=latex} and related packages to discuss some of the background and design choices that went into the functionality. This suite was written by one of the authors and is publicly available as a set of installable Julia packages.
 
 #### Background
 
@@ -167,9 +167,9 @@ cashflow_vector = [1_000_000.0, 3_000_000.0, 1_000.0]
 present_value(model, cashflow_vector)
 ```
 
-It's slightly more verbose, but notice how much more powerful and extensible `fit(Spline.Cubic(), quotes, Fit.Bootstrap()` is than `Yields.Par(risk_free_rates,tenors)` . The end result is the same, but now the same package and interface can clearly interchange other options, such as a `NelsonSiegelSvennson` curve instead of a spline. And the `quotes` could be a combination of observed bonds of different technical parameters (though still sharing characteristics which make it relevant for the model being constructed).
+It's slightly more verbose, but notice how much more powerful and extensible `fit(Spline.Cubic(), quotes, Fit.Bootstrap())` is than `Yields.Par(risk_free_rates,tenors)`. The end result is the same, but now the same package and interface can clearly interchange other options, such as a `NelsonSiegelSvennson` curve instead of a spline. And the `quotes` could be a combination of observed bonds of different technical parameters (though still sharing characteristics which make it relevant for the model being constructed).
 
-The same pattern also applies for option valuation, such as this example of vanilla euro options with an assumed constant volatility assumption:
+The same pattern also applies to option valuation, such as this example of vanilla euro options with an assumed constant volatility assumption:
 
 ``` julia
 a = Option.EuroCall(CommonEquity(), 1.0, 1.0) # <1>
@@ -207,7 +207,7 @@ When you are introducing a new abstraction in a production model, walk through t
 2. **Surface area** - Can the public API be expressed in a dozen functions or fewer? If not, consider breaking the concept into smaller submodules.
 3. **Extensibility** - Do you know how a new asset class, reporting basis, or scenario type would plug in without editing core code? If the answer is unclear, capture that as an interface requirement now.
 4. **Testing strategy** - Identify the seams where unit tests or property-based tests will live. Abstractions without convenient test hooks tend to erode.
-5. **Failure modes** - Decide what should happen when data is missing, calibration fails, or convergence is slow. Document these behaviours in the API docstrings so consumers are not surprised.
+5. **Failure modes** - Decide what should happen when data is missing, calibration fails, or convergence is slow. Document these behaviors in the API docstrings so consumers are not surprised.
 
 Keeping these questions in mind ensures the abstraction remains a tool, not a new source of opacity.
 
@@ -215,7 +215,7 @@ Keeping these questions in mind ensures the abstraction remains a tool, not a ne
 
 We have talked about transforming data and restructuring logic in order to make the model more effective. We can go even further: we can abstract the process of writing code itself. This subject is a bit advanced, so we are simply going to introduce it because you will likely find many convenient instances of it as a *user* even if you never need to implement it yourself.
 
-**Homoiconicity**`\index{homoiconicity}`{=latex} refers to the property of a programming language where the language's code can be represented and manipulated as a data structure in the language itself. Think of a recipe. You can follow the recipe's instructions (the code) to bake a cake. But you could also treat the recipe itself as data: you could write a program to scan thousands of recipes, find every instance of 'sugar,' and reduce the quantity by 25%. This is the essence of homoiconicity: the code (the recipe) can also be treated as data to be manipulated.
+**Homoiconicity**`\index{homoiconicity}`{=latex} refers to the property of a programming language where the language's code can be represented and manipulated as a data structure in the language itself. Think of a recipe. You can follow the recipe's instructions (the code) to bake a cake. But you could also treat the recipe itself as data: you could write a program to scan thousands of recipes, find every instance of "sugar," and reduce the quantity by 25%. This is the essence of homoiconicity: the code (the recipe) can also be treated as data to be manipulated.
 
 In a homoiconic language like Julia, the code is data and can be treated as such. This enables powerful metaprogramming (i.e. code that writes other code) capabilities, where code can generate or transform code during macro expansion (before runtime), producing expressions that are then compiled.
 
@@ -251,7 +251,7 @@ In the context of financial modeling, macros can be used to simplify repetitive 
 
 Here are a few potential use cases of macros in financial modeling. Again, these are more advanced use-cases but knowing that these paths exist may benefit your work in the future.
 
-1.  Defining custom DSLs (Domain-Specific Languages)`\index{domain-specific language}`{=latex}: Macros can be used to create expressive and concise DSLs tailored to financial modeling. For example, a macro could allow defining financial contracts using a syntax closer to the domain language, which then gets expanded into the underlying implementation code.
+1.  Defining custom DSLs (Domain-Specific Languages)`\index{domain-specific language}`{=latex}: Macros can be used to create expressive and concise DSLs tailored to financial modeling. For example, a macro could allow defining financial contracts using syntax closer to the domain language, which then gets expanded into the underlying implementation code.
 
 2.  Automating boilerplate code: Macros can help reduce code duplication by generating common patterns or boilerplate code. This can include generating accessor functions[^patterns-abstraction-3], constructors, or serialization logic based on type definitions.
 
