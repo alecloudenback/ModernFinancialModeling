@@ -951,8 +951,18 @@ CodeInfo(
 </tr>
 <tr class="odd">
 <td>LLVM</td>
-<td>Low-Level Virtual Machine language, which is a massively popular compiler used by languages like Julia and Rust. The core logic are the three lines with <code>add</code>, <code>add</code>, and <code>ret</code>. | <code>julia-repl                                                                                                                                                                                                     | julia&gt; @code_llvm myadd(1,2,3) Note that the `add` instruction is `add i64`, which means an addition operation of 64-bit integers.                                                                                              | ;  @ REPL[7]:1 within `myadd`                                                        |                                                                                                                                                                                                     | define i64 @julia_myadd_2022(i64 signext %0, i64 signext %1, i64 signext %2) #0 {                                                                                                                                                                                                     | top:                                                                                                                                                                                                     | ; ┌ @ operators.jl:587 within `+` @ int.jl:87                                                                                                                                                                                                     |    %3 = add i64 %1, %0                                                                                                                                                                                                     |    %4 = add i64 %3, %2                                                                                                                                                                                                     |    ret i64 %4                                                                                                                                                                                                     | ; └                                                                                                                                                                                                     | }                                                                                                                                                                                                     |</code></td>
-<td></td>
+<td><p>Low-Level Virtual Machine language, which is a massively popular compiler used by languages like Julia and Rust. The core logic are the three lines with <code>add</code>, <code>add</code>, and <code>ret</code>.</p>
+<p>Note that the <code>add</code> instruction is <code>add i64</code>, which means an addition operation of 64-bit integers.</p></td>
+<td><pre class="julia-repl"><code>julia&gt; @code_llvm myadd(1,2,3)
+;  @ REPL[7]:1 within `myadd`
+define i64 @julia_myadd_2022(i64 signext %0, i64 signext %1, i64 signext %2) #0 {
+top:
+; ┌ @ operators.jl:587 within `+` @ int.jl:87
+   %3 = add i64 %1, %0
+   %4 = add i64 %3, %2
+   ret i64 %4
+; └
+}</code></pre></td>
 </tr>
 <tr class="even">
 <td>Native</td>
@@ -1016,12 +1026,12 @@ _julia_myadd_1851:                      ; @julia_myadd_1851
 </div>
 <div class="callout-body-container callout-body">
 <p>Julia arrays are column-major. Access memory contiguously to exploit caches:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> <span class="fu">randn</span>(<span class="fl">10_000</span>, <span class="fl">100</span>)  <span class="co"># rows × cols</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Fast: process columns (contiguous memory)</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>sums <span class="op">=</span> <span class="fu">map</span>(sum, <span class="fu">eachcol</span>(X))</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Slower: process rows (strided access)</span></span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>sums_rows <span class="op">=</span> <span class="fu">map</span>(sum, <span class="fu">eachrow</span>(X))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> <span class="fu">randn</span>(<span class="fl">10_000</span>, <span class="fl">100</span>)  <span class="co"># rows × cols</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Fast: process columns (contiguous memory)</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>sums <span class="op">=</span> <span class="fu">map</span>(sum, <span class="fu">eachcol</span>(X))</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Slower: process rows (strided access)</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>sums_rows <span class="op">=</span> <span class="fu">map</span>(sum, <span class="fu">eachrow</span>(X))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>In portfolio/risk code, organize factor loadings or scenario matrices so your hot loops iterate along columns where possible. This often yields 2–10× speedups purely from better cache locality.</p>
 </div>
 </div>
