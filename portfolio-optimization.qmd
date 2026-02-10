@@ -107,7 +107,7 @@ r = μ .- λ # risk adjusted returns
 σ²_max = 0.1 # maximum portfolio variance
 # Set up weights as variables to optimize
 @variable(model, w[1:n_assets] >= 0.0)
-# Objective: minimize portfolio variance
+# Objective: maximize risk-adjusted return
 @objective(model, Max, dot(r, w))
 # Constraints: Sum of portfolio weights should equal to 1, 
 # and all weights should be zero or positive
@@ -263,7 +263,7 @@ model = Model(Ipopt.Optimizer)
 set_silent(model)
 # Set up weights as variables to optimize
 @variable(model, w[1:n_assets] >= 0.0)
-# Objective: minimize portfolio variance
+# Objective: equalize risk contributions across assets
 @expression(model, Σw[i=1:n_assets], sum(Σ[i, j] * w[j] for j in 1:n_assets))
 @expression(model, var_p, sum(w[i] * Σw[i] for i in 1:n_assets))
 @expression(model, RC[i=1:n_assets], (w[i] * Σw[i]) / (var_p + eps()))
@@ -312,7 +312,7 @@ model = Model(Ipopt.Optimizer)
 set_silent(model)
 # Set up weights as variables to optimize
 @variable(model, w[1:n_assets] >= 0.0)
-# Objective: minimize portfolio variance
+# Objective: maximize Sharpe ratio
 rfr = 0.05 # risk free rate
 @objective(
     model,
@@ -365,7 +365,7 @@ model = Model(Ipopt.Optimizer)
 set_silent(model)
 # Set up weights as variables to optimize
 @variable(model, w[1:n_assets] >= 0.0)
-# Objective: minimize portfolio variance
+# Objective: minimize variance with robustness penalty
 ε = 0.05  # Uncertainty level
 γ = 0.1  # Robustness parameter
 w₀ = [0.3, 0.4, 0.3] # expected weights

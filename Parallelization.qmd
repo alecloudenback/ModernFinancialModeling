@@ -1,4 +1,5 @@
 ---
+engine: jupyter
 author:
   - name: Alec Loudenback
 ---
@@ -21,7 +22,7 @@ Fundamentals of parallel workloads, different mechanisms to distribute work: vec
 
 ## Amdahl's Law and the Limits of Parallel Computing
 
-An important ground truth in computing is that there is an upper limit to how fast a workload can be sped up through distributing the workload among multiple processor units. For example, if there is a modeling workload wherein 90% of the work is independent (say policy or asset level calculations) and the remaining 10% of the workload is an aggregate (say company or portfolio level), then the theoretical maximum speedup of the process is 10x faster (1 / 90% parallelizable load). This is captured in a law known as **Amdahl's Law**`\index{Amdahl's Law}`{=latex}, and it reflects the *theoretical* maximum speedup a workload could see. In practice, the speedup is worse than this due to overhead of moving data around, scheduling the tasks, and aggregating results. This is why in many cases a good effort in sequential workloads (see @sec-performance-single) is often a more fruitful effort than trying to parallelize some workloads.
+An important ground truth in computing is that there is an upper limit to how fast a workload can be sped up through distributing the workload among multiple processor units. For example, if there is a modeling workload wherein 90% of the work is independent (say policy or asset level calculations) and the remaining 10% of the workload is an aggregate (say company or portfolio level), then the theoretical maximum speedup of the process is 10x faster (1 / 10% serial load). This is captured in a law known as **Amdahl's Law**`\index{Amdahl's Law}`{=latex}, and it reflects the *theoretical* maximum speedup a workload could see. In practice, the speedup is worse than this due to overhead of moving data around, scheduling the tasks, and aggregating results. This is why in many cases a good effort in sequential workloads (see @sec-performance-single) is often a more fruitful effort than trying to parallelize some workloads.
 
 That said, there are still many modeling use-cases for parallelization. Modern investment and insurance portfolios can easily contain hundreds of thousands or millions of seriatim holdings. In many cases, these can be evaluated independently, though often there is interaction with the total portfolio (contract dividends, non-guaranteed elements, profit sharing, etc.). Further, even if the holdings are not parallelizable across the holdings dimension, we are often interested in independent evaluations across economic scenarios, which is amenable to parallelization.
 
@@ -624,7 +625,7 @@ groups = cld(num_scenarios, 512)
 This is approximately seven times faster than the array-oriented style above, meaning that the GPU kernel version's computation is over 1000 times faster than the CPU version. However, we saw previously that the cost of moving the data to the GPU memory and then back to the CPU memory was the biggest time sink of all - again we'd need to have more scale in the problem to make offloading to the GPU beneficial overall.
 
 ::: callout-note
-The Metal GPUs are able to iterate threads across three different dimensions. In the prior example, we only used one dimension and thus used `thread_position_in_grid_1d()`. If we were distributing the threads across, say, three dimensions then we would use `thread_position_in_grid_2d()`.
+The Metal GPUs are able to iterate threads across three different dimensions. In the prior example, we only used one dimension and thus used `thread_position_in_grid_1d()`. If we were distributing the threads across, say, two dimensions then we would use `thread_position_in_grid_2d()`.
 
 How do you determine how many dimensions to use? A good approach is to mimic the data you are trying to parallelize. In the example of calculating a vector of present values across 100k scenarios, that was the primary 'axis of parallelization'. If instead of a one-dimensional set of cashflows (e.g. a single asset with fixed cashflows), we had a two-dimensional set of cashflows (e.g. a portfolio of many assets), then we may find the best balance of code simplicity and performance to iterate across two dimensions of threads (but we are still limited by the same number of total available threads).
 :::
@@ -695,33 +696,29 @@ Adapting the trade producer and monitor example from above to run on multiple pr
 using Distributed
 
 # Add worker processes if not already added
-if nworkers() == 0
+if nworkers() == 1
     addprocs(4)  # Add 4 worker processes
 end
 
-@everywhere using Distributed, Random
+@everywhere using Random
 
 @everywhere function trade_producer(channel, i)
     sleep(rand())
     profit = randn()
     put!(channel, profit)
-    println("Producer $(myid()): Trade #$i $(round(profit,digits=3))")
+    println("Producer $(myid()): Trade #$i $(round(profit, digits=3))")
 end
 
 @everywhere function portfolio_monitor(channel, n)
-    sum = 0.0
+    total = 0.0
     for _ in 1:n
         profit = take!(channel)
-        sum += profit
+        total += profit
         p = round(profit, digits=3)
-        s = round(sum, digits=3)
+        s = round(total, digits=3)
         println("Monitor $(myid()): Received $p, Cumulative: $s")
     end
 end
-
-# Let the workers reference the same bindings as Main
-const trade_producer = Main.trade_producer
-const portfolio_monitor = Main.portfolio_monitor
 
 function run_distributed_simulation()
     channel = RemoteChannel(() -> Channel{Float64}(32))
@@ -886,7 +883,8 @@ b = Dagger.@spawn sum(a)
 c = Dagger.@spawn prod(a)
 
 # Finally, this runs:
-wait(Dagger.@spawn println("b: ", fetch(b), ", c: ", fetch(c)))
+d = Dagger.@spawn println("b: ", b, ", c: ", c)
+wait(d)
 ```
 
 ## Choosing a Parallelization Strategy

@@ -130,7 +130,7 @@ Estimate $q$, the average mortality rate, not accounting for any variation withi
 
 $$
 q \sim \text{Beta}(1,1)
-p(\text{death}) \sim \text{Binomial}(q)
+p(\text{death}) \sim \text{Binomial}(n, q)
 $$
 
 ```{julia}
@@ -217,10 +217,20 @@ This isn't an ideal parameterization (e.g. we aren't including information about
     # Observe deaths for each age/exposure combination
     for i in eachindex(deaths)
         q = MortalityTables.hazard(m, ages[i])
+        if !isfinite(q) || q < 0 || q > 1
+            Turing.@addlogprob! -Inf
+            return
+        end
         deaths[i] ~ Binomial(exposures[i], q)
     end
 end
 ```
+
+::: callout-tip
+## Guarding against invalid probabilities
+
+During sampling, NUTS uses gradient-based proposals that can explore extreme parameter values. For example, a large `b` may cause `exp(b * age)` to overflow, producing a `NaN` hazard rate. Since `Binomial(n, p)` requires `0 ≤ p ≤ 1`, passing an invalid value would throw a `DomainError`. The guard clause handles this by calling `Turing.@addlogprob! -Inf`, which sets the log-density to negative infinity and tells the sampler to reject that proposal. This is the idiomatic Turing.jl pattern for enforcing domain constraints that arise from complex likelihood computations.
+:::
 
 We combine the model with the data and sample from the posterior using a similar call as before:
 
@@ -323,6 +333,10 @@ This model extends the prior to create a multi-level model`\index{multi-level mo
     for i in eachindex(deaths)
         m = MortalityTables.MakehamBeard(; a=a[risk_levels[i]], b, c, k)
         q = MortalityTables.hazard(m, ages[i])
+        if !isfinite(q) || q < 0 || q > 1
+            Turing.@addlogprob! -Inf
+            return
+        end
         deaths[i] ~ Binomial(exposures[i], q)
     end
 end
@@ -431,6 +445,7 @@ let
     n_samples = 100
     posterior = sample(chain4, n_samples)
     b_samples = vec(Array(posterior[:b]))
+    c_samples = vec(Array(posterior[:c]))
     k_samples = vec(Array(posterior[:k]))
 
     ages = sort!(unique(data2.att_age))
@@ -438,7 +453,7 @@ let
     for r in 1:3
         a_samples = vec(Array(posterior[Symbol("a[$r]")]))
         for i in 1:n_samples
-            m = MortalityTables.MakehamBeard(; a=a_samples[i], b=b_samples[i], c=0.0, k=k_samples[i])
+            m = MortalityTables.MakehamBeard(; a=a_samples[i], b=b_samples[i], c=c_samples[i], k=k_samples[i])
             qs = MortalityTables.hazard.(m, ages)
             lines!(ages, qs, label="risk level $r", alpha=0.2, color=(colors[r], 0.2))
         end

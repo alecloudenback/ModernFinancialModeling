@@ -27,7 +27,7 @@ Pkg.instantiate()
 Stochastic modeling is the technique of running many similar scenarios through a model in order to evaluate different aspects of a given model. Some contexts in which stochastic modeling arises in the financial context include:
 
 -   **Valuation**. Market consistent pricing often involves calibrating a set of stochastic economic scenarios to market-observed prices. Those calibrated scenarios are then used to determine the value of another set of contracts for which market prices are not directly observable.
--   **Scenario Analysis**. Many financial models have a high degree of complexity and interactions between components not well understood *a priori*. Using a set of calibrated or otherwise arbitrary scenarios can illuminate unexpected or interrelated behavior that arises from the model. Sometimes financial assets and liabilities have a path-dependency, meaning that the overall behavior or value is a function of the entire path taken (e.g. an asian option).
+-   **Scenario Analysis**. Many financial models have a high degree of complexity and interactions between components not well understood *a priori*. Using a set of calibrated or otherwise arbitrary scenarios can illuminate unexpected or interrelated behavior that arises from the model. Sometimes financial assets and liabilities have a path-dependency, meaning that the overall behavior or value is a function of the entire path taken (e.g. an Asian option).
 -   **Risk and Capital Analysis**. Whether model parameters are point estimates ("an asset has a $1\%$ probability of default") or distributions ("an asset has a probability of default distributed as $Beta(1,99)$"), stochastic modeling can be utilized to determine projected capital levels for a company or line of business at certain security levels.
 
 The reliability of modeled outcomes is fundamentally dependent on the quality of both the underlying scenarios and the model framework itself. For example, if your model of interest rates produces a range of short rates that is very narrow (relative to historical values or implied volatilities), and you then run risk metrics using scenarios with unrealistically narrow short rates, you may find false comfort in the small world (@sec-small-large-world) of your model.
@@ -149,7 +149,7 @@ Many financial models project outcomes using *expected values* of random variabl
 Some stochastic processes admit analytical solutions or formulas for key quantities, so you do not need to run a simulation for each scenario. For example, here are a couple of common models that have closed form solutions to the underlying stochastic differential equation.
 
 -   **Black Scholes Option Price**\
-    The Black-Scholes European call and put-call parity are results for analytically pricing options despite the underlying theory being based on a stochastic evolution of asset prices.
+    The Black-Scholes formula provides an analytical price for European options despite the underlying theory being based on a stochastic evolution of asset prices. The related put-call parity is a model-free no-arbitrage relationship that holds regardless of the assumed price dynamics.
 
 -   **Ornstein-Uhlenbeck Interest Rate Model**\
     An Ornstein-Uhlenbeck process is often used to model mean-reverting interest rates. Despite being fundamentally stochastic, it has closed-form expressions for zero-coupon bond prices and other interest-rate derivatives, saving you from running thousands of random simulations for valuation.
@@ -166,7 +166,7 @@ A stochastic process has the Markov property`\index{Markov property}`{=latex} if
 
 ##### Stationary Models
 
-A stochastic process is stationary`\index{stationarity}`{=latex} if its statistical properties, such as mean and variance, do not change over time. Strict stationarity means all moments of the process are time-invariant, while weak stationarity means only the mean and variance are time-invariant. Stationarity simplifies the analysis and modeling of stochastic processes, especially for time series data. Sometimes a non-stationary model can be made stationary by transformation (such as removing a constant trend component).
+A stochastic process is stationary`\index{stationarity}`{=latex} if its statistical properties, such as mean and variance, do not change over time. Strict stationarity means all moments of the process are time-invariant, while weak stationarity means the mean is constant, the variance is finite, and the autocovariance depends only on the lag (not on time itself). Stationarity simplifies the analysis and modeling of stochastic processes, especially for time series data. Sometimes a non-stationary model can be made stationary by transformation (such as removing a constant trend component).
 
 ##### Martingales
 
@@ -176,7 +176,7 @@ A martingale`\index{martingale}`{=latex} is a stochastic process where the expec
 
 These are differential equations`\index{stochastic differential equations (SDEs)}`{=latex} that incorporate stochastic terms (typically driven by Brownian motion or other noise sources). The well-known Black-Scholes equation for option pricing is one example of how SDEs can be applied in the real world. SDEs are essential for modeling systems where both deterministic and random factors drive behavior over time.
 
-A special kind of SDE is **Brownian Motion**`\index{Brownian motion}`{=latex}. This is a continuous-time stochastic process where changes over time are independent and normally distributed. This is extensively used in financial models for asset price movements (e.g., the Black-Scholes model). In addition to financial markets, Brownian motion is also widely used in modeling physical systems (diffusion).
+A fundamental building block of SDEs is **Brownian Motion**`\index{Brownian motion}`{=latex} (also called a Wiener process`\index{Weiner process}`{=latex}). This is a continuous-time stochastic process where changes over time are independent and normally distributed. This is extensively used in financial models for asset price movements (e.g., the Black-Scholes model). In addition to financial markets, Brownian motion is also widely used in modeling physical systems (diffusion).
 
 In practice, these properties often occur together in financial models.
 
@@ -441,7 +441,7 @@ In antithetic variates`\index{antithetic variates}`{=latex}, each random draw ($
 
 #### Stratified Sampling
 
-In stratified sampling`\index{stratified sampling}`{=latex}, instead of sampling purely at random across the entire probability distribution, the distribution is divided into "strata" (or sub-intervals), and draws are forced to fall into each of these strata with a pre-specified frequency. By covering the distribution more systematically, the resulting estimates often converge faster. This is sometimes called **quasi-Monte Carlo**`\index{quasi-Monte Carlo}`{=latex} and involves techniques to span the sample space that is less random but still unbiased. Julia has a package for this called [QuasiMonteCarlo.jl](https://github.com/SciML/QuasiMonteCarlo.jl).
+In stratified sampling`\index{stratified sampling}`{=latex}, instead of sampling purely at random across the entire probability distribution, the distribution is divided into "strata" (or sub-intervals), and draws are forced to fall into each of these strata with a pre-specified frequency. By covering the distribution more systematically, the resulting estimates often converge faster. A related approach is **quasi-Monte Carlo**`\index{quasi-Monte Carlo}`{=latex}, which uses deterministic low-discrepancy sequences (such as Sobol or Halton sequences) to span the sample space more uniformly than random sampling. Julia has a package for this called [QuasiMonteCarlo.jl](https://github.com/SciML/QuasiMonteCarlo.jl).
 
 Together, these techniques reflect a crucial principle of computational thinking: by leveraging structure or known properties of the simulation, you can achieve more accurate estimates with fewer overall scenarios. This translates into faster runs, less strain on computational resources, and better performance when embedding these methods in large-scale models or iterative processes.
 

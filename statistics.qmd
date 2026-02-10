@@ -188,7 +188,7 @@ The information gain for splitting the tree using employment status is the diffe
 IG_employment = H0 - H1_employment
 ```
 
-We could repeat the analysis to determine the information gain if we were to split the tree based on having good credit. However, given that there are only two attributes we can already conclude that `employed` is a better attribute to split the data on. This is because the information gain of `IG_employment` (`{julia} round(IG_employment;digits=3)`) is the majority of the overall entropy `H0` (`{julia} round(H0;digits=3)`). Entropy is always additive and you cannot have negative entropy, therefore no other attribute could have greater information gain. This also matches our intuition when looking at @tbl-default-data as the eye can spot a higher correlation between `employed` and `default` than `good_credit` and `default`.
+We could repeat the analysis to determine the information gain if we were to split the tree based on having good credit. However, given that there are only two attributes we can already conclude that `employed` is a better attribute to split the data on. This is because the information gain of `IG_employment` (`{julia} round(IG_employment;digits=3)`) is the majority of the overall entropy `H0` (`{julia} round(H0;digits=3)`). Entropy is non-negative and information gain is bounded by the original entropy, therefore no other attribute could have greater information gain. This also matches our intuition when looking at @tbl-default-data as the eye can spot a higher correlation between `employed` and `default` than `good_credit` and `default`.
 
 The above example demonstrates how we can use information theory to create more optimal inferences on data.
 
@@ -220,9 +220,9 @@ Some discussion of maximum entropy distributions in the context of risk assessme
 |-------------------|------------------|------------------|------------------|
 | Bounded range | Uniform (discrete) | Uniform (continuous) |  |
 | Bounded range (0 to 1) with information about the mean or variance |  | Beta |  |
-| Mean is finite, two possible values | Binomial |  |  |
+| Fixed number of independent binary trials with known mean | Binomial |  |  |
 | Mean is finite and positive | Geometric | Exponential |  |
-| Mean is finite and range is \> zero |  | Gamma |  |
+| Mean and mean of logarithm are finite, range is \> zero |  | Gamma |  |
 | Mean and Variance are finite |  | Gaussian (Normal) |  |
 | Positive and equal mean and variance | Poisson |  |  |
 
@@ -358,21 +358,23 @@ Where:
 -   $P(H_1)$ and $P(H_2)$ are the prior probabilities of models $H_1$ and $H_2$, respectively.
 -   $P(D)$ is the marginal likelihood of the data, which serves as a normalizing constant.
 
-To compare the likelihoods of the two models, we can calculate the ratio of their posterior probabilities, known as the **Bayes factor**`\index{Bayes factor}`{=latex}, $BF$:
+To compare the two models, we can calculate the ratio of their posterior probabilities, known as the **posterior odds ratio**:
 
 $$
-BF = \frac{P(H_1|D)}{P(H_2|D)}
+\frac{P(H_1|D)}{P(H_2|D)}
 $$
 
 Substituting the expressions for the posterior probabilities from Bayes' rule, we get:
 
 $$
-BF = \frac{P(D|H_1) \times P(H_1)} {P(D|H_2) \times P(H_2)}
+\frac{P(H_1|D)}{P(H_2|D)} = \frac{P(D|H_1) \times P(H_1)} {P(D|H_2) \times P(H_2)}
 $$
 
-The marginal likelihood $P(D)$ cancels out since it appears in both the numerator and denominator. If we assume equal prior probabilities for the models, i.e., $P(H_1)$ = $P(H_2)$, then the Bayes factor simplifies to the likelihood ratio: $$
+The marginal likelihood $P(D)$ cancels out since it appears in both the numerator and denominator. The **Bayes factor**`\index{Bayes factor}`{=latex} ($BF$) is defined as the ratio of the marginal likelihoods (the likelihood ratio): $$
 BF = \frac{P(D|H_1)}{P(D|H_2)}
 $$
+
+The posterior odds ratio equals the Bayes factor multiplied by the prior odds ratio. If we assume equal prior probabilities for the models, i.e., $P(H_1)$ = $P(H_2)$, then the posterior odds ratio simplifies to the Bayes factor.
 
 The Bayes factor then is a statement about the relative probability of two competing models for the given data. We can interpret the results as:
 
