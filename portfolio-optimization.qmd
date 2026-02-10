@@ -21,7 +21,7 @@ Pkg.instantiate()
 
 ## The Data
 
-We will use a toy three-asset portfolio throughout the chapter. The vector `μ` contains annualized expected returns and `Σ` stores the covariance matrix implied by historical or modeled volatilities. Keeping the dataset intentionally small lets us focus on the optimization mechanics before scaling up to tens or hundreds of assets in practice.
+We will use a toy three-asset portfolio throughout the chapter. The vector `μ` contains annualized expected returns and `Σ` stores the covariance matrix`\index{covariance matrix}`{=latex} implied by historical or modeled volatilities. Keeping the dataset intentionally small lets us focus on the optimization mechanics before scaling up to tens or hundreds of assets in practice.
 
 ```{julia}
 μ = [0.1, 0.15, 0.12] # expected returns
@@ -39,7 +39,7 @@ Harry Markowitz introduced modern portfolio theory`\index{modern portfolio theor
 
 ### Mean-variance optimization model
 
-Mean-variance optimization`\index{mean-variance optimization}`{=latex} is a mathematical framework that seeks to maximize expected returns while minimizing portfolio variance (or standard deviation). It involves calculating the expected return and risk of individual assets and finding the optimal combination of assets to achieve the desired risk-return tradeoff.
+Mean-variance optimization`\index{mean-variance optimization}`{=latex}`\index{JuMP.jl}`{=latex} is a mathematical framework that seeks to maximize expected returns while minimizing portfolio variance (or standard deviation). It involves calculating the expected return and risk of individual assets and finding the optimal combination of assets to achieve the desired risk-return tradeoff.
 
 $$
 \begin{aligned}
@@ -107,7 +107,7 @@ r = μ .- λ # risk adjusted returns
 σ²_max = 0.1 # maximum portfolio variance
 # Set up weights as variables to optimize
 @variable(model, w[1:n_assets] >= 0.0)
-# Objective: minimize portfolio variance
+# Objective: maximize risk-adjusted return
 @objective(model, Max, dot(r, w))
 # Constraints: Sum of portfolio weights should equal to 1, 
 # and all weights should be zero or positive
@@ -263,7 +263,7 @@ model = Model(Ipopt.Optimizer)
 set_silent(model)
 # Set up weights as variables to optimize
 @variable(model, w[1:n_assets] >= 0.0)
-# Objective: minimize portfolio variance
+# Objective: equalize risk contributions across assets
 @expression(model, Σw[i=1:n_assets], sum(Σ[i, j] * w[j] for j in 1:n_assets))
 @expression(model, var_p, sum(w[i] * Σw[i] for i in 1:n_assets))
 @expression(model, RC[i=1:n_assets], (w[i] * Σw[i]) / (var_p + eps()))
@@ -312,7 +312,7 @@ model = Model(Ipopt.Optimizer)
 set_silent(model)
 # Set up weights as variables to optimize
 @variable(model, w[1:n_assets] >= 0.0)
-# Objective: minimize portfolio variance
+# Objective: maximize Sharpe ratio
 rfr = 0.05 # risk free rate
 @objective(
     model,
@@ -342,7 +342,7 @@ println("Portfolio standard deviation optimized using Sharpe Ratio = ",
     round(σ_sharpe, digits=4))
 ```
 
-Maximizing the Sharpe ratio is equivalent to choosing the tangency portfolio when a risk-free asset is available. The non-linear objective makes the problem slightly harder than the quadratic programs we solved earlier, but `Ipopt` handles it comfortably. Many practitioners linearize the problem by fixing variance and maximizing excess return, then scanning along the frontier as needed.
+Maximizing the Sharpe ratio is equivalent to choosing the tangency portfolio`\index{tangency portfolio}`{=latex} when a risk-free asset is available. The non-linear objective makes the problem slightly harder than the quadratic programs we solved earlier, but `Ipopt` handles it comfortably. Many practitioners linearize the problem by fixing variance and maximizing excess return, then scanning along the frontier as needed.
 
 ### Robust Optimization
 
@@ -365,7 +365,7 @@ model = Model(Ipopt.Optimizer)
 set_silent(model)
 # Set up weights as variables to optimize
 @variable(model, w[1:n_assets] >= 0.0)
-# Objective: minimize portfolio variance
+# Objective: minimize variance with robustness penalty
 ε = 0.05  # Uncertainty level
 γ = 0.1  # Robustness parameter
 w₀ = [0.3, 0.4, 0.3] # expected weights

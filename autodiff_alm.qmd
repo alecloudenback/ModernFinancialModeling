@@ -14,7 +14,7 @@ Pkg.instantiate()
 
 ## Chapter Overview
 
-Asset liability modeling`\index{asset liability management (ALM)}`{=latex} requires computing derivatives of portfolio values with respect to yield curve changes. Traditional approaches use finite difference methods or analytical approximations, but automatic differentiation ("autodiff" or "AD") provides exact derivatives with minimal additional computation. This chapter demonstrates how to implement ALM workflows using autodiff in Julia.
+Asset liability modeling`\index{asset liability management (ALM)}`{=latex} requires computing derivatives of portfolio values with respect to yield curve changes. Traditional approaches use finite difference methods or analytical approximations, but automatic differentiation ("autodiff" or "AD") provides exact derivatives with minimal additional computation. This chapter demonstrates how to implement ALM workflows using autodiff`\index{DifferentiationInterface.jl}`{=latex} in Julia.
 
 ```{julia}
 using FinanceCore: Cashflow    # provides Cashflow object
@@ -86,7 +86,7 @@ function par_yield(discount_curve, tenor, periodicity)
 end
 ```
 
-The `(b::FixedBond)(curve)` function (a **callable struct**, since we are using the `b` object itself as the function invocation) takes the curve and returns an array of `Cashflow`s. 
+The `(b::FixedBond)(curve)` function (a **callable struct**`\index{callable struct}`{=latex}, since we are using the `b` object itself as the function invocation) takes the curve and returns an array of `Cashflow`s.
 
 ::: callout-note
 `Cashflow` objects are part of the [JuliaActuary suite](https://juliaactuary.org/packages). This allows the cashflows to be tied with the exact timepoint that they occur, rather than needing a bunch of logic to pre-determine a timestep (annual, quarterly, etc.) for which cashflows would get bucketed. This is more efficient in many cases and much simpler code.
@@ -272,7 +272,7 @@ The first element of `vgh_liab` is the value of the liability portfolio using th
 vgh_liab[1]
 ```
 
-The second element of `vgh_liab` is the partial derivative with respect to each of the inputs (here, just the `zero_rates` that dictate the curve). The sum of the partials is the effective duration`\index{duration}`{=latex} of the liabilities. 
+The second element of `vgh_liab` is the partial derivative with respect to each of the inputs (here, just the `zero_rates` that dictate the curve). The sum of the partials is the effective duration`\index{duration}`{=latex}`\index{duration!effective}`{=latex} of the liabilities. 
 
 ```{julia}
 @show sum(vgh_liab[2])
@@ -312,7 +312,7 @@ The third element of `vgh_liab` is the Hessian matrix, containing all second par
 vgh_liab[3]
 ```
 
-This matrix captures the convexity`\index{convexity}`{=latex} characteristics of the liability portfolio. The diagonal elements represent "key rate convexities"`\index{key rate duration}`{=latex}—how much the duration at each key rate changes as that specific rate moves:
+This matrix captures the convexity`\index{convexity}`{=latex} characteristics of the liability portfolio. The diagonal elements represent "key rate convexities"`\index{key rate duration}`{=latex}`\index{duration!key rate}`{=latex}—how much the duration at each key rate changes as that specific rate moves:
 
 ```{julia}
 @show diag(vgh_liab[3])
@@ -582,7 +582,7 @@ end
 ```
 
 
-Here's the macro that does this (expand to see the full definition):
+Here's the macro that does this transformation for us. It takes a loop and unrolls the first `N` iterations, then continues with a regular loop for the remaining iterations:
 
 ::: {.callout-note collapse="true"}
 ## `@unroll` macro
