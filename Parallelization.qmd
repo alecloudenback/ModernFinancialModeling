@@ -619,7 +619,7 @@ groups = cld(num_scenarios, 512)
     $pvs_GPU,
     $cashflows_GPU,
     $discount_matrices_GPU
-)
+);
 ```
 
 This is approximately seven times faster than the array-oriented style above, meaning that the GPU kernel version's computation is over 1000 times faster than the CPU version. However, we saw previously that the cost of moving the data to the GPU memory and then back to the CPU memory was the biggest time sink of all - again we'd need to have more scale in the problem to make offloading to the GPU beneficial overall.
@@ -631,35 +631,47 @@ How do you determine how many dimensions to use? A good approach is to mimic the
 :::
 
 ::: callout-note
-The above example would be translated to CUDA by changing just a few things:
+The above example would be translated to CUDA by changing a few things:
 
--   The thread indexing would be `idx = threadIdx().x` instead of `i = thread_position_in_grid_1d()`
+-   The thread indexing would be `idx = (blockIdx().x - 1) * blockDim().x + threadIdx().x` instead of `idx = thread_position_in_grid_1d()`.
 -   The GPU arrays should be created with `CuArray` instead of `MtlArray`.
--   The kernel macro would be `@cuda threads=1024 calculate_present_values_kernel!(...)` instead of `@metal threads=threads groups=groups calculate_present_values_kernel(...)`. The memory sharing and synchronizing between threads is more manual than Metal.jl, but this is not strictly necessary for our example.
+-   The kernel macro would be `@cuda threads=threads blocks=blocks calculate_present_values_kernel!(...)` instead of `@metal threads=threads groups=groups calculate_present_values_kernel(...)`.
+-   The kernel needs a bounds check (`if idx <= ...`) because `threads × blocks` will typically overshoot the data size. For example, `cld(100_000, 1024)` gives 98 blocks, launching 100,352 threads for only 100,000 scenarios. Metal handles this differently via `thread_position_in_grid_1d()`.
+
+Here is a complete, standalone example:
 
 ``` julia
-function calculate_present_values_kernel!(
-    present_values,
-    cashflows, 
-    discount_matrices
-    )
-    
-    idx = threadIdx().x 
+using CUDA
 
-    pv = 0.0f0
-    for t in 1:size(cashflows, 1)
-        pv += cashflows[t] * discount_matrices[t, idx]
+num_scenarios = 10^5
+cashflows = rand(Float32, 100)
+discount_matrices = rand(Float32, 100, num_scenarios)
+pvs = zeros(Float32, num_scenarios)
+
+cashflows_GPU = CuArray(cashflows)
+discount_matrices_GPU = CuArray(discount_matrices)
+pvs_GPU = CuArray(pvs)
+
+function calculate_present_values_kernel!(present_values, cashflows, discount_matrices)
+    idx = (blockIdx().x - 1) * blockDim().x + threadIdx().x
+
+    if idx <= size(discount_matrices, 2)
+        pv = 0.0f0
+        for t in 1:size(cashflows, 1)
+            pv += cashflows[t] * discount_matrices[t, idx]
+        end
+        present_values[idx] = pv
     end
 
-    present_values[idx] = pv
     return nothing
 end
 
-groups = cld(num_scenarios, 512)
+threads = 1024
+blocks = cld(num_scenarios, threads)
 
-@cuda threads=threads calculate_present_values_kernel!(
+@cuda threads=threads blocks=blocks calculate_present_values_kernel!(
     pvs_GPU,
-    cashflows_GPU, 
+    cashflows_GPU,
     discount_matrices_GPU
     )
 ```
