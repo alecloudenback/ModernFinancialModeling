@@ -208,7 +208,212 @@ The idea of algorithmic complexity is important because it grounds us in the har
 
 We must remember to be thoughtful about the design of our models. When searching for additional performance, hunt for the "loops-within-loops"—that is where combinatorial explosions tend to happen. Focusing on the places that have large $n$ or poor Big-O order can transform the performance of the overall model. Sometimes the fundamental complexity of the problem forbids greater efficiency, but many finance workflows benefit from reframing the problem (e.g. relaxing binary constraints or using approximation algorithms) before brute force becomes unavoidable.
 
-See the end of this chapter, @sec-portfolio-complexity for an example demonstrating computational complexity in the context of portfolio selection.
+We'll conclude this sub-section with an example demonstrating complexity implications on portfolio optimization, a common problem in financial modeling.
+
+### Finance Example: Complexity and Portfolio Selection {#sec-portfolio-complexity}
+
+Many real portfolio decisions include discrete choices: buy or skip a lot, include or exclude an ETF, cap the number of names, or enforce minimum ticket sizes. These discrete elements quickly turn an otherwise smooth optimization into a combinatorial search.
+
+Consider a simplified subset selection problem with $n$ candidate assets. Each asset $i$ has an expected return $r_i$ and a “cost” $c_i$ (e.g., capital required for a minimum lot). We wish to select a subset that maximizes total expected return subject to a budget $B$. This is the classic 0–1 knapsack problem:
+
+$$
+\max_{x \in \{0,1\}^n} \sum_{i=1}^{n} r_i\, x_i \quad \text{subject to} \quad \sum_{i=1}^{n} c_i\, x_i \le B
+$$
+
+-  Brute force enumerates all $2^n$ subsets to find the best feasible one. Complexity: $O(2^n \cdot n)$ work; it explodes rapidly.
+-  A greedy heuristic sorts by value-to-cost ratio $r_i/c_i$ and takes items while budget remains. Complexity: $O(n \log n)$; fast, but not guaranteed optimal.
+-  Branch-and-bound`\index{branch-and-bound}`{=latex} (B&B) remains worst-case exponential, but prunes large parts of the search using an optimistic upper bound (here, the fractional knapsack relaxation), often exploring far fewer nodes in practice.
+
+Rather than relying on wall-clock times (which depend on your machine), we count "visited" nodes—how many partial solutions each method examines—to illustrate growth in work.
+
+```{julia}
+using Random
+
+# Generate a synthetic instance. Pass an RNG for reproducibility.
+function synth_instance(rng::AbstractRNG, n::Int; budget_ratio::Float64=0.35)
+    r = 0.04 .+ 0.08 .* rand(rng, n)    # expected returns in [4%, 12%]
+    c = Float64.(rand(rng, 50:150, n))  # costs (min lot "sizes"), as reals
+    B = budget_ratio * sum(c)           # budget as a real, not floored
+    return r, c, B
+end
+
+# Greedy heuristic: sort by value-to-cost ratio 
+# and pack until budget is exhausted.
+function greedy_knapsack(r::AbstractVector{<:Real},
+    c::AbstractVector{<:Real},
+    B::Real)
+    n = length(r)
+    ratio = r ./ c
+    idx = sortperm(ratio, rev=true)           # highest ratio first
+    total = 0.0
+    cost = 0.0
+    chosen = falses(n)
+    @inbounds for i in idx
+        if cost + c[i] <= B + 1e-12
+            chosen[i] = true
+            total += r[i]
+            cost += c[i]
+        end
+    end
+    return total, chosen
+end
+
+# Brute-force: enumerate all 2^n subsets 
+# (only feasible for small n).
+function brute_force_knapsack(r::AbstractVector{<:Real},
+    c::AbstractVector{<:Real},
+    B::Real)
+    n = length(r)
+    best = -Inf
+    bestmask = 0
+    visited = 0
+    total_subsets = (Int(1) << n)
+    @inbounds for mask in 0:(total_subsets-1)
+        visited += 1
+        value = 0.0
+        cost = 0.0
+        for i in 1:n
+            if ((mask >>> (i - 1)) & 0x1) == 1
+                value += r[i]
+                cost += c[i]
+                if cost > B
+                    break
+                end
+            end
+        end
+        if cost <= B && value > best
+            best = value
+            bestmask = mask
+        end
+    end
+    chosen = falses(n)
+    for i in 1:n
+        chosen[i] = ((bestmask >>> (i - 1)) & 0x1) == 1
+    end
+    return best, chosen, visited
+end
+
+# Branch-and-Bound with a fractional-knapsack upper bound (optimistic).
+# The upper bound relaxes x_i ∈ {0,1} to x_i ∈ [0,1] and 
+# "fills" the remaining budget fractionally.
+function branch_and_bound_knapsack(r::AbstractVector{<:Real},
+    c::AbstractVector{<:Real},
+    B::Real)
+    n = length(r)
+    rs = Float64.(r)
+    cs = Float64.(c)
+    Bf = float(B)
+
+    ratio = rs ./ cs
+    order = sortperm(ratio, rev=true)
+    rs = rs[order]
+    cs = cs[order]
+
+    best = Ref(-Inf)            # current best objective
+    best_choice = falses(n)     # in sorted order
+    visited = Ref(0)            # node counter
+    choice = falses(n)          # current partial choice (sorted order)
+
+    @inline function ubound(idx::Int, value::Float64, cost::Float64)
+        if cost > Bf
+            return -Inf
+        end
+        cap = Bf - cost
+        ub = value
+        @inbounds for j in idx:n
+            if cs[j] <= cap + 1e-12
+                ub += rs[j]
+                cap -= cs[j]
+            else
+                ub += rs[j] * (cap / cs[j])     # fractional "fill" for bound
+                break
+            end
+        end
+        return ub
+    end
+
+    function dfs(idx::Int, value::Float64, cost::Float64)
+        visited[] += 1
+        if idx > n
+            if cost <= Bf && value > best[]
+                best[] = value
+                best_choice .= choice
+            end
+            return
+        end
+        # Prune if even the optimistic bound cannot beat current best.
+        if ubound(idx, value, cost) <= best[] + 1e-12
+            return
+        end
+        # Branch: include item idx
+        choice[idx] = true
+        dfs(idx + 1, value + rs[idx], cost + cs[idx])
+        # Branch: exclude item idx
+        choice[idx] = false
+        dfs(idx + 1, value, cost)
+    end
+
+    dfs(1, 0.0, 0.0)
+
+    # Map best_choice back to the original indexing
+    selected = falses(n)
+    @inbounds for (k, i) in pairs(order)
+        selected[i] = best_choice[k]
+    end
+    return best[], selected, visited[]
+end
+
+# Small demonstration: brute force is feasible at n ≈ 20; 
+# for n ≈ 40 we skip brute force.
+let
+    rng = MersenneTwister(1234)
+
+    # Small instance where brute force is still possible
+    n_small = 20
+    r, c, B = synth_instance(rng, n_small; budget_ratio=0.35)
+
+    bf_val, bf_sel, bf_visited = brute_force_knapsack(r, c, B)
+    bb_val, bb_sel, bb_visited = branch_and_bound_knapsack(r, c, B)
+    gr_val, gr_sel = greedy_knapsack(r, c, B)
+
+    println("n = $n_small")
+    println(" total subsets = ", 1 << n_small)                 # 1,048,576
+    println(" brute force visited = ", bf_visited,
+        ", optimal value = ", bf_val)
+    println(" branch-and-bound visited = ", bb_visited,
+        ", optimal value = ", bb_val)
+    println(" greedy value = ", gr_val,
+        ", optimality gap = ", bf_val - gr_val)
+
+    # Larger instance—note how the search space explodes (2^40 ≈ 10^12)
+    n_large = 40
+    r2, c2, B2 = synth_instance(rng, n_large; budget_ratio=0.35)
+    bb2_val, bb2_sel, bb2_visited = branch_and_bound_knapsack(r2, c2, B2)
+    gr2_val, gr2_sel = greedy_knapsack(r2, c2, B2)
+
+    println("\nn = $n_large")
+    println(" total subsets = ", BigInt(1) << n_large)         # ≈ 1.1×10^12
+    println(" branch-and-bound visited = ", bb2_visited,
+        ", optimal value = ", bb2_val)
+    println(" greedy value = ", gr2_val,
+        ", optimality gap = ", bb2_val - gr2_val)
+end
+```
+
+What this shows in practice:
+
+- Brute force scales as $2^n$. At $n=20$, there are 1,048,576 subsets—still manageable. At $n=40$, there are $\approx 10^{12}$ subsets—completely infeasible to enumerate.
+- Greedy is fast and often near-optimal, especially when ratios $r_i/c_i$ align with the true optimum. However, it can be arbitrarily sub-optimal in adversarial cases.
+- Branch-and-bound exploits structure. The fractional-knapsack bound is optimistic—it assumes you could take fractions of remaining items—so any subtree whose bound cannot beat the current best is safely pruned. Worst-case complexity remains exponential, but typical search can drop from billions of nodes to thousands or millions.
+
+::: callout-tip
+## Financial Modeling Pro Tip
+
+In realistic portfolio construction, practitioners frequently avoid pure subset selection by relaxing to continuous weights (e.g., mean–variance) or by formulating a mixed-integer model and using modern MILP solvers. These solvers implement sophisticated branch-and-bound/branch-and-cut strategies, presolve, and cutting planes. When exact optimality is not essential, heuristics (greedy, local search, genetic/evolutionary methods) can deliver high-quality portfolios quickly under operational constraints (cardinality, sector caps, turnover budgets).
+
+See @sec-portfolio-optimization for more discussion of portfolio optimization.
+:::
+
 
 ## Data Structures
 
@@ -503,207 +708,3 @@ end
 ```
 
 This is a good advancement over the simple `@test myadd(1,2) == myadd(2,1)`, in terms of checking the correctness of `myadd`, but it comes at the cost of more computational time and non-deterministic tests. Fuzzing typically seeks to find edge-cases: crashes or unexpected behavior by exploring random/invalid inputs. It is especially useful for feeds that ingest external data (e.g., vendor trade files) where malformed records are a bigger threat than pure numerical error.
-
-## Finance Example: Complexity and Portfolio Selection {#sec-portfolio-complexity}
-
-Many real portfolio decisions include discrete choices: buy or skip a lot, include or exclude an ETF, cap the number of names, or enforce minimum ticket sizes. These discrete elements quickly turn an otherwise smooth optimization into a combinatorial search.
-
-Consider a simplified subset selection problem with $n$ candidate assets. Each asset $i$ has an expected return $r_i$ and a “cost” $c_i$ (e.g., capital required for a minimum lot). We wish to select a subset that maximizes total expected return subject to a budget $B$. This is the classic 0–1 knapsack problem:
-
-$$
-\max_{x \in \{0,1\}^n} \sum_{i=1}^{n} r_i\, x_i \quad \text{subject to} \quad \sum_{i=1}^{n} c_i\, x_i \le B
-$$
-
--  Brute force enumerates all $2^n$ subsets to find the best feasible one. Complexity: $O(2^n \cdot n)$ work; it explodes rapidly.
--  A greedy heuristic sorts by value-to-cost ratio $r_i/c_i$ and takes items while budget remains. Complexity: $O(n \log n)$; fast, but not guaranteed optimal.
--  Branch-and-bound`\index{branch-and-bound}`{=latex} (B&B) remains worst-case exponential, but prunes large parts of the search using an optimistic upper bound (here, the fractional knapsack relaxation), often exploring far fewer nodes in practice.
-
-Rather than relying on wall-clock times (which depend on your machine), we count "visited" nodes—how many partial solutions each method examines—to illustrate growth in work.
-
-```{julia}
-using Random
-
-# Generate a synthetic instance. Pass an RNG for reproducibility.
-function synth_instance(rng::AbstractRNG, n::Int; budget_ratio::Float64=0.35)
-    r = 0.04 .+ 0.08 .* rand(rng, n)    # expected returns in [4%, 12%]
-    c = Float64.(rand(rng, 50:150, n))  # costs (min lot "sizes"), as reals
-    B = budget_ratio * sum(c)           # budget as a real, not floored
-    return r, c, B
-end
-
-# Greedy heuristic: sort by value-to-cost ratio 
-# and pack until budget is exhausted.
-function greedy_knapsack(r::AbstractVector{<:Real},
-    c::AbstractVector{<:Real},
-    B::Real)
-    n = length(r)
-    ratio = r ./ c
-    idx = sortperm(ratio, rev=true)           # highest ratio first
-    total = 0.0
-    cost = 0.0
-    chosen = falses(n)
-    @inbounds for i in idx
-        if cost + c[i] <= B + 1e-12
-            chosen[i] = true
-            total += r[i]
-            cost += c[i]
-        end
-    end
-    return total, chosen
-end
-
-# Brute-force: enumerate all 2^n subsets 
-# (only feasible for small n).
-function brute_force_knapsack(r::AbstractVector{<:Real},
-    c::AbstractVector{<:Real},
-    B::Real)
-    n = length(r)
-    best = -Inf
-    bestmask = 0
-    visited = 0
-    total_subsets = (Int(1) << n)
-    @inbounds for mask in 0:(total_subsets-1)
-        visited += 1
-        value = 0.0
-        cost = 0.0
-        for i in 1:n
-            if ((mask >>> (i - 1)) & 0x1) == 1
-                value += r[i]
-                cost += c[i]
-                if cost > B
-                    break
-                end
-            end
-        end
-        if cost <= B && value > best
-            best = value
-            bestmask = mask
-        end
-    end
-    chosen = falses(n)
-    for i in 1:n
-        chosen[i] = ((bestmask >>> (i - 1)) & 0x1) == 1
-    end
-    return best, chosen, visited
-end
-
-# Branch-and-Bound with a fractional-knapsack upper bound (optimistic).
-# The upper bound relaxes x_i ∈ {0,1} to x_i ∈ [0,1] and 
-# "fills" the remaining budget fractionally.
-function branch_and_bound_knapsack(r::AbstractVector{<:Real},
-    c::AbstractVector{<:Real},
-    B::Real)
-    n = length(r)
-    rs = Float64.(r)
-    cs = Float64.(c)
-    Bf = float(B)
-
-    ratio = rs ./ cs
-    order = sortperm(ratio, rev=true)
-    rs = rs[order]
-    cs = cs[order]
-
-    best = Ref(-Inf)            # current best objective
-    best_choice = falses(n)     # in sorted order
-    visited = Ref(0)            # node counter
-    choice = falses(n)          # current partial choice (sorted order)
-
-    @inline function ubound(idx::Int, value::Float64, cost::Float64)
-        if cost > Bf
-            return -Inf
-        end
-        cap = Bf - cost
-        ub = value
-        @inbounds for j in idx:n
-            if cs[j] <= cap + 1e-12
-                ub += rs[j]
-                cap -= cs[j]
-            else
-                ub += rs[j] * (cap / cs[j])     # fractional "fill" for bound
-                break
-            end
-        end
-        return ub
-    end
-
-    function dfs(idx::Int, value::Float64, cost::Float64)
-        visited[] += 1
-        if idx > n
-            if cost <= Bf && value > best[]
-                best[] = value
-                best_choice .= choice
-            end
-            return
-        end
-        # Prune if even the optimistic bound cannot beat current best.
-        if ubound(idx, value, cost) <= best[] + 1e-12
-            return
-        end
-        # Branch: include item idx
-        choice[idx] = true
-        dfs(idx + 1, value + rs[idx], cost + cs[idx])
-        # Branch: exclude item idx
-        choice[idx] = false
-        dfs(idx + 1, value, cost)
-    end
-
-    dfs(1, 0.0, 0.0)
-
-    # Map best_choice back to the original indexing
-    selected = falses(n)
-    @inbounds for (k, i) in pairs(order)
-        selected[i] = best_choice[k]
-    end
-    return best[], selected, visited[]
-end
-
-# Small demonstration: brute force is feasible at n ≈ 20; 
-# for n ≈ 40 we skip brute force.
-let
-    rng = MersenneTwister(1234)
-
-    # Small instance where brute force is still possible
-    n_small = 20
-    r, c, B = synth_instance(rng, n_small; budget_ratio=0.35)
-
-    bf_val, bf_sel, bf_visited = brute_force_knapsack(r, c, B)
-    bb_val, bb_sel, bb_visited = branch_and_bound_knapsack(r, c, B)
-    gr_val, gr_sel = greedy_knapsack(r, c, B)
-
-    println("n = $n_small")
-    println(" total subsets = ", 1 << n_small)                 # 1,048,576
-    println(" brute force visited = ", bf_visited,
-        ", optimal value = ", bf_val)
-    println(" branch-and-bound visited = ", bb_visited,
-        ", optimal value = ", bb_val)
-    println(" greedy value = ", gr_val,
-        ", optimality gap = ", bf_val - gr_val)
-
-    # Larger instance—note how the search space explodes (2^40 ≈ 10^12)
-    n_large = 40
-    r2, c2, B2 = synth_instance(rng, n_large; budget_ratio=0.35)
-    bb2_val, bb2_sel, bb2_visited = branch_and_bound_knapsack(r2, c2, B2)
-    gr2_val, gr2_sel = greedy_knapsack(r2, c2, B2)
-
-    println("\nn = $n_large")
-    println(" total subsets = ", BigInt(1) << n_large)         # ≈ 1.1×10^12
-    println(" branch-and-bound visited = ", bb2_visited,
-        ", optimal value = ", bb2_val)
-    println(" greedy value = ", gr2_val,
-        ", optimality gap = ", bb2_val - gr2_val)
-end
-```
-
-What this shows in practice:
-
-- Brute force scales as $2^n$. At $n=20$, there are 1,048,576 subsets—still manageable. At $n=40$, there are $\approx 10^{12}$ subsets—completely infeasible to enumerate.
-- Greedy is fast and often near-optimal, especially when ratios $r_i/c_i$ align with the true optimum. However, it can be arbitrarily sub-optimal in adversarial cases.
-- Branch-and-bound exploits structure. The fractional-knapsack bound is optimistic—it assumes you could take fractions of remaining items—so any subtree whose bound cannot beat the current best is safely pruned. Worst-case complexity remains exponential, but typical search can drop from billions of nodes to thousands or millions.
-
-::: callout-tip
-## Financial Modeling Pro Tip
-
-In realistic portfolio construction, practitioners frequently avoid pure subset selection by relaxing to continuous weights (e.g., mean–variance) or by formulating a mixed-integer model and using modern MILP solvers. These solvers implement sophisticated branch-and-bound/branch-and-cut strategies, presolve, and cutting planes. When exact optimality is not essential, heuristics (greedy, local search, genetic/evolutionary methods) can deliver high-quality portfolios quickly under operational constraints (cardinality, sector caps, turnover budgets).
-
-See @sec-portfolio-optimization for more discussion of portfolio optimization.
-:::
