@@ -21,7 +21,7 @@ Understand single-threaded performance by focusing on memory access, type stabil
 
 ## Introduction
 
-On today's hardware, the highest-throughput workloads often run on GPUs via massive parallelism. However, writing correct, performant parallel code relies on understanding efficient sequential patterns first. Secondly, many problems are not "massively parallelizable" and a sequential model architecture is required. For these reasons, it's critical to understand sequential patterns before moving onto parallel code.
+On today's hardware, the highest-throughput workloads often run on GPUs via massive parallelism. However, writing correct, performant parallel code relies on understanding efficient sequential patterns first. Additionally, many problems are not "massively parallelizable" and a sequential model architecture is required. For these reasons, it's critical to understand sequential patterns before moving onto parallel code.
 
 For those coming from fundamentally slower languages (such as R or Python), the common advice to speed things up is often to try to parallelize code or use array-based techniques. With many high level languages the only way to achieve reasonable runtime is to utilize parallelism. In contrast, fast languages like Julia can produce surprisingly quick single-threaded programs when you keep an eye on allocations, types, and cache behavior.
 
@@ -55,7 +55,7 @@ Allocating memory onto the Heap takes a lot more time than (1) not using interme
 **Tight loops** or **hot loops** are the performance critical section of the code that are performed many times during a computation. They are often the "inner-most" loop of a nested loop algorithm.
 :::
 
-A general rule of thumb is that dynamically sizable or mutable objects (arrays, mutable structs) will be heap allocated while small fixed size objects can be stack allocated. For mutable objects, a common technique is to pre-allocate an array and then re-use that array for subsequent calculations. In the following stylized example we accumulate bond-level cashflows into a shared vector rather than constructing (**pre-allocating**) intermediate arrays and summing them later:
+A general rule of thumb is that dynamically sizable or mutable objects (arrays, mutable structs) will be heap allocated, while small fixed size objects can be stack allocated. For mutable objects, a common technique is to pre-allocate an array and then re-use that array for subsequent calculations. In the following stylized example we accumulate bond-level cashflows into a shared vector rather than constructing (**pre-allocating**) intermediate arrays and summing them later:
 
 ```{julia}
 end_time = 10
@@ -230,7 +230,7 @@ Consider using small, statically sized collections when the data is suited for i
 
 **Type instability**`\index{type stability}`{=latex} occurs when Julia's compiler cannot infer a concrete result type for a variable or expression; this inhibits specialization and often triggers performance degradation through dynamic dispatch. A separate but related performance trap is using abstractly typed containers (e.g., `Vector{Any}`) in hot loops, which forces dynamic dispatch on each element even if the function's overall return type is inferrable.
 
-To avoid type instabilities, ensure that functions have inferrable, concrete types across all code paths. For example:
+To avoid type instabilities, ensure that functions have inferrable, concrete types across all code paths. This includes ensuring that all variables used within functions are either local or passed as arguments — accessing global variables from within a function inhibits type inference (see also @sec-type-inference). For example:
 
 ```{julia}
 
