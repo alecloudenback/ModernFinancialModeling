@@ -649,7 +649,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
    
   <ul>
   <li><a href="#chapter-overview" id="toc-chapter-overview" class="nav-link active" data-scroll-target="#chapter-overview"><span class="header-section-number">24.1</span> Chapter Overview</a></li>
-  <li><a href="#type-inference" id="toc-type-inference" class="nav-link" data-scroll-target="#type-inference"><span class="header-section-number">24.2</span> Type Inference</a></li>
+  <li><a href="#sec-type-inference" id="toc-sec-type-inference" class="nav-link" data-scroll-target="#sec-type-inference"><span class="header-section-number">24.2</span> Type Inference</a></li>
   <li><a href="#avoiding-heap-allocations" id="toc-avoiding-heap-allocations" class="nav-link" data-scroll-target="#avoiding-heap-allocations"><span class="header-section-number">24.3</span> Avoiding Heap Allocations</a></li>
   <li><a href="#sec-measuring-performance" id="toc-sec-measuring-performance" class="nav-link" data-scroll-target="#sec-measuring-performance"><span class="header-section-number">24.4</span> Measuring performance</a>
   <ul class="collapse">
@@ -730,8 +730,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>Avoid <strong>unnecessary (heap) allocations</strong>.</li>
 </ol>
 </section>
-<section id="type-inference" class="level2" data-number="24.2">
-<h2 data-number="24.2" class="anchored" data-anchor-id="type-inference"><span class="header-section-number">24.2</span> Type Inference</h2>
+<section id="sec-type-inference" class="level2" data-number="24.2">
+<h2 data-number="24.2" class="anchored" data-anchor-id="sec-type-inference"><span class="header-section-number">24.2</span> Type Inference</h2>
 <p>The compiler’s job is to optimize and translate Julia code into runnable <a href="https://en.wikipedia.org/wiki/Machine_code">machine code</a>. If a variable’s type cannot be deduced before the code runs, then the compiler won’t generate efficient code to handle that variable. This phenomenon is called “type instability”. Enabling type inference means making sure that every variable’s type in every function can be deduced from the types of the function inputs alone. Type inference in Julia operates at the function level — outside of functions (e.g., at the REPL or in global scope), Julia does not attempt to infer types in the same way.</p>
 <p>In other words, the compiler will be able to create more optimized code if it can analyze the function you’ve written and determine what type will be returned. In the following function, the compiler can analyze the expressions and determine with certainty that if <code>mysum</code> is given two <code>Int</code>s as arguments, the return value will also be an <code>Int</code>.</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">mysum</span>(a,b)</span>
@@ -766,7 +766,7 @@ Tip
 <section id="sec-measuring-performance" class="level2" data-number="24.4">
 <h2 data-number="24.4" class="anchored" data-anchor-id="sec-measuring-performance"><span class="header-section-number">24.4</span> Measuring performance</h2>
 <p>The simplest way to measure how fast a piece of code runs is to use the <code>@time</code> macro, which returns the result of the code and prints the measured runtime and allocations. Because code needs to be compiled before it can run, you should first run a function without timing it so it can be compiled, and then time it:</p>
-<div id="0f4b58cc" class="cell" data-execution_count="2">
+<div id="defec37a" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sum_abs</span>(vec) <span class="op">=</span> <span class="fu">sum</span>(<span class="fu">abs</span>(x) <span class="cf">for</span> x <span class="kw">in</span> vec);</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>v <span class="op">=</span> <span class="fu">rand</span>(<span class="fl">100</span>);</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -774,32 +774,32 @@ Tip
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="pp">@time</span> <span class="fu">sum_abs</span>(v); <span class="co"># Inaccurate, note the &gt;99% compilation time</span></span>
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="pp">@time</span> <span class="fu">sum_abs</span>(v); <span class="co"># Accurate</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  0.010954 seconds (418.46 k allocations: 20.820 MiB, 273.29% compilation time)
-  0.000003 seconds (4 allocations: 144 bytes)</code></pre>
+<pre><code>  0.011535 seconds (423.99 k allocations: 21.138 MiB, 99.86% compilation time)
+  0.000003 seconds (1 allocation: 16 bytes)</code></pre>
 </div>
 </div>
 <p>Using <code>@time</code> is quick but has flaws because your function is only measured once. That measurement might have been influenced by other things going on in your computer at the same time. In general, running the same block of code multiple times is a safer measurement method, because it diminishes the probability of only observing an outlier.</p>
 <section id="benchmarktools" class="level3" data-number="24.4.1">
 <h3 data-number="24.4.1" class="anchored" data-anchor-id="benchmarktools"><span class="header-section-number">24.4.1</span> BenchmarkTools</h3>
 <p><a href="https://github.com/JuliaCI/BenchmarkTools.jl">BenchmarkTools.jl</a> is the most popular package for repeated measurements on function executions. Similar to <code>@time</code>, BenchmarkTools offers <code>@btime</code>, which can be used in exactly the same way but will run the code multiple times and provide an average. Additionally, by using <code>$</code> to <a href="https://juliaci.github.io/BenchmarkTools.jl/stable/manual/#Interpolating-values-into-benchmark-expressions">interpolate external values</a>, you remove the overhead caused by global variables.</p>
-<div id="1e221b25" class="cell" data-execution_count="3">
+<div id="73c0de3a" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">BenchmarkTools</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">sum_abs</span>(v); <span class="co"># includes global access overhead</span></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">sum_abs</span>(<span class="op">$</span>v); <span class="co"># interpolates v, avoiding global overhead</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  33.988 ns (1 allocation: 16 bytes)
-  17.285 ns (0 allocations: 0 bytes)</code></pre>
+<pre><code>  30.924 ns (1 allocation: 16 bytes)
+  17.343 ns (0 allocations: 0 bytes)</code></pre>
 </div>
 </div>
 <p>In more complex settings, you might need to construct variables in a <a href="https://juliaci.github.io/BenchmarkTools.jl/stable/manual/#Setup-and-teardown-phases">setup phase</a> that is run before each sample. This can be useful to generate a new random input every time, instead of always using the same input.</p>
-<div id="2fdfb0b7" class="cell" data-execution_count="4">
+<div id="a93f2faf" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">my_matmul</span>(A, b) <span class="op">=</span> A <span class="op">*</span> b;</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">my_matmul</span>(A, b) setup <span class="op">=</span> (</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    A <span class="op">=</span> <span class="fu">rand</span>(<span class="fl">1000</span>, <span class="fl">1000</span>); <span class="co"># use semi-colons between setup lines</span></span>
 <span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    b <span class="op">=</span> <span class="fu">rand</span>(<span class="fl">1000</span>)</span>
 <span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>);</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  125.708 μs (3 allocations: 8.06 KiB)</code></pre>
+<pre><code>  121.834 μs (3 allocations: 8.06 KiB)</code></pre>
 </div>
 </div>
 <p>For better visualization, the <code>@benchmark</code> macro shows performance histograms:</p>
@@ -880,7 +880,7 @@ Tip
 <section id="type-stability" class="level2" data-number="24.6">
 <h2 data-number="24.6" class="anchored" data-anchor-id="type-stability"><span class="header-section-number">24.6</span> Type stability</h2>
 <p>A function is <strong>type stable</strong> when the compiler can infer a concrete return type from the types of the inputs alone. “Concrete” means that the size of memory that needs to be allocated to store its value is known at compile time. Types declared abstract with <code>abstract type</code> are not concrete and neither are <a href="https://docs.julialang.org/en/v1/manual/types/#Parametric-Types">parametric types</a> whose parameters are not specified:</p>
-<div id="d044b357" class="cell" data-execution_count="5">
+<div id="f208b68a" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@show</span> <span class="fu">isconcretetype</span>(<span class="dt">Any</span>)</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@show</span> <span class="fu">isconcretetype</span>(<span class="dt">AbstractVector</span>)</span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="pp">@show</span> <span class="fu">isconcretetype</span>(<span class="dt">Vector</span>) <span class="co"># Shorthand for `Vector{T} where T`</span></span>
@@ -917,7 +917,7 @@ Note
 <section id="sec-detecting-instabilities" class="level3" data-number="24.6.1">
 <h3 data-number="24.6.1" class="anchored" data-anchor-id="sec-detecting-instabilities"><span class="header-section-number">24.6.1</span> Detecting Instabilities</h3>
 <p>The simplest way to detect an instability is with the built-in macro <a href="https://docs.julialang.org/en/v1/manual/performance-tips/#man-code-warntype"><code>@code_warntype</code></a> . The output of <code>@code_warntype</code> is difficult to parse, but the key takeaway is the return type of the function’s <code>Body</code>: if it is an abstract type like <code>Any</code>, something is wrong. In a normal Julia REPL, such cases would show up colored in red as a warning.</p>
-<div id="d2eb6332" class="cell" data-execution_count="6">
+<div id="0ca9a29c" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">InteractiveUtils</span> <span class="co"># loaded automatically if using a notebook or REPL</span></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">put_in_vec_and_sum</span>(x)</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    v <span class="op">=</span> []        <span class="co"># Vector{Any} → type-unstable</span></span>
@@ -968,7 +968,7 @@ Body<span class="ansi-bright-red-fg ansi-bold">::Any</span>
 </div>
 </div>
 <p>Unfortunately, <code>@code_warntype</code> is limited to one function body: calls to other functions are not expanded, which makes deeper type instabilities easy to miss. That is where <a href="https://github.com/aviatesk/JET.jl">JET.jl</a> can help: it provides <a href="https://aviatesk.github.io/JET.jl/stable/optanalysis/">optimization analysis</a> aimed primarily at finding type instabilities. While <a href="https://aviatesk.github.io/JET.jl/stable/optanalysis/#optanalysis-test-integration">test integrations</a> are also provided, the interactive entry point of JET is the <code>@report_opt</code> macro.</p>
-<div id="b780aefe" class="cell" data-execution_count="7">
+<div id="4a46db9d" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">JET</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@report_opt</span> <span class="fu">put_in_vec_and_sum</span>(<span class="fl">1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stderr">
@@ -1206,7 +1206,7 @@ Tip
 <h3 data-number="24.9.2" class="anchored" data-anchor-id="distributed-computing"><span class="header-section-number">24.9.2</span> Distributed computing</h3>
 <p>Julia’s multiprocessing and distributed relies on the standard library <code>Distributed</code>. The main difference from multi-threading is that data isn’t shared between worker processes. Once Julia is started, processes can be added with <code>addprocs</code> and their number can be queried with <code>nworkers</code>.</p>
 <p>The macro <code>Distributed.@distributed</code> is a <em>syntactic</em> equivalent for <code>Threads.@threads</code>. Hence, we can use <code>@distributed</code> to parallelize a for loop as before, but we have to additionally deal with sharing and recombining the <code>results</code> array. We can delegate this responsibility to the standard library <code>SharedArrays</code>. However, in order for all workers to know about a function or module, we have to load it <code>@everywhere</code>:</p>
-<div id="e4f94b02" class="cell" data-execution_count="8">
+<div id="81b76019" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Distributed</span></span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Add additional workers then load code on the workers</span></span>
@@ -1229,7 +1229,7 @@ Tip
 </div>
 <p>Note that <code>@distributed</code> does not force the main process to wait for other workers; we must use <code>@sync</code> to block execution until all computations are done.</p>
 <p>One feature <code>@distributed</code> has over <code>@threads</code> is the possibility to specify a reduction function (an associative binary operator) that combines the results of each worker. In this case, <code>@sync</code> is implied, as the reduction cannot happen unless all of the workers have finished.</p>
-<div id="1709952f" class="cell" data-execution_count="9">
+<div id="33aa65a8" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Distributed</span></span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="fu">addprocs</span>(<span class="fl">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="10">
@@ -1238,7 +1238,7 @@ Tip
  6</code></pre>
 </div>
 </div>
-<div id="7ca51236" class="cell" data-execution_count="10">
+<div id="fe8ca655" class="cell" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@distributed</span> (<span class="op">+</span>) <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">4</span></span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>    i<span class="op">^</span><span class="fl">2</span></span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -1247,7 +1247,7 @@ Tip
 </div>
 </div>
 <p>Alternatively, the convenience function <code>pmap</code> can be used to easily parallelize a <code>map</code>, both in a distributed and multi-threaded way.</p>
-<div id="8943c8db" class="cell" data-execution_count="11">
+<div id="7d24c7b1" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> <span class="fu">pmap</span>(x <span class="op">-&gt;</span> <span class="fl">3</span> <span class="op">*</span> x<span class="op">^</span><span class="fl">2</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">100</span>; distributed<span class="op">=</span><span class="cn">true</span>, batch_size<span class="op">=</span><span class="fl">25</span>, on_error<span class="op">=</span>ex <span class="op">-&gt;</span> <span class="fl">0</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="12">
 <pre><code>100-element Vector{Int64}:
@@ -1341,7 +1341,7 @@ Tip
 <h3 data-number="24.10.1" class="anchored" data-anchor-id="static-arrays"><span class="header-section-number">24.10.1</span> Static arrays</h3>
 <p>Using <a href="https://github.com/JuliaArrays/StaticArrays.jl">StaticArrays.jl</a>, you can construct arrays that contain size information in their type. Through multiple dispatch, statically sized arrays give rise to specialised, efficient methods for certain algorithms like linear algebra. In addition, the <code>SArray</code>, <code>SMatrix</code>, and <code>SVector</code> types are immutable, so the array does not need to be garbage collected as it can be stack-allocated. Creating new <code>SArray</code>s comes at almost no extra cost, compared to directly editing the data of a mutable object. With <code>MArray</code>, <code>MMatrix</code>, and <code>MVector</code>, data remains mutable as in normal arrays.</p>
 <p>To handle mutable and immutable data structures with the same syntax, you can use <a href="https://github.com/JuliaObjects/Accessors.jl">Accessors.jl</a>:</p>
-<div id="6f540ee1" class="cell" data-execution_count="12">
+<div id="1792484f" class="cell" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">StaticArrays</span>, <span class="bu">Accessors</span></span>
 <span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>sx <span class="op">=</span> SA[<span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">3</span>] <span class="co"># SA constructs an SArray</span></span>
