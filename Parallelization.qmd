@@ -48,7 +48,7 @@ function amdahl_speedup(p, n)
 end
 
 function main()
-    fig = Figure(size=(800, 600))
+    fig = Figure()
     ax = Axis(fig[1, 1],
         title="Amdahl's Law",
         xlabel=L"Number of processors ($n$)",
@@ -105,7 +105,7 @@ The requirements for SIMD-able code are that:
 -   There are no branches (if-statements) inside the loop body.
 
 ::: callout-tip
-Note that indexing an array is actually a branch in the code, as two cases could arise: the index is either inbounds or out-of-bounds. To avoid this, either use `for x in collection`, `for i in eachindex(collection)` or `for i in 1:n; @inbounds collection[i]`, though the last of these is discouraged in favor of the prior, safer options.
+Note that indexing an array actually introduces a branch in the code, as two cases could arise: the index is either inbounds or out-of-bounds. To avoid this, either use `for x in collection`, `for i in eachindex(collection)` or `for i in 1:n; @inbounds collection[i]`, though the last of these is discouraged in favor of the prior, safer options.
 :::
 
 ```{julia}
@@ -143,7 +143,7 @@ In testing the above code, the `allow_simd` version should be several times fast
 Note that Julia's compiler is able to identify vectorizable code in many cases, though some cases may benefit from a more manual hint to the compiler through macro annotations (enter `?@simd` in the REPL for details). See @sec-optimizing-SIMD for more.
 :::
 
-Other types of parallelism that we will discuss in this chapter have some risk of errors or data corruption if not used correctly. SIMD isn't prone to issues like this because if the code is not SIMD-able then the compiler will not auto-vectorize the code block.
+Other types of parallelism that we will discuss in this chapter have some risk of errors or data corruption if not used correctly. SIMD isn't prone to issues like this because if the code is not SIMD-able then the compiler will not auto-vectorize the code block. Note that this safety guarantee applies to Julia's built-in `@simd` macro. Third-party macros like `@turbo` (from LoopVectorization.jl) are more aggressive and may produce incorrect results if loop iterations have data dependencies (e.g., `x[i] = x[i-1]`).
 
 ### Hardware
 
@@ -773,7 +773,7 @@ Map-Reduce`\index{map-reduce}`{=latex} (@sec-map-reduce) operations are inherent
 
 ##### OhMyThreads
 
-[OhMyThreads.jl](https://github.com/JuliaFolds2/OhMyThreads.jl) provides the threaded versions of essential functions such as `tmap`, `tmapreduce`,`tcollect`, and `tforeach` (see @tbl-functional-methods). In most cases, the chunking and data sharing is handled automatically for you.
+[OhMyThreads.jl](https://github.com/JuliaFolds2/OhMyThreads.jl) provides the threaded versions of essential functions such as `tmap`, `tmapreduce`, `tcollect`, and `tforeach` (see @tbl-functional-methods). In most cases, the chunking and data sharing is handled automatically for you.
 
 ```{julia}
 import OhMyThreads
@@ -884,7 +884,8 @@ Effectively, the library establishes a network topology (a map of how different 
 
 Here's a very simple example which demonstrates Dagger waiting for the two tasks which work in parallel (we already added multiple processors to this environment in @sec-multi-device):
 
-```{julia}
+```julia
+#| warning: false
 import Dagger
 
 # This runs first:

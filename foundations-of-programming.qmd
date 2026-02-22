@@ -274,7 +274,7 @@ Using this terminology, we could now interpret the "Ship of Theseus" as that his
 
 ### Assignment, References, and Mutability {#sec-assignment}
 
-When we say `x = 2` we are **assigning** the integer value of `2` to the variable `x`. This is an expression that lets us bind something to a variable so that it can be referenced more concisely or in different parts of our code. When we re-assign the variable we are not mutating the value: `x = 3` does not change the `2`.
+When we say `x = 2` we are **assigning** the integer value of `2` to the variable `x`. This is an expression that lets us bind a value to a variable so that it can be referenced more concisely or in different parts of our code. When we re-assign the variable we are not mutating the value: `x = 3` does not change the `2`.
 
 When we have a mutable`\index{mutability}`{=latex} object (e.g. an `Array` or a `mutable struct`), we can mutate the value inside the referenced container. For example:
 
@@ -298,15 +298,15 @@ y
 
 1.  `y` refers to the *same* underlying array as `x`
 
-Note that variables can be re-assigned unless they are marked as `const`:
+Note that variables can be freely re-assigned. Marking a variable as `const` signals that it should not be re-assigned and enables compiler optimizations:
 
-```         
+```
 const TAU =  π * 2 # <1>
 ```
 
 1.  Capitalizing constant variables is a convention in Julia.
 
-If we tried to re-assign `TAU`, we would get an error.
+In an interactive session, Julia will allow reassignment of a `const` with a warning, but in compiled code this is not permitted.
 
 ::: callout-warning
 Note that if we declare a `const` variable that refers to a mutable container like an array, the container can still be mutated. It's the reference to the container that remains constant, not necessarily the elements within the container.
@@ -386,7 +386,7 @@ end
 
 ### Performance of Loops
 
-Loops are highly performant in Julia and often the fastest way to accomplish things. This approach contrasts with advice often given to Python or R users, where vectorized operations are heavily favored over loops for performance. In Julia, ⁠for loops are highly performant and often the most efficient and readable way to implement an algorithm.
+Loops are highly performant in Julia and often the fastest way to accomplish things. This contrasts with advice often given to Python or R users, where vectorized operations are heavily favored over loops for performance.
 
 ## Data Types {#sec-basic-data-types}
 
@@ -507,7 +507,7 @@ The integer and floating point types described in the prior section are known as
 
 ### Collections
 
-Collections are types that are really useful for storing data which contains many elements. This section describes some of the most common and useful types of containers.
+Collections are types for storing data that contains many elements. This section describes some of the most common and useful types of containers.
 
 #### Arrays
 
@@ -523,7 +523,7 @@ And a floating point array:
 [0.2, 1.3, 300.0]
 ```
 
-Note the above two arrays are different types of arrays. The first is `Vector{Int64}` and the second is `Vector{Float64}`. These are arrays of concrete types and so Julia will know that each element of an array is the same amount of bits which will enable more efficient computations. With the following set of mixed numbers, Julia will **promote** the integers to floating point since the integers can be accurately represented[^foundations-of-programming-8] in floating point.
+Note the above two arrays are different types of arrays. The first is `Vector{Int64}` and the second is `Vector{Float64}`. These are arrays of concrete types and so Julia will know that each element of an array is the same amount of bits, which will enable more efficient computations. With the following set of mixed numbers, Julia will **promote** the integers to floating point since the integers can be accurately represented[^foundations-of-programming-8] in floating point.
 
 [^foundations-of-programming-8]: Accurate only to a limited precision, as described in @sec-number-types.
 
@@ -543,7 +543,7 @@ rand(3, 3, 3)
 [x + y + z for x in 1:3, y in 11:13, z in 21:23]
 ```
 
-The above example demonstrates **array comprehension** syntax which is a convenient way to create arrays in Julia.
+The above example demonstrates **array comprehension** syntax, which is a convenient way to create arrays in Julia.
 
 A two-dimensional array has the rows separated by semi-colons (`;`):
 
@@ -604,7 +604,7 @@ vec(mat) # column major order
 
 #### Ranges {#sec-programming-ranges}
 
-A **range**`\index{range}`{=latex} is a representation of a range of numbers. We actually used them above to index into arrays. They are expressed as `start:stop`
+A **range**`\index{range}`{=latex} is a compact representation of a sequence of numbers. We actually used them above to index into arrays. They are expressed as `start:stop`
 
 We don't have to actually store all of these numbers on the computer somewhere as in an `Array`. Instead, this is an object that *represents* the ordered set of numbers. So for example, we can "sum" up a ridiculous amount of numbers almost instantaneously :
 
@@ -673,7 +673,7 @@ The output above shows the `\n` character contained within the string.
 
 #### Tuples
 
-Tuples`\index{tuple}`{=latex} are a set of values that belong together and are denoted by values inside parentheses and separated by a comma. An example might be x-y coordinates in 2 dimensional space:
+Tuples`\index{tuple}`{=latex} are a fixed, ordered collection of values, denoted by values inside parentheses and separated by a comma. They are best suited for small collections of related data. An example might be x-y coordinates in 2 dimensional space:
 
 ```{julia}
 x = 3
@@ -693,7 +693,7 @@ Tuples fill a middle ground between scalar types and arrays in more ways than on
 
 -   Tuples are **immutable**, meaning that you cannot overwrite the value in memory (an error will be thrown if we try to do `p[1] = 5`).
 
--   It's generally expected that within an array, you would be able to apply the same operation to all the elements (e.g. square each element) or do something like sum all of the elements together which isn't generally the case for a tuple.
+-   It's generally expected that within an array, you would be able to apply the same operation to all the elements (e.g. square each element) or do something like sum all of the elements together, which isn't generally the case for a tuple.
 
 -   Tuples are generally stack allocated instead of being heap allocated like arrays[^foundations-of-programming-14], meaning that a lot of times they can be faster than arrays.
 
@@ -767,7 +767,7 @@ end
 
 `nothing` `\index{nothing}`{=latex} represents that there's nothing to be returned - for example if there's no solution to an optimization problem or if a function just doesn't have any value to `return` (such as in the case with input/output like `println`).
 
-`missing` `\index{missing}`{=latex} is to represent something *should* be there but it's not, as is all too common in real-world data. Julia natively supports `missing` and three-value logic, which is an extension of the two-value boolean (true/false) logic, to handle missing logical values:
+`missing` `\index{missing}`{=latex} is to represent a value that *should* be there but is not, as is all too common in real-world data. Julia natively supports `missing` and three-value logic, which is an extension of the two-value boolean (true/false) logic, to handle missing logical values:
 
 | NOT (`!`)     | Value     |
 |---------------|-----------|
@@ -888,7 +888,7 @@ fieldtypes(PointUntyped)
 This means that the compiler (and us!) can't reason about or optimize the code as effectively as when the types are explicit or parametric. This is an example of how Julia can provide a nice learning curve - don't worry about the types until you start to get more sophisticated about the program design or need to extract more performance from the code.
 :::
 
-The above `struct`s that we have defined are examples of **concrete types**`\index{concrete type}`{=latex} types which hold data. **Abstract types**`\index{abstract type}`{=latex} don't directly hold data themselves but are used to define a hierarchy of types which we will later exploit (@sec-patterns-abstractions) to implement custom behavior depending on what type our data is.
+The above `struct`s that we have defined are examples of **concrete types**`\index{concrete type}`{=latex} which hold data. **Abstract types**`\index{abstract type}`{=latex} don't directly hold data themselves but are used to define a hierarchy of types which we will later exploit (@sec-patterns-abstractions) to implement custom behavior depending on what type our data is.
 
 Here's an example of (1) defining a set of related types that sits above our `Point2D`:
 
@@ -1141,7 +1141,7 @@ For example, `myfunction(x::Tuple{Real})` would *not* be called if `x` was a `Tu
 
 ### Keyword Arguments
 
-**Keyword arguments**`\index{keyword argument}`{=latex} are arguments that are passed to a function but do not use *position* to pass data to functions but instead use named arguments. In the following example, `filepath` is a **positional argument** while the two arguments after the semicolon (`;`) are keyword arguments.
+**Keyword arguments**`\index{keyword argument}`{=latex} are arguments that are passed to a function using named identifiers rather than position. In the following example, `filepath` is a **positional argument** while the two arguments after the semicolon (`;`) are keyword arguments.
 
 ``` julia
 function read_data(filepath; normalizenames, hasheaderrow)
@@ -1179,7 +1179,7 @@ map(x -> x^2, v)  # <1>
 
 1.  The `x -> x^2` is the anonymous function in this example.
 
-They are often used when constructing something from another value, or defining a function within optimization or solving routines.
+They are often used when constructing a new value from another value, or defining a function within optimization or solving routines.
 
 ### First Class Nature
 
@@ -1234,7 +1234,7 @@ Let's unpack that a bit more:
 Why broadcasting is useful:
 
 1.  Without needing any redefinition of functions we were able to transform the function `dist` and exponentiation (`^`) to work on a collection of data. This means that we can keep our code simpler and easier to reason about (operating on individual things is easier than adding logic to handle collections of things).
-2.  When multiple broadcasted operations are joined together, Julia can **fuse** the operations so that each operation is performed at the same time instead of each step sequentially. That is, if the operation were not fused, the computer would first calculate `dist` for each point, and then apply the square on the collection of distances. When it's fused, the operations can happen at the same time without creating an interim set of values.
+2.  When multiple broadcasted operations are joined together, Julia can **fuse** the operations so that each operation is performed at the same time instead of each step sequentially. That is, if the operation were not fused, the computer would first calculate `dist` for each point, and then apply the square on the collection of distances. When it's fused, the operations are combined into a single pass over the data without creating an interim set of values.
 
 ::: callout-note
 For readers coming from numpy-flavored Python or R, broadcasting is a way that can feel familiar to the array-oriented behavior of those two languages. Once you feel comfortable with Julia in general, you may find yourself relaxing and relying less on array-oriented design and instead picking whichever iteration paradigm feels most natural for the problem at hand: loops or broadcasting over arrays.
@@ -1304,7 +1304,7 @@ in.([1, 9], Ref([1 2 3; 4 5 6]))
 
 ### Passing by Sharing {#sec-pass-by-sharing}
 
-We often want to share data between scopes, such as between modules or by passing something into a function's scope. Arguments to a function in Julia are **passed-by-sharing**`\index{pass-by-sharing}`{=latex} which means that an outside variable can be mutated from within a function. We can modify the array in the outer scope (scope discussed later in this chapter) from within the function. In this example, we modify the array that is assigned to `v` by doubling each element:
+We often want to share data between scopes, such as between modules or by passing data into a function's scope. Arguments to a function in Julia are **passed-by-sharing**`\index{pass-by-sharing}`{=latex} which means that an outside variable can be mutated from within a function. We can modify the array in the outer scope (scope discussed later in this chapter) from within the function. In this example, we modify the array that is assigned to `v` by doubling each element:
 
 ```{julia}
 v = [1, 2, 3]

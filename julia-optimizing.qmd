@@ -21,9 +21,9 @@ The two fundamental principles for writing fast Julia code:
 1.  Ensure that **the compiler can infer the type** of every variable.
 2.  Avoid **unnecessary (heap) allocations**.
 
-## Type Inference
+## Type Inference {#sec-type-inference}
 
-The compiler's job is to optimize and translate Julia code into runnable [machine code](https://en.wikipedia.org/wiki/Machine_code). If a variable's type cannot be deduced before the code runs, then the compiler won't generate efficient code to handle that variable. This phenomenon is called "type instability"`\index{type stability}`{=latex}. Enabling type inference`\index{type inference}`{=latex} means making sure that every variable's type in every function can be deduced from the types of the function inputs alone.
+The compiler's job is to optimize and translate Julia code into runnable [machine code](https://en.wikipedia.org/wiki/Machine_code). If a variable's type cannot be deduced before the code runs, then the compiler won't generate efficient code to handle that variable. This phenomenon is called "type instability"`\index{type stability}`{=latex}. Enabling type inference`\index{type inference}`{=latex} means making sure that every variable's type in every function can be deduced from the types of the function inputs alone. Type inference in Julia operates at the function level — outside of functions (e.g., at the REPL or in global scope), Julia does not attempt to infer types in the same way.
 
 In other words, the compiler will be able to create more optimized code if it can analyze the function you've written and determine what type will be returned. In the following function, the compiler can analyze the expressions and determine with certainty that if `mysum` is given two `Int`s as arguments, the return value will also be an `Int`.
 
@@ -44,7 +44,7 @@ Execution of code is stopped while the garbage collector runs, so minimizing its
 
 The vast majority of performance tips come down to these two fundamental ideas.
 
-Typically, the most common beginner pitfall is the use of [untyped global variables](https://docs.julialang.org/en/v1/manual/performance-tips/#Avoid-untyped-global-variables) without passing them as arguments. Why is it bad? Because the type of a global variable can change outside of the body of a function, so it causes type instabilities wherever it is used. Those type instabilities in turn lead to more heap allocations.
+Typically, the most common beginner pitfall is the use of [non-constant global variables](https://docs.julialang.org/en/v1/manual/performance-tips/#Avoid-untyped-global-variables) without passing them as arguments. Why is it bad? Because the type of a global variable can change outside of the body of a function, so it causes type instabilities wherever it is used. Even a type-annotated global variable does not enable the same optimizations as a local variable or a `const`. Those type instabilities in turn lead to more heap allocations.
 
 ::: callout-tip
 If you must use globals (e.g., model parameters loaded once), declare them const so their type can't change and the compiler can specialize code that uses them.
@@ -140,7 +140,7 @@ Apart from the built-in `Profile` standard library, there are a few external pro
 
 ## Type stability
 
-For a section of code to be considered type stable, the type inferred by the compiler must be "concrete," which means that the size of memory that needs to be allocated to store its value is known at compile time. Types declared abstract with `abstract type` are not concrete and neither are [parametric types](https://docs.julialang.org/en/v1/manual/types/#Parametric-Types) whose parameters are not specified:
+A function is **type stable** when the compiler can infer a concrete return type from the types of the inputs alone. "Concrete" means that the size of memory that needs to be allocated to store its value is known at compile time. Types declared abstract with `abstract type` are not concrete and neither are [parametric types](https://docs.julialang.org/en/v1/manual/types/#Parametric-Types) whose parameters are not specified:
 
 ```{julia}
 @show isconcretetype(Any)
@@ -157,7 +157,7 @@ For a section of code to be considered type stable, the type inferred by the com
 
 Type-stable code enables static dispatch and aggressive optimizations (e.g., inlining and specialization). Type-unstable code triggers dynamic dispatch at runtime which prevents many optimizations and often increases allocations.
 
-Type stability is contagious: if a variable's type cannot be inferred, then the types of variables that depend on it may not be inferrable either. Most code should be type-stable unless it has a good reason not to be.
+Type stability is contagious: if a variable's type cannot be inferred, then the types of variables that depend on it may not be inferrable either. (In advanced cases, "function barriers" can be used to contain instability; see Julia's [performance tips](https://docs.julialang.org/en/v1/manual/performance-tips/#kernel-functions) documentation.) Most code should be type-stable unless it has a good reason not to be.
 
 ### Detecting Instabilities {#sec-detecting-instabilities}
 
