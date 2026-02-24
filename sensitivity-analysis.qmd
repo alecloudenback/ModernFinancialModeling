@@ -201,12 +201,11 @@ The Sobol Indices are "ordered", the first order indices given by $S_i = \dfrac{
 using QuasiMonteCarlo, GlobalSensitivity
 
 # reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1
-L, U = QuasiMonteCarlo.generate_design_matrices(
-    1000,
-    [1, 0.029, 999.9],
-    [2, 0.031, 1000.1], SobolSample()
-)
-s = gsa(r1_wrt_r, Sobol(), L, U)
+lower = [1.0, 0.029, 999.9]
+upper = [2.0, 0.031, 1000.1]
+X = QuasiMonteCarlo.sample(2000, 3, SobolSample())
+X_scaled = lower .+ (upper .- lower) .* X
+s = gsa(r1_wrt_r, Sobol(), X_scaled[:, 1:N], X_scaled[:, N+1:end])
 println(s.S1)
 println(s.ST)
 ```
@@ -290,4 +289,5 @@ Before anchoring capital plans on a scenario set, test whether similar historica
 5. Adjust assumptions or document why the future is expected to differ (structural breaks, new hedging programs).
 
 Key reminders when using history: validate data quality, resist overfitting scenarios to the past, and note that structural changes (regulation, product mix, technology) can limit comparability.
+
 
