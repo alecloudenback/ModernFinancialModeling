@@ -135,7 +135,9 @@ steps_ahead = 30
 # SARIMA
 model_sarima = SARIMA(log_air_passengers; order=(0, 1, 1),
     seasonal_order=(0, 1, 1, 12))
-fit!(model_sarima)
+using Optim: LBFGS, Options
+fit!(model_sarima;
+    optimizer=StateSpaceModels.Optimizer(LBFGS(), Options(f_reltol=1e-6)))
 forec_sarima = forecast(model_sarima, steps_ahead)
 
 forecast_mean = [μ[1] for μ in forec_sarima.expected_value]

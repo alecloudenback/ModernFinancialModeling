@@ -197,15 +197,24 @@ $$
 
 The Sobol Indices are "ordered", the first order indices given by $S_i = \dfrac{V_i}{Var(Y)}$, the contribution to the output variance of the main effect of $X_i$. Therefore, it measures the effect of varying $X_i$ alone, but averaged over variations in other input parameters. It is standardized by the total variance to provide a fractional contribution. Higher-order interaction indices $S_{ij}, S_{ijk}$ and so on can be formed by dividing other terms in the variance decomposition by $Var(Y)$.
 
+::: {.callout-note}
+## Randomized quasi-Monte Carlo for design matrices
+
+Sobol sensitivity analysis requires multiple **independent** design matrices (A, B, and cross-matrices AB_i) so that the variance decomposition is unbiased. A plain deterministic Sobol sequence split across matrices shares the same underlying points, violating that independence assumption.
+
+Passing `R = Shift()` to `SobolSample` applies a Cranley-Patterson rotation — a uniform random shift modulo 1 — to each matrix independently. This preserves the low-discrepancy spacing of the Sobol sequence while making each matrix a genuinely independent draw. Other randomization options such as `MatousekScramble` or `OwenScramble` also work but require additional parameters (`base`, `pad`).
+:::
+
 ```{julia}
 using QuasiMonteCarlo, GlobalSensitivity
 
 # reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1
-lower = [1.0, 0.029, 999.9]
-upper = [2.0, 0.031, 1000.1]
-X = QuasiMonteCarlo.sample(2000, 3, SobolSample())
-X_scaled = lower .+ (upper .- lower) .* X
-s = gsa(r1_wrt_r, Sobol(), X_scaled[:, 1:N], X_scaled[:, N+1:end])
+L, U = QuasiMonteCarlo.generate_design_matrices(
+    1000,
+    [1, 0.029, 999.9],
+    [2, 0.031, 1000.1], SobolSample(R=Shift())
+)
+s = gsa(r1_wrt_r, Sobol(), L, U)
 println(s.S1)
 println(s.ST)
 ```
