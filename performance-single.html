@@ -779,16 +779,16 @@ Note
 <span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>cashflow_output</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>10-element Vector{Float64}:
-  51.04034118453076
-  51.04034118453076
- 370.0403411845305
-  51.04034118453076
- 367.0403411845302
-  51.04034118453076
-  51.04034118453076
-  51.04034118453076
-  51.04034118453076
- 416.04034118453046</code></pre>
+  48.11073104777655
+  48.11073104777655
+ 386.1107310477772
+  48.11073104777655
+ 362.11073104777734
+  48.11073104777655
+  48.11073104777655
+  48.11073104777655
+  48.11073104777655
+ 396.1107310477772</code></pre>
 </div>
 </div>
 <p>Julia’s <code>@allocated</code> macro will display the number of bytes allocated by an expression, helping you identify and eliminate unnecessary allocations.</p>
@@ -796,10 +796,11 @@ Note
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">random_sum_alloc</span>() <span class="op">=</span> <span class="fu">sum</span>([<span class="fu">rand</span>() for _ <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">10</span>])      <span class="co"># allocates</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">random_sum_noalloc</span>() <span class="op">=</span> <span class="fu">sum</span>(<span class="fu">rand</span>() <span class="cf">for</span> _ <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">10</span>)      <span class="co"># generator, no array</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="pp">@allocated</span> <span class="fu">random_sum_alloc</span>()</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="pp">@allocated</span> <span class="fu">random_sum_noalloc</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>0</code></pre>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Allocating version:     "</span>, <span class="pp">@allocated</span>(<span class="fu">random_sum_alloc</span>()), <span class="st">" bytes"</span>)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Non-allocating version: "</span>, <span class="pp">@allocated</span>(<span class="fu">random_sum_noalloc</span>()), <span class="st">" bytes"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Allocating version:     144 bytes
+Non-allocating version: 0 bytes</code></pre>
 </div>
 </div>
 </section>
@@ -858,13 +859,13 @@ Note
 <span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">random_sum</span>(<span class="op">$</span>large_array, <span class="op">$</span>shuffled_indices)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Sequential access:
-  507.792 μs (0 allocations: 0 bytes)
+  511.459 μs (0 allocations: 0 bytes)
 
 Random access:
-  2.333 ms (0 allocations: 0 bytes)</code></pre>
+  2.216 ms (0 allocations: 0 bytes)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>499879.3100691645</code></pre>
+<pre><code>499843.7035509582</code></pre>
 </div>
 </div>
 <p>When the data is accessed in a linear order, it means that the computer can load chunks of data into the cache and it can operate on that cached data for several cycles before new data needs to be loaded into the cache. In contrast, when accessing the data randomly, then the cache frequently needs to be populated with a different set of bits from a completely different part of our array.</p>
@@ -901,31 +902,31 @@ Random access:
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">sum</span>(arr, dims<span class="op">=</span><span class="fl">1</span>) setup <span class="op">=</span> arr <span class="op">=</span> <span class="fu">rand</span>(<span class="fl">1000</span>, <span class="fl">1000</span>)</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">sum</span>(arr, dims<span class="op">=</span><span class="fl">2</span>) setup <span class="op">=</span> arr <span class="op">=</span> <span class="fu">rand</span>(<span class="fl">1000</span>, <span class="fl">1000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  73.709 μs (3 allocations: 8.08 KiB)
+<pre><code>  72.917 μs (3 allocations: 8.08 KiB)
   110.000 μs (3 allocations: 8.08 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>1000×1 Matrix{Float64}:
- 504.51934491771647
- 488.6660122903458
- 488.36721110783867
- 505.2051374147861
- 483.383158989356
- 505.16447191024747
- 504.9500128786675
- 491.4489898670585
- 481.6655427771039
- 502.8653499250794
+ 477.24354376621835
+ 490.17123073062334
+ 511.51200925598255
+ 511.1727404659454
+ 485.11731512695553
+ 508.61260924226787
+ 492.2338759896336
+ 503.5130262332601
+ 495.2620293184049
+ 482.86027480585074
    ⋮
- 495.90976935797977
- 502.4326739707557
- 510.64929562045063
- 496.1046520206236
- 490.18579393771336
- 478.9458287993157
- 498.72074257427175
- 494.99914688851834
- 496.48164402268515</code></pre>
+ 494.09785639285025
+ 486.8164709088437
+ 496.66864012957234
+ 511.4367227385894
+ 508.331159932169
+ 512.6215382787854
+ 489.52666383091304
+ 511.2326503065026
+ 486.4253651417226</code></pre>
 </div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -1027,11 +1028,11 @@ Warning
 </dl>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  11.500 μs (2008 allocations: 49.91 KiB)
-  812.247 ns (10 allocations: 18.69 KiB)</code></pre>
+<pre><code>  10.416 μs (2008 allocations: 49.91 KiB)
+  810.125 ns (10 allocations: 18.69 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>486.76664567164966</code></pre>
+<pre><code>499.13720524105986</code></pre>
 </div>
 </div>
 <p>The <code>unstable_example</code> function illustrates a common anti-pattern wherein an <code>Any</code> typed array is created and then elements are added to it. Because any type can be added to an <code>Any</code> array (we happen to just add floats to it) then Julia’s not sure what types to expect inside the container and therefore has to determine it at runtime.</p>
@@ -1097,8 +1098,8 @@ Tip
 <span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">process_data</span>(<span class="op">$</span>rand_data, <span class="fl">0.5</span>)</span>
 <span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">process_data</span>(<span class="op">$</span>sorted_data, <span class="fl">0.5</span>);</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  4.966 ms (0 allocations: 0 bytes)
-  1.613 ms (0 allocations: 0 bytes)</code></pre>
+<pre><code>  4.954 ms (0 allocations: 0 bytes)
+  1.622 ms (0 allocations: 0 bytes)</code></pre>
 </div>
 </div>
 <p>In this example, having sorted data means that the CPU will predict which branch of the <code>if</code> statement is likely to be utilized. Sorting makes the branch outcome highly predictable for long stretches (all below-threshold values, then all above), improving the effectiveness of the branch predictor. By speculatively executing the code that it thinks will be used, the overall program time is faster when processing <code>sorted_data</code>.</p>

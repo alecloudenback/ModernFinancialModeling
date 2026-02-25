@@ -807,7 +807,7 @@ window.Quarto = {
 <p>For example, <code>res(2, policies[1])</code> returns the reserve at the end of policy year 2 for our sample contract. We will refer to <code>policies[1]</code> when we need a concrete contract for the sensitivity examples.</p>
 <p>Given a basic insurance product, a pure whole of life (WOL) policy with level benefits and level premiums payable within the first 10 years, the reserve in-force at the end of the <span class="math inline">\(y^{th}\)</span> (<span class="math inline">\(y\)</span> &gt;= 0) policy year is defined by</p>
 <p><span class="math display">\[
-res(y) = \sum_{t=age+y}^{120} (sur_{t-age-y} * mort_t * B_y * \sqrt{1 + pir}) - (P_y * sur_{t-age-y})
+res(y) = \sum_{t=age+y}^{120} (sur_{t-age-y} * mort_t * B_y / \sqrt{1 + pir}) - (P_y * sur_{t-age-y})
 \]</span></p>
 <p>where</p>
 <ul>
@@ -815,7 +815,7 @@ res(y) = \sum_{t=age+y}^{120} (sur_{t-age-y} * mort_t * B_y * \sqrt{1 + pir}) - 
 <li><span class="math inline">\(sur_y\)</span> is the survival probability adjusted with the policy interest rate, with values of
 <ul>
 <li><span class="math inline">\(sur_0 = 1\)</span>,</li>
-<li><span class="math inline">\(sur_x = sur_{x-1} * (1 - mort_{age+y}) / (1 + pir)\)</span> for <span class="math inline">\(x &gt;= y\)</span>, and</li>
+<li><span class="math inline">\(sur_x = sur_{x-1} * (1 - mort_{age+x-1}) / (1 + pir)\)</span> for <span class="math inline">\(x &gt;= y\)</span>, and</li>
 <li>0 for <span class="math inline">\(x &lt; y - 1\)</span> or <span class="math inline">\(age + x &gt;= 120\)</span>, or ultimate age of the current mortality table</li>
 </ul></li>
 <li><span class="math inline">\(B_y\)</span> is the level benefit throughout the policy</li>
@@ -864,14 +864,14 @@ res(y) = \sum_{t=age+y}^{120} (sur_{t-age-y} * mort_t * B_y * \sqrt{1 + pir}) - 
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">res_wrt_r_fd</span>(y<span class="op">::</span><span class="dt">Int</span>, pol<span class="op">::</span><span class="dt">Policy</span>, r<span class="op">::</span><span class="dt">Float64</span>, h<span class="op">=</span><span class="fl">1e-3</span>)</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    p₊, p₋ <span class="op">=</span> <span class="fu">deepcopy</span>(pol), <span class="fu">deepcopy</span>(pol)</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    p₊.pir, p₋.pir <span class="op">=</span> r <span class="op">+</span> h, r <span class="op">-</span> h</span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    (<span class="fu">res</span>(y, p₋) <span class="op">-</span> <span class="fu">res</span>(y, p₊)) <span class="op">/</span> (<span class="fl">2</span> <span class="op">*</span> <span class="fu">res</span>(y, pol))</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    (<span class="fu">res</span>(y, p₋) <span class="op">-</span> <span class="fu">res</span>(y, p₊)) <span class="op">/</span> (<span class="fl">2</span> <span class="op">*</span> h <span class="op">*</span> <span class="fu">res</span>(y, pol))</span>
 <span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
 <span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co"># percentage changes in reserve at year 2 when </span></span>
 <span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="co"># the interest rate at 3% with a perturbation of 0.1%</span></span>
 <span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="fu">res_wrt_r_fd</span>(<span class="fl">2</span>, policies[<span class="fl">1</span>], <span class="fl">0.03</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>0.18602131593930354</code></pre>
+<pre><code>186.02131593930355</code></pre>
 </div>
 </div>
 <p>Use a smaller <code>h</code> when <code>pir</code> is quoted in decimals (e.g., 3%) and a larger <code>h</code> if you work in basis points. Always sanity check that the perturbation stays within practical limits (no negative credited rates).</p>
@@ -930,7 +930,7 @@ Var(Y) = \sum_{i=1}^{d}V_i + \sum_{i&lt;j}^{d}V_{ij} + ... + V_{1,2,...,d}
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co"># reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1</span></span>
 <span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>L, U <span class="op">=</span> QuasiMonteCarlo.<span class="fu">generate_design_matrices</span>(</span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="fl">1000</span>,</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="fl">10_000</span>,</span>
 <span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    [<span class="fl">1</span>, <span class="fl">0.029</span>, <span class="fl">999.9</span>],</span>
 <span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    [<span class="fl">2</span>, <span class="fl">0.031</span>, <span class="fl">1000.1</span>], <span class="fu">SobolSample</span>(R<span class="op">=</span><span class="fu">Shift</span>())</span>
 <span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>)</span>
@@ -938,11 +938,11 @@ Var(Y) = \sum_{i=1}^{d}V_i + \sum_{i&lt;j}^{d}V_{ij} + ... + V_{1,2,...,d}
 <span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(s.S1)</span>
 <span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(s.ST)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[0.0, 1.3632664931260985, 3.5896322811106096e-5]
-[0.0, 1.3300946680774715, 6.432158613944193e-7]</code></pre>
+<pre><code>[0.0, 1.406468278840817, 2.6043605775125504e-5]
+[0.0, 1.4075886255721206, 1.6165895825383626e-5]</code></pre>
 </div>
 </div>
-<p><code>S1</code> reports how much of the reserve variance comes from each input alone, while <code>ST</code> shows the total contribution including interaction terms. If rate and premium interact strongly, the gap <code>ST - S1</code> will be large, signaling non-linear cross-effects.</p>
+<p><code>S1</code> reports how much of the reserve variance comes from each input alone, while <code>ST</code> shows the total contribution including interaction terms. If rate and premium interact strongly, the gap <code>ST - S1</code> will be large, signaling non-linear cross-effects. Note that with small sample sizes, Sobol index estimates can occasionally fall outside the theoretical <code>[0, 1]</code> range; increasing the number of design-matrix samples improves the estimates.</p>
 </section>
 <section id="morris-method" class="level3" data-number="28.4.4">
 <h3 data-number="28.4.4" class="anchored" data-anchor-id="morris-method"><span class="header-section-number">28.4.4</span> Morris Method</h3>
@@ -960,8 +960,8 @@ EE_i = \frac{f(x_1, x_2, ...x_i + \Delta, ...x_k) - y}{\Delta}
 <span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(m.means)</span>
 <span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(m.variances)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[0.0 -653039.48350909 -24.153012811660908]
-[0.0 4.76709304408483e8 0.08143068162048671]</code></pre>
+<pre><code>[0.0 -660683.3863639459 -24.19522620498557]
+[0.0 3.6202664813980854e8 0.053035270612214844]</code></pre>
 </div>
 </div>
 <p>From the means it can be observed which variables are more important, and the variances imply higher degree of nonlinearity or interactions with other variables.</p>
@@ -981,8 +981,8 @@ x_i(s) = G_i(\sin(\omega_i s))
 <span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(fast.S1)</span>
 <span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(fast.ST)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1.4087450804429562e-11 0.9976691509391274 1.3619963887773755e-5]
-[7.504439322181256e-7 0.9999852118712265 0.0023380152390765074]</code></pre>
+<pre><code>[1.3941569669217555e-11 0.9976704963101891 1.3623799554362837e-5]
+[7.426591073222966e-7 0.9999852336933707 0.0023229278650441776]</code></pre>
 </div>
 </div>
 <p>Interpretation mirrors Sobol: <code>S1</code> is the main effect and <code>ST</code> the total effect. Differences between Sobol and FAST estimates mostly reflect Monte Carlo noise; agreement across both methods boosts confidence in your ranking.</p>
