@@ -911,6 +911,20 @@ Y = f_0 + \sum_{i=1}^{d}f_i(X_i) + \sum_{i&lt;j}^{d}f_{ij}(X_i, X_j) + ... + f_{
 Var(Y) = \sum_{i=1}^{d}V_i + \sum_{i&lt;j}^{d}V_{ij} + ... + V_{1,2,...,d}
 \]</span></p>
 <p>The Sobol Indices are “ordered”, the first order indices given by <span class="math inline">\(S_i = \dfrac{V_i}{Var(Y)}\)</span>, the contribution to the output variance of the main effect of <span class="math inline">\(X_i\)</span>. Therefore, it measures the effect of varying <span class="math inline">\(X_i\)</span> alone, but averaged over variations in other input parameters. It is standardized by the total variance to provide a fractional contribution. Higher-order interaction indices <span class="math inline">\(S_{ij}, S_{ijk}\)</span> and so on can be formed by dividing other terms in the variance decomposition by <span class="math inline">\(Var(Y)\)</span>.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Note</span>Randomized quasi-Monte Carlo for design matrices
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Sobol sensitivity analysis requires multiple <strong>independent</strong> design matrices (A, B, and cross-matrices AB_i) so that the variance decomposition is unbiased. A plain deterministic Sobol sequence split across matrices shares the same underlying points, violating that independence assumption.</p>
+<p>Passing <code>R = Shift()</code> to <code>SobolSample</code> applies a Cranley-Patterson rotation — a uniform random shift modulo 1 — to each matrix independently. This preserves the low-discrepancy spacing of the Sobol sequence while making each matrix a genuinely independent draw. Other randomization options such as <code>MatousekScramble</code> or <code>OwenScramble</code> also work but require additional parameters (<code>base</code>, <code>pad</code>).</p>
+</div>
+</div>
 <div id="16" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">QuasiMonteCarlo</span>, <span class="bu">GlobalSensitivity</span></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -918,20 +932,14 @@ Var(Y) = \sum_{i=1}^{d}V_i + \sum_{i&lt;j}^{d}V_{ij} + ... + V_{1,2,...,d}
 <span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>L, U <span class="op">=</span> QuasiMonteCarlo.<span class="fu">generate_design_matrices</span>(</span>
 <span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="fl">1000</span>,</span>
 <span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    [<span class="fl">1</span>, <span class="fl">0.029</span>, <span class="fl">999.9</span>],</span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    [<span class="fl">2</span>, <span class="fl">0.031</span>, <span class="fl">1000.1</span>], <span class="fu">SobolSample</span>()</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    [<span class="fl">2</span>, <span class="fl">0.031</span>, <span class="fl">1000.1</span>], <span class="fu">SobolSample</span>(R<span class="op">=</span><span class="fu">Shift</span>())</span>
 <span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>s <span class="op">=</span> <span class="fu">gsa</span>(r1_wrt_r, <span class="fu">Sobol</span>(), L, U)</span>
 <span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(s.S1)</span>
 <span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(s.ST)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<div class="ansi-escaped-output">
-<pre><span class="ansi-yellow-fg ansi-bold">┌ </span><span class="ansi-yellow-fg ansi-bold">Warning: </span>The `generate_design_matrices(n, d, sampler, R = NoRand(), num_mats)` method does not produces true and independent QMC matrices, see [this doc warning](https://docs.sciml.ai/QuasiMonteCarlo/stable/design_matrix/) for more context. 
-<span class="ansi-yellow-fg ansi-bold">│ </span>    Prefer using randomization methods such as `R = Shift()`, `R = MatousekScrambling()`, etc., see [documentation](https://docs.sciml.ai/QuasiMonteCarlo/stable/randomization/)
-<span class="ansi-yellow-fg ansi-bold">└ </span><span class="ansi-bright-black-fg">@ QuasiMonteCarlo ~/.julia/packages/QuasiMonteCarlo/KvLfb/src/RandomizedQuasiMonteCarlo/iterators.jl:255</span>
-[0.0, 1.0207707461946909, -2.1406196791444575e-5]
-[0.0, 1.0014104679541778, 1.3708293198388621e-5]
-</pre>
-</div>
+<pre><code>[0.0, 1.3632664931260985, 3.5896322811106096e-5]
+[0.0, 1.3300946680774715, 6.432158613944193e-7]</code></pre>
 </div>
 </div>
 <p><code>S1</code> reports how much of the reserve variance comes from each input alone, while <code>ST</code> shows the total contribution including interaction terms. If rate and premium interact strongly, the gap <code>ST - S1</code> will be large, signaling non-linear cross-effects.</p>
@@ -945,15 +953,15 @@ EE_i = \frac{f(x_1, x_2, ...x_i + \Delta, ...x_k) - y}{\Delta}
 <p>We calculate local sensitivity measures known as “elementary effects”, which are calculated by measuring the perturbation in the output of the model on changing one parameter.</p>
 <p>These are evaluated at various points in the input chosen such that a wide “spread” of the parameter space is explored and considered in the analysis, to provide an approximate global importance measure. The mean and variance of these elementary effects is computed. A high value of the mean implies that a parameter is important, a high variance implies that its effects are non-linear or the result of interactions with other inputs. This method does not evaluate separately the contribution from the interaction and the contribution of the parameters individually and gives the effects for each parameter which takes into consideration all the interactions and its individual contribution.</p>
 <div id="18" class="cell" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">GlobalSensitivity</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co"># reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1</span></span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>m <span class="op">=</span> <span class="fu">gsa</span>(r1_wrt_r, <span class="fu">Morris</span>(), [[<span class="fl">1</span>, <span class="fl">2</span>], [<span class="fl">0.029</span>, <span class="fl">0.031</span>], [<span class="fl">999.9</span>, <span class="fl">1000.1</span>]])</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(m.means)</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(m.variances)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">GlobalSensitivity</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co"># reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>m <span class="op">=</span> <span class="fu">gsa</span>(r1_wrt_r, <span class="fu">Morris</span>(), [[<span class="fl">1</span>, <span class="fl">2</span>], [<span class="fl">0.029</span>, <span class="fl">0.031</span>], [<span class="fl">999.9</span>, <span class="fl">1000.1</span>]])</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(m.means)</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(m.variances)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[0.0 -660007.7972974067 -24.30771254284623]
-[0.0 2.2349915568848476e8 0.033419239961272454]</code></pre>
+<pre><code>[0.0 -653039.48350909 -24.153012811660908]
+[0.0 4.76709304408483e8 0.08143068162048671]</code></pre>
 </div>
 </div>
 <p>From the means it can be observed which variables are more important, and the variances imply higher degree of nonlinearity or interactions with other variables.</p>
@@ -966,15 +974,15 @@ x_i(s) = G_i(\sin(\omega_i s))
 \]</span></p>
 <p>where <span class="math inline">\(s\)</span> is a scalar variable varying over the range <span class="math inline">\(-\pi &lt; s &lt; \pi\)</span>, <span class="math inline">\(G_i\)</span> are transformation functions and <span class="math inline">\(\omega_i, \forall i=1,2,\ldots,N\)</span> is a set of different (angular) frequencies, to be properly selected, associated with each factor.</p>
 <div id="20" class="cell" data-execution_count="1">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">GlobalSensitivity</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co"># reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1</span></span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>fast <span class="op">=</span> <span class="fu">gsa</span>(r1_wrt_r, <span class="fu">eFAST</span>(), [[<span class="fl">1</span>, <span class="fl">2</span>], [<span class="fl">0.029</span>, <span class="fl">0.031</span>], [<span class="fl">999.9</span>, <span class="fl">1000.1</span>]], samples<span class="op">=</span><span class="fl">1000</span>)</span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(fast.S1)</span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(fast.ST)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">GlobalSensitivity</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co"># reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>fast <span class="op">=</span> <span class="fu">gsa</span>(r1_wrt_r, <span class="fu">eFAST</span>(), [[<span class="fl">1</span>, <span class="fl">2</span>], [<span class="fl">0.029</span>, <span class="fl">0.031</span>], [<span class="fl">999.9</span>, <span class="fl">1000.1</span>]], samples<span class="op">=</span><span class="fl">1000</span>)</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(fast.S1)</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(fast.ST)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1.4075306872117742e-11 0.9976756770756886 1.3624826761581787e-5]
-[6.694157649311805e-7 0.9999853048722015 0.00231369744214327]</code></pre>
+<pre><code>[1.4087450804429562e-11 0.9976691509391274 1.3619963887773755e-5]
+[7.504439322181256e-7 0.9999852118712265 0.0023380152390765074]</code></pre>
 </div>
 </div>
 <p>Interpretation mirrors Sobol: <code>S1</code> is the main effect and <code>ST</code> the total effect. Differences between Sobol and FAST estimates mostly reflect Monte Carlo noise; agreement across both methods boosts confidence in your ranking.</p>
