@@ -32,6 +32,12 @@ function Pandoc(doc)
       elseif removing and block.level <= remove_level then
         removing = false
       end
+    elseif removing and block.t == "Div" then
+      -- Stop removing at part boundaries (quarto-book-part Divs)
+      -- to avoid accidentally consuming subsequent structural elements
+      if block.classes and block.classes:includes("quarto-book-part") then
+        removing = false
+      end
     end
 
     if not removing then

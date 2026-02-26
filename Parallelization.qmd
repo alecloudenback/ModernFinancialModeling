@@ -519,6 +519,7 @@ First described in @sec-array-oriented-styles, array programming eschews writing
 For the example below, we will calculate the present value of a series of cashflows across a number of different scenarios. An explanation of the code is given below the example.
 
 ```{julia}
+#| warning: false
 using Metal
 
 function calculate_present_values!(present_values, cashflows, discount_matrices) # <1>
@@ -548,7 +549,7 @@ discount_matrices_GPU = MtlArray(discount_matrices)
 5.  `MtlArray(array)` will copy the array values to the GPU.
 6.  Note that the data still lives on the GPU and is of the `MtlMatrix` (a type alias for a 2-D `MtlArray`).
 
-The testing suggests approximately 200 times faster computation when performed on the GPU. Note however, that does not include the overhead of (1) moving the data to the GPU (in the initial `MtlArray(cashflows)` call), or (2) returning the data to the CPU (since the return type for the GPU version is `MtlArray`). We can measure this overhead by wrapping the data transfer inside another function and benchmarking it:
+The testing suggests significantly faster computation when performed on the GPU (the exact speedup depends on hardware and problem size). Note, however, that this does not include the overhead of (1) moving the data to the GPU (in the initial `MtlArray(cashflows)` call), or (2) returning the data to the CPU (since the return type for the GPU version is `MtlArray`). We can measure this overhead by wrapping the data transfer inside another function and benchmarking it:
 
 ```{julia}
 function GPU_overhead_test(present_values, cashflows, discount_matrices)
@@ -632,7 +633,7 @@ groups = cld(num_scenarios, 512)
 );
 ```
 
-This is approximately seven times faster than the array-oriented style above, meaning that the GPU kernel version's computation is over 1000 times faster than the CPU version. However, we saw previously that the cost of moving the data to the GPU memory and then back to the CPU memory was the biggest time sink of all - again we'd need to have more scale in the problem to make offloading to the GPU beneficial overall.
+The kernel version is faster than the array-oriented style above, meaning that the GPU kernel version's computation is significantly faster than the CPU version. However, we saw previously that the cost of moving the data to the GPU memory and then back to the CPU memory was the biggest time sink of all - again we'd need to have more scale in the problem to make offloading to the GPU beneficial overall.
 
 ::: callout-note
 The Metal GPUs are able to iterate threads across three different dimensions. In the prior example, we only used one dimension and thus used `thread_position_in_grid_1d()`. If we were distributing the threads across, say, two dimensions then we would use `thread_position_in_grid_2d()`.

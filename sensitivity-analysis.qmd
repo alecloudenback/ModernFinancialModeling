@@ -95,7 +95,7 @@ For example, `res(2, policies[1])` returns the reserve at the end of policy year
 Given a basic insurance product, a pure whole of life (WOL) policy with level benefits and level premiums payable within the first 10 years, the reserve in-force at the end of the $y^{th}$ ($y$ >= 0) policy year is defined by
 
 $$
-res(y) = \sum_{t=age+y}^{120} (sur_{t-age-y} * mort_t * B_y * \sqrt{1 + pir}) - (P_y * sur_{t-age-y})
+res(y) = \sum_{t=age+y}^{120} (sur_{t-age-y} * mort_t * B_y / \sqrt{1 + pir}) - (P_y * sur_{t-age-y})
 $$
 
 where
@@ -103,7 +103,7 @@ where
 - $mort_t$ is the mortality at age $t$
 - $sur_y$ is the survival probability adjusted with the policy interest rate, with values of
     + $sur_0 = 1$,
-    + $sur_x = sur_{x-1} * (1 - mort_{age+y}) / (1 + pir)$ for $x >= y$, and
+    + $sur_x = sur_{x-1} * (1 - mort_{age+x-1}) / (1 + pir)$ for $x >= y$, and
     + 0 for $x < y - 1$ or $age + x >= 120$, or ultimate age of the current mortality table
 - $B_y$ is the level benefit throughout the policy
 - $P_y$ is the level premium within the first 10 policy years which is 0 for policy years after 10
@@ -149,7 +149,7 @@ Central finite differences`\index{finite differences}`{=latex} approximate deriv
 function res_wrt_r_fd(y::Int, pol::Policy, r::Float64, h=1e-3)
     p₊, p₋ = deepcopy(pol), deepcopy(pol)
     p₊.pir, p₋.pir = r + h, r - h
-    (res(y, p₋) - res(y, p₊)) / (2 * res(y, pol))
+    (res(y, p₋) - res(y, p₊)) / (2 * h * res(y, pol))
 end
 
 # percentage changes in reserve at year 2 when 
@@ -170,13 +170,13 @@ function r1_wrt_r(r)
     p = deepcopy(policies[1])
     p.pir = r[2]
     p.prem = r[3]
-    res(Int(floor(r[1])), p)
+    res(Int(round(r[1])), p)
 end
 
 # reserve @ year 1 or 2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1
 reg_anal = gsa(
     r1_wrt_r, RegressionGSA(),
-    [[1, 2], [0.029, 0.031], [999.9, 1000.1]],
+    [[1, 2], [0.01, 0.05], [500, 1500]],
     samples=1000)
 println(reg_anal.pearson)
 ```
@@ -210,16 +210,16 @@ using QuasiMonteCarlo, GlobalSensitivity
 
 # reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1
 L, U = QuasiMonteCarlo.generate_design_matrices(
-    1000,
-    [1, 0.029, 999.9],
-    [2, 0.031, 1000.1], SobolSample(R=Shift())
+    10_000,
+    [1, 0.01, 500],
+    [2, 0.05, 1500], SobolSample(R=Shift())
 )
 s = gsa(r1_wrt_r, Sobol(), L, U)
 println(s.S1)
 println(s.ST)
 ```
 
-`S1` reports how much of the reserve variance comes from each input alone, while `ST` shows the total contribution including interaction terms. If rate and premium interact strongly, the gap `ST - S1` will be large, signaling non-linear cross-effects.
+`S1` reports how much of the reserve variance comes from each input alone, while `ST` shows the total contribution including interaction terms. If rate and premium interact strongly, the gap `ST - S1` will be large, signaling non-linear cross-effects. Note that with small sample sizes, Sobol index estimates can occasionally fall outside the theoretical `[0, 1]` range; increasing the number of design-matrix samples improves the estimates.
 
 ### Morris Method
 
@@ -237,7 +237,7 @@ These are evaluated at various points in the input chosen such that a wide "spre
 using GlobalSensitivity
 
 # reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1
-m = gsa(r1_wrt_r, Morris(), [[1, 2], [0.029, 0.031], [999.9, 1000.1]])
+m = gsa(r1_wrt_r, Morris(), [[1, 2], [0.01, 0.05], [500, 1500]])
 println(m.means)
 println(m.variances)
 ```
@@ -258,7 +258,7 @@ where $s$ is a scalar variable varying over the range $-\pi < s < \pi$, $G_i$ ar
 using GlobalSensitivity
 
 # reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1
-fast = gsa(r1_wrt_r, eFAST(), [[1, 2], [0.029, 0.031], [999.9, 1000.1]], samples=1000)
+fast = gsa(r1_wrt_r, eFAST(), [[1, 2], [0.01, 0.05], [500, 1500]], samples=1000)
 println(fast.S1)
 println(fast.ST)
 ```
