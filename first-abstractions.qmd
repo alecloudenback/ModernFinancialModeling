@@ -199,7 +199,7 @@ Modifying values is often avoidable by restructuring the logic, using functional
 |                          |                                                                                                                                       | ) # 225       |
 |                          |                                                                                                                                       | ```           |
 +--------------------------+---------------------------------------------------------------------------------------------------------------------------------------+---------------+
-| `foldl(op,v)foldr(op,v)` | Like `reduce`, but applies `op` from left to right (`foldl`) or right to left (`foldr`). Also has `mapfoldl` and `mapfoldr` versions. | ``` julia     |
+| `foldl(op,v)` / `foldr(op,v)` | Like `reduce`, but applies `op` from left to right (`foldl`) or right to left (`foldr`). Also has `mapfoldl` and `mapfoldr` versions. | ``` julia     |
 |                          |                                                                                                                                       | foldl(        |
 |                          |                                                                                                                                       |     *,        |
 |                          |                                                                                                                                       |     [1,3,5]   |
@@ -226,7 +226,7 @@ Modifying values is often avoidable by restructuring the logic, using functional
 
 This paradigm is very powerful in a few ways:
 
-1.  It provides a language for talking about what a computation is doing. Instead of "looping over a collection called `portfolio` and calling a `value` function" we can more concisely refer to this as `mapreduce(value,portfolio)`.
+1.  It provides a language for talking about what a computation is doing. Instead of "looping over a collection called `portfolio` and calling a `value` function" we can more concisely refer to this as `mapreduce(value, +, portfolio)`.
 2.  Often you are forced to think about the design of the program more deeply, recognizing the core calculations and data used within the model.
 3.  The compiler is free to apply more optimizations. For example, with `reduce`, the compiler could optimize the calculation since the operation is assumed to be associative.
 4.  The lack of mutable state.
@@ -527,7 +527,7 @@ For example filtering out even numbers using the `isodd` function:
 filter(isodd, 1:6)
 ```
 
-Or filtering out things that don't match a criteria:
+Or filtering out things that don't match a criterion:
 
 ```{julia}
 filter(x -> ~(x == 5), 1:6)
@@ -551,9 +551,9 @@ In more complex situations such as with multiple collections or multi-line logic
 ```{julia}
 map(x -> begin
         if x == 1
-            "prime"
-        elseif x == 2
             "not prime"
+        elseif x == 2
+            "prime"
         elseif x == 3
             "prime"
         elseif x > 4
@@ -569,9 +569,9 @@ This can be written more cleanly with the `do` syntax:
 ```{julia}
 map([1, 2, 3, 10]) do x
     if x == 1
-        "prime"
-    elseif x == 2
         "not prime"
+    elseif x == 2
+        "prime"
     elseif x == 3
         "prime"
     elseif x > 4
@@ -609,7 +609,7 @@ Take the example from earlier:
 pv = 0.0
 discount = 1.0
 
-for (r,cf) in zip(cf_bond, rate)
+for (cf,r) in zip(cf_bond, rate)
     discount = discount / (1 + r)
     pv = pv + discount * cf
 end
@@ -660,7 +660,7 @@ Array-oriented programming is practiced in two main contexts:
 
 The former because GPUs want large blocks of similar data to operate in parallel. The latter is because native Python is too slow for many modeling problems so libraries like NumPy, SciPy, and tensor libraries utilize C++ (or similar) libraries for users to call out to.
 
-Array-oriented programming is not always natural for financial and actuarial applications. Differences in behavior or timing of underling cashflows can make a set of otherwise similar products difficult to capture in nicely gridded arrays. Nonetheless, certain applications (scenario generation, some valuation routines) fit very naturally into this paradigm. Furthermore, for those that work well it's often a great way to extract additional performance due to the parallelization offered via CPU or GPU array programming.
+Array-oriented programming is not always natural for financial and actuarial applications. Differences in behavior or timing of underlying cashflows can make a set of otherwise similar products difficult to capture in nicely gridded arrays. Nonetheless, certain applications (scenario generation, some valuation routines) fit very naturally into this paradigm. Furthermore, for those that work well it's often a great way to extract additional performance due to the parallelization offered via CPU or GPU array programming.
 
 @tbl-array-oriented-example shows the bond present value example in this style.
 
@@ -679,7 +679,7 @@ Array-oriented programming is not always natural for financial and actuarial app
 |                                              | ```                                             |
 +----------------------------------------------+-------------------------------------------------+
 
-: The two code examples demonstrate the same logic using Julia and Numpy (Python's most popular array package). Julia's broadcasting facilitates an array-oriented style, similar to the approach that would be used with Python's NumPy. {#tbl-array-oriented-example}
+: The two code examples demonstrate the same logic using Julia and NumPy (Python's most popular array package). Julia's broadcasting facilitates an array-oriented style, similar to the approach that would be used with Python's NumPy. {#tbl-array-oriented-example}
 :::
 
 The downsides to this style are:

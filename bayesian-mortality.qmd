@@ -249,42 +249,6 @@ We can see that the sampling of possible posterior`\index{posterior (Bayesian)}`
 ```{julia}
 let
     data_weight = sqrt.(data.exposures) / 2
-
-    p = scatter(
-        data.att_age,
-        data.fraction,
-        markersize=data_weight,
-        alpha=0.5,
-        label="Experience data point",
-        axis=(
-            xlabel="age",
-            limits=(nothing, nothing, -0.01, 0.10),
-            ylabel="mortality rate",
-            title="Parametric Bayesian Mortality"
-        )
-    )
-
-    # Sample from posterior once (much faster than sampling 1 at a time in loop)
-    n_samples = 300
-    posterior = sample(chain2, n_samples)
-    a_samples = vec(Array(posterior[:a]))
-    b_samples = vec(Array(posterior[:b]))
-    k_samples = vec(Array(posterior[:k]))
-
-    ages = sort!(unique(data.att_age))
-
-    for i in 1:n_samples
-        m = MortalityTables.MakehamBeard(; a=a_samples[i], b=b_samples[i], c=0.0, k=k_samples[i])
-        qs = MortalityTables.hazard.(m, ages)
-        lines!(ages, qs, alpha=0.1, label="")
-    end
-    p
-end
-```
-
-```{julia}
-let
-    data_weight = sqrt.(data.exposures) / 2
     f = Figure()
     ax = Axis(f[1, 1],
         xlabel="age",

@@ -381,7 +381,7 @@ Tip from practice: desks that run daily risk charge calculations often rely on A
 
 ### Performance
 
-Earlier we assessed the impact on performance for the derivatives using `DualNumber` on a very basic function. What about if we take a more realistic example like `eurocall`? We can observe approximately a 9x slowdown when computing all of the first order derivatives which isn't bad considering we are computing 6x of the outputs!
+Earlier we assessed the impact on performance for the derivatives using `DualNumber` on a very basic function. What about if we take a more realistic example like `eurocall`?
 
 ```{julia}
 @btime eurocall($params)
@@ -390,11 +390,35 @@ Earlier we assessed the impact on performance for the derivatives using `DualNum
 ```{julia}
 let
     g = similar(params) #<1>
-    @btime ForwardDiff.gradient!($g, eurocall, $params)
+    cfg = ForwardDiff.GradientConfig(eurocall, params) #<2>
+    @btime ForwardDiff.gradient!($g, eurocall, $params, $cfg)
 end
 ```
 
-1.  To avoid benchmarking memory allocation for the new array, we pre-allocate the array in memory to store the result and then call `gradient!` to fill in `g` for each result.
+1.  Pre-allocate the output array so the benchmark measures only the gradient computation.
+2.  Pre-allocate the `GradientConfig` to avoid ForwardDiff re-creating internal buffers on each call — without this, the overhead is dominated by allocations rather than actual derivative computation.
+
+We can compare this against a naïve finite-difference gradient that requires seven evaluations of the pricing function (one base evaluation plus one per input):
+
+```{julia}
+function fd_gradient!(g, f, x; h=1e-8)
+    fx = f(x)
+    for i in eachindex(x)
+        xi = x[i]
+        x[i] = xi + h
+        g[i] = (f(x) - fx) / h
+        x[i] = xi
+    end
+    g
+end
+
+let
+    g = similar(params)
+    @btime fd_gradient!($g, eurocall, $params)
+end
+```
+
+Forward-mode AD computes all six first-order derivatives faster than finite differences and returns exact results — no step-size tuning and no truncation error (recall @fig-finite-diff-error).
 
 ## Forward Mode and Reverse Mode
 
@@ -402,7 +426,7 @@ The approach outlined above is forward-mode AD`\index{forward mode (automatic di
 
 Reverse mode requires more book-keeping because the derivative needs to be carried backwards through the computation graph, rather than being propagated forward as with the `DualNumber` approach.
 
-## Practical tips for Automatic Differentiation
+## Practical Tips for Automatic Differentiation
 
 Here are a few practical tips to keep in mind.
 
@@ -415,7 +439,7 @@ Forward mode is more efficient when the number of inputs is small relative to th
 
 ### Mutation
 
-Auto-differentiation works through most code, but a particularly tricky part to get right is when values within arrays are mutated (changed). It's possible to do so but may require a little bit more boilerplate to setup. As of 2024, [Enzyme.jl](https://github.com/EnzymeAD/Enzyme.jl) has the best support for functions with mutation inside of them.
+Auto-differentiation works through most code, but a particularly tricky part to get right is when values within arrays are mutated (changed). It's possible to do so but may require a little bit more boilerplate to set up. [Enzyme.jl](https://github.com/EnzymeAD/Enzyme.jl) has the best support for functions with mutation inside of them.
 
 ### Custom Rules
 
@@ -426,7 +450,7 @@ Custom rules for new or unusual functions can be defined, but this is an area th
 -   [**ForwardDiff.jl**](https://github.com/JuliaDiff/ForwardDiff.jl)`\index{ForwardDiff.jl}`{=latex} provides robust forward-mode AD.
 -   [**Zygote.jl**](https://github.com/FluxML/Zygote.jl)`\index{Zygote.jl}`{=latex} is a reverse-mode package with the innovations of being able to differentiate `structs` in addition to arrays and scalars.
 -   [**Enzyme.jl**](https://github.com/EnzymeAD/Enzyme.jl)`\index{Enzyme.jl}`{=latex} is a newer package which allows for both forward and reverse mode, but has the advantage of supporting array mutation. Additionally, Enzyme works at the level of LLVM code (an intermediate level between high level Julia code and machine code) which allows for different, sometimes better, optimizations.
--   [**DifferentiationInterface.jl**](https://github.com/JuliaDiff/DifferentiationInterface.jl)`\index{DifferentiationInterface.jl}`{=latex} is a wrapper library providing a consistent API while being able exchange different backends.
+-   [**DifferentiationInterface.jl**](https://github.com/JuliaDiff/DifferentiationInterface.jl)`\index{DifferentiationInterface.jl}`{=latex} is a wrapper library providing a consistent API while being able to exchange different backends.
 
 In the authors' experience, they would probably recommend DifferentiationInterface.jl as a starting point, and diving into specific libraries if certain features are needed.
 
