@@ -889,7 +889,7 @@ res(y) = \sum_{t=age+y}^{120} (sur_{t-age-y} * mort_t * B_y / \sqrt{1 + pir}) - 
 <span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">res</span>(<span class="fu">Int</span>(<span class="fu">round</span>(r[<span class="fl">1</span>])), p)</span>
 <span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
 <span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="co"># reserve @ year 1 or 2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="co"># reserve @ year 1 or 2, interest rate ∈ [0.01, 0.05], prem ∈ [500, 1500]</span></span>
 <span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>reg_anal <span class="op">=</span> <span class="fu">gsa</span>(</span>
 <span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    r1_wrt_r, <span class="fu">RegressionGSA</span>(),</span>
 <span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    [[<span class="fl">1</span>, <span class="fl">2</span>], [<span class="fl">0.01</span>, <span class="fl">0.05</span>], [<span class="fl">500</span>, <span class="fl">1500</span>]],</span>
@@ -928,7 +928,7 @@ Var(Y) = \sum_{i=1}^{d}V_i + \sum_{i&lt;j}^{d}V_{ij} + ... + V_{1,2,...,d}
 <div id="16" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">QuasiMonteCarlo</span>, <span class="bu">GlobalSensitivity</span></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co"># reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co"># reserve @ year 1/2, interest rate ∈ [0.01, 0.05], prem ∈ [500, 1500]</span></span>
 <span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>L, U <span class="op">=</span> QuasiMonteCarlo.<span class="fu">generate_design_matrices</span>(</span>
 <span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="fl">10_000</span>,</span>
 <span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    [<span class="fl">1</span>, <span class="fl">0.01</span>, <span class="fl">500</span>],</span>
@@ -938,8 +938,8 @@ Var(Y) = \sum_{i=1}^{d}V_i + \sum_{i&lt;j}^{d}V_{ij} + ... + V_{1,2,...,d}
 <span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(s.S1)</span>
 <span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(s.ST)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[0.0019235856308826773, 0.3184901174645768, 0.5781423367751736]
-[0.0021061035529396127, 0.33142962630534323, 0.5931452221465809]</code></pre>
+<pre><code>[0.0015481730962043768, 0.6879389219022453, 0.15213075171983417]
+[0.0014195937781026238, 0.6961232048470805, 0.1597889373276319]</code></pre>
 </div>
 </div>
 <p><code>S1</code> reports how much of the reserve variance comes from each input alone, while <code>ST</code> shows the total contribution including interaction terms. If rate and premium interact strongly, the gap <code>ST - S1</code> will be large, signaling non-linear cross-effects. Note that with small sample sizes, Sobol index estimates can occasionally fall outside the theoretical <code>[0, 1]</code> range; increasing the number of design-matrix samples improves the estimates.</p>
@@ -955,20 +955,20 @@ EE_i = \frac{f(x_1, x_2, ...x_i + \Delta, ...x_k) - y}{\Delta}
 <div id="18" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">GlobalSensitivity</span></span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co"># reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co"># reserve @ year 1/2, interest rate ∈ [0.01, 0.05], prem ∈ [500, 1500]</span></span>
 <span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>m <span class="op">=</span> <span class="fu">gsa</span>(r1_wrt_r, <span class="fu">Morris</span>(), [[<span class="fl">1</span>, <span class="fl">2</span>], [<span class="fl">0.01</span>, <span class="fl">0.05</span>], [<span class="fl">500</span>, <span class="fl">1500</span>]])</span>
 <span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(m.means)</span>
 <span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(m.variances)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[0.0 -1.0618462816114333e6 -25.43024053279468]
-[0.0 4.622089917399654e11 36.588557055543646]</code></pre>
+<pre><code>[0.0 -1.1162110332257322e6 -27.487706697029285]
+[0.0 2.7838438816965265e11 17.97550721207602]</code></pre>
 </div>
 </div>
 <p>From the means it can be observed which variables are more important, and the variances imply higher degree of nonlinearity or interactions with other variables.</p>
 </section>
 <section id="fourier-amplitude-sensitivity-tests" class="level3" data-number="28.4.5">
 <h3 data-number="28.4.5" class="anchored" data-anchor-id="fourier-amplitude-sensitivity-tests"><span class="header-section-number">28.4.5</span> Fourier Amplitude Sensitivity Tests</h3>
-<p>FAST (Fourier Amplitude Sensitivity Tests) offers a robust, especially at low sample size, and computationally efficient procedure to get the first and total order indices as discussed in Sobol. It utilizes monodimensional Fourier decomposition along a curve exploring the parameter space. Each input factor is varied along the curve via a parametric equation,</p>
+<p>FAST (Fourier Amplitude Sensitivity Tests) offers a robust and computationally efficient procedure, especially at low sample sizes, to get the first and total order indices as discussed in Sobol. It utilizes monodimensional Fourier decomposition along a curve exploring the parameter space. Each input factor is varied along the curve via a parametric equation,</p>
 <p><span class="math display">\[
 x_i(s) = G_i(\sin(\omega_i s))
 \]</span></p>
@@ -976,13 +976,13 @@ x_i(s) = G_i(\sin(\omega_i s))
 <div id="20" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">GlobalSensitivity</span></span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co"># reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co"># reserve @ year 1/2, interest rate ∈ [0.01, 0.05], prem ∈ [500, 1500]</span></span>
 <span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>fast <span class="op">=</span> <span class="fu">gsa</span>(r1_wrt_r, <span class="fu">eFAST</span>(), [[<span class="fl">1</span>, <span class="fl">2</span>], [<span class="fl">0.01</span>, <span class="fl">0.05</span>], [<span class="fl">500</span>, <span class="fl">1500</span>]], samples<span class="op">=</span><span class="fl">1000</span>)</span>
 <span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(fast.S1)</span>
 <span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(fast.ST)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[0.0014210710358459069 0.5955890719403069 0.380830233231557]
-[0.002650458686505708 0.6182192857980402 0.4037773865326476]</code></pre>
+<pre><code>[0.001417459775710441 0.5938615465944472 0.37969568362713957]
+[0.002617337485450455 0.6162314020661205 0.4022356896558401]</code></pre>
 </div>
 </div>
 <p>Interpretation mirrors Sobol: <code>S1</code> is the main effect and <code>ST</code> the total effect. Differences between Sobol and FAST estimates mostly reflect Monte Carlo noise; agreement across both methods boosts confidence in your ranking.</p>

@@ -1032,7 +1032,7 @@ Tip
 <pre><code>  4.833 ns (0 allocations: 0 bytes)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>10.891101108681228</code></pre>
+<pre><code>5.7553577215268295</code></pre>
 </div>
 </div>
 <div id="30" class="cell" data-execution_count="1">
@@ -1041,7 +1041,7 @@ Tip
 <pre><code>  9.467 ns (0 allocations: 0 bytes)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>DualNumber{Float64, Float64}(12.162268561183165, 10.229331222643385)</code></pre>
+<pre><code>DualNumber{Float64, Float64}(12.970782005055941, 10.051127943138852)</code></pre>
 </div>
 </div>
 <p>The dual number version takes somewhat longer than the plain function evaluation — but for this additional cost, we get both the function value <em>and</em> its exact derivative. This is typically less than twice the cost of the base evaluation alone. Compare this to finite differences, which require two or three separate function evaluations just to <em>approximate</em> the derivative. As the function gets more complex, the overhead does increase but is still generally preferred over finite differentiation. This advantage becomes more pronounced as we contemplate derivatives with respect to many variables at once or for higher-order derivatives.</p>
@@ -1081,7 +1081,7 @@ Note
 <span id="annotated-cell-14-15"><a href="#annotated-cell-14-15" aria-hidden="true" tabindex="-1"></a><span class="st">    eurocall(parameters)</span></span>
 <span id="annotated-cell-14-16"><a href="#annotated-cell-14-16" aria-hidden="true" tabindex="-1"></a></span>
 <span id="annotated-cell-14-17"><a href="#annotated-cell-14-17" aria-hidden="true" tabindex="-1"></a><span class="st">Calculate the Black-Scholes implied option price </span></span>
-<span id="annotated-cell-14-18"><a href="#annotated-cell-14-18" aria-hidden="true" tabindex="-1"></a><span class="st">for a european call where `parameters` is a vector </span></span>
+<span id="annotated-cell-14-18"><a href="#annotated-cell-14-18" aria-hidden="true" tabindex="-1"></a><span class="st">for a European call where `parameters` is a vector </span></span>
 <span id="annotated-cell-14-19"><a href="#annotated-cell-14-19" aria-hidden="true" tabindex="-1"></a><span class="st">with the following six elements:</span></span>
 <span id="annotated-cell-14-20"><a href="#annotated-cell-14-20" aria-hidden="true" tabindex="-1"></a></span>
 <span id="annotated-cell-14-21"><a href="#annotated-cell-14-21" aria-hidden="true" tabindex="-1"></a><span class="st">- `S` is the current asset price</span></span>
@@ -1149,7 +1149,7 @@ Tip
 </ul>
 </div>
 </div>
-<p>With the above code, now we can get the partial derivatives with respect to each parameter. The first, third, fourth, fifth, and sixth correspond to the common “greeks” <em>delta</em>, <em>theta</em>, <em>rho</em>, <em>vega</em>, and <em>epsilon</em> respectively. The second term is the partial derivative with respect to the strike price:</p>
+<p>With the above code, now we can get the partial derivatives with respect to each parameter. The first, third, fourth, fifth, and sixth correspond to the common “Greeks” <em>delta</em>, <em>theta</em>, <em>rho</em>, <em>vega</em>, and <em>phi</em> respectively. The second term is the partial derivative with respect to the strike price:</p>
 <div id="36" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>ForwardDiff.<span class="fu">gradient</span>(eurocall, params)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
@@ -1170,7 +1170,7 @@ Tip
 <li>Entry 5: vega <span class="math inline">\(\partial C / \partial \sigma\)</span></li>
 <li>Entry 6: dividend rho (often denoted phi) <span class="math inline">\(\partial C / \partial q\)</span></li>
 </ul>
-<p>We can also get the second order greeks with another call. This includes many uncommon second order partial derivatives, but the popular <em>gamma</em> is in the <code>[1,1]</code> position for example:</p>
+<p>We can also get the second order Greeks with another call. This includes many uncommon second order partial derivatives, but the popular <em>gamma</em> is in the <code>[1,1]</code> position for example:</p>
 <div id="38" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>ForwardDiff.<span class="fu">hessian</span>(eurocall, params)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
@@ -1227,7 +1227,7 @@ Note
 </dl>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  97.727 ns (0 allocations: 0 bytes)</code></pre>
+<pre><code>  89.700 ns (0 allocations: 0 bytes)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>6-element Vector{Float64}:
@@ -1257,7 +1257,7 @@ Note
 <span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@btime</span> <span class="fu">fd_gradient!</span>(<span class="op">$</span>g, eurocall, <span class="op">$</span>params)</span>
 <span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  128.894 ns (0 allocations: 0 bytes)</code></pre>
+<pre><code>  128.903 ns (0 allocations: 0 bytes)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>6-element Vector{Float64}:
