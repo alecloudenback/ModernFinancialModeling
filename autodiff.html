@@ -1032,16 +1032,16 @@ Tip
 <pre><code>  4.833 ns (0 allocations: 0 bytes)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>13.45234692033895</code></pre>
+<pre><code>10.891101108681228</code></pre>
 </div>
 </div>
 <div id="30" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">f3</span>(<span class="fu">DualNumber</span>(x, <span class="fl">1</span>)) setup <span class="op">=</span> x <span class="op">=</span> <span class="fu">rand</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  9.541 ns (0 allocations: 0 bytes)</code></pre>
+<pre><code>  9.467 ns (0 allocations: 0 bytes)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>DualNumber{Float64, Float64}(10.755801197147472, 10.272392869476453)</code></pre>
+<pre><code>DualNumber{Float64, Float64}(12.162268561183165, 10.229331222643385)</code></pre>
 </div>
 </div>
 <p>The dual number version takes somewhat longer than the plain function evaluation — but for this additional cost, we get both the function value <em>and</em> its exact derivative. This is typically less than twice the cost of the base evaluation alone. Compare this to finite differences, which require two or three separate function evaluations just to <em>approximate</em> the derivative. As the function gets more complex, the overhead does increase but is still generally preferred over finite differentiation. This advantage becomes more pronounced as we contemplate derivatives with respect to many variables at once or for higher-order derivatives.</p>
@@ -1198,7 +1198,7 @@ Note
 </div>
 <section id="performance" class="level3" data-number="16.6.1">
 <h3 data-number="16.6.1" class="anchored" data-anchor-id="performance"><span class="header-section-number">16.6.1</span> Performance</h3>
-<p>Earlier we assessed the impact on performance for the derivatives using <code>DualNumber</code> on a very basic function. What about if we take a more realistic example like <code>eurocall</code>? We can observe approximately a 9x slowdown when computing all of the first order derivatives which isn’t bad considering we are computing 6x of the outputs!</p>
+<p>Earlier we assessed the impact on performance for the derivatives using <code>DualNumber</code> on a very basic function. What about if we take a more realistic example like <code>eurocall</code>?</p>
 <div id="40" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">eurocall</span>(<span class="op">$</span>params)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
@@ -1211,18 +1211,23 @@ Note
 <div id="42" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="annotated-cell-19"><pre class="sourceCode julia code-annotation-code code-with-copy code-annotated"><code class="sourceCode julia"><span id="annotated-cell-19-1"><a href="#annotated-cell-19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span></span>
 <a class="code-annotation-anchor" data-target-cell="annotated-cell-19" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-19-2" class="code-annotation-target"><a href="#annotated-cell-19-2" aria-hidden="true" tabindex="-1"></a>    g <span class="op">=</span> <span class="fu">similar</span>(params)</span>
-<span id="annotated-cell-19-3"><a href="#annotated-cell-19-3" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@btime</span> ForwardDiff.<span class="fu">gradient!</span>(<span class="op">$</span>g, eurocall, <span class="op">$</span>params)</span>
-<span id="annotated-cell-19-4"><a href="#annotated-cell-19-4" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-19" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-19-3" class="code-annotation-target"><a href="#annotated-cell-19-3" aria-hidden="true" tabindex="-1"></a>    cfg <span class="op">=</span> ForwardDiff.<span class="fu">GradientConfig</span>(eurocall, params)</span>
+<span id="annotated-cell-19-4"><a href="#annotated-cell-19-4" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@btime</span> ForwardDiff.<span class="fu">gradient!</span>(<span class="op">$</span>g, eurocall, <span class="op">$</span>params, <span class="op">$</span>cfg)</span>
+<span id="annotated-cell-19-5"><a href="#annotated-cell-19-5" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-annotation">
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-19" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-cell="annotated-cell-19" data-code-lines="2" data-code-annotation="1">To avoid benchmarking memory allocation for the new array, we pre-allocate the array in memory to store the result and then call <code>gradient!</code> to fill in <code>g</code> for each result.</span>
+<span data-code-cell="annotated-cell-19" data-code-lines="2" data-code-annotation="1">Pre-allocate the output array so the benchmark measures only the gradient computation.</span>
+</dd>
+<dt data-target-cell="annotated-cell-19" data-target-annotation="2">2</dt>
+<dd>
+<span data-code-cell="annotated-cell-19" data-code-lines="3" data-code-annotation="2">Pre-allocate the <code>GradientConfig</code> to avoid ForwardDiff re-creating internal buffers on each call — without this, the overhead is dominated by allocations rather than actual derivative computation.</span>
 </dd>
 </dl>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  346.213 ns (3 allocations: 704 bytes)</code></pre>
+<pre><code>  97.727 ns (0 allocations: 0 bytes)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>6-element Vector{Float64}:
@@ -1234,6 +1239,37 @@ Note
  -0.044380565393678295</code></pre>
 </div>
 </div>
+<p>We can compare this against a naïve finite-difference gradient that requires seven evaluations of the pricing function (one base evaluation plus one per input):</p>
+<div id="44" class="cell" data-execution_count="1">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">fd_gradient!</span>(g, f, x; h<span class="op">=</span><span class="fl">1e-8</span>)</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>    fx <span class="op">=</span> <span class="fu">f</span>(x)</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="fu">eachindex</span>(x)</span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>        xi <span class="op">=</span> x[i]</span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>        x[i] <span class="op">=</span> xi <span class="op">+</span> h</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>        g[i] <span class="op">=</span> (<span class="fu">f</span>(x) <span class="op">-</span> fx) <span class="op">/</span> h</span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>        x[i] <span class="op">=</span> xi</span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>    g</span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span></span>
+<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a>    g <span class="op">=</span> <span class="fu">similar</span>(params)</span>
+<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@btime</span> <span class="fu">fd_gradient!</span>(<span class="op">$</span>g, eurocall, <span class="op">$</span>params)</span>
+<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  128.894 ns (0 allocations: 0 bytes)</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<pre><code>6-element Vector{Float64}:
+  0.5399635849556716
+ -0.5150297410771998
+  0.1642067704032968
+  0.042331216310032005
+  0.11379887032703095
+ -0.044380565888957335</code></pre>
+</div>
+</div>
+<p>Forward-mode AD computes all six first-order derivatives faster than finite differences and returns exact results — no step-size tuning and no truncation error (recall <a href="#fig-finite-diff-error" class="quarto-xref">Figure&nbsp;<span>16.1</span></a>).</p>
 </section>
 </section>
 <section id="forward-mode-and-reverse-mode" class="level2" data-number="16.7">
