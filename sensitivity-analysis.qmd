@@ -173,7 +173,7 @@ function r1_wrt_r(r)
     res(Int(round(r[1])), p)
 end
 
-# reserve @ year 1 or 2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1
+# reserve @ year 1 or 2, interest rate ∈ [0.01, 0.05], prem ∈ [500, 1500]
 reg_anal = gsa(
     r1_wrt_r, RegressionGSA(),
     [[1, 2], [0.01, 0.05], [500, 1500]],
@@ -208,7 +208,7 @@ Passing `R = Shift()` to `SobolSample` applies a Cranley-Patterson rotation — 
 ```{julia}
 using QuasiMonteCarlo, GlobalSensitivity
 
-# reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1
+# reserve @ year 1/2, interest rate ∈ [0.01, 0.05], prem ∈ [500, 1500]
 L, U = QuasiMonteCarlo.generate_design_matrices(
     10_000,
     [1, 0.01, 500],
@@ -236,7 +236,7 @@ These are evaluated at various points in the input chosen such that a wide "spre
 ```{julia}
 using GlobalSensitivity
 
-# reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1
+# reserve @ year 1/2, interest rate ∈ [0.01, 0.05], prem ∈ [500, 1500]
 m = gsa(r1_wrt_r, Morris(), [[1, 2], [0.01, 0.05], [500, 1500]])
 println(m.means)
 println(m.variances)
@@ -246,7 +246,7 @@ From the means it can be observed which variables are more important, and the va
 
 ### Fourier Amplitude Sensitivity Tests
 
-FAST (Fourier Amplitude Sensitivity Tests)`\index{FAST (Fourier Amplitude Sensitivity Tests)}`{=latex} offers a robust, especially at low sample size, and computationally efficient procedure to get the first and total order indices as discussed in Sobol. It utilizes monodimensional Fourier decomposition along a curve exploring the parameter space. Each input factor is varied along the curve via a parametric equation,
+FAST (Fourier Amplitude Sensitivity Tests)`\index{FAST (Fourier Amplitude Sensitivity Tests)}`{=latex} offers a robust and computationally efficient procedure, especially at low sample sizes, to get the first and total order indices as discussed in Sobol. It utilizes monodimensional Fourier decomposition along a curve exploring the parameter space. Each input factor is varied along the curve via a parametric equation,
 
 $$
 x_i(s) = G_i(\sin(\omega_i s))
@@ -257,7 +257,7 @@ where $s$ is a scalar variable varying over the range $-\pi < s < \pi$, $G_i$ ar
 ```{julia}
 using GlobalSensitivity
 
-# reserve @ year 1/2, interest rate @ 0.03 ± 0.01, prem @ 1000.0 ± 0.1
+# reserve @ year 1/2, interest rate ∈ [0.01, 0.05], prem ∈ [500, 1500]
 fast = gsa(r1_wrt_r, eFAST(), [[1, 2], [0.01, 0.05], [500, 1500]], samples=1000)
 println(fast.S1)
 println(fast.ST)
