@@ -242,13 +242,15 @@ Risk measures`\index{risk measures}`{=latex} encompass the set of functions that
 
 ##### Coherence & Other Desirable Properties
 
-Further, it is desirable that a risk measure has certain properties, and risk measures that meet the first four criteria are called "coherent" in the literature. From "An Introduction to Risk Measures for Actuarial Applications" ([@hardy2006introduction]), she describes four properties. Using $H$ as a risk measure and $X$ as the associated risk distribution:
+Further, it is desirable that a risk measure has certain properties, and risk measures that meet the first four criteria are called "coherent" in the literature. In "An Introduction to Risk Measures for Actuarial Applications" [@hardy2006introduction], Hardy describes four properties. Using $H$ as a risk measure and $X$ as the associated risk distribution:
 
 ###### 1. Translation Invariance
 
-For any non-random $c$
+For any non-random $c$:
 
-$H(X + c) = H(X) + c$ This means that adding a constant amount (positive or negative) to a risk adds the same amount to the risk measure. It also implies that the risk measure for a non-random loss, with known value c, say, is just the amount of the loss c.
+$$H(X + c) = H(X) + c$$
+
+This means that adding a constant amount (positive or negative) to a risk adds the same amount to the risk measure. It also implies that the risk measure for a non-random loss, with known value $c$, say, is just the amount of the loss $c$.
 
 ###### 2. Positive Homogeneity
 
@@ -274,19 +276,19 @@ If one risk is always bigger than another, the risk measures should be similarly
 
 ###### Other Properties
 
-In "Properties of Distortion Risk Measures" [@balbas2009properties] also note other properties of interest:
+The authors of "Properties of Distortion Risk Measures" [@balbas2009properties] also note other properties of interest:
 
-####### **Complete**
+**Complete**
 
 Completeness is the property that the distortion function associated with the risk measure produces a unique mapping between the original risk's survival function $S(x)$ and the distorted $S^*(x)$ for each $x$. See the Distortion Risk Measures note below for more detail on this.
 
 In practice, this means that a non-complete risk measure ignores some part of the risk distribution (e.g. CTE and VaR don't use the full distribution).
 
-####### **Exhaustive**
+**Exhaustive**
 
 A risk measure is "exhaustive" if it is coherent and complete.
 
-####### **Adaptable**
+**Adaptable**
 
 A risk measure is "adapted" or "adaptable" if its distortion function satisfies the following conditions (see the Distortion Risk Measures note below):
 
@@ -351,7 +353,7 @@ end
 
 #### Plotting a Range of Values
 
-We will generate a random outcome and show how the risk measures behave:
+We will assume a distribution of outcomes and show how the risk measures behave across a range of levels $\alpha$:
 
 ```{julia}
 using Distributions, Random, ActuaryUtilities, CairoMakie
@@ -449,7 +451,7 @@ Together, these techniques reflect a crucial principle of computational thinking
 
 #### Macroeconomic Analysis
 
-Here we show still another stochastic process in macroeconomic analysis. Stochastic macroeconomic analysis often involves modeling random shocks and their effects on macroeconomic variables such as output, consumption, inflation, and employment. One common approach is through Dynamic Stochastic General Equilibrium (DSGE) models, which are widely used in macroeconomic analysis. These models incorporate randomness (stochastic elements) to capture real-world uncertainty in economic systems.
+Here we show a stochastic process used in macroeconomic analysis. Stochastic macroeconomic analysis often involves modeling random shocks and their effects on macroeconomic variables such as output, consumption, inflation, and employment. One common approach is through Dynamic Stochastic General Equilibrium (DSGE) models, which are widely used in macroeconomic analysis. These models incorporate randomness (stochastic elements) to capture real-world uncertainty in economic systems. Below, we simulate a simpler relative of these models: a Solow growth model (in per-effective-worker terms) with random productivity shocks.
 
 ```{julia}
 using Random, CairoMakie, Distributions
@@ -465,16 +467,15 @@ T = 100                 # Number of periods to simulate
 K0 = 1.0                # Initial capital stock
 A0 = 1.0                # Initial productivity
 
-# Shock distribution (normal distribution for productivity shocks)
-shock_distribution = Normal(0, σ)
-
 # Random number generator (Xoshiro as default with a seed to ensure reproducibility)
 rng_gen = Xoshiro(1234)
 
 # Function to simulate the model
 function simulate_stochastic_solow(rng, T, α, δ, s, n, g, σ, K0, A0)
-    K = zeros(T)        # Capital over time
-    Y = zeros(T)        # Output over time
+    # Shock distribution (normal distribution for productivity shocks)
+    shock_distribution = Normal(0, σ)
+    K = zeros(T)        # Capital (per effective worker) over time
+    Y = zeros(T)        # Output (per effective worker) over time
     A = zeros(T)        # Productivity shocks over time
     A[1] = A0           # Initial productivity
     K[1] = K0           # Initial capital
@@ -490,8 +491,8 @@ function simulate_stochastic_solow(rng, T, α, δ, s, n, g, σ, K0, A0)
         # Capital accumulation equation
         K[t+1] = s * Y[t] + (1 - δ) * K[t]
 
-        # Population and technology growth
-        K[t+1] *= (1 + n) * (1 + g)
+        # Population and technology growth dilute capital per effective worker
+        K[t+1] /= (1 + n) * (1 + g)
     end
 
     Y[T] = A[T] * K[T]^α  # Final output

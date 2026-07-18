@@ -27,7 +27,7 @@ mapreduce(value,+,portfolio)
 The challenge: how do we design an all-purpose `value` function? Assets in `portfolio` may be heterogeneous, so we need to define valuation semantics for different asset types. To reach our end goal, we need to:
 
 1.  Define the different kinds of assets within our portfolio
-2.  How the assets are to be valued.
+2.  Define how the assets are to be valued.
 
 We will accomplish this by utilizing data types.
 
@@ -39,9 +39,9 @@ As a preview of why we want to utilize types in our program, there are a number 
 2.  **Re-use code**. When a set of types within a hierarchy all share the same logic, then we can define the method at the highest relevant level and avoid writing the method for each possible type. In our simple example we won't get as much benefit here since the hierarchy is simple and the set of types small.
 3.  **Extensibility through dispatch**`\index{polymorphism}`{=latex}. By defining types for our assets, we can use multiple dispatch to define specialized behavior for each type. This allows us to write generic code that works with any asset type, and the Julia compiler will automatically select the appropriate method based on the type of the asset at runtime. This is a powerful feature that enables extensibility and modularity in our code.
 4.  **Improve readability and clarity**. By defining types for our assets, we make our code more expressive and self-documenting. The types provide a clear indication of what kind of data we are working with, making it easier for other developers (or ourselves in the future) to understand and maintain the codebase.
-5.  **Enable type safety**. By specifying the expected types for function arguments and return values, we can catch type-related errors at compile time rather than at runtime. This helps prevent bugs and makes our code more robust.
+5.  **Enable type safety**. By specifying the expected types for function arguments, we can catch type-related errors immediately at the call site (as a `MethodError`) rather than letting bad data propagate deeper into a calculation. This helps prevent bugs and makes our code more robust.
 
-With these benefits in mind, let's start by defining the types for our assets. We'll create an abstract type called Asset that will serve as the parent type for all our asset types. If you haven't read it already, @sec-user-defined-types is a good reference for details on types at the language level (this section is focused on organization and building up the abstracted valuation process).
+With these benefits in mind, let's start by defining the types for our assets. We'll create an abstract type called `AbstractAsset` that will serve as the parent type for all our asset types. If you haven't read it already, @sec-user-defined-types is a good reference for details on types at the language level (this section is focused on organization and building up the abstracted valuation process).
 
 ## Defining Types for Portfolio Valuation
 
@@ -100,13 +100,13 @@ This is a parametric type because later on we will vary what objects we use for 
 econ_baseline = EconomicAssumptions(0.05)
 ```
 
-Now on to defining the valuation for `Cash` and `AbstractBonds`. Cash is always equal to its balance:
+Now on to defining the valuation for `Cash` and `AbstractBond`s. Cash is always equal to its balance:
 
 ```{julia}
 value(asset::Cash, econ::EconomicAssumptions) = asset.balance
 ```
 
-Risk free bonds are the discounted present value of the riskless cashflows. We first define a method that generically operates on any fixed bond, all that's left to do is for different types of bonds to define how much cashflow occurs at the given point in time by defining `cashflow` for the associated type.
+Risk free bonds are the discounted present value of the riskless cashflows. We first define a method that generically operates on any fixed bond; all that's left to do is for different types of bonds to define how much cashflow occurs at the given point in time by defining `cashflow` for the associated type.
 
 ```{julia}
 function value(asset::AbstractBond, r::Float64) # <2>
@@ -192,7 +192,7 @@ This is the power of dispatch. By defining a **more specific** method, `value(bo
 #### Integrating Economic Assumptions
 
 
-Despite the definitions above, the following will error because we haven't defined a method for `value` which takes as its second argument a type of `EconomicAssumptions`:
+Despite the definitions above, the following will error because we haven't defined a method for `value` which takes a bond together with an `EconomicAssumptions` as its second argument:
 
 ``` julia
 value(ZeroCouponBond(100.0,5),econ_baseline)
@@ -251,7 +251,7 @@ mapreduce(val,+,portfolio)
 
 #### Multiple Dispatch
 
-A more general concept is that of **multiple dispatch**`\index{multiple dispatch}`{=latex}, where the types of *all arguments* are used to determine which method to use. This is a very general paradigm, and in many ways is more extensible than traditional object oriented approaches, (more on that in @sec-object-oriented). What if instead of a scalar interest rate value we wanted to instead pass an object that represented a term structure of interest rates?
+A more general concept is that of **multiple dispatch**`\index{multiple dispatch}`{=latex}, where the types of *all arguments* are used to determine which method to use. This is a very general paradigm, and in many ways is more extensible than traditional object oriented approaches (more on that in @sec-object-oriented). What if instead of a scalar interest rate value we wanted to instead pass an object that represented a term structure of interest rates?
 
 Extending the example, we can use a time-varying risk free rate instead of a constant. For fun, let's say that the risk free rate has a sinusoidal pattern:
 
@@ -274,7 +274,7 @@ function value(bond::ZeroCouponBond, r::Function) # <1>
 end
 ```
 
-1.  The `r::Function` constraint says use this method if `r` is any subtype of the (abstract) `Function` type.
+1.  The `r::Function` constraint says to use this method if `r` is an instance of any subtype of the (abstract) `Function` type.
 2.  `r` is a function that we call with the time to get the zero coupon bond (a.k.a. spot) rate for the given timepoint.
 
 Now it works:
@@ -309,7 +309,7 @@ Needing to assign methods to a single class can lead to awkward design limitatio
 
 The `value` function is a good example of this. If we had to assign `value` to one of the objects involved, should it be the economic parameter object or the asset objects? The choice is not obvious at all. Isn't it the market (economic parameters) that determines the value? But then if `value` were to be a method wholly owned by the economic parameters, how could it possibly define in advance the valuation semantics of all types of assets? What if one wanted to extend the valuation to a new asset class? Downstream users or developers would need to modify the economic types to handle new assets they wanted to value. However, because the economic types were owned by an upstream package, they can't be extended this way.
 
-This is an issue with traditional OO designs and that resolves itself so elegantly with multiple dispatch.
+This is an issue with traditional OO designs, and one that resolves itself so elegantly with multiple dispatch.
 
 #### Example: The Expression Problem
 
@@ -400,7 +400,7 @@ class WholeLife(InsuranceProduct):
 
 Now, say that we want to utilize this package and extend the behavior. Specifically, we want to add a Deferred Annuity type and add functionality (for all products) related to determining a cash surrender value.
 
-We run into limitations with Python version. We can extend a new representation (dataclass), but adding new functionality (e.g. `cash_value`) requires modifying other classes which you may not own and for which the method may not apply.
+We run into limitations with the Python version. We can extend a new representation (dataclass), but adding new functionality (e.g. `cash_value`) requires modifying other classes which you may not own and for which the method may not apply.
 
 :::::: {.columns .column-body-outset}
 ::: {.column width="43%"}

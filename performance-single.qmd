@@ -21,7 +21,7 @@ Understand single-threaded performance by focusing on memory access, type stabil
 
 ## Introduction
 
-On today's hardware, the highest-throughput workloads often run on GPUs via massive parallelism. However, writing correct, performant parallel code relies on understanding efficient sequential patterns first. Additionally, many problems are not "massively parallelizable" and a sequential model architecture is required. For these reasons, it's critical to understand sequential patterns before moving onto parallel code.
+On today's hardware, the highest-throughput workloads often run on GPUs via massive parallelism. However, writing correct, performant parallel code relies on understanding efficient sequential patterns first. Additionally, many problems are not "massively parallelizable" and a sequential model architecture is required. For these reasons, it's critical to understand sequential patterns before moving on to parallel code.
 
 For those coming from fundamentally slower languages (such as R or Python), the common advice to speed things up is often to try to parallelize code or use array-based techniques. With many high level languages the only way to achieve reasonable runtime is to utilize parallelism. In contrast, fast languages like Julia can produce surprisingly quick single-threaded programs when you keep an eye on allocations, types, and cache behavior.
 
@@ -52,10 +52,10 @@ Understanding these patterns helps you write faster code by leveraging CPU archi
 Allocating memory onto the Heap takes a lot more time than (1) not using intermediate memory storage at all, or (2) utilizing the Stack. Each allocation requires time for memory management and requires the garbage collector, which can significantly impact performance, especially in tight loops or frequently called functions.
 
 ::: callout-note
-**Tight loops** or **hot loops** are the performance critical section of the code that are performed many times during a computation. They are often the "inner-most" loop of a nested loop algorithm.
+**Tight loops** or **hot loops** are the performance-critical sections of the code that are performed many times during a computation. They are often the "inner-most" loop of a nested loop algorithm.
 :::
 
-A general rule of thumb is that dynamically sizable or mutable objects (arrays, mutable structs) will be heap allocated, while small fixed size objects can be stack allocated. For mutable objects, a common technique is to pre-allocate an array and then re-use that array for subsequent calculations. In the following stylized example we accumulate bond-level cashflows into a shared vector rather than constructing (**pre-allocating**) intermediate arrays and summing them later:
+A general rule of thumb is that dynamically sizable or mutable objects (arrays, mutable structs) will be heap allocated, while small fixed size objects can be stack allocated. For mutable objects, a common technique is to pre-allocate an array and then re-use that array for subsequent calculations. In the following stylized example we accumulate bond-level cashflows into a **pre-allocated** shared vector rather than constructing intermediate arrays and summing them later:
 
 ```{julia}
 end_time = 10
@@ -67,7 +67,7 @@ end
 
 # sum up all of the bond cashflows into cashflow_output
 for asset in par_bonds
-    for t in 1:end_time
+    for t in 1:asset.tenor
         if t == asset.tenor
             cashflow_output[t] += 1 + asset.rate
         else
@@ -170,7 +170,7 @@ end
 
 When working with arrays, prefer accessing elements in column-major order (the default in Julia) to maximize spatial locality. This allows the CPU to prefetch data more effectively.
 
-You can see how summing up values across the first (column) dimension is much faster than summing across rows, because column-major storage keeps column elements contiguous in memory:
+You can see how summing up values across the first (column) dimension is faster than summing across rows, because column-major storage keeps column elements contiguous in memory:
 
 ```{julia}
 @btime sum(arr, dims=1) setup = arr = rand(1000, 1000)
@@ -214,7 +214,7 @@ When working sets exceed available RAM, the operating system may page memory to 
 
 The right data type can lead to more compact memory representations, better cache utilization, and more efficient CPU instructions. This is another case of where having a smaller memory footprint allows for higher utilization of the CPU since computers tend to be memory-constrained in speed.
 
-On some CPUs, you may find performance by using the smallest data type that can accurately represent your data. For example, prefer Int32 over Int64 if your values will never exceed 32-bit integer range. For floating-point numbers, use Float32 instead of Float64 if the reduced precision is acceptable for your calculations. These smaller types not only save memory but also allow for more efficient vectorized operations (see @sec-parallelization) on modern CPUs.
+On some CPUs, you may gain performance by using the smallest data type that can accurately represent your data. For example, prefer Int32 over Int64 if your values will never exceed 32-bit integer range. For floating-point numbers, use Float32 instead of Float64 if the reduced precision is acceptable for your calculations. These smaller types not only save memory but also allow for more efficient vectorized operations (see @sec-parallelization) on modern CPUs.
 
 ::: callout-warning
 When choosing data types, consider that on modern 64-bit architectures, using smaller integer or floating-point types does not always improve performance. In fact, many operations are optimized for 64-bit (or even larger SIMD) registers, and using smaller data types may introduce unnecessary overhead due to conversions or misalignment.
@@ -261,7 +261,7 @@ data = rand(1000)
 The `unstable_example` function illustrates a common anti-pattern wherein an `Any` typed array is created and then elements are added to it. Because any type can be added to an `Any` array (we happen to just add floats to it) then Julia's not sure what types to expect inside the container and therefore has to determine it at runtime.
 
 ::: callout-note
-Heterogeneous return types are not the same thing as type instability. In the example above, the return type is not unstable: the compiler recognizes that the single parametric type `Union{Float64,Int64}` will be returned. While Julia can optimize some unions with a small number of elements, you should prefer concrete, predictable types in hot code.
+Heterogeneous return types are not the same thing as type instability. A function that returns, say, a `Float64` on one branch and an `Int64` on another is inferred as returning the small union `Union{Float64, Int64}`, and Julia can optimize unions with a small number of concrete members reasonably well. Still, you should prefer concrete, predictable types in hot code.
 :::
 
 ::: callout-tip

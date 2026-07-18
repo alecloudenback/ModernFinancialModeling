@@ -324,7 +324,7 @@ Being explicit about whether you copied a container or merely referenced it is c
 
 ### Loops
 
-**Loops**`\index{loop}`{=latex} are ways for the program to move through a program and repeat expressions while we want it to. There are two primary loops: `for` `\index{loop!for}`{=latex} and `while` `\index{loop!while}`{=latex}.
+**Loops**`\index{loop}`{=latex} are ways for the program to repeat expressions while we want it to. There are two primary loops: `for` `\index{loop!for}`{=latex} and `while` `\index{loop!while}`{=latex}.
 
 **`for` loops** are loops that iterate over a defined range or set of values. Let's assume that we have the array `v = [6,7,8]`. Here are multiple examples of using a `for` loop in order to print each value to output (`println`):
 
@@ -432,13 +432,13 @@ And three floating-point numbers:
 14e3      # the same as 14,000.0
 ```
 
-On most systems, `0.2` will be interpreted as a 64-bit floating point type called `Float64` in Julia. Unlike integers, floating-point literals are always `Float64` regardless of system architecture. Given that there are a finite amount of bits attempting to represent a continuous, infinite set of numbers means that some numbers are not able to be represented with perfect precision. For example, if we ask for `0.2`, the closest representations in 64 and 32 bit are:
+`0.2` will be interpreted as a 64-bit floating point type called `Float64` in Julia. Unlike integers, floating-point literals are always `Float64` regardless of system architecture. Having a finite number of bits attempting to represent a continuous, infinite set of numbers means that some numbers are not able to be represented with perfect precision. For example, if we ask for `0.2`, the closest representations in 64 and 32 bit are:
 
 -   `0.20000000298023223876953125` in 32-bit
 
 -   `0.200000000000000011102230246251565404236316680908203125` in 64-bit
 
-This leads to special considerations that computers take when performing calculations on floating point maths, some of which will be covered in more detail in @sec-hardware. For now, just note that floating point numbers have limited precision and even if we input `0.2`, your computations will use the above decimal representations even if it will print out a number with fewer digits shown:
+This leads to special considerations that computers take when performing calculations on floating point numbers, some of which will be covered in more detail in @sec-hardware. For now, just note that floating point numbers have limited precision and even if we input `0.2`, your computations will use the above decimal representations even if it will print out a number with fewer digits shown:
 
 ```{julia}
 x = 0.2 # <1>
@@ -450,7 +450,7 @@ big(x) # <2>
 2.  `big(x)` is an arbitrary precision floating point number and by default prints the full precision that was embedded in our variable `x`, which was originally `Float64`.
 
 ::: callout-note
-Note the difference in what printed between the last example and when we input `0.2` earlier in the chapter. The former had the same (not-exactly equal to $0.2$) *value*, but it printed an abbreviated set of digits as a nicety for the user, who usually doesn't want to look at floating point numbers with their full machine precision. The system has the full precision (`0.20...3125`) but is truncating the output.
+Note the difference in what printed between the last example and when we input `0.2` earlier in the chapter. The latter had the same (not-exactly equal to $0.2$) *value*, but it printed an abbreviated set of digits as a nicety for the user, who usually doesn't want to look at floating point numbers with their full machine precision. The system has the full precision (`0.20...3125`) but is truncating the output.
 
 In the last example, we've converted the normal `Float64` to a `BigFloat` which will not truncate the output when printing.
 :::
@@ -461,12 +461,12 @@ Integers are similarly represented as 32 or 64 bits (with `Int32` and `Int64`) a
 
 -   `Int64` range: −9,223,372,036,854,775,808 to 9,223,372,036,854,775,807
 
-Additional range in the positive direction if one chooses to use "unsigned", non-negative numbers (`UInt32` and `UInt64`). Unlike floating point numbers, the integers have a type `Int` which will use the system bit architecture by default (that is, `Int(30)` will create a 64 bit integer on 64-bit systems and 32-bit on 32-bit systems).
+Additional range in the positive direction is available if one chooses to use "unsigned", non-negative numbers (`UInt32` and `UInt64`). Unlike floating point numbers, the integers have a type `Int` which will use the system bit architecture by default (that is, `Int(30)` will create a 64 bit integer on 64-bit systems and 32-bit on 32-bit systems).
 
 ::: callout-tip
 ## Floating Point and Excel
 
-Excel's numeric storage and routine is complex and not quite the same as most programming languages, which follow the Institute of Electrical and Electronics Engineer's standards (such as the IEEE 754`\index{IEEE 754}`{=latex} standard for double precision floating point numbers). Excel uses IEEE for the *computations* but results (and therefore the cells that comprise many calculations interim values) are stored with 15 significant digits of information. In some ways this is the worst of both worlds: having the sometimes unusual (but well-defined) behavior of floating point arithmetic *and* having additional modifications to various steps of a calculation. In general, you can assume that the programming language result (following the IEEE 754 standard) is a better result because there are aspects to the IEEE 754 defines techniques to minimize issues that arise in floating point math. Some of the issues (round-off or truncation) can be amplified instead of minimized with Excel.
+Excel's numeric storage and routines are complex and not quite the same as most programming languages, which follow the Institute of Electrical and Electronics Engineers' standards (such as the IEEE 754`\index{IEEE 754}`{=latex} standard for double precision floating point numbers). Excel uses IEEE for the *computations* but results (and therefore the cells that comprise many calculations' interim values) are stored with 15 significant digits of information. In some ways this is the worst of both worlds: having the sometimes unusual (but well-defined) behavior of floating point arithmetic *and* having additional modifications to various steps of a calculation. In general, you can assume that the programming language result (following the IEEE 754 standard) is a better result because IEEE 754 defines techniques to minimize issues that arise in floating point math. Some of the issues (round-off or truncation) can be amplified instead of minimized with Excel.
 
 In practice, this means that it can be difficult to exactly replicate a calculation in Excel in a programming language and vice-versa. It's best to try to validate a programming model versus Excel model using very small unit calculations (e.g. a single step or iteration of a routine) instead of an all-in result. You may need to define some tolerance threshold for comparison of a value that is the result of a long chain of calculation.
 :::
@@ -474,22 +474,22 @@ In practice, this means that it can be difficult to exactly replicate a calculat
 ::: callout-tip
 ## Currencies and Decimals
 
-Due to the inherent imprecision of floating point numbers, they should **not** be used in storing financial transaction records! The trade-offs inherent in floating point math described above do not lend itself to accurate record-keeping. For example, in looking at summing up two products sold for \$19.99 and \$84.99, since floating point operations like `19.99 + 84.99` do not precisely equal `105.98`.
+Due to the inherent imprecision of floating point numbers, they should **not** be used in storing financial transaction records! The trade-offs inherent in floating point math described above do not lend themselves to accurate record-keeping. For example, consider summing up two products sold for \$19.99 and \$84.99: the floating point operation `19.99 + 84.99` does not precisely equal `104.98`.
 
 ```{julia}
 BigFloat(19.99 + 84.99)
 ```
 
-See how the prior is slightly lower than `105.98` — if we were adding US Dollars here, our system would be off by fractions of a cent. Do that for millions of transactions in a day and you have a problem!
+See how the prior is slightly lower than `104.98` — if we were adding US Dollars here, our system would be off by fractions of a cent. Do that for millions of transactions in a day and you have a problem!
 
-Generally, when doing *modeling* or even creating a *valuation model*, it's okay to use floating point math. As an example, if you are trying to determine the value of an exotic option, your model is likely just fine outputting a value like `101.987087` . If you go and sell this option, you'll have to settle for either `101.98` or `101.99` when booking it. In most contexts this imprecision is likely okay!
+Generally, when doing *modeling* or even creating a *valuation model*, it's okay to use floating point math. As an example, if you are trying to determine the value of an exotic option, your model is likely just fine outputting a value like `101.987087`. If you go and sell this option, you'll have to settle for either `101.98` or `101.99` when booking it. In most contexts this imprecision is likely okay!
 
 If you are implementing a transaction or trading system, ensure proper treatment of the types representing your monetary numbers. A full treatment is beyond the scope of this book, but for a good introduction to the subject, see <https://cs-syd.eu/posts/2022-08-22-how-to-deal-with-money-in-software>.
 :::
 
 ### Type Hierarchy
 
-We can describe a *hierarchy* of types`\index{type hierarchy}`{=latex}. Both `Float64` and `Int64` are examples of `Real` numbers (here, `Real` is an **abstract** Julia type which corresponds to the mathematical set of real numbers commonly denoted with $\mathbb{R}$ ). Both `Float64` and `Int32` are `Real` numbers, so why not just define all numbers as a `Real` type? Because for performant calculations, the computer must know in advance how many bits each number is represented with.
+We can describe a *hierarchy* of types`\index{type hierarchy}`{=latex}. Both `Float64` and `Int64` are examples of `Real` numbers (here, `Real` is an **abstract** Julia type which corresponds to the mathematical set of real numbers commonly denoted with $\mathbb{R}$ ). So why not just define all numbers as a `Real` type? Because for performant calculations, the computer must know in advance how many bits each number is represented with.
 
 We can use Julia to introspect its own type hierarchy:
 
@@ -559,7 +559,7 @@ In Julia, a `Vector{Float64}` `\index{vector}`{=latex} is simply a one-dimension
 
 Array elements are accessed with the integer position, starting at `1` for the first element[^foundations-of-programming-9] [^foundations-of-programming-10]:
 
-[^foundations-of-programming-9]: Whether an index starts at `1` or `0` is sometimes debated. Zero-based indexing is natural in the context of low-level programming which deal with bits and positional *offsets* in computer memory. For higher level programming one-based indexing is more natural: in a set of data stored in an array, it is much more natural to reference the *first* (through $n^{th}$) datum instead of the *zeroth* (through $(n-1)^{th}$ datum.
+[^foundations-of-programming-9]: Whether an index starts at `1` or `0` is sometimes debated. Zero-based indexing is natural in the context of low-level programming which deal with bits and positional *offsets* in computer memory. For higher level programming one-based indexing is more natural: in a set of data stored in an array, it is much more natural to reference the *first* (through $n^{th}$) datum instead of the *zeroth* (through $(n-1)^{th}$) datum.
 
 [^foundations-of-programming-10]: Arrays in Julia can actually be indexed with an arbitrary starting point: see the package [OffsetArrays.jl](https://github.com/JuliaArrays/OffsetArrays.jl)
 
@@ -604,7 +604,7 @@ vec(mat) # column major order
 
 #### Ranges {#sec-programming-ranges}
 
-A **range**`\index{range}`{=latex} is a compact representation of a sequence of numbers. We actually used them above to index into arrays. They are expressed as `start:stop`
+A **range**`\index{range}`{=latex} is a compact representation of a sequence of numbers. We actually used them above to index into arrays. They are expressed as `start:stop`.
 
 We don't have to actually store all of these numbers on the computer somewhere as in an `Array`. Instead, this is an object that *represents* the ordered set of numbers. So for example, we can "sum" up a ridiculous amount of numbers almost instantaneously:
 
@@ -658,7 +658,7 @@ Letters and other characters present more difficulties than numbers to represent
 "hello world"
 ```
 
-It's easy to ascertain how 'normal' characters can be inserted into a string, but what about things like new lines or tabs? They are represented by their own characters but are normally not printed in computer output. However, those otherwise invisible characters do exist. For example, here we will use a **string literal** (indicated by the `"""` ) to tell Julia to interpret the string as given, including the invisible new line created by hitting return on the keyboard between the two words:
+It's easy to ascertain how 'normal' characters can be inserted into a string, but what about things like new lines or tabs? They are represented by their own characters but are normally not printed in computer output. However, those otherwise invisible characters do exist. For example, here we will use a **triple-quoted string literal** (indicated by the `"""` ) to tell Julia to interpret the string as given, including the invisible new line created by hitting return on the keyboard between the two words:
 
 ```{julia}
 """
@@ -691,7 +691,7 @@ Tuples fill a middle ground between scalar types and arrays in more ways than on
 
 -   Tuples have no problem having heterogeneous types in the different slots.
 
--   Tuples are **immutable**, meaning that you cannot overwrite the value in memory (an error will be thrown if we try to do `p[1] = 5`).
+-   Tuples are **immutable**, meaning that you cannot overwrite the value in memory (an error will be thrown if we try to do `p1[1] = 5`).
 
 -   It's generally expected that within an array, you would be able to apply the same operation to all the elements (e.g. square each element) or do something like sum all of the elements together, which isn't generally the case for a tuple.
 
@@ -707,7 +707,7 @@ Named tuples`\index{named tuple}`{=latex} provide a way to give each field withi
 p2 = (x=3, y=4)
 ```
 
-The benefit is that we can give more meaning to each field and access the values in a nicer way. Previously, we used `location[1]` to access the x-value, but with the new definition we can access it by name:
+The benefit is that we can give more meaning to each field and access the values in a nicer way. Previously, we used `p1[1]` to access the x-value, but with the new definition we can access it by name:
 
 ```{julia}
 p2.x
@@ -751,7 +751,7 @@ typeof(p1)
 typeof(("hello", 1.0))
 ```
 
-These tuples are both of the form `Tuple{T,U}` where `T` and `U` are both types. Why does this matter? We and the compiler can distinguish between a `Tuple{Int64,Int64}` and a `Tuple{String,Float64}` which allows us to reason about things ("I can add the first element of tuple together only if both are numbers") and the compiler to optimize (sometimes it can know exactly how many bits in memory a tuple of a certain kind will need and be more efficient about memory use). Further, we will see how this can become a powerful force in writing appropriately abstracted code and more logically organize our entire program when we encounter "multiple dispatch" later on.
+These tuples are both of the form `Tuple{T,U}` where `T` and `U` are both types. Why does this matter? We and the compiler can distinguish between a `Tuple{Int64,Int64}` and a `Tuple{String,Float64}` which allows us to reason about things ("I can add the first elements of two tuples together only if both are numbers") and the compiler to optimize (sometimes it can know exactly how many bits in memory a tuple of a certain kind will need and be more efficient about memory use). Further, we will see how this can become a powerful force in writing appropriately abstracted code and more logically organize our entire program when we encounter "multiple dispatch" later on.
 
 This is a very powerful technique - we've already seen the flexibility of having an `Array` type which can contain arbitrary inner types and dimensions. The full type signature for an `Array` looks like `Array{InnerType,NumDimensions}`.
 
@@ -799,7 +799,7 @@ Three value logic with `true`, `missing`, and `false`.
 `Missing` and `Nothing` are the *types* while `missing` and `nothing` are the values here[^foundations-of-programming-15]. This is analogous to `Float64` being a type and `2.0` being a value.
 :::
 
-[^foundations-of-programming-15]: `Missing` and `Nothing` are instances of **singleton type,** which means that there is only a single value that either type can take on.
+[^foundations-of-programming-15]: `Missing` and `Nothing` are examples of a **singleton type,** which means that there is only a single value that either type can take on.
 
 ### Union Types
 
@@ -854,7 +854,7 @@ Note that the types are not equal because they have different type parameters!
 typeof(p4), typeof(p5), typeof(p4) == typeof(p5)
 ```
 
-Both `p4` and `p5` are instances of different concrete types Point{Int} and Point{Float64}. The expression `X isa Y` is `true` when `X` is a (sub)type of `Y`:
+Both `p4` and `p5` are instances of different concrete types `Point{Int64}` and `Point{Float64}`. The expression `X isa Y` is `true` when `X` is a (sub)type of `Y`:
 
 ```{julia}
 p4 isa Point, p5 isa Point
@@ -890,7 +890,7 @@ This means that the compiler (and us!) can't reason about or optimize the code a
 
 The above `struct`s that we have defined are examples of **concrete types**`\index{concrete type}`{=latex} which hold data. **Abstract types**`\index{abstract type}`{=latex} don't directly hold data themselves but are used to define a hierarchy of types which we will later exploit (@sec-patterns-abstractions) to implement custom behavior depending on what type our data is.
 
-Here's an example of (1) defining a set of related types that sits above our `Point2D`:
+Here's an example of defining a set of related types that sit above our `Point2D`:
 
 ```{julia}
 #| output: false
@@ -967,7 +967,7 @@ For financial models, it is best practice to default to immutable ⁠structs. Im
 
 ### Constructors {#sec-constructors}
 
-**Constructors**`\index{constructor}`{=latex} are functions that return a data type (functions will be covered more generally later in the chapter). When we declare a `struct`, an implicit function is defined that takes a tuple of arguments and returns the data type that was declared. In the following example, after we define `MyType` the `struct`, Julia creates a function (also called `MyType`) which takes two arguments and will return the datatype `MyType`:
+**Constructors**`\index{constructor}`{=latex} are functions that return a data type (functions will be covered more generally later in the chapter). When we declare a `struct`, an implicit function is defined that takes a tuple of arguments and returns the data type that was declared. In the following example, after we define the `MyDate` `struct`, Julia creates a function (also called `MyDate`) which takes three arguments and will return the datatype `MyDate`:
 
 ```{julia}
 struct MyDate
@@ -1002,7 +1002,7 @@ struct MyDate
 end
 ```
 
-And outer constructors are simply functions defined that have the same name as the data type, but are not defined inside the `struct` block. Extending the `MyDate` example, say we want to provide a default constructor for if no day is given such that the date returns the 1st of the month:
+And outer constructors are simply functions defined that have the same name as the data type, but are not defined inside the `struct` block. Extending the `MyDate` example, say we want to provide a default constructor for when no day is given such that the date returned is the 1st of the month:
 
 ``` julia
 function MyDate(y,m)
@@ -1030,16 +1030,16 @@ Operators are the glue of expressions which combine values. We've already seen q
 1 + 2, 1 - 2, 1 > 2
 ```
 
-The above unary and binary operators are special kinds of functions which don't require the use of parenthesis. However, they can be written with parentheses for greater clarity:
+The above unary and binary operators are special kinds of functions which don't require the use of parentheses. However, they can be written with parentheses for greater clarity:
 
 ```{julia}
 !(true), -(5), +(1, 2), -(1, 2)
 ```
 
-In Julia, we distinguish between **functions** which define behavior that maps a set of inputs to outputs. But a single function can adapt its behavior to the arguments themselves. We have just seen the function `-` be used in two different ways: negation and subtraction depending on whether it had one or two arguments given to it. In this way there is a conceptual hierarchy of functions that complements the hierarchy we have discussed in relation to types:
+In Julia, a **function** defines behavior that maps a set of inputs to outputs. But a single function can adapt its behavior to the arguments themselves. We have just seen the function `-` be used in two different ways: negation and subtraction depending on whether it had one or two arguments given to it. In this way there is a conceptual hierarchy of functions that complements the hierarchy we have discussed in relation to types:
 
 -   `-` is the overall function
--   `-(x)` is a unary function which negates its values, `-(x,y)` subtracts `y` from `x`
+-   `-(x)` is a unary function which negates its value, `-(x,y)` subtracts `y` from `x`
 -   Specific methods are then created for each combination of concrete types: `-(x::Float64)` is a different method than `-(x::Int)`
 
 **Methods**`\index{method}`{=latex} are specific compiled versions of the function for specific types. This is important because at a hardware level, operations for different types (e.g. integers versus floating point) differ considerably. By optimizing for the specific types Julia is able to achieve nearly ideal performance without the same sacrifices of other dynamic languages. We will develop more with respect to methods when we talk about dispatch in @sec-patterns-abstractions.
@@ -1121,22 +1121,24 @@ Now our result will be correct:
 dist(Point3D(1, 1, 1,))
 ```
 
-This is referred to as **dispatching** on the argument types. Julia will look up to find the most specific method of a function for the given argument types, and falling back to a generic implementation if one is defined.
+This is referred to as **dispatching** on the argument types. Julia will look up to find the most specific method of a function for the given argument types, falling back to a generic implementation if one is defined.
 
 In @sec-patterns-abstractions we will see how dispatch (single and multiple) can provide very nice abstractions to simplify the design of a model.
 
 ::: callout-note
 ## Docstrings (Documentation Strings)
 
-Notice the strings preceding the definition of `dist`. In Julia, putting a string (`"..."`) or string literal (`"""..."""`) right above the definition will allow Julia to recognize the string as documentation and provided it to the user in help mode (@sec-help-mode) and/or have a documentation tool create a webpage or PDF documentation resource.
+Notice the strings preceding the definition of `dist`. In Julia, putting a string (`"..."`) or triple-quoted string (`"""..."""`) right above the definition will allow Julia to recognize the string as documentation and provide it to the user in help mode (@sec-help-mode) and/or have a documentation tool create a webpage or PDF documentation resource.
 :::
 
 ::: callout-caution
 ## Defining Methods for Parametric Types
 
-We learned that `Float64 <: Real` in the type hierarchy. However, note that `Tuple{Float64}` is not a sub-type of `Tuple{Real}`. This is called being **invariant** in type theory... but for our purposes this just practically means that when we define a method we need to specify that we want it to apply to all subtypes.
+We learned that `Float64 <: Real` in the type hierarchy. However, note that `Vector{Float64}` is not a sub-type of `Vector{Real}`. This is called being **invariant** in type theory... but for our purposes this just practically means that when we define a method we need to specify that we want it to apply to all subtypes.
 
-For example, `myfunction(x::Tuple{Real})` would *not* be called if `x` was a `Tuple{Float64}` because it's not a sub-type of `Tuple{Real}`. To act the way we want, we would define the method with the signature of `myfunction(x::Tuple{<:Real})` or `myfunction(x::Tuple{T}) where {T<:Real}`.
+For example, `myfunction(x::Vector{Real})` would *not* be called if `x` was a `Vector{Float64}` because it's not a sub-type of `Vector{Real}`. To act the way we want, we would define the method with the signature of `myfunction(x::Vector{<:Real})` or `myfunction(x::Vector{T}) where {T<:Real}`.
+
+(Tuples are the one exception to this rule: `Tuple{Float64}` *is* a sub-type of `Tuple{Real}`.)
 :::
 
 ### Keyword Arguments
@@ -1162,8 +1164,10 @@ We are able to define default arguments`\index{default arguments}`{=latex} for b
 ``` julia
 function read_data(filepath;
     normalizenames = true,
-    hasheader = false
+    hasheaderrow = false
 )
+    # ... function would be defined here
+end
 ```
 
 This is a simplified example, but if you look at the documentation for most data import packages you'll see a lot of functionality defined via keyword arguments which have sensible defaults so that most of the time you need not worry about modifying them.
@@ -1287,11 +1291,11 @@ What if we had an array of things ("needles") that we wanted to search for? By d
 in.([1, 9], [1 2 3; 4 5 6])
 ```
 
-Effectively, broadcasting paired up each element of the vector with each row of the matrix:
+Effectively, broadcasting paired up each element of the vector with the individual entries of the corresponding row of the matrix, producing a matrix of element-wise comparisons:
 
 ``` julia
-in(1, [1, 2, 3]) # first element checked against first row
-in(9, [4, 5, 6]) # second element checked against second row
+in(1, 1) in(1, 2) in(1, 3) # first element checked against first row's entries
+in(9, 4) in(9, 5) in(9, 6) # second element checked against second row's entries
 ```
 
 If we were expecting Julia to return `[true,false]` (that the first needle is in the haystack but the second needle is not), then we need to tell Julia not to broadcast along the second array with `Ref`:
@@ -1356,7 +1360,9 @@ typeof(my_func) <: Function
 
 ## Scope {#sec-scope}
 
-In projects of even modest complexity, it can be challenging to come up with unique identifiers for different functions or variables. **Scope**`\index{scope}`{=latex} refers to the bounds for which an identifier is available. We will often talk about the **local scope**`\index{scope!local}`{=latex} that's inside some expression that creates a narrowly-defined scope (such as a `function` or `let` or `module` block) or the **global scope**`\index{scope!global}`{=latex} which is the top level scope that contains everything else inside of it. Here are a few examples to demonstrate scope.
+In projects of even modest complexity, it can be challenging to come up with unique identifiers for different functions or variables. **Scope**`\index{scope}`{=latex} refers to the bounds for which an identifier is available. We will often talk about the **local scope**`\index{scope!local}`{=latex} that's inside some expression that creates a narrowly-defined scope (such as a `function` or `let` block) or the **global scope**`\index{scope!global}`{=latex} which is the top level scope that contains everything else inside of it[^foundations-of-programming-17].
+
+[^foundations-of-programming-17]: A `module` block (discussed below) also encapsulates its contents, but technically it introduces a new *global* scope rather than a local one. Here are a few examples to demonstrate scope.
 
 ```{julia}
 i = 1 #<1>

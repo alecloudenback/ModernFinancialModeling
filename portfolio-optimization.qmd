@@ -33,7 +33,7 @@ n_assets = length(μ) # number of assets
 
 ## Theory
 
-Harry Markowitz introduced modern portfolio theory`\index{modern portfolio theory}`{=latex} in 1952. The main idea is that investors seek to maximize their expected return of a portfolio given a certain amount of risk. Under standard assumptions, achieving higher expected returns typically requires accepting higher risk; portfolios that simultaneously deliver higher return and lower risk dominate others and define the upper boundary of the feasible set. The efficient frontier traces the best achievable tradeoff.
+Harry Markowitz introduced modern portfolio theory`\index{modern portfolio theory}`{=latex} in 1952. The main idea is that investors seek to maximize the expected return of a portfolio given a certain amount of risk. Under standard assumptions, achieving higher expected returns typically requires accepting higher risk; portfolios that simultaneously deliver higher return and lower risk dominate others and define the upper boundary of the feasible set. The efficient frontier traces the best achievable tradeoff.
 
 ## Mathematical tools
 
@@ -44,7 +44,7 @@ Mean-variance optimization`\index{mean-variance optimization}`{=latex}`\index{Ju
 $$
 \begin{aligned}
 \text{minimize} \quad &{w}^{T}\Sigma{w}\\
-\text{subject to} \quad &{r}^{T}{w}\geq{\mu}_{\text{target}}\\
+\text{subject to} \quad &{\mu}^{T}{w}\geq{\mu}_{\text{target}}\\
 &{1}^{T}{w}={1}\\
 &{w}\geq{0}
 \end{aligned}
@@ -181,7 +181,7 @@ $$
 \text{maximize} \quad & \mu_{BL}^{T} w \;-\; \frac{\lambda}{2}\, w^{T} \Sigma \, w \\
 \text{subject to} \quad & \sum_{i=1}^{N} w_i = 1 \\
 & w_i \geq 0, \quad \forall i \\
-\text{where} \mu_{BL} = \\
+\text{where} \quad \mu_{BL} = \\
 \Big( (\tau \Sigma)^{-1} + P^{T} \Omega^{-1} P \Big)^{-1}
 \Big( (\tau \Sigma)^{-1} \mu + P^{T} \Omega^{-1} Q \Big)
 \end{aligned}
@@ -218,7 +218,7 @@ model = Model(Ipopt.Optimizer)
 set_silent(model)
 # Set up weights as variables to optimize
 @variable(model, w[1:n_assets] >= 0.0)
-# Objective: maximize sharpe ratio
+# Objective: maximize mean-variance utility under posterior returns
 @objective(model, Max, dot(μ_BL, w) - (λ / 2) * dot(w, Σ_prior * w))
 # Constraints: Sum of portfolio weights should equal to 1, 
 # and all weights should be zero or positive
@@ -251,7 +251,7 @@ $$
 \text{subject to} \quad & \sum_{i=1}^{N} w_i = 1, \\
 & w_i \ge 0, \quad i = 1, \dots, N \\
 \text{where} \quad
-RC_i = \frac{w_i (\Sigma w)_i}{w^{T} \Sigma w + \epsilon}
+RC_i = \frac{w_i (\Sigma w)_i}{w^{T} \Sigma w + \epsilon}, \quad t = \frac{1}{N}
 \end{aligned}
 $$
 
@@ -267,7 +267,7 @@ set_silent(model)
 @expression(model, Σw[i=1:n_assets], sum(Σ[i, j] * w[j] for j in 1:n_assets))
 @expression(model, var_p, sum(w[i] * Σw[i] for i in 1:n_assets))
 @expression(model, RC[i=1:n_assets], (w[i] * Σw[i]) / (var_p + eps()))
-@expression(model, target_contribution, var_p / n_assets)
+@expression(model, target_contribution, 1 / n_assets)
 @objective(model, Min, sum((RC[i] - target_contribution)^2 for i in 1:n_assets))
 # Constraints: Sum of portfolio weights should equal to 1, 
 # and all weights should be zero or positive
@@ -353,7 +353,7 @@ $$
 \text{minimize} \quad & w^T \Sigma w + \gamma \|w - w_0\|_2^2 \\
 \text{subject to} \quad & \sum_{i=1}^{N} w_i = 1 \\
 & w_i \geq 0, \quad \forall i \\
-& \|(\Sigma^{1/2} (w - w_0))\|_2 \leq \epsilon
+& (w - w_0)^{T} \Sigma (w - w_0) \leq \epsilon
 \end{aligned}
 $$
 
@@ -400,7 +400,7 @@ Robust optimization frameworks vary from simple shrinkage toward a reference por
 | Standard mean variance | [0.33, 0.17, 0.50] |
 | (with RBC costs)       | [0.17, 0.83, 0.00] |
 | Black-Litterman        | [0.18, 0.34, 0.48] |
-| Risk parity            | [0.33, 0.30, 0.37] |
+| Risk parity            | [0.33, 0.29, 0.38] |
 | Sharpe ratio           | [0.02, 0.53, 0.45] |
 | Robust                 | [0.31, 0.31, 0.38] |
 : Optimized asset weights from different methodologies {.striped .hover}

@@ -272,14 +272,14 @@ The first element of `vgh_liab` is the value of the liability portfolio using th
 vgh_liab[1]
 ```
 
-The second element of `vgh_liab` is the partial derivative with respect to each of the inputs (here, just the `zero_rates` that dictate the curve). The sum of the partials is the effective duration`\index{duration}`{=latex}`\index{duration!effective}`{=latex} of the liabilities. 
+The second element of `vgh_liab` is the partial derivative with respect to each of the inputs (here, just the `zero_rates` that dictate the curve). The sum of the partials is the (dollar) sensitivity of the liabilities to a parallel shift in rates—a dollar duration, which becomes the effective duration`\index{duration}`{=latex}`\index{duration!effective}`{=latex} once divided by the value (shown below).
 
 ```{julia}
 @show sum(vgh_liab[2])
 vgh_liab[2]
 ```
 
-This is the sensitivity relative to a full unit change in rates (e.g. `1.0`). So if we wanted to estimate the dollar impact of a 50 basis point (0.50%) change, we would take `0.005` times the gradient/Hessian. Also note these are dollar durations but we could divide by the price to get effective or percentage durations:
+This is the sensitivity relative to a full unit change in rates (e.g. `1.0`). So if we wanted to estimate the dollar impact of a 50 basis point (0.50%) change, we would take `0.005` times the gradient (and, for the second-order refinement, add $\frac{1}{2} \times 0.005^2$ times the Hessian). Also note these are dollar durations but we could divide by the price to get effective or percentage durations:
 
 ```{julia}
 -sum(vgh_liab[2]) / vgh_liab[1]
@@ -304,7 +304,7 @@ let
 end
 ```
 
-Due to the steepness of the surrender function, the policy exiting sooner, on average, results in a higher change in value than if the policy was not sensitive to the change in rates. The increase in value from earlier cashflows outweighs the greater discount rate.
+Due to the steepness of the surrender function, a rise in rates causes the policy to exit sooner on average, shortening the liability and partially offsetting the discounting effect. The dynamic sensitivity is therefore smaller in magnitude than the static sensitivity, which ignores the interest-sensitive behavior.
 
 The third element of `vgh_liab` is the Hessian matrix, containing all second partial derivatives with respect to the yield curve inputs:
 
@@ -345,7 +345,7 @@ let
 end
 ```
 
-The dynamic convexity differs from static convexity because the surrender function creates path-dependent behavior. As rates change, not only do the discount factors change, but the timing and magnitude of cashflows shift as well. This interaction between discount rate changes and cashflow timing changes produces the additional convexity captured in the dynamic measurement. Note how the convexity is larger in the dynamic case.
+The dynamic convexity differs from static convexity because the surrender function creates path-dependent behavior. As rates change, not only do the discount factors change, but the timing and magnitude of cashflows shift as well. This interaction between discount rate changes and cashflow timing changes produces the additional convexity captured in the dynamic measurement. Note how the convexity is much larger in magnitude in the dynamic case.
 
 For ALM purposes, this convexity information helps quantify how well a duration-matched hedge will perform under large rate movements.
 

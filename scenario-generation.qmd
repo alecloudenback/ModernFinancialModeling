@@ -164,7 +164,7 @@ let
 end
 ```
 
-The exact CIR process has a non-central chi-squared distribution for $r(t)$ in closed form.
+The CIR process can also be simulated exactly, because conditional on $r_t$ the distribution of $r_{t+\Delta t}$ is a scaled non-central chi-squared distribution.
 
 $$
 \begin{aligned}
@@ -272,7 +272,7 @@ function hull_white_theta_timevar_sigma(years, prices, σt; a::Float64)
         Δs[j] = years[j] - years[j-1]
     end
 
-    # Compute integral term I(t_i) = 1/2 * ∫_0^{t_i} e^{-2a(t_i - s)} σ(s)^2 ds
+    # Compute integral term I(t_i) = ∫_0^{t_i} e^{-2a(t_i - s)} σ(s)^2 ds
     I = zeros(length(years))
     for i in 1:length(years)
         ti = years[i]
@@ -294,7 +294,7 @@ function hull_white_theta_timevar_sigma(years, prices, σt; a::Float64)
             integrand = exp(-2a * (ti - sj)) * (σt[j]^2)
             acc += integrand * w
         end
-        I[i] = 0.5 * acc
+        I[i] = acc
     end
 
     # theta vector: df0 + a*f0 + I
@@ -465,6 +465,7 @@ function garch_simulation(rng::AbstractRNG, ω, α₁, β₁, num_steps, num_sim
     σ²_ss = ω / (1 - α₁ - β₁)
     returns = zeros(Float64, num_steps, num_sims)
     for j in 1:num_sims
+        volatility_paths[1, j] = sqrt(σ²_ss)
         returns[1, j] = volatility_paths[1, j] * randn(rng)
         for i in 2:num_steps
             σ² = ω + α₁ * returns[i-1, j] * returns[i-1, j] +
@@ -536,7 +537,7 @@ let
     Σ = [1.0 ρ;
         ρ 1.0]
     Cg = GaussianCopula(Σ)
-    U = rand(Cg, 10_000)  # n × d matrix with U(0,1) margins
+    U = rand(Cg, 10_000)  # d × n matrix with U(0,1) margins
     f = Figure()
     ax = Axis(f[1, 1], xlabel="U₁", ylabel="U₂")
     scatter!(ax, U[1, :], U[2, :], markersize=2, color=:steelblue, alpha=0.4)

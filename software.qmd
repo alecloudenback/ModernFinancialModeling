@@ -119,7 +119,7 @@ We've defined how it should work for a value inside the bounding $x$ values, but
 @test interp_linear(0,2,5,10,3) ≈ (10-5)/(2-0) * (3 - 0) + 5
 ```
 
-By thinking through what the correct result for those different functions is, we have forced ourselves to think about how the function should work generically:
+By thinking through what the correct result for those different cases is, we have forced ourselves to think about how the function should work generically:
 
 ```{julia}
 function interp_linear(x1,x2,y1,y2,x)
@@ -142,7 +142,7 @@ end;
 
 Testing is great, but what if some things aren't tested? For example, we might have a function that has a branching `if`/`else` condition and only ever tests one branch. Then when the other branch is encountered in practice it is more vulnerable to having bugs because its behavior was never double checked. Wouldn't it be great to tell whether or not we have tested all of our code?
 
-The good news is that there is! **Test coverage**`\index{test coverage}`{=latex} is a measurement related to how much of the codebase is covered by at least one associated test case. In the following example, code coverage would flag that the `... other logic` is not covered by tests and therefore encourage the developer to write tests covering that case:
+The good news is that we can! **Test coverage**`\index{test coverage}`{=latex} is a measurement related to how much of the codebase is covered by at least one associated test case. In the following example, code coverage would flag that the `... other logic` is not covered by tests and therefore encourage the developer to write tests covering that case:
 
 ``` julia
 function asset_value(strike,current_price)
@@ -162,7 +162,7 @@ From the coverage statistics, it's possible to determine a score for how well a 
 Testing is only as good as the tests that are written. You could have 100% code coverage for a codebase with only a single rudimentary test covering each line. Or the test itself could be wrong! Testing is not a cure-all, but does encourage best practices.
 :::
 
-Test coverage is also a great addition when making modification to code. It can be set up such that you receive reports on how the test coverage changes if you were to make a certain modification to a codebase. An example might look like this for a proposed change which added 13 lines of code, of which only 11 of those lines were tested ("hit"). The total coverage percent has therefore gone down (`-0.49%`) because the proportion of new lines covered by tests is $11/13 = 84\%$, which is lower than the original coverage rate of 90%.
+Test coverage is also a great addition when making modifications to code. It can be set up such that you receive reports on how the test coverage changes if you were to make a certain modification to a codebase. An example might look like this for a proposed change which added 13 lines of code, of which only 11 of those lines were tested ("hit"). The total coverage percent has therefore gone down (`-0.49%`) because the proportion of new lines covered by tests is $11/13 \approx 85\%$, which is lower than the original coverage rate of 90%.
 
 ``` plaintext
 @@            Coverage Diff             @@
@@ -354,7 +354,7 @@ A codebase can be **branched**`\index{branch (Git)}`{=latex}, meaning that two d
 The commit history forms a directed acyclic graph (DAG)`\index{DAG (directed acyclic graph)}`{=latex} representing the project's history. That is, there is an order to the history: the second commit is dependent on the first commit. From the second commit, two child commits may be created that both have the second commit as their parent. Each one of these commits represents a stored snapshot of the project at the time of the commit.
 
 ::: callout-note
-A directory structure demonstrating where git data is stored and what content is tracked after initializing a repository in the `tracked-project` directory. Note how `untracked-folder` is not the parent directory of the `.git` directory so it does not get tracked by Git.
+A directory structure demonstrating where git data is stored and what content is tracked after initializing a repository in the `tracked-project` directory. Note how `untracked-folder` is outside of `tracked-project` (the directory containing the `.git` directory), so it does not get tracked by Git.
 
 ```         
 /home/username
@@ -475,7 +475,7 @@ Think of staging as preparing a shipment: you first gather and organize the item
 Git is traditionally a command-line based tool, however we will not focus on the command line usage as more beginner friendly and intuitive interfaces are available from different available software. The branching and nodes are well suited to be represented visually.
 
 ::: callout-note
-Some recommend Git tools with a **graphical user interface** (GUI):
+Some recommended Git tools with a **graphical user interface** (GUI):
 
 -   *Github Desktop* interfaces nicely with Github and provides a GUI for common operations.
 
@@ -486,7 +486,7 @@ Some recommend Git tools with a **graphical user interface** (GUI):
 
 ### Collaborative Workflows
 
-Git is a distributed VCS, meaning that copies of the repository and all its history and content can live in multiple locations, such as on two colleagues' computer as well as a server. In this distributed model, what happens if you make a change locally?
+Git is a distributed VCS, meaning that copies of the repository and all its history and content can live in multiple locations, such as on two colleagues' computers as well as a server. In this distributed model, what happens if you make a change locally?
 
 Git maintains a local repository on each user's machine, containing the full project history. This local repository includes the working directory (current state of files), staging area (changes prepared for commit), and the .git directory (metadata and object database). When collaborating, users push and pull changes to and from remote repositories. Git uses a branching model, allowing multiple lines of development to coexist and merge when ready.
 
@@ -516,7 +516,7 @@ Referencing @fig-pull-request, several elements are worth highlighting. In this 
     -   The cross-referencing to another related issue in a different repository (the reference to issue #156).
     -   Assignees (assigned doers), labels, milestones, and projects are all functionality to help keep track of codebase development.
 
-The features described here can take modelers many hours of time - testing, review of changes, sign-off tracking, etc. In this Git-based workflow, the workflow above happens frictionlessly and much of it is automated. This is such a powerful paradigm that should be adopted within the financial industry and especially amongst modelers.
+The features described here can take modelers many hours of time - testing, review of changes, sign-off tracking, etc. In this Git-based workflow, the process above happens frictionlessly and much of it is automated. This is such a powerful paradigm that it should be adopted within the financial industry and especially amongst modelers.
 
 ![A diff shows a file-by-file and line-by-line comparison of what has changed between commits in a codebase. Red indicates something was removed or changed, and green shows what replaced it. Note that even within a line, there's extra green highlighting to show the newly added text while the unchanged text remains a lighter shade.](images/Diff.png){#fig-pr-diff}
 
@@ -564,7 +564,7 @@ bytes2hex(sha256(codeunits(data2)))
 ```
 
 ::: callout-tip
-Use a cryptographic hash (e.g., SHA-256) to derive a stable, deterministic content hash. Base.hash is intentionally randomized for security and is not suitable for content-addressed storage.
+Use a cryptographic hash (e.g., SHA-256) to derive a stable, deterministic content hash. `Base.hash` is not a cryptographic hash and its values are not guaranteed to be stable across Julia versions, so it is not suitable for content-addressed storage.
 :::
 
 This is used in content-addressed systems like Data Version Control (@sec-data-version-control) and Artifacts (@sec-artifacts) to ask for, and confirm the accuracy of, data instead of trying to address the data by its location. That is, instead of trying to ask to get data from a given URL (e.g. `http://adatasource.com/data.csv`) you can set up a system which keeps track of available locations for the data that matches the content hash. Something like (in Julia-ish pseudocode):
@@ -611,7 +611,7 @@ For distributing packages in a private, or smaller public group see @sec-local-r
 
 #### General Registry and other Hosted Registries
 
-At its core, General is essentially the same as a local registry described in the prior section. However, there's some additional infrastructure supporting General. Registered packages get backed up, cached for speed, and multiple servers across the globe are set up to respond to Pkg requests for redundancy and latency. Nothing would stop you from doing the same for your own hosted registry if it got popular enough!
+At its core, General is essentially the same as a local registry (@sec-local-registry). However, there's some additional infrastructure supporting General. Registered packages get backed up, cached for speed, and multiple servers across the globe are set up to respond to Pkg requests for redundancy and latency. Nothing would stop you from doing the same for your own hosted registry if it got popular enough!
 
 ::: callout-tip
 A local registry is a great way to set up internal sharing of packages within an organization. Services do exist for "managed" package sharing, adding enterprise features like whitelisted dependencies, documentation hosting, a 'hub' of searchable packages.
@@ -686,17 +686,17 @@ add_numbers(numbers...) = sum(numbers)
 This is a major change because it fundamentally alters the API. The function name has changed, and it now accepts any number of arguments instead of specifically two or three. This change is not backward compatible with code using the previous versions, so a major version increment is necessary.
 
 ::: callout-note
-Numbers need not roll over to the next digit when they hit 10. That is, it's perfectly valid to go from `v1.09.0` to `v1.10.0` in SemVer.
+Numbers need not roll over to the next digit when they hit 10. That is, it's perfectly valid to go from `v1.9.0` to `v1.10.0` in SemVer.
 :::
 
 ::: callout-tip
-Sometimes you'll see a package with a version that starts with zero, such as `v0.23.1`. **We recommend that as soon as you register a package, to make it a `v1`**. `v1` need not indicate the package is "complete" (what software is?), so don't hold back on calling it `v1`. You're letting users install it easily, so you might as well call it the first version and move on!
+Sometimes you'll see a package with a version that starts with zero, such as `v0.23.1`. **We recommend that as soon as you register a package, you make it a `v1`**. `v1` need not indicate the package is "complete" (what software is?), so don't hold back on calling it `v1`. You're letting users install it easily, so you might as well call it the first version and move on!
 
 According to SemVer's rules:
 
 > Major version zero (0.y.z) is for initial development. Anything MAY change at any time. The public API SHOULD NOT be considered stable.
 
-Most packages put an upper bound on compatibility so that major or minor changes in upstream packages are less likely to cause issues in their own packages. This can be somewhat painful to depend on a package which has a major version 0 (i.e. `v0.x.x`). You have to assume minor version bumps are backward incompatible changes, but the author might intend it to be a feature release. You should have skepticism of just upgrading to the new version of the dependency. It takes work on the downstream dependencies to decide if they should upgrade, adding mental and time loads to other authors and users.
+Most packages put an upper bound on compatibility so that major or minor changes in upstream packages are less likely to cause issues in their own packages. It can be somewhat painful to depend on a package which has a major version 0 (i.e. `v0.x.x`). You have to assume minor version bumps are backward incompatible changes, but the author might intend it to be a feature release. You should have skepticism of just upgrading to the new version of the dependency. It takes work on the downstream dependencies to decide if they should upgrade, adding mental and time loads to other authors and users.
 
 This is why once you have anyone else depending on the package, going straight to `v1` is helpful because you have finer-grained control over the release versioning and the meaning behind each new version number.
 :::
@@ -707,8 +707,7 @@ Artifacts`\index{artifacts}`{=latex} are a way to distribute content-addressed (
 
 For example, the MortalityTables.jl package redistributes various publicly available, industry mortality tables. Inside the repository, there's an `Artifacts.toml` file specified like:
 
-``` toml
-#| code-overflow: wrap
+``` {.toml code-overflow="wrap"}
 #/Artifacts.toml
 
 ["mort.soa.org"]

@@ -188,7 +188,7 @@ The information gain for splitting the tree using employment status is the diffe
 IG_employment = H0 - H1_employment
 ```
 
-We could repeat the analysis to determine the information gain if we were to split the tree based on having good credit. However, given that there are only two attributes we can already conclude that `employed` is a better attribute to split the data on. This is because the information gain of `IG_employment` (`{julia} round(IG_employment;digits=3)`) is the majority of the overall entropy `H0` (`{julia} round(H0;digits=3)`). Entropy is non-negative and information gain is bounded by the original entropy, therefore no other attribute could have greater information gain. This also matches our intuition when looking at @tbl-default-data as the eye can spot a higher correlation between `employed` and `default` than `good_credit` and `default`.
+We could repeat the analysis to determine the information gain if we were to split the tree based on having good credit. However, we can already conclude that `employed` is the better attribute to split the data on. Splitting on `good_credit` produces two subsets that each have the same proportion of defaults (3 out of 4) as the overall data, so the weighted entropy after that split equals `H0` and the information gain is zero. In contrast, `IG_employment` (`{julia} round(IG_employment;digits=3)`) recovers a majority of the overall entropy `H0` (`{julia} round(H0;digits=3)`). This also matches our intuition when looking at @tbl-default-data as the eye can spot a higher correlation between `employed` and `default` than `good_credit` and `default`.
 
 The above example demonstrates how we can use information theory to create more optimal inferences on data.
 
@@ -198,12 +198,12 @@ Why is information theory a useful concept? Many financial models are statistica
 
 In many real-world problems, we seek a distribution that is “least biased” or “most conservative” given certain known information (such as a mean or a range). Maximum entropy distributions accomplish this by spreading out probability as widely as possible under the constraints we know to be true (e.g., average value, bounded domain). They make no additional assumptions beyond those constraints, thereby avoiding unwarranted specificity.
 
-By using a maxent distribution, we effectively acknowledge that everything else about the system’s behavior is unknown and should remain as “random” (unconstrained) as possible. This is a powerful principle because it aligns well with real-world modeling scenarios where we might know just a few key facts—like a process’s average rate or finite variance—but have no strong reason to assume anything else about its structure.
+By using a maxent distribution, we effectively acknowledge that everything else about the system’s behavior is unknown and should remain as “random” (unconstrained) as possible. This is a powerful principle because it aligns well with real-world modeling scenarios where we might know just a few key facts—like a process’s average rate or its variance—but have no strong reason to assume anything else about its structure.
 
 Many of the most common probability distributions (Normal, Exponential, Gamma, etc.) can be derived by applying the maximum entropy principle under simple, natural constraints:
 
-- **Normal distribution**`\index{Normal distribution}`{=latex} when the mean and variance are finite but otherwise unconstrained.
-- **Exponential distribution**`\index{Exponential distribution}`{=latex} when we know only that the mean is positive, with outcomes over $[0,\infty)$.
+- **Normal distribution**`\index{Normal distribution}`{=latex} when the mean and variance are known (fixed) and outcomes range over the entire real line, but the distribution is otherwise unconstrained.
+- **Exponential distribution**`\index{Exponential distribution}`{=latex} when outcomes lie in $[0,\infty)$ and we know only the mean.
 - **Uniform distribution** when outcomes are bounded within a certain interval, and we have no further information about how likely each point is.
 
 Additional maxent distributions and associated constraints are listed in @tbl-MEDs. Those distributions arise again and again in nature because of the second law of thermodynamics - nature likes to have constantly increasing entropy and therefore it should be no surprise that (random) processes that maximize entropy pop up all over the place. The **second law of thermodynamics** in physics is an analogy: it states that a closed system tends to move toward higher entropy states. Similarly, in purely probabilistic settings, when few constraints are imposed, the system’s “natural” distribution tends to be the one that maximizes entropy.
@@ -219,14 +219,14 @@ Some discussion of maximum entropy distributions in the context of risk assessme
 | Constraint | Discrete Distribution | Continuous Distribution |
 |-------------------|------------------|------------------|
 | Bounded range | Uniform (discrete) | Uniform (continuous) |
-| Bounded range (0 to 1) with information about the mean or variance |  | Beta |
+| Bounded range (0 to 1) with fixed mean of $\ln(x)$ and of $\ln(1-x)$ |  | Beta |
 | Fixed number of independent binary trials with known mean | Binomial |  |
-| Mean is finite and positive | Geometric | Exponential |
-| Mean and mean of logarithm are finite, range is \> zero |  | Gamma |
-| Mean and Variance are finite |  | Gaussian (Normal) |
-| Positive and equal mean and variance | Poisson |  |
+| Fixed (known) mean, non-negative outcomes | Geometric | Exponential |
+| Fixed mean and fixed mean of logarithm, range is \> zero |  | Gamma |
+| Fixed mean and variance |  | Gaussian (Normal) |
+| Fixed mean count of events across many independent, individually rare trials | Poisson |  |
 
-: Maximum Entropy Distributions and the conditions under which they are applicable. For example, if you know that a probability must be continuous and have a positive mean (and is non-negative), then the MED is the Exponential Distribution. {#tbl-MEDs tbl-colwidths="[50,25,25]"}
+: Maximum Entropy Distributions and the conditions under which they are applicable. For example, if you know that a quantity is continuous and non-negative and you know its mean, then the MED is the Exponential Distribution. (Strictly, the Poisson is the maximum-entropy distribution among sums of independent binary events with a given mean; with only a fixed mean on the non-negative integers, the Geometric applies.) {#tbl-MEDs tbl-colwidths="[50,25,25]"}
 
 As an example, let's look at processes that behave like the Gaussian (Normal) distribution.
 
@@ -454,7 +454,7 @@ using CairoMakie
 hist(rain)
 ```
 
-We will show the likelihood of the three models after deriving the **maximum likelihood (MLE)**`\index{maximum likelihood estimation (MLE)}`{=latex}, which is simply finding the parameters that maximize the calculated likelihood. In general, this can be accomplished by an optimization routine, but here we will just use the functions built into Distributions.jl:
+We will show the likelihood of the three models after deriving the **maximum likelihood estimate (MLE)**`\index{maximum likelihood estimation (MLE)}`{=latex}, which is simply found by determining the parameters that maximize the calculated likelihood. In general, this can be accomplished by an optimization routine, but here we will just use the functions built into Distributions.jl:
 
 ```{julia}
 using StatsBase
@@ -530,7 +530,7 @@ let x = rain
 end
 ```
 
-We evaluated the likelihood at a single point estimate of the parameters, but a true posterior probability of the parameters of the distributions will be represented by a *distribution* rather than a point. The rest of chapter will describe how to express the posterior probabilities of the parameters for $H_1$, $H_2$, and $H_3$ using Bayesian statistical methods.
+We evaluated the likelihood at a single point estimate of the parameters, but a true posterior probability of the parameters of the distributions will be represented by a *distribution* rather than a point. The rest of the chapter will describe how to express the posterior probabilities of the parameters for $H_1$, $H_2$, and $H_3$ using Bayesian statistical methods.
 
 ## Modern Bayesian Statistics {#sec-modern-bayes}
 
@@ -549,13 +549,13 @@ For example, when estimating an unknown quantity, a Bayesian probability interva
 
 "The fallacy of placing confidence in confidence intervals" is the title of an article [@Morey_Hoekstra_Rouder_Lee_Wagenmakers_2016] describing the issues with confidence intervals, with one of the primary issues being what they call the "Fundamental Confidence Fallacy," or FCF.
 
-The FCF is the belief that if you have a $X\%$ confidence interval, that the probability that the true value of interest lies within that interval is $X\%$. This is false, and an abbreviated explanation of why is as follows:
+The FCF is the belief that if you have an $X\%$ confidence interval, the probability that the true value of interest lies within that interval is $X\%$. This is false, and an abbreviated explanation of why is as follows:
 
 -   An $X\%$ confidence interval refers to a procedure that results in a range $R$ wherein $X\%$ of the time the true value of interest lies within $R$.
 
--   However, once the data is observed we can know with higher probability than $X$ whether the true value lies within that range.
+-   However, once the data is observed, the probability that the true value lies within the realized interval need no longer be $X\%$.
 
-Here's an example taken from the article referenced above: we wish to estimate the mean of a continuous random variable. We observe two data points $y_1$ and $y_2$. If $y_1 < y_2$ then we say our interval is $(-\infty,\infty)$ otherwise the interval is empty. Our credibility procedure creates an interval for which 50% of the time it contains the true value. However, once we've observed the data and created the interval, then "post-data" we can tell with certainty whether our interval contains the variable of interest. We can only say "pre-data", or pre-observations, that the credible interval is really $X\%$ probable to contain the right value. Similar (and other) issues arise with more "real world" examples of confidence intervals.
+Here's an example taken from the article referenced above: we wish to estimate the mean of a continuous random variable. We observe two data points $y_1$ and $y_2$. If $y_1 < y_2$ then we say our interval is $(-\infty,\infty)$ otherwise the interval is empty. Our confidence procedure creates an interval for which 50% of the time it contains the true value. However, once we've observed the data and created the interval, then "post-data" we can tell with certainty whether our interval contains the variable of interest. We can only say "pre-data", or pre-observations, that the confidence interval is really $X\%$ probable to contain the right value. Similar (and other) issues arise with more "real world" examples of confidence intervals.
 
 In contrast, the Bayesian procedure of estimating an interval using the posterior distribution of the data *can* be interpreted as an interval for which you can say that you believe the true value is contained within the interval. Typically, this is referred to as a credible *interval* to distinguish from a *confidence interval*.
 :::
@@ -654,7 +654,7 @@ Having defined a prior assumption, selected a model, and collected our data, the
 
 ### Markov-Chain Monte Carlo
 
-Computing the posterior distribution for most model parameters is analytically intractable. However, we can probabilistically sample from the posterior distribution and achieve an approximation of the posterior distribution. MCMC samplers, as they are called, do this by moving through the parameter space (the set of possible values for the parameters) in a special way. The statistical marvel is that they travel to different points *in proportion* to the posterior probability. It is a "Markov-Chain" because the probability of the next point's location is influenced by the prior sampling point's location.
+Computing the posterior distribution for most model parameters is analytically intractable. However, we can probabilistically sample from the posterior distribution and achieve an approximation of the posterior distribution. MCMC samplers, as they are called, do this by moving through the parameter space (the set of possible values for the parameters) in a special way. The statistical marvel is that they travel to different points *in proportion* to the posterior probability. It is a "Markov-Chain" because the probability of the next point's location is influenced by the current sampling point's location.
 
 #### Example: MCMC from Scratch
 
@@ -771,7 +771,7 @@ end
 chain
 ```
 
-The resulting chain contains a list of points that the algorithm has moved along during the sampling process. Note that there is a `burn-in` parameter. This is because we want the chain to iterate long enough to be effectively independent of both (1) the starting point for the sample, and (2) that different chains are effectively independent.
+The resulting chain contains a list of points that the algorithm has moved along during the sampling process. Note that there is a `burn_in` parameter. This is because we want the chain to iterate long enough that (1) the samples are effectively independent of the arbitrary starting point, and (2) different chains are effectively independent of one another.
 
 After having performed the sampling, we can now visualize the chain versus the `target_distribution`. A few things to note:
 
@@ -829,9 +829,9 @@ The Metropolis-Hastings algorithm is simple, but somewhat inefficient. Some chal
 4.  As the number of parameters grows, the dimensionality of the parameter space to explore also grows making posterior exploration much harder.
 5.  The shape of the posterior space can be more or less difficult to explore. Complex models may have regions of density that are not nicely "round" - regions may be curved, donut shaped, or disjointed.
 
-The issues above mean that MCMC sampling is very computationally expensive for more complex examples. Compared with Metropolis-Hastings, modern algorithms (such as the No-U-Turn (NUTS)`\index{NUTS (No-U-Turn Sampler)}`{=latex}) algorithm explore the posterior distribution more efficiently by avoiding back-tracking to already explored regions and dynamically adjusting the proposals to adaptively fit the posterior. Many of them take direct influence from particle physics, with the algorithm keeping track of the energy of the current state as it explores the posterior space.
+The issues above mean that MCMC sampling is very computationally expensive for more complex examples. Compared with Metropolis-Hastings, modern algorithms (such as the No-U-Turn Sampler (NUTS)`\index{NUTS (No-U-Turn Sampler)}`{=latex}) explore the posterior distribution more efficiently by avoiding back-tracking to already explored regions and dynamically adjusting the proposals to adaptively fit the posterior. Many of them take direct influence from particle physics, with the algorithm keeping track of the energy of the current state as it explores the posterior space.
 
-Algorithms have only brought so much relief to the modeler with finite resources and compute. There is still a lot of responsibility for modeler to design models that are computationally efficient, transformed to eliminate oddly-shaped density regions, or find the right simplifications to the analysis in order to make the problem tractable.
+Algorithms have only brought so much relief to the modeler with finite resources and compute. There is still a lot of responsibility for the modeler to design models that are computationally efficient, transformed to eliminate oddly-shaped density regions, or find the right simplifications to the analysis in order to make the problem tractable.
 
 ::: callout-note
 What does it mean to transform the parameter space?
@@ -872,8 +872,8 @@ m = rain_lognormal(rain)
 ```
 
 1.  Defining the model uses the `@model` macro from Turing.
-2.  We presume that there will be positive rainfall and 96% of mean annual rainfall will be somewhere between $exp(2)$ and $exp(6)$, or 7 and 403 inches.
-3.  In a LogNormal model, 0.5 deviations covers a lot of variation in outcomes.
+2.  We presume that there will be positive rainfall and that about 95% of the prior probability for median annual rainfall ($e^\mu$) falls between $exp(2)$ and $exp(6)$, or about 7 and 403 inches.
+3.  Distributions.jl's `Exponential(θ)` is parameterized by its mean, so this prior on σ has a mean of 2 — a diffuse choice, since in a LogNormal model even σ of 0.5 covers a lot of variation in outcomes.
 
 #### Setting Priors
 
@@ -921,7 +921,7 @@ A few things we can check:
 
 First, the `ess` or **effective sample size**`\index{effective sample size (ESS)}`{=latex} which adjusts the number of samples for the degree of autocorrelation in the chain. Ideally, we would be able to draw independent samples from the posterior, but due to the Markov-Chain approach the samples can have autocorrelation between neighboring samples. We collect less information about the posterior in the presence of positive autocorrelation.
 
-An `ess` greater than our sample indicates that there was less (negative) autocorrelation than we would have expected for the chain. An `ess` much less than the number of samples indicates that the chain isn't sampling very efficiently but, aside from needing to run more samples, isn't necessarily a problem.
+An `ess` greater than the number of samples indicates that the chain exhibited negative autocorrelation (each draw contributes more information than an independent sample would). An `ess` much less than the number of samples indicates that the chain isn't sampling very efficiently but, aside from needing to run more samples, isn't necessarily a problem.
 
 ```{julia}
 ess(chain_posterior)
