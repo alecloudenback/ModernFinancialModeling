@@ -40,7 +40,6 @@ The example data will start with only the risk classification above.
 using MortalityTables
 using Turing
 using DataFramesMeta
-using MCMCChains
 using LinearAlgebra
 using CairoMakie
 using StatsBase
@@ -184,9 +183,9 @@ let
         color=(:blue, 0.5),
         label="Experience data (size ~ exposure)")
 
-    # Sample from posterior once (more efficient than sampling 1 at a time)
+    # Subsample posterior draws of q
     n_samples = 300
-    q_posterior = vec(Array(sample(chain, n_samples)[:q]))
+    q_posterior = sample(vec(chain[:q]), n_samples)
 
     # Draw horizontal lines for each posterior sample
     for q in q_posterior
@@ -263,12 +262,12 @@ let
         color=(:blue, 0.5),
         label="Experience data (size ~ exposure)")
 
-    # Sample from posterior once (much faster than sampling 1 at a time in loop)
+    # Subsample joint posterior draws (a, b, and k taken from the same iteration)
     n_samples = 300
-    posterior = sample(chain2, n_samples)
-    a_samples = vec(Array(posterior[:a]))
-    b_samples = vec(Array(posterior[:b]))
-    k_samples = vec(Array(posterior[:k]))
+    idx = sample(1:length(vec(chain2[:a])), n_samples)
+    a_samples = vec(chain2[:a])[idx]
+    b_samples = vec(chain2[:b])[idx]
+    k_samples = vec(chain2[:k])[idx]
 
     ages = sort!(unique(data.att_age))
 
@@ -312,7 +311,7 @@ m3 = mortality3(data2.att_age, data2.exposures, data2.risk_level, data2.deaths, 
 
 chain3 = sample(m3, NUTS(), 1000)
 
-summarize(chain3)
+summarystats(chain3)
 ```
 
 ```{julia}
@@ -335,16 +334,16 @@ let
         )
     )
 
-    # Sample from posterior once (much faster than sampling 1 at a time in loop)
+    # Subsample joint posterior draws (a, b, and k taken from the same iteration)
     n_samples = 100
-    posterior = sample(chain3, n_samples)
-    b_samples = vec(Array(posterior[:b]))
-    k_samples = vec(Array(posterior[:k]))
+    idx = sample(1:length(vec(chain3[:b])), n_samples)
+    b_samples = vec(chain3[:b])[idx]
+    k_samples = vec(chain3[:k])[idx]
 
     ages = sort!(unique(data2.att_age))
 
     for r in 1:3
-        a_samples = vec(Array(posterior[Symbol("a[$r]")]))
+        a_samples = vec(chain3[@varname(a[r])])[idx]
         for i in 1:n_samples
             m = MortalityTables.MakehamBeard(; a=a_samples[i], b=b_samples[i], c=0.0, k=k_samples[i])
             qs = MortalityTables.hazard.(m, ages)
@@ -385,7 +384,7 @@ chain4 = sample(m4, NUTS(), 1000)
 
 ```{julia}
 # Extract posterior means for risk factors and compute relative factors
-risk_factors4 = [mean(chain4[Symbol("a[$f]")]) for f in 1:3]
+risk_factors4 = [mean(chain4[@varname(a[f])]) for f in 1:3]
 println("Risk factors relative to standard (level 2): ", risk_factors4 ./ risk_factors4[2])
 
 let
@@ -407,17 +406,17 @@ let
         )
     )
 
-    # Sample from posterior once (much faster than sampling 1 at a time in loop)
+    # Subsample joint posterior draws (a, b, c, and k taken from the same iteration)
     n_samples = 100
-    posterior = sample(chain4, n_samples)
-    b_samples = vec(Array(posterior[:b]))
-    c_samples = vec(Array(posterior[:c]))
-    k_samples = vec(Array(posterior[:k]))
+    idx = sample(1:length(vec(chain4[:b])), n_samples)
+    b_samples = vec(chain4[:b])[idx]
+    c_samples = vec(chain4[:c])[idx]
+    k_samples = vec(chain4[:k])[idx]
 
     ages = sort!(unique(data2.att_age))
 
     for r in 1:3
-        a_samples = vec(Array(posterior[Symbol("a[$r]")]))
+        a_samples = vec(chain4[@varname(a[r])])[idx]
         for i in 1:n_samples
             m = MortalityTables.MakehamBeard(; a=a_samples[i], b=b_samples[i], c=c_samples[i], k=k_samples[i])
             qs = MortalityTables.hazard.(m, ages)
@@ -444,13 +443,13 @@ pred_model = mortality4(
     fill(missing, length(data2.deaths)),
     n_risk_levels
 )
-preds = predict(pred_model, chain4);
+preds = predict(pred_model, chain4; include_all=false);
 ```
 
 Averaging the predictions across the chain samples gives the posterior-mean predicted deaths for each row of the data, which we can compare directly with the observed counts:
 
 ```{julia}
-predicted_deaths = vec(mean(Array(preds); dims=(1, 3)))
+predicted_deaths = [mean(preds[@varname(deaths[i])]) for i in eachindex(data2.deaths)]
 @transform(select(data2, :att_age, :risk_level, :exposures, :deaths),
     :predicted_deaths = round.(predicted_deaths; digits=1))
 ```
