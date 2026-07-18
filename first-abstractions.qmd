@@ -91,7 +91,7 @@ eachindex(cf_bond) # an efficient index iterator
 ::: callout-note
 ## Lazy Programming
 
-Lazy evaluation`\index{lazy evaluation}`{=latex}: the result, `{julia} eachindex(cf_bond)`, returns an efficient iterator over valid indices (e.g., `Base.OneTo(5)` for a `Vector`). Iterators represent sequences without allocating per-element containers. You can traverse them directly, or materialize them if needed with collect.
+Lazy evaluation`\index{lazy evaluation}`{=latex}: the call `eachindex(cf_bond)` returns an efficient iterator over valid indices (e.g., `Base.OneTo(5)` for a `Vector`). Iterators represent sequences without allocating per-element containers. You can traverse them directly, or materialize them if needed with `collect`.
 
 An analogy is that we can write the "set of all numbers from 1 to 100" without writing out each of the 100 numbers, but we are referring to the same thing. In practice, this means we can iterate over scenario paths, coupon dates, or bucketized tenors without allocating temporary arrays, which keeps the garbage collector quiet during valuation runs.
 
@@ -162,7 +162,7 @@ The primary downsides to iterative approaches to algorithms are:
 2.  Program flow is explicitly stated, leaving fewer places that the compiler can automatically optimize or parallelize.
 
 ::: callout-tip
-In the imperative style, we mentioned needing to explicitly handle program state. In general, it's advisable to minimize as many temporary state variables as possible - more mutability tends to produce more complex, difficult to maintain code. An example of maintaining state in the examples above is keeping track of the current index as well as interim `pv` and `discount` variables.
+In the imperative style, we mentioned needing to explicitly handle program state. In general, it's advisable to minimize the number of temporary state variables - more mutability tends to produce more complex, difficult to maintain code. An example of maintaining state in the examples above is keeping track of the current index as well as interim `pv` and `discount` variables.
 
 Modifying values is often avoidable by restructuring the logic, using functional techniques, or finding the right abstractions. However, sometimes for performance reasons, clarity, or expediency you may find modifying state to be the preferred option and that's okay.
 :::
@@ -327,7 +327,7 @@ Not only does this have the advantage of being clearer, more concise, and less w
 
 ```{julia}
 let
-    rates =
+    discount_factors =
         accumulate(*, map(x -> 1 / (1 + x), rate))
 end
 ```
@@ -349,7 +349,7 @@ let
 
     inputs = ["0.9524", "0.9434", "0.9524", "0.9615", "0.9524"]
     ops = ["df₁ × init", "df₂ × out₁", "df₃ × out₂", "df₄ × out₃", "df₅ × out₄"]
-    outputs = ["0.9524", "0.8985", "0.8561", "0.8230", "0.7831"]
+    outputs = ["0.9524", "0.8985", "0.8557", "0.8228", "0.7836"]
 
     # Draw input boxes
     for (i, val) in enumerate(inputs)
@@ -546,7 +546,7 @@ end
 
 #### `do` Syntax for Function Arguments
 
-In more complex situations such as with multiple collections or multi-line logic, there is a clearer syntax that is often used. `do` is a reserved keyword in Julia that creates an anonymous function and passes its arguments to a function like `map`. For example, this (terrible) code which decides if a number is prime. The anonymous function requires a `begin` block since the logic of the function is extended into multiple lines.
+In more complex situations such as with multiple collections or multi-line logic, there is a clearer syntax that is often used. `do` is a reserved keyword in Julia that creates an anonymous function and passes it as the first argument to a function like `map`. For example, this (terrible) code which decides if a number is prime. The anonymous function requires a `begin` block since the logic of the function is extended into multiple lines.
 
 ```{julia}
 map(x -> begin
@@ -631,7 +631,7 @@ function pv(rates,cashflows)
 end
 ```
 
-1.  Here, `cf_bond` and `rate` would refer to whatever was passed as arguments to the function instead of any globally defined values.
+1.  Here, `rates` and `cashflows` refer to whatever was passed as arguments to the function instead of the globally defined `rate` and `cf_bond`.
 
 Now we could use this definition of `pv` on other instances of rates and cashflows.
 
@@ -642,7 +642,7 @@ One of the best things about Julia is how natural it can be to mix different sty
 ::: callout-note
 ## Flexibility and the Lisp Curse
 
-**Lisp**`\index{Lisp}`{=latex} ("list processing") is another, much older language than Julia (created in the 1950s!). One of its claims to fame is how flexible and powerful the tools are within the language to build upon. There's a couple aspects of this curse that we wish to describe because we can learn from it while Julia is still a relatively young language.
+**Lisp**`\index{Lisp}`{=latex} ("list processing") is another, much older language than Julia (created in the 1950s!). One of its claims to fame is how flexible and powerful the tools are within the language to build upon. There are a couple of aspects of this curse that we wish to describe because we can learn from it while Julia is still a relatively young language.
 
 Part of the "curse" is that: because there's so much freedom in what can be expressed in the language, there's not an obvious "best" way of doing things. This can lead to decision paralysis where you are trying to over-analyze what's the best way to write part of your code. Our advice: *don't worry about it!* A working implementation of something is better than an over-optimized idea.
 
@@ -684,7 +684,7 @@ Array-oriented programming is not always natural for financial and actuarial app
 
 The downsides to this style are:
 
-1.  Sometimes it is unnatural because of non-uniformity of the data we are working with. For example if the length of the cashflows were shorter than the discount rates, we would have to perform intermediate steps to shorten or lengthen arrays in order to get them to be the same size.
+1.  Sometimes it is unnatural because of non-uniformity of the data we are working with. For example if the cashflow vector were shorter than the discount rate vector, we would have to perform intermediate steps to shorten or lengthen arrays in order to get them to be the same size.
 2.  A good bit of runtime performance is lost because the computer needs to allocate and fill many intermediate arrays (note how in @tbl-array-oriented-example, the `discount_factors` needs to instantiate an entirely new vector even though it's only temporarily used). See more on allocations in @sec-hardware.
 
 ## Recursion

@@ -69,7 +69,7 @@ Using `@time` is quick but has flaws because your function is only measured once
 
 ### BenchmarkTools
 
-[BenchmarkTools.jl](https://github.com/JuliaCI/BenchmarkTools.jl)`\index{BenchmarkTools.jl}`{=latex} is the most popular package for repeated measurements on function executions. Similar to `@time`, BenchmarkTools offers `@btime`, which can be used in exactly the same way but will run the code multiple times and provide an average. Additionally, by using `$` to [interpolate external values](https://juliaci.github.io/BenchmarkTools.jl/stable/manual/#Interpolating-values-into-benchmark-expressions), you remove the overhead caused by global variables.
+[BenchmarkTools.jl](https://github.com/JuliaCI/BenchmarkTools.jl)`\index{BenchmarkTools.jl}`{=latex} is the most popular package for repeated measurements on function executions. Similar to `@time`, BenchmarkTools offers `@btime`, which can be used in exactly the same way but will run the code multiple times and report the minimum time. Additionally, by using `$` to [interpolate external values](https://juliaci.github.io/BenchmarkTools.jl/stable/manual/#Interpolating-values-into-benchmark-expressions), you remove the overhead caused by global variables.
 
 ```{julia}
 using BenchmarkTools
@@ -87,7 +87,7 @@ my_matmul(A, b) = A * b;
 );
 ```
 
-For better visualization, the `@benchmark` macro shows performance histograms:
+For better visualization, the `@benchmark` macro shows performance histograms.
 
 ::: callout-note
 Certain computations may be [optimized away by the compiler](https://juliaci.github.io/BenchmarkTools.jl/stable/manual/#Understanding-compiler-optimizations) before the benchmark takes place. If you observe suspiciously fast performance, especially below the nanosecond scale, this is very likely to have happened.
@@ -121,9 +121,7 @@ using ProfileView
 ```
 
 ::: callout-tip
-Calling `@profview do_work(some_input)` in the integrated Julia REPL will open an interactive flame graph, similar to ProfileView.jl but without requiring a separate package.
-
-In VS Code, you can also call `@profview do_work(some_input)` without adding ProfileView.jl; the Julia extension provides this macro.
+In VS Code, you can call `@profview do_work(some_input)` in the integrated Julia REPL without adding ProfileView.jl; the Julia extension provides this macro and will open an interactive flame graph.
 :::
 
 To integrate profile visualizations into environments like Jupyter and Pluto, use [ProfileSVG.jl](https://github.com/kimikage/ProfileSVG.jl) or [ProfileCanvas.jl](https://github.com/pfitzseb/ProfileCanvas.jl), whose outputs can be embedded into a notebook.
@@ -131,7 +129,7 @@ To integrate profile visualizations into environments like Jupyter and Pluto, us
 No matter which tool you use, if your code is too fast to collect samples, you may need to run it multiple times in a loop.
 
 ::: callout-tip
-To visualize memory allocation profiles, use PProf.jl or VSCode's `@profview_allocs`. A known issue with the allocation profiler is that it is not able to determine the type of every object allocated, instead `Profile.Allocs.UnknownType` is shown instead. Inspecting the call graph can help identify which types are responsible for the allocations.
+To visualize memory allocation profiles, use PProf.jl or VSCode's `@profview_allocs`. A known issue with the allocation profiler is that it is not able to determine the type of every object allocated; `Profile.Allocs.UnknownType` is shown instead. Inspecting the call graph can help identify which types are responsible for the allocations.
 :::
 
 ### External profilers
@@ -281,7 +279,7 @@ create_sysimage(packages_to_compile; sysimage_path="MySysimage.so")
 Once a sysimage is generated, it can be used with the command-line flag: `julia --sysimage=path/to/sysimage`.
 
 ::: callout-tip
-The generation and loading of sysimages can be [streamlined with VSCode](https://www.julia-vscode.org/docs/stable/userguide/compilesysimage/). By default, the command sequence `Task: Run Build Task` followed by `Julia: Build custom sysimage for current environment` will compile a sysimage containing all packages in the current environment, but additional details can be specified in a `/.vscode/JuliaSysimage.toml` file. To automatically detect and use a custom sysimage, set `useCustomSysimage` to `true` in the application settings.
+The generation and loading of sysimages can be [streamlined with VSCode](https://www.julia-vscode.org/docs/stable/userguide/compilesysimage/). By default, the command sequence `Task: Run Build Task` followed by `Julia: Build custom sysimage for current environment` will compile a sysimage containing all packages in the current environment, but additional details can be specified in a `.vscode/JuliaSysimage.toml` file. To automatically detect and use a custom sysimage, set `useCustomSysimage` to `true` in the application settings.
 :::
 
 ### Static compilation
@@ -322,7 +320,7 @@ Linear algebra code calls the low-level libraries [BLAS](https://en.wikipedia.or
 In this case, once `LinearAlgebra` is loaded, BLAS can be set to use only one thread by calling `BLAS.set_num_threads(1)`. For more information see the docs on [multithreading and linear algebra](https://docs.julialang.org/en/v1/manual/performance-tips/#man-multithreading-linear-algebra).
 :::
 
-Regardless of the number of threads, you can parallelize a for loop with the macro `Threads.@threads`. The macros `@spawn` and `@async` function similarly, but require more manual management of tasks and their results. For this reason `@threads` is recommended for those who do not wish to use third-party packages.
+Regardless of the number of threads, you can parallelize a for loop with the macro `Threads.@threads`. The macro `Threads.@spawn` can also run tasks on multiple threads, but requires more manual management of tasks and their results (note that the similar-looking `@async` schedules tasks on the current thread only). For this reason `@threads` is recommended for those who do not wish to use third-party packages.
 
 When designing multithreaded code, you should generally try to write to shared memory as rarely as possible. Where it cannot be avoided, you need to be careful to avoid "race conditions", i.e. situations when competing threads try to write different things to the same memory location. It is usually a good idea to separate memory accesses with loop indices, as in the example below:
 
@@ -343,7 +341,7 @@ If you're on Linux, you should consider using [ThreadPinning.jl](https://github.
 
 ### Distributed computing
 
-Julia's multiprocessing and distributed relies on the standard library `Distributed`. The main difference from multi-threading is that data isn't shared between worker processes. Once Julia is started, processes can be added with `addprocs` and their number can be queried with `nworkers`.
+Julia's multiprocessing and distributed computing relies on the standard library `Distributed`. The main difference from multi-threading is that data isn't shared between worker processes. Once Julia is started, processes can be added with `addprocs` and their number can be queried with `nworkers`.
 
 The macro `Distributed.@distributed` is a *syntactic* equivalent for `Threads.@threads`. Hence, we can use `@distributed` to parallelize a for loop as before, but we have to additionally deal with sharing and recombining the `results` array. We can delegate this responsibility to the standard library `SharedArrays`. However, in order for all workers to know about a function or module, we have to load it `@everywhere`:
 
@@ -367,17 +365,12 @@ Note that `@distributed` does not force the main process to wait for other worke
 One feature `@distributed` has over `@threads` is the possibility to specify a reduction function (an associative binary operator) that combines the results of each worker. In this case, `@sync` is implied, as the reduction cannot happen unless all of the workers have finished.
 
 ```{julia}
-using Distributed
-addprocs(2)
-```
-
-```{julia}
 @distributed (+) for i in 1:4
     i^2
 end
 ```
 
-Alternatively, the convenience function `pmap` can be used to easily parallelize a `map`, both in a distributed and multi-threaded way.
+Alternatively, the convenience function `pmap` can be used to easily parallelize a `map` across worker processes (or asynchronously on the local process with `distributed=false`).
 
 ```{julia}
 results = pmap(x -> 3 * x^2, 1:100; distributed=true, batch_size=25, on_error=ex -> 0)

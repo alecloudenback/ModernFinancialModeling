@@ -14,7 +14,7 @@ Pkg.activate("env/parallelization")
 Pkg.instantiate()
 ```
 
-> Quantity has a quality all its own. - Attributed to Vladimir Lenin
+> Quantity has a quality all its own. - Apocryphal; popularly attributed to Joseph Stalin
 
 ## Chapter Overview
 
@@ -71,7 +71,7 @@ function main()
 
     n = 2 .^ (0:16)
     parallel_portions = [0.5, 0.75, 0.9, 0.95]
-    linestyles = [:solid, :dash, :dashdot, :solid]
+    linestyles = [:solid, :dash, :dashdot, :dot]
 
     for (i, p) in enumerate(parallel_portions)
         speedup = [amdahl_speedup(p, ni) for ni in n]
@@ -149,6 +149,10 @@ end
 
 In testing the above code, the `allow_simd` version should be several times faster than the `prevent_simd` example. The reason is that `prevent_simd` has a branch (`if x > 0`) where the behavior of the code may change depending on the value in `arr`. Conversely, the behavior of `allow_simd` is always the same in each iteration, no matter the value of `x`. This allows the compiler to generate vectorized code automatically.
 
+::: callout-note
+A second effect compounds the branch in `prevent_simd`: the accumulator is initialized to the integer `0`, so whether it has been promoted to a `Float64` yet depends on the branch history, and the loop body is not type-stable (see @sec-performance-single). The branchless `allow_simd` settles into a single concrete type after the first iteration and vectorizes. Modern compilers can sometimes rewrite a *simple* branch into branchless code on their own, but it takes little — a type that changes across iterations as here, an early exit, or a more complex loop body — to defeat both that rewrite and vectorization.
+:::
+
 ::: callout-tip
 Note that Julia's compiler is able to identify vectorizable code in many cases, though some cases may benefit from a more manual hint to the compiler through macro annotations (enter `?@simd` in the REPL for details). See @sec-optimizing-SIMD for more.
 :::
@@ -169,7 +173,7 @@ This subsection starts by introducing *tasks* - lightweight units of computation
 
 To understand multi-threading examples, we first need to discuss **Tasks**`\index{tasks}`{=latex}, which are chunks of computation that get performed together, but after which the computer is free to switch to a new task. Technically, there are some instructions within a task that will let the computer pause and come back to that task later (such as `sleep`).
 
-Tasks do not, by themselves, allow for multiple computations to be performed in parallel. For example, one task might be loading a data file from persistent storage into RAM. After that task is complete, the computer continues on with another task in the queue (rendering a web page, playing a song, etc.). In this way even a single processor computer could be "doing multiple things at once" (or "multi-tasking") even though nothing is running in parallel. The scheduling of the tasks is handled automatically by the program's compiler or the operating system.
+Tasks do not, by themselves, allow for multiple computations to be performed in parallel. For example, one task might be loading a data file from persistent storage into RAM. After that task is complete, the computer continues on with another task in the queue (rendering a web page, playing a song, etc.). In this way even a single processor computer could be "doing multiple things at once" (or "multi-tasking") even though nothing is running in parallel. The scheduling of the tasks is handled automatically by the language runtime or the operating system.
 
 Here's an example of a couple of tasks where we write to an array. Despite being called last, the second task should actually write to the array before the first task. This is because we asked the first task to `sleep` (pause, while allowing the computer to yield to other tasks in the queue)[^parallelization-1].
 
@@ -234,8 +238,8 @@ let
     # Start producer and consumer tasks
     @sync begin # <5>
         for i in 1:5
-            @async trade_producer(channel, i)
-        end  # <6>
+            @async trade_producer(channel, i) # <6>
+        end
         @async portfolio_monitor(channel, 5) # <6>
     end
 
@@ -308,7 +312,7 @@ The advantage of threads is that within a single physical processor there may be
 Thread jargon varies. A compact glossary to help:
 
 - **Hardware threads** are the execution lanes exposed by the CPU. They are what the operating system schedules on each core.
-- **Operating-system threads** are managed by the kernel and generally map one-to-one to hardware threads. They are heavier to create and destroy than Julia tasks.
+- **Operating-system threads** are managed by the kernel, which schedules them onto the available hardware threads. They are heavier to create and destroy than Julia tasks.
 - **Green threads**, **cooperative threads**, **fibers**, or **user threads** are Julia's lightweight tasks. They live entirely inside the Julia runtime and can be created in large numbers with minimal overhead.
 - **Multi-tasking** is a single core rapidly switching between tasks so multiple activities appear to make progress even without true parallel execution.
 
@@ -317,7 +321,7 @@ Parallelism occurs at many layers - hardware, operating system, language runtime
 
 #### Multi-Threading Pitfalls
 
-Different threads being able to access the same memory is a double-edged sword. It is useful because we do not need to create multiple copies of the data in RAM or in the cache[^parallelization-2] and can improve the overall throughput of our usually memory-bandwidth-limited machines. The downside is that if we are mutating the shared data for which our program relies upon, then our program may produce unintended results if the modification occurs carelessly. There are a couple of related issues to be aware of:
+Different threads being able to access the same memory is a double-edged sword. It is useful because we do not need to create multiple copies of the data in RAM or in the cache[^parallelization-2] and can improve the overall throughput of our usually memory-bandwidth-limited machines. The downside is that if we are mutating the shared data that our program relies upon, then our program may produce unintended results if the modification occurs carelessly. There are a couple of related issues to be aware of:
 
 [^parallelization-2]: There are some chips which do not have access to the same memory in a multi-threading context, and are known as non-uniform memory access (NUMA). These architectures work more like those in @sec-multi-device.
 
@@ -346,7 +350,7 @@ The result will be less than the expected sum (`5000050000`) due to a race condi
 
 2.  Each thread adds its own, local value to that reading.
 
-3.  Only one thread writes its result back to `subtotal` first.
+3.  One thread writes its result back to `subtotal` first.
 
 4.  A different thread then overwrites `subtotal` with its calculation based on the out-dated starting point for `subtotal`.
 
@@ -426,7 +430,7 @@ end
 
 ##### Using Atomics
 
-**Atomics**`\index{atomics}`{=latex} are certain primitive values with a reduced set of operations for which Julia and the compiler can automatically create thread-safe code. This is often significantly faster than the context-switching overhead needed with locking and unlocking memory for threaded tasks. Compared with locks, atomics are simpler to implement and easier to reason about. The downside is that atomics are limited to the available primitive atomics types and methods.
+**Atomics**`\index{atomics}`{=latex} are certain primitive values with a reduced set of operations for which Julia and the compiler can automatically create thread-safe code. This is often significantly faster than the context-switching overhead needed with locking and unlocking memory for threaded tasks. Compared with locks, atomics are simpler to implement and easier to reason about. The downside is that atomics are limited to the available primitive atomic types and methods.
 
 ```{julia}
 function sum_with_atomic(n)
@@ -484,7 +488,7 @@ With some of the key conceptual differences between CPUs and GPUs explained, let
 
 #### Julia GPU Libraries
 
-There's essentially two types of GPU programming we will discuss here:
+There are essentially two types of GPU programming we will discuss here:
 
 1.  **Array-based programming**`\index{array-based programming}`{=latex}, where arrays are stored and operated on directly on the GPU memory. This approach abstracts away the low-level details, allowing you to work with familiar array operations that are automatically executed on the GPU.
 2.  **Custom kernels**`\index{kernels (GPU)}`{=latex}, which are specialized functions that define exactly how each GPU thread should process data in parallel. A kernel explicitly specifies the computation that each GPU thread will perform on its portion of the data.
@@ -493,7 +497,7 @@ There's essentially two types of GPU programming we will discuss here:
 **Kernels** in this context are specialized functions that run directly on the GPU. Rather than relying solely on high-level array operations, kernels explicitly define the sequence of low-level, parallel instructions executed across many GPU threads. In other words, a kernel directly expresses the computation you want to perform on the data, enabling fine-grained control over GPU execution.
 :::
 
-A third approach would be to implement GPU code in a low-level vendor toolkit (such as C++ and associate CUDA libraries), but this approach will not be illustrated here.
+A third approach would be to implement GPU code in a low-level vendor toolkit (such as C++ and associated CUDA libraries), but this approach will not be illustrated here.
 
 Julia has wonderful support for several of the primary vendors (at the time of writing, CUDA, Metal, OneAPI, and ROCm) via the [JuliaGPU organization](https://juliagpu.org). Installation of the required dependencies is also very straightforward and the interfaces at the array and generated kernel levels are very similar. The differences are obvious at the lower level vendor-API wrappers (which is the lower-level technique that will not be covered here).
 
@@ -539,7 +543,7 @@ cashflows_GPU = MtlArray(cashflows) # <5>
 discount_matrices_GPU = MtlArray(discount_matrices)
 
 @btime calculate_present_values!($pvs, $cashflows, $discount_matrices)
-@btime calculate_present_values!($pvs_GPU, $cashflows_GPU, $discount_matrices_GPU) # <6>
+@btime Metal.@sync calculate_present_values!($pvs_GPU, $cashflows_GPU, $discount_matrices_GPU) # <6>
 ```
 
 1.  The function `calculate_present_values!` is written the same way as if we were just writing CPU code. Note that we are also passing a pre-allocated vector, `present_values` to store the result. This will allow us to isolate the performance of the computation, rather than including any overhead of allocating the array for the result.
@@ -547,14 +551,14 @@ discount_matrices_GPU = MtlArray(discount_matrices)
 3.  Metal only supports 32-bit floating point (`Float32`) in GPU shaders. NVIDIA data center GPUs (A100, H100) have full-speed FP64; consumer GPUs (RTX series) have heavily throttled FP64 (often 1/64th the FP32 rate). For financial calculations requiring double precision, this is an important hardware consideration.
 4.  Using 100 thousand scenarios for this example.
 5.  `MtlArray(array)` will copy the array values to the GPU.
-6.  Note that the data still lives on the GPU and is of the `MtlMatrix` (a type alias for a 2-D `MtlArray`).
+6.  Note that the data still lives on the GPU and is of the `MtlMatrix` type (an alias for a 2-D `MtlArray`). Also note the `Metal.@sync`: GPU operations are launched asynchronously, so we must wait for the GPU to actually finish its work — without it, the benchmark would mostly measure the cost of *queueing* the work rather than performing it.
 
 The testing suggests significantly faster computation when performed on the GPU (the exact speedup depends on hardware and problem size). Note, however, that this does not include the overhead of (1) moving the data to the GPU (in the initial `MtlArray(cashflows)` call), or (2) returning the data to the CPU (since the return type for the GPU version is `MtlArray`). We can measure this overhead by wrapping the data transfer inside another function and benchmarking it:
 
 ```{julia}
 function GPU_overhead_test(present_values, cashflows, discount_matrices)
     pvs_GPU = MtlArray(present_values)
-    cashflows_GPU = MtlArray(cashflows) # <5>
+    cashflows_GPU = MtlArray(cashflows)
     discount_matrices_GPU = MtlArray(discount_matrices)
 
     calculate_present_values!(pvs_GPU, cashflows_GPU, discount_matrices_GPU)
@@ -600,40 +604,43 @@ Our strategy for the present values example will be to distribute the work such 
 function calculate_present_values_kernel!(present_values, cashflows, discount_matrices)
     idx = thread_position_in_grid_1d()  # <1>
 
-    pv = 0.0f0 # <2>
-    for t in 1:size(cashflows, 1)
-        pv += cashflows[t] * discount_matrices[t, idx] # <3>
-    end
+    if idx <= size(discount_matrices, 2) # <2>
+        pv = 0.0f0 # <3>
+        for t in 1:size(cashflows, 1)
+            pv += cashflows[t] * discount_matrices[t, idx] # <4>
+        end
 
-    present_values[idx] = pv # <4>
-    return nothing # <5>
+        present_values[idx] = pv # <5>
+    end
+    return nothing # <6>
 end
 ```
 
 1.  As the work is distributed across threads, `thread_position_in_grid_1d()` will give the index of the current thread so that we can index data appropriately for the work as we decide to split it up (we've split up the work by scenario in this example).
-2.  Recall that we are working with `Float32` on the GPU here, so the zero value is set via the `f0` notation indicating a 32-bit floating point number.
-3.  The loop is across timesteps within each thread, while the thread index is tracked with `idx`.
-4.  The result is written to the pre-allocated array of present values, and we avoid race conditions because the different threads are working on different scenarios.
-5.  We don't explicitly have to `return nothing` here, but it makes it extra clear that the intention of the function is to mutate the `present_values` array given to it. This mutation intention is also signaled by the `!` convention in the function name.
+2.  The launch configuration below rounds the thread count up to a whole number of threadgroups, so a few trailing threads will receive an `idx` beyond the number of scenarios; the bounds check keeps them from reading or writing out of bounds.
+3.  Recall that we are working with `Float32` on the GPU here, so the zero value is set via the `f0` notation indicating a 32-bit floating point number.
+4.  The loop is across timesteps within each thread, while the thread index is tracked with `idx`.
+5.  The result is written to the pre-allocated array of present values, and we avoid race conditions because the different threads are working on different scenarios.
+6.  We don't explicitly have to `return nothing` here, but it makes it extra clear that the intention of the function is to mutate the `present_values` array given to it. This mutation intention is also signaled by the `!` convention in the function name.
 
-The kernel above was fairly similar to how we might write code for CPU-threaded approaches, but we now need to specify the technicals of launching this on the GPU. The `threads` defines how many independent calculations to run at a given time, and the maximum will be dependent on the hardware used. The `groups` argument defines the number of threads that share memory and synchronize results together (meaning that group will wait for all threads to finish before moving onto the next chunk of data). The push-pull here is that threads that can share data avoid needing to create duplicate copies of that data in memory. However, if there is variability in how long each calculation will take, then the waiting time for synchronizing results may slow the overall computation down.
+The kernel above was fairly similar to how we might write code for CPU-threaded approaches, but we now need to specify the technicals of launching this on the GPU. The `threads` argument defines how many threads run within each *threadgroup*; threads in the same group execute together, can share fast threadgroup memory, and can synchronize with one another, and the maximum group size depends on the hardware used. The `groups` argument defines how many such groups are launched — together, `threads × groups` determines the total number of GPU threads. The push-pull here is that threads that can share data avoid needing to create duplicate copies of that data in memory. However, if there is variability in how long each calculation will take, then the waiting time for synchronizing results may slow the overall computation down.
 
-Our task utilizes shared memory of the cashflows for each thread, so through some experimentation in advance, we find that a relatively large group size of \~512 is optimal.
+Through some experimentation in advance, we find that a relatively large group size of \~512 works well for this kernel.
 
 We bring this all together through the use of the kernel macro `@metal`:
 
 ```{julia}
-threads = 1024
-groups = cld(num_scenarios, 512)
+threads = 512
+groups = cld(num_scenarios, threads)
 
-@btime @metal threads = $threads groups = $groups calculate_present_values_kernel!(
+@btime Metal.@sync @metal threads = $threads groups = $groups calculate_present_values_kernel!(
     $pvs_GPU,
     $cashflows_GPU,
     $discount_matrices_GPU
 );
 ```
 
-The kernel version is faster than the array-oriented style above, meaning that the GPU kernel version's computation is significantly faster than the CPU version. However, we saw previously that the cost of moving the data to the GPU memory and then back to the CPU memory was the biggest time sink of all - again we'd need to have more scale in the problem to make offloading to the GPU beneficial overall.
+The kernel version is faster than the array-oriented style above (and thus also significantly faster than the CPU version). However, we saw previously that the cost of moving the data to the GPU memory and then back to the CPU memory was the biggest time sink of all - again we'd need to have more scale in the problem to make offloading to the GPU beneficial overall.
 
 ::: callout-note
 The Metal GPUs are able to iterate threads across three different dimensions. In the prior example, we only used one dimension and thus used `thread_position_in_grid_1d()`. If we were distributing the threads across, say, two dimensions then we would use `thread_position_in_grid_2d()`.
@@ -646,8 +653,8 @@ The above example would be translated to CUDA by changing a few things:
 
 -   The thread indexing would be `idx = (blockIdx().x - 1) * blockDim().x + threadIdx().x` instead of `idx = thread_position_in_grid_1d()`.
 -   The GPU arrays should be created with `CuArray` instead of `MtlArray`.
--   The kernel macro would be `@cuda threads=threads blocks=blocks calculate_present_values_kernel!(...)` instead of `@metal threads=threads groups=groups calculate_present_values_kernel(...)`.
--   The kernel needs a bounds check (`if idx <= ...`) because `threads × blocks` will typically overshoot the data size. For example, `cld(100_000, 1024)` gives 98 blocks, launching 100,352 threads for only 100,000 scenarios. Metal handles this differently via `thread_position_in_grid_1d()`.
+-   The kernel macro would be `@cuda threads=threads blocks=blocks calculate_present_values_kernel!(...)` instead of `@metal threads=threads groups=groups calculate_present_values_kernel!(...)`.
+-   As in the Metal version, the kernel needs a bounds check (`if idx <= ...`) because `threads × blocks` will typically overshoot the data size. For example, `cld(100_000, 1024)` gives 98 blocks, launching 100,352 threads for only 100,000 scenarios.
 
 Here is a complete, standalone example:
 
@@ -690,7 +697,7 @@ blocks = cld(num_scenarios, threads)
 
 ## Multi-Processing / Multi-Device {#sec-multi-device}
 
-Multiple device, or **multi-device**`\index{multi-device computing}`{=latex} computer refers to using separate groups of memory/processor combinations to accomplish tasks in parallel. This can be as simple as multiple distinct cores on within a single desktop computer, or many separate computers networked across the internet, or many processors within a high performance cluster or a computing-as-a-service provider like Amazon Web Services or JuliaHub.
+Multiple device, or **multi-device**`\index{multi-device computing}`{=latex}, computing refers to using separate groups of memory/processor combinations to accomplish tasks in parallel. This can be as simple as multiple distinct cores within a single desktop computer, or many separate computers networked across the internet, or many processors within a high performance cluster or a computing-as-a-service provider like Amazon Web Services or JuliaHub.
 
 Everything discussed previously related to hardware (@sec-hardware, @sec-multithreading, @sec-GPUs) continues to apply. The additional complexity is attempting to synchronize the computation across multiple sets of the same (homogeneous) or different (heterogeneous) hardware.
 
@@ -703,17 +710,17 @@ A useful mental model is the asynchronous task-based concepts discussed in @sec-
 | Create a new task           | `Task()`  | `@spawnat`           |
 | Run task asynchronously     | `@async`  | `@spawnat`           |
 | Retrieve task result        | `fetch`   | `fetch`              |
-| Wait for task completion    | `@sync`   | `sync`               |
+| Wait for task completion    | `@sync`   | `@sync`              |
 | Communication between tasks | `Channel` | `RemoteChannel`      |
 
 Adapting the trade producer and monitor example from above to run on multiple processors (see @sec-channels to review the base model and algorithm), we make a few key changes:
 
 -   `using Distributed` loads the Distributed standard Julia library, providing the interface for multi-processing across different hardware.
--   `addprocs(n)` will add `n` worker processors (the main processor is already counted as one worker). When adding local machine processors, the processors are part of the local machine. This starts new Julia processes (you can see this in the task manager of the machine) which inherit the package environment (i.e. `Project.toml` and environment variables) from the main process; this does not occur automatically if not part of the same local machine.
+-   `addprocs(n)` will add `n` worker processes (before any workers are added, the main process acts as the sole worker, which is why we check `nworkers() == 1` below). This starts new Julia processes (you can see this in the task manager of the machine) which inherit the package environment (i.e. `Project.toml` and environment variables) from the main process; this does not occur automatically if not part of the same local machine.
     -   To add processors from other machines, see the [Distributed Computing](https://docs.julialang.org/en/v1/stdlib/Distributed/) section of the Julia docs.
--   `myid()` is the identification number of the given processor that's been spun up.
+-   `myid()` is the identification number of the given process that's been spun up.
 -   We use a `RemoteChannel` instead of a `Channel` to facilitate communication across processors.
--   Instead of `@async`, we use `@spawnat n` to create a task for processor number `n` (or `:any` will automatically assign a processor).
+-   Instead of `@async`, we use `@spawnat n` to create a task for process number `n` (or `:any` will automatically assign a process).
 
 ```{julia}
 using Distributed
@@ -747,7 +754,7 @@ function run_distributed_simulation()
     channel = RemoteChannel(() -> Channel{Float64}(32))
 
     # Start producer and consumer tasks
-    @sync begin  # <5>
+    @sync begin
         for i in 1:5
             @spawnat :any trade_producer(channel, i)
         end
@@ -806,13 +813,13 @@ import ThreadsX
 
 `@distributed (op) for x in collection; f(x); end` is a way to write the loop with the reduction `op` for which the `f` need not be costly.
 
-The difference between the two approaches is that, with `pmap`, `collection` is made available to all workers. In the `@distributed` approach, the collection is partitioned and only a subset is sent to the designated workers.
+The difference between the two approaches is how the work is assigned. `pmap` dynamically sends each element of `collection` to the next available worker as it finishes its prior work, which balances load well when each call of `f` is expensive but incurs communication overhead on every element. `@distributed` statically partitions the iteration range up front into one contiguous block per worker, which has minimal per-iteration overhead and suits cheap loop bodies. (Note that any outside variables referenced inside the `@distributed` loop body — including a collection that is indexed into — are serialized to every worker.)
 
 Here's an example of both of these, calculating a simple example of counting coin flips:
 
 ```{julia}
-# this is an example of poor utilization of pmap, since the operation is 
-# fast and the overhead of moving the whole collection dominates
+# this is an example of poor utilization of pmap, since the operation is
+# fast and the per-element communication overhead dominates
 @btime reduce(+, pmap(x -> rand((0, 1)), 1:10^3))
 ```
 

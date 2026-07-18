@@ -25,7 +25,7 @@ An example of using a Bayesian`\index{Bayesian inference}`{=latex} MCMC`\index{M
 
 The problem of interest is to look at mortality rates, which are given in terms of exposures (whether or not a life experienced a death in a given year).
 
-We'll grab some example rates from an insurance table, which has a "selection" component: When someone enters observation, say at age 50, their mortality is path dependent (so someone who started being observed at 50 will have a different risk/mortality rate at age 55 than someone who started being observed at 45).
+We'll grab some example rates from an insurance table, which has a "selection" component: When someone enters observation, say at age 50, their mortality is path dependent (so someone who started being observed at 50 will have a different risk/mortality rate at age 55 than someone who started being observed at 45). For simplicity, though, the simulation below uses the table's ultimate rates only, so the generated data will not exhibit this selection effect.
 
 Additionally, there may be additional groups of interest, such as:
 
@@ -37,10 +37,10 @@ Additionally, there may be additional groups of interest, such as:
 The example data will start with only the risk classification above.
 
 ```{julia}
+#| output: false
 using MortalityTables
 using Turing
 using DataFramesMeta
-using MCMCChains
 using LinearAlgebra
 using CairoMakie
 using StatsBase
@@ -124,21 +124,21 @@ data2 = @chain exposures begin
 end
 ```
 
-## 1: A single binomial parameter model
+## 1. A single binomial parameter model
 
 Estimate $q$, the average mortality rate, not accounting for any variation within the population/sample. Our model is defined as a Beta`\index{Beta distribution}`{=latex} prior on $q$ with a Binomial`\index{Binomial distribution}`{=latex} likelihood:
 
 $$
 \begin{aligned}
 q &\sim \text{Beta}(1,1) \\
-p(\text{death}) &\sim \text{Binomial}(n, q)
+\text{deaths} &\sim \text{Binomial}(n, q)
 \end{aligned}
 $$
 
 ```{julia}
 @model function mortality(exposures, deaths)
     q ~ Beta(1, 1)
-    # Vectorized: observe all deaths at once
+    # Observe the death count for each age group
     for i in eachindex(deaths)
         deaths[i] ~ Binomial(exposures[i], q)
     end
@@ -160,12 +160,12 @@ Here, we have asked for the outcomes to be modeled via a single parameter for th
 
 ```{julia}
 # Posterior mean of q should be close to the pooled fraction
-sum(data.deaths) / sum(data.exposures)
+(posterior_mean_q=mean(chain[:q]), pooled_fraction=sum(data.deaths) / sum(data.exposures))
 ```
 
 However, we can see that the sampling of possible posterior parameters doesn't really fit the data very well since our model was so simplified. The lines represent the posterior binomial probability.
 
-This is saying that for the observed data, if there really is just a single probability `p` that governs the true process that came up with the data, there's a pretty narrow range of values it could possibly be:
+This is saying that for the observed data, if there really is just a single probability `q` that governs the true process that came up with the data, there's a pretty narrow range of values it could possibly be:
 
 ```{julia}
 let
@@ -184,9 +184,9 @@ let
         color=(:blue, 0.5),
         label="Experience data (size ~ exposure)")
 
-    # Sample from posterior once (more efficient than sampling 1 at a time)
+    # Subsample posterior draws of q
     n_samples = 300
-    q_posterior = vec(Array(sample(chain, n_samples)[:q]))
+    q_posterior = sample(vec(chain[:q]), n_samples)
 
     # Draw horizontal lines for each posterior sample
     for q in q_posterior
@@ -202,7 +202,7 @@ end
 
 In this example, we utilize a [MakehamBeard](https://juliaactuary.github.io/MortalityTables.jl/stable/ParametricMortalityModels/#MortalityTables.MakehamBeard)`\index{Makeham-Beard model}`{=latex} parameterization because it's already very similar in form to a [logistic function](https://en.wikipedia.org/wiki/Logistic_function). This is important because our desired output is a probability (i.e., the probability of a death at a given age), so the value must be constrained to be in the interval between zero and one.
 
-The **prior**`\index{prior (Bayesian)}`{=latex} values for `a`, `b`, `c`, and `k` are chosen to constrain the hazard (mortality) rate to be between zero and one.
+The **prior**`\index{prior (Bayesian)}`{=latex} distributions for `a`, `b`, and `k` are chosen to constrain the hazard (mortality) rate to be between zero and one (`c` is fixed at zero in this model; it becomes a sampled parameter in the final model below).
 
 This isn't an ideal parameterization (e.g. we aren't including information about the select underwriting period), but is an example of utilizing Bayesian techniques on life experience data.
 
@@ -263,12 +263,12 @@ let
         color=(:blue, 0.5),
         label="Experience data (size ~ exposure)")
 
-    # Sample from posterior once (much faster than sampling 1 at a time in loop)
+    # Subsample joint posterior draws (a, b, and k taken from the same iteration)
     n_samples = 300
-    posterior = sample(chain2, n_samples)
-    a_samples = vec(Array(posterior[:a]))
-    b_samples = vec(Array(posterior[:b]))
-    k_samples = vec(Array(posterior[:k]))
+    idx = sample(1:length(vec(chain2[:a])), n_samples)
+    a_samples = vec(chain2[:a])[idx]
+    b_samples = vec(chain2[:b])[idx]
+    k_samples = vec(chain2[:k])[idx]
 
     ages = sort!(unique(data.att_age))
 
@@ -312,7 +312,7 @@ m3 = mortality3(data2.att_age, data2.exposures, data2.risk_level, data2.deaths, 
 
 chain3 = sample(m3, NUTS(), 1000)
 
-summarize(chain3)
+summarystats(chain3)
 ```
 
 ```{julia}
@@ -335,16 +335,16 @@ let
         )
     )
 
-    # Sample from posterior once (much faster than sampling 1 at a time in loop)
+    # Subsample joint posterior draws (a, b, and k taken from the same iteration)
     n_samples = 100
-    posterior = sample(chain3, n_samples)
-    b_samples = vec(Array(posterior[:b]))
-    k_samples = vec(Array(posterior[:k]))
+    idx = sample(1:length(vec(chain3[:b])), n_samples)
+    b_samples = vec(chain3[:b])[idx]
+    k_samples = vec(chain3[:k])[idx]
 
     ages = sort!(unique(data2.att_age))
 
     for r in 1:3
-        a_samples = vec(Array(posterior[Symbol("a[$r]")]))
+        a_samples = vec(chain3[@varname(a[r])])[idx]
         for i in 1:n_samples
             m = MortalityTables.MakehamBeard(; a=a_samples[i], b=b_samples[i], c=0.0, k=k_samples[i])
             qs = MortalityTables.hazard.(m, ages)
@@ -374,6 +374,10 @@ The key is to use the Poisson distribution, which is a limiting approximation to
     for i in eachindex(deaths)
         m = MortalityTables.MakehamBeard(; a=a[risk_levels[i]], b, c, k)
         q = MortalityTables.hazard(m, ages[i])
+        if !isfinite(q) || q < 0 || q > 1
+            Turing.@addlogprob! -Inf
+            return
+        end
         deaths[i] ~ Poisson(exposures[i] * q)
     end
 end
@@ -385,7 +389,7 @@ chain4 = sample(m4, NUTS(), 1000)
 
 ```{julia}
 # Extract posterior means for risk factors and compute relative factors
-risk_factors4 = [mean(chain4[Symbol("a[$f]")]) for f in 1:3]
+risk_factors4 = [mean(chain4[@varname(a[f])]) for f in 1:3]
 println("Risk factors relative to standard (level 2): ", risk_factors4 ./ risk_factors4[2])
 
 let
@@ -407,17 +411,17 @@ let
         )
     )
 
-    # Sample from posterior once (much faster than sampling 1 at a time in loop)
+    # Subsample joint posterior draws (a, b, c, and k taken from the same iteration)
     n_samples = 100
-    posterior = sample(chain4, n_samples)
-    b_samples = vec(Array(posterior[:b]))
-    c_samples = vec(Array(posterior[:c]))
-    k_samples = vec(Array(posterior[:k]))
+    idx = sample(1:length(vec(chain4[:b])), n_samples)
+    b_samples = vec(chain4[:b])[idx]
+    c_samples = vec(chain4[:c])[idx]
+    k_samples = vec(chain4[:k])[idx]
 
     ages = sort!(unique(data2.att_age))
 
     for r in 1:3
-        a_samples = vec(Array(posterior[Symbol("a[$r]")]))
+        a_samples = vec(chain4[@varname(a[r])])[idx]
         for i in 1:n_samples
             m = MortalityTables.MakehamBeard(; a=a_samples[i], b=b_samples[i], c=c_samples[i], k=k_samples[i])
             qs = MortalityTables.hazard.(m, ages)
@@ -444,5 +448,15 @@ pred_model = mortality4(
     fill(missing, length(data2.deaths)),
     n_risk_levels
 )
-preds = predict(pred_model, chain4);
+preds = predict(pred_model, chain4; include_all=false);
 ```
+
+Averaging the predictions across the chain samples gives the posterior-mean predicted deaths for each row of the data, which we can compare directly with the observed counts:
+
+```{julia}
+predicted_deaths = [mean(preds[@varname(deaths[i])]) for i in eachindex(data2.deaths)]
+@transform(select(data2, :att_age, :risk_level, :exposures, :deaths),
+    :predicted_deaths = round.(predicted_deaths; digits=1))
+```
+
+The posterior-mean predictions track the observed deaths closely across ages and risk levels — a compact posterior predictive check that the final multi-level model has captured the structure of the data.

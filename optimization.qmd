@@ -127,9 +127,9 @@ f(x) = 3x^2 + 2x + 1
 x = 2.0
 h = 1e-3
 
-finite_diff = (f(x + h) - f(x - h)) / 2h
-auto_diff = gradient(f, x)[1]
-analytic_diff = 6x + 2
+finite_diff = (f(x + h) - f(x - h)) / 2h # <1>
+auto_diff = gradient(f, x)[1] # <2>
+analytic_diff = 6x + 2 # <3>
 
 println("Value of f(x) at x=", f(x))
 println("Gradient (finite diff) at x=", finite_diff)
@@ -457,7 +457,7 @@ println("Best Score: $best_score")
 # Visualization
 x = -2.0:0.05:2.0
 y = -1.0:0.05:3.0
-Z = [(1 - xᵢ)^2 + 100 * (yᵢ - xᵢ^2)^2 for yᵢ in y, xᵢ in x]
+Z = [(1 - xᵢ)^2 + 100 * (yᵢ - xᵢ^2)^2 for xᵢ in x, yᵢ in y]
 
 # Heatmap and Scatter Plot
 fig = Figure()
@@ -523,7 +523,9 @@ function crossover(parent1, parent2)
         child2 = vcat(parent2[1:point], parent1[point+1:end])
         return child1, child2
     else
-        return parent1, parent2
+        # Copy so that later in-place mutation of the children
+        # cannot corrupt the parents still in the population
+        return copy(parent1), copy(parent2)
     end
 end
 

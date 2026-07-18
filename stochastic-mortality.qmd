@@ -46,7 +46,7 @@ using CairoMakie
 
 ### `@enums` and the `Policy` Type
 
-Our core unit of simulation will be a single life insurance `Policy`. Important characteristics include: the age a policy was issued at, the sex of the insured, and risk class to determine the assumed mortality rate. To make the example more realistic and demonstrate how it might look for a real block of inforce policies, additional fields have been included such as ID (not really used, but a common identifier) and `COLA` which is a cost-of-living-adjustment, used to modify the policy benefit through time. To be clear: the `Policy` type has more fields than will actually be used in the calculations, with the purpose to show how typical fields used in practice might be defined.
+Our core unit of simulation will be a single life insurance `Policy`. Important characteristics include: the age a policy was issued at, the sex of the insured, and risk class to determine the assumed mortality rate. To make the example more realistic and demonstrate how it might look for a real block of inforce policies, additional fields have been included such as ID (not really used, but a common identifier) and `COLA` which is a cost-of-living-adjustment, used to modify the policy benefit through time. To be clear: the `Policy` type has more fields than will actually be used in the calculations, with the purpose of showing how typical fields used in practice might be defined.
 
 Before we define the core `Policy` type, there are a couple of types we might consider defining that would subsequently get used by `Policy`: types representing sex and risk class. A typical approach might be to simply define associated types, like this:
 
@@ -98,7 +98,7 @@ struct Policy
 end
 ```
 
-The benefit of the way we have defined it here, using simple bits-types for each field is that our new composite `Policy` type is also a bitstype:
+The benefit of the way we have defined it here, using simple bits-types for each field, is that our new composite `Policy` type is also a bitstype:
 
 ```{julia}
 let
@@ -109,7 +109,7 @@ end
 ```
 
 ::: callout-note
-Type annotations are optional, but providing them is able to coerce the values to be all plain bits (i.e. simple, non-referenced values like arrays are) when the type is constructed. We could have defined `Policy` without the types specified:
+Type annotations are optional, but providing them is able to coerce the values to be all plain bits (i.e. simple, non-referenced values—unlike arrays, which are heap-allocated and accessed by reference) when the type is constructed. We could have defined `Policy` without the types specified:
 
 ``` julia
 struct Policy
@@ -122,7 +122,7 @@ end
 
 Leaving out the annotations here forces Julia to assume that `Any` type could be used for the given field. Having the field be of type `Any` makes the instantiated struct data be stored in the heap, since Julia can't know the size of `Policy` in bits in advance.
 
-We would also find that the un-annotated type is about 50 times slower than the one with annotation due to the need to utilize runtime lookup and reference memory on the heap instead of the stack.
+We would also find that the un-annotated type is many times slower (roughly 20 times slower when benchmarked on the hardware used to render this book) than the one with annotation due to the need to utilize runtime lookup and reference memory on the heap instead of the stack.
 :::
 
 ### The Data
@@ -215,16 +215,16 @@ function pol_project!(out, policy, params)
 
     ω = lastindex(qs)
 
-    @inbounds for t in 1:min(params.proj_length, ω - start_age) # <1>
+    @inbounds for t in 1:min(params.proj_length, ω - start_age + 1) # <1>
 
-        q = qs[start_age+t] # get current mortality
+        q = qs[start_age+t-1] # mortality for the current projection year
 
         if (rand() < q)
             # if dead then just return and don't increment the results anymore
             out.benefits[t] += cur_benefit # <2>
             return
         else
-            # pay benefit, add a life to the output count, 
+            # survived: add a life to the output count
             # and increment the benefit for next year
             out.lives[t] += 1
             cur_benefit *= COLA_factor
@@ -233,8 +233,8 @@ function pol_project!(out, policy, params)
 end
 ```
 
-1.  `inbounds` turns off bounds-checking, which makes hot loops faster but first write the loop without it to ensure you don't create an error (will crash if you have the error without bounds checking)
-2.  Note that the loop is iterating down a column (i.e. across rows) for efficiency (since Julia is column-major).
+1.  `inbounds` turns off bounds-checking, which makes hot loops faster, but first write the loop without it to ensure you don't have an out-of-bounds bug (with bounds-checking disabled, an out-of-bounds access is undefined behavior and may crash or silently corrupt results).
+2.  The death benefit is accumulated into year `t`'s bucket and the function returns, so a dead life adds no further lives or benefits to the projection.
 
 ### Inputs and Outputs
 

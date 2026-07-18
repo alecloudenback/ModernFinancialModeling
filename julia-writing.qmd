@@ -81,7 +81,7 @@ julia> a + b
 3
 ```
 
-This is the standard (Julia) mode of the REPL, but there are three other modes you need to know. Each mode is entered by typing a specific character after the `julia>` prompt. Once you're in a non-Julia mode, you stay there for every command you run. To exit it, hit backspace after the prompt and you'll get the `julia>` prompt back.
+This is the standard (Julia) mode of the REPL, but there are three other modes you need to know. Each mode is entered by typing a specific character after the `julia>` prompt. Package mode persists between commands, while help and shell modes return you to the `julia>` prompt after a single command. To exit a mode manually, hit backspace after the prompt and you'll get the `julia>` prompt back.
 
 ### Help mode (`?`) {#sec-help-mode}
 
@@ -125,7 +125,7 @@ By pressing `]` you access [Pkg.jl](https://github.com/JuliaLang/Pkg.jl)`\index{
 As an illustration, we download the package Example.jl inside a new environment we call `demo` (which will create an associated folder if it does not exist):
 
 ``` julia-repl
-(demo) pkg> activate demo
+(@v1.10) pkg> activate demo
   Activating new project at `~/demo`
 
 (demo) pkg> add Example
@@ -292,7 +292,7 @@ The `(@v1.10)` indicates that you are using the global environment for the curre
 This will not do anything, yet! When we add a package to this environment, *then* it will create a `Project.toml` and `Manifest.toml` file in that directory. Now that directory is a full fledged Julia project!
 
 ::: callout-tip
-Activate a temporary environment with `activate --temp`. This will give you a temporary environment with a random name, which is very useful for testing out things in a clean, simplified environment. Note that environment stacking`\index{environment stacking}`{=latex} still applies, so the global environment, like `@1.10` will be available inside your temp environment. For auditability, always capture your Project/Manifest files and store them alongside model deliverables so results can be reproduced months later.
+Activate a temporary environment with `activate --temp`. This will give you a temporary environment with a random name, which is very useful for testing out things in a clean, simplified environment. Note that environment stacking`\index{environment stacking}`{=latex} still applies, so the global environment, like `@v1.10`, will be available inside your temp environment. For auditability, always capture your Project/Manifest files and store them alongside model deliverables so results can be reproduced months later.
 :::
 
 ### Project.toml
@@ -300,7 +300,7 @@ Activate a temporary environment with `activate --temp`. This will give you a te
 A `Project.toml` `\index{Project.toml}`{=latex} file defines attributes about the current project and its dependencies. Julia uses this to understand how to reference your current project and what dependencies it should look for from registries when instantiating the project.
 
 ::: callout-note
-TOML (Tom's Obvious Markup Language) is a modern configuration file format used to store settings and data in a human-readable, plaintext format.
+TOML (Tom's Obvious, Minimal Language) is a modern configuration file format used to store settings and data in a human-readable, plaintext format.
 :::
 
 This is a bit abstract, so here is a quick, annotated tour of an example Project.toml file:
@@ -381,7 +381,7 @@ weakdeps = ["ChainRulesCore", "Test"]
 ```
 
 ::: callout-note
-Starting with Julia 1.11, Manifest files will include a version indication, making it nicer to work with multiple Julia versions at one time on a single system.
+Starting with Julia 1.11, Julia will preferentially use version-specific manifest files such as `Manifest-v1.11.toml` if present, making it nicer to work with multiple Julia versions at one time on a single system.
 :::
 
 ### Reproducibility
@@ -433,14 +433,14 @@ Sysimages`\index{sysimage}`{=latex} (system images) are precompiled sets of pack
 
 After making a sysimage, you tell Julia to start with that sysimage like this: `julia --project=@notebooks --sysimage=notebooks_sysimage.so`.
 
-For guidance on making a sysimage, see [PackageCompiler.jl](https://github.com/JuliaLang/PackageCompiler.jl) or the [Julia VS Code extension has features](https://www.julia-vscode.org/docs/v1.0/userguide/compilesysimage/) to assist in their creation.
+For guidance on making a sysimage, see [PackageCompiler.jl](https://github.com/JuliaLang/PackageCompiler.jl) or the [Julia VS Code extension's features](https://www.julia-vscode.org/docs/v1.0/userguide/compilesysimage/) that assist in their creation.
 :::
 
 ## Creating Local packages
 
 Once your code base grows beyond a few scripts, you will want to [create a package](https://pkgdocs.julialang.org/v1/creating-packages/) of your own. The first advantage is that you don't need to specify the path of every file: `using MyPackage` is enough to get access to the names you define and export (or `using MyPackage: myfunc1, myfunc2` to bring non-exported functions into your environment). Furthermore, by structuring your project as a package, you can specify versions for your package and its dependencies, making your code easier and safer to reuse.
 
-To create a new package locally, the easy way is to use `]generate` .
+To create a new package locally, the easy way is to use `]generate`.
 
 ``` julia
 using Pkg
@@ -475,7 +475,7 @@ This will walk you through an interactive prompt to create a package in the desi
 
 ``` julia
 using PkgTemplates
-cd("~/.julia/dev")
+cd(expanduser("~/.julia/dev")) # `cd` does not expand `~` on its own
 Template(interactive=true)("MyPkg")
 ```
 
@@ -591,7 +591,7 @@ The following packages can give you even more interactive power:
 
 Testing in Julia primarily revolves around the built-in Test package, which provides a straightforward way to write and run tests using the `@test` macro. The basic syntax is simple - you write `@test expression` where the expression should evaluate to `true` for the test to pass.
 
-To run tests in Julia, navigate to the package directory and run `Pkg.test()`, or use the `] test YourPackageName` command in the Julia REPL. This will run the file in the package directory contained in `test/runtests.jl`. The test infrastructure automatically handles setting up the correct environment and dependencies for testing. Test coverage reports can be generated to see which lines of code are exercised by your tests.
+To run tests in Julia, activate the package's environment (e.g. `]activate .` from the package directory) and run `Pkg.test()`, or use the `]test` command in the Julia REPL. This will run the file `test/runtests.jl` in the package directory. The test infrastructure automatically handles setting up the correct environment and dependencies for testing. Test coverage reports can be generated to see which lines of code are exercised by your tests.
 
 `runtests.jl` is just a normal Julia file and can `include` other files to help organize your tests. This structure integrates naturally with Julia's package manager and testing tools.
 

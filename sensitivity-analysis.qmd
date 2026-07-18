@@ -92,21 +92,22 @@ end
 
 For example, `res(2, policies[1])` returns the reserve at the end of policy year 2 for our sample contract. We will refer to `policies[1]` when we need a concrete contract for the sensitivity examples.
 
-Given a basic insurance product, a pure whole of life (WOL) policy with level benefits and level premiums payable within the first 10 years, the reserve in-force at the end of the $y^{th}$ ($y$ >= 0) policy year is defined by
+Given a basic insurance product, a pure whole of life (WOL) policy with level benefits and level premiums payable within the first 10 years, the reserve in-force at the end of the $y^{th}$ ($y \geq 1$) policy year is defined by
 
 $$
-res(y) = \sum_{t=age+y}^{120} (sur_{t-age-y} * mort_t * B_y / \sqrt{1 + pir}) - (P_y * sur_{t-age-y})
+res(y) = \sum_{t=age+y}^{120} \frac{sur_{t-age}}{sur_y} \left( mort_t * B / \sqrt{1 + pir} - P_t \right)
 $$
 
 where
 
-- $mort_t$ is the mortality at age $t$
-- $sur_y$ is the survival probability adjusted with the policy interest rate, with values of
+- $mort_t$ is the mortality rate at attained age $t$
+- $sur_x$ is the survival probability from issue, discounted with the policy interest rate, with values of
     + $sur_0 = 1$,
-    + $sur_x = sur_{x-1} * (1 - mort_{age+x-1}) / (1 + pir)$ for $x >= y$, and
-    + 0 for $x < y - 1$ or $age + x >= 120$, or ultimate age of the current mortality table
-- $B_y$ is the level benefit throughout the policy
-- $P_y$ is the level premium within the first 10 policy years which is 0 for policy years after 10
+    + $sur_x = sur_{x-1} * (1 - mort_{age+x-1}) / (1 + pir)$ for $x \geq 1$, and
+    + 0 once $age + x$ reaches 120, the ultimate age of the mortality table
+- dividing by $sur_y$ conditions on survival to the valuation date and removes the discounting for the first $y$ years, so cashflows are valued per policy in force at time $y$
+- $B$ is the level benefit throughout the policy
+- $P_t$ is the level premium, payable at the start of each of the first $pp$ (here 10) policy years — that is, while $t - age < pp$ — and 0 afterward
 - $pir$ is the level policy interest rate throughout the policy
 
 ```{julia}
@@ -125,14 +126,15 @@ end
 
 function res(y::Int, pol::Policy; Ω=120)
     s = 0.0
-    if y >= 1 && y <= Ω - pol.issue_age
+    if y >= 1 && y < Ω - pol.issue_age
+        sy = sur(y, pol)
         for t in (pol.issue_age+y):Ω
             prem = 0.0
-            if y <= pol.pp
+            if t - pol.issue_age < pol.pp
                 prem = pol.prem
             end
-            s += sur(t - pol.issue_age, pol) * mort[pol.sex][t] * pol.benefit_base /
-                 sqrt(1 + pol.pir) - prem * sur(t - pol.issue_age, pol)
+            s += sur(t - pol.issue_age, pol) / sy *
+                 (mort[pol.sex][t] * pol.benefit_base / sqrt(1 + pol.pir) - prem)
         end
     end
     s
@@ -149,11 +151,11 @@ Central finite differences`\index{finite differences}`{=latex} approximate deriv
 function res_wrt_r_fd(y::Int, pol::Policy, r::Float64, h=1e-3)
     p₊, p₋ = deepcopy(pol), deepcopy(pol)
     p₊.pir, p₋.pir = r + h, r - h
-    (res(y, p₋) - res(y, p₊)) / (2 * h * res(y, pol))
+    (res(y, p₊) - res(y, p₋)) / (2 * h * res(y, pol))
 end
 
-# percentage changes in reserve at year 2 when 
-# the interest rate at 3% with a perturbation of 0.1%
+# percentage change in reserve at year 2 when
+# the interest rate is at 3% with a perturbation of 0.1%
 res_wrt_r_fd(2, policies[1], 0.03)
 ```
 
