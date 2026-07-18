@@ -373,6 +373,10 @@ The key is to use the Poisson distribution, which is a limiting approximation to
     for i in eachindex(deaths)
         m = MortalityTables.MakehamBeard(; a=a[risk_levels[i]], b, c, k)
         q = MortalityTables.hazard(m, ages[i])
+        if !isfinite(q) || q < 0 || q > 1
+            Turing.@addlogprob! -Inf
+            return
+        end
         deaths[i] ~ Poisson(exposures[i] * q)
     end
 end
