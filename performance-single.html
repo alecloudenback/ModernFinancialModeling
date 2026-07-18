@@ -339,6 +339,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  <span class="menu-text">Purchase Print Edition</span></a>
   </div>
 </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./errata.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Errata</span></a>
+  </div>
+</li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a href="./intro.html" class="sidebar-item-text sidebar-link">
@@ -700,7 +706,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="introduction" class="level2" data-number="10.2">
 <h2 data-number="10.2" class="anchored" data-anchor-id="introduction"><span class="header-section-number">10.2</span> Introduction</h2>
-<p>On today’s hardware, the highest-throughput workloads often run on GPUs via massive parallelism. However, writing correct, performant parallel code relies on understanding efficient sequential patterns first. Additionally, many problems are not “massively parallelizable” and a sequential model architecture is required. For these reasons, it’s critical to understand sequential patterns before moving onto parallel code.</p>
+<p>On today’s hardware, the highest-throughput workloads often run on GPUs via massive parallelism. However, writing correct, performant parallel code relies on understanding efficient sequential patterns first. Additionally, many problems are not “massively parallelizable” and a sequential model architecture is required. For these reasons, it’s critical to understand sequential patterns before moving on to parallel code.</p>
 <p>For those coming from fundamentally slower languages (such as R or Python), the common advice to speed things up is often to try to parallelize code or use array-based techniques. With many high level languages the only way to achieve reasonable runtime is to utilize parallelism. In contrast, fast languages like Julia can produce surprisingly quick single-threaded programs when you keep an eye on allocations, types, and cache behavior.</p>
 <p>Further, it may be that a simpler, easier to maintain sequential model is preferable to a more complex parallel version if maximum performance is not required. Like the quote that opened the chapter, you may prefer a simpler sequential version of a model to a more complex parallel one.</p>
 <div class="callout callout-style-default callout-tip callout-titled">
@@ -754,10 +760,10 @@ Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p><strong>Tight loops</strong> or <strong>hot loops</strong> are the performance critical section of the code that are performed many times during a computation. They are often the “inner-most” loop of a nested loop algorithm.</p>
+<p><strong>Tight loops</strong> or <strong>hot loops</strong> are the performance-critical sections of the code that are performed many times during a computation. They are often the “inner-most” loop of a nested loop algorithm.</p>
 </div>
 </div>
-<p>A general rule of thumb is that dynamically sizable or mutable objects (arrays, mutable structs) will be heap allocated, while small fixed size objects can be stack allocated. For mutable objects, a common technique is to pre-allocate an array and then re-use that array for subsequent calculations. In the following stylized example we accumulate bond-level cashflows into a shared vector rather than constructing (<strong>pre-allocating</strong>) intermediate arrays and summing them later:</p>
+<p>A general rule of thumb is that dynamically sizable or mutable objects (arrays, mutable structs) will be heap allocated, while small fixed size objects can be stack allocated. For mutable objects, a common technique is to pre-allocate an array and then re-use that array for subsequent calculations. In the following stylized example we accumulate bond-level cashflows into a <strong>pre-allocated</strong> shared vector rather than constructing intermediate arrays and summing them later:</p>
 <div id="4" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>end_time <span class="op">=</span> <span class="fl">10</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>cashflow_output <span class="op">=</span> <span class="fu">zeros</span>(end_time)</span>
@@ -768,7 +774,7 @@ Note
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co"># sum up all of the bond cashflows into cashflow_output</span></span>
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> asset <span class="kw">in</span> par_bonds</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> t <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>end_time</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> t <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>asset.tenor</span>
 <span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> t <span class="op">==</span> asset.tenor</span>
 <span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>            cashflow_output[t] <span class="op">+=</span> <span class="fl">1</span> <span class="op">+</span> asset.rate</span>
 <span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span></span>
@@ -779,16 +785,16 @@ Note
 <span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>cashflow_output</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>10-element Vector{Float64}:
-  49.49303215622182
-  49.49303215622182
- 384.49303215622126
-  49.49303215622182
- 380.49303215622143
-  49.49303215622182
-  49.49303215622182
-  49.49303215622182
-  49.49303215622182
- 383.4930321562213</code></pre>
+  50.4001775103503
+  50.4001775103503
+ 383.4001775103501
+  33.367211396136355
+ 357.3672113961364
+  17.099740944678985
+  17.099740944678985
+  17.099740944678985
+  17.099740944678985
+ 360.099740944679</code></pre>
 </div>
 </div>
 <p>Julia’s <code>@allocated</code> macro will display the number of bytes allocated by an expression, helping you identify and eliminate unnecessary allocations.</p>
@@ -859,13 +865,13 @@ Non-allocating version: 0 bytes</code></pre>
 <span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">random_sum</span>(<span class="op">$</span>large_array, <span class="op">$</span>shuffled_indices)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Sequential access:
-  509.583 μs (0 allocations: 0 bytes)
+  504.833 μs (0 allocations: 0 bytes)
 
 Random access:
-  2.236 ms (0 allocations: 0 bytes)</code></pre>
+  2.194 ms (0 allocations: 0 bytes)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>499997.56999282795</code></pre>
+<pre><code>499810.04938375973</code></pre>
 </div>
 </div>
 <p>When the data is accessed in a linear order, it means that the computer can load chunks of data into the cache and it can operate on that cached data for several cycles before new data needs to be loaded into the cache. In contrast, when accessing the data randomly, then the cache frequently needs to be populated with a different set of bits from a completely different part of our array.</p>
@@ -897,36 +903,36 @@ Random access:
 </div>
 </div>
 <p>When working with arrays, prefer accessing elements in column-major order (the default in Julia) to maximize spatial locality. This allows the CPU to prefetch data more effectively.</p>
-<p>You can see how summing up values across the first (column) dimension is much faster than summing across rows, because column-major storage keeps column elements contiguous in memory:</p>
+<p>You can see how summing up values across the first (column) dimension is faster than summing across rows, because column-major storage keeps column elements contiguous in memory:</p>
 <div id="12" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">sum</span>(arr, dims<span class="op">=</span><span class="fl">1</span>) setup <span class="op">=</span> arr <span class="op">=</span> <span class="fu">rand</span>(<span class="fl">1000</span>, <span class="fl">1000</span>)</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">sum</span>(arr, dims<span class="op">=</span><span class="fl">2</span>) setup <span class="op">=</span> arr <span class="op">=</span> <span class="fu">rand</span>(<span class="fl">1000</span>, <span class="fl">1000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  73.083 μs (3 allocations: 8.08 KiB)
-  110.000 μs (3 allocations: 8.08 KiB)</code></pre>
+<pre><code>  72.750 μs (3 allocations: 8.08 KiB)
+  109.958 μs (3 allocations: 8.08 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>1000×1 Matrix{Float64}:
- 495.80572391099764
- 514.604942385407
- 502.5354638787707
- 488.5297363773431
- 492.0814274948202
- 506.32115522969684
- 497.5607104866066
- 506.4140396275691
- 503.3306563026607
- 515.1528036712733
+ 506.058769579023
+ 525.3256044775584
+ 507.75027605156635
+ 512.8246231624705
+ 509.9348513616045
+ 484.84303648358275
+ 517.9205372430343
+ 497.631072513349
+ 506.22868698945143
+ 507.3836626396451
    ⋮
- 510.4014716055505
- 499.7061925703829
- 490.27998030226144
- 503.19188101073627
- 499.4231968962027
- 506.1805532952711
- 490.8302872490219
- 502.37990215537
- 501.8673976680462</code></pre>
+ 480.0054520415628
+ 501.59229682606974
+ 485.55435739907495
+ 502.8493243584973
+ 507.2747974395995
+ 508.1961071991503
+ 503.0862448320194
+ 497.05914890943296
+ 498.1695174161839</code></pre>
 </div>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -972,7 +978,7 @@ Note
 <section id="use-efficient-data-types" class="level3" data-number="10.3.3">
 <h3 data-number="10.3.3" class="anchored" data-anchor-id="use-efficient-data-types"><span class="header-section-number">10.3.3</span> Use Efficient Data Types</h3>
 <p>The right data type can lead to more compact memory representations, better cache utilization, and more efficient CPU instructions. This is another case of where having a smaller memory footprint allows for higher utilization of the CPU since computers tend to be memory-constrained in speed.</p>
-<p>On some CPUs, you may find performance by using the smallest data type that can accurately represent your data. For example, prefer Int32 over Int64 if your values will never exceed 32-bit integer range. For floating-point numbers, use Float32 instead of Float64 if the reduced precision is acceptable for your calculations. These smaller types not only save memory but also allow for more efficient vectorized operations (see <a href="parallelization.html" class="quarto-xref"><span>Chapter 11</span></a>) on modern CPUs.</p>
+<p>On some CPUs, you may gain performance by using the smallest data type that can accurately represent your data. For example, prefer Int32 over Int64 if your values will never exceed 32-bit integer range. For floating-point numbers, use Float32 instead of Float64 if the reduced precision is acceptable for your calculations. These smaller types not only save memory but also allow for more efficient vectorized operations (see <a href="parallelization.html" class="quarto-xref"><span>Chapter 11</span></a>) on modern CPUs.</p>
 <div class="callout callout-style-default callout-warning callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -1028,11 +1034,11 @@ Warning
 </dl>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  11.000 μs (2008 allocations: 49.91 KiB)
-  813.823 ns (10 allocations: 18.69 KiB)</code></pre>
+<pre><code>  10.333 μs (2008 allocations: 49.91 KiB)
+  779.465 ns (10 allocations: 18.69 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>517.2776167890768</code></pre>
+<pre><code>506.8405291877708</code></pre>
 </div>
 </div>
 <p>The <code>unstable_example</code> function illustrates a common anti-pattern wherein an <code>Any</code> typed array is created and then elements are added to it. Because any type can be added to an <code>Any</code> array (we happen to just add floats to it) then Julia’s not sure what types to expect inside the container and therefore has to determine it at runtime.</p>
@@ -1046,7 +1052,7 @@ Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Heterogeneous return types are not the same thing as type instability. In the example above, the return type is not unstable: the compiler recognizes that the single parametric type <code>Union{Float64,Int64}</code> will be returned. While Julia can optimize some unions with a small number of elements, you should prefer concrete, predictable types in hot code.</p>
+<p>Heterogeneous return types are not the same thing as type instability. A function that returns, say, a <code>Float64</code> on one branch and an <code>Int64</code> on another is inferred as returning the small union <code>Union{Float64, Int64}</code>, and Julia can optimize unions with a small number of concrete members reasonably well. Still, you should prefer concrete, predictable types in hot code.</p>
 </div>
 </div>
 <div class="callout callout-style-default callout-tip callout-titled">
@@ -1098,8 +1104,8 @@ Tip
 <span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">process_data</span>(<span class="op">$</span>rand_data, <span class="fl">0.5</span>)</span>
 <span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">process_data</span>(<span class="op">$</span>sorted_data, <span class="fl">0.5</span>);</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  4.962 ms (0 allocations: 0 bytes)
-  1.612 ms (0 allocations: 0 bytes)</code></pre>
+<pre><code>  4.815 ms (0 allocations: 0 bytes)
+  1.560 ms (0 allocations: 0 bytes)</code></pre>
 </div>
 </div>
 <p>In this example, having sorted data means that the CPU will predict which branch of the <code>if</code> statement is likely to be utilized. Sorting makes the branch outcome highly predictable for long stretches (all below-threshold values, then all above), improving the effectiveness of the branch predictor. By speculatively executing the code that it thinks will be used, the overall program time is faster when processing <code>sorted_data</code>.</p>

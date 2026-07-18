@@ -371,6 +371,12 @@ window.Quarto = {
  <span class="menu-text">Purchase Print Edition</span></a>
   </div>
 </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./errata.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Errata</span></a>
+  </div>
+</li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a href="./intro.html" class="sidebar-item-text sidebar-link">
@@ -753,7 +759,7 @@ window.Quarto = {
 </section>
 <section id="theory" class="level2" data-number="27.3">
 <h2 data-number="27.3" class="anchored" data-anchor-id="theory"><span class="header-section-number">27.3</span> Theory</h2>
-<p>Harry Markowitz introduced modern portfolio theory in 1952. The main idea is that investors seek to maximize their expected return of a portfolio given a certain amount of risk. Under standard assumptions, achieving higher expected returns typically requires accepting higher risk; portfolios that simultaneously deliver higher return and lower risk dominate others and define the upper boundary of the feasible set. The efficient frontier traces the best achievable tradeoff.</p>
+<p>Harry Markowitz introduced modern portfolio theory in 1952. The main idea is that investors seek to maximize the expected return of a portfolio given a certain amount of risk. Under standard assumptions, achieving higher expected returns typically requires accepting higher risk; portfolios that simultaneously deliver higher return and lower risk dominate others and define the upper boundary of the feasible set. The efficient frontier traces the best achievable tradeoff.</p>
 </section>
 <section id="mathematical-tools" class="level2" data-number="27.4">
 <h2 data-number="27.4" class="anchored" data-anchor-id="mathematical-tools"><span class="header-section-number">27.4</span> Mathematical tools</h2>
@@ -763,7 +769,7 @@ window.Quarto = {
 <p><span class="math display">\[
 \begin{aligned}
 \text{minimize} \quad &amp;{w}^{T}\Sigma{w}\\
-\text{subject to} \quad &amp;{r}^{T}{w}\geq{\mu}_{\text{target}}\\
+\text{subject to} \quad &amp;{\mu}^{T}{w}\geq{\mu}_{\text{target}}\\
 &amp;{1}^{T}{w}={1}\\
 &amp;{w}\geq{0}
 \end{aligned}
@@ -916,7 +922,7 @@ Portfolio standard deviation optimized under RBC = 0.3162</code></pre>
 \text{maximize} \quad &amp; \mu_{BL}^{T} w \;-\; \frac{\lambda}{2}\, w^{T} \Sigma \, w \\
 \text{subject to} \quad &amp; \sum_{i=1}^{N} w_i = 1 \\
 &amp; w_i \geq 0, \quad \forall i \\
-\text{where} \mu_{BL} = \\
+\text{where} \quad \mu_{BL} = \\
 \Big( (\tau \Sigma)^{-1} + P^{T} \Omega^{-1} P \Big)^{-1}
 \Big( (\tau \Sigma)^{-1} \mu + P^{T} \Omega^{-1} Q \Big)
 \end{aligned}
@@ -947,7 +953,7 @@ Portfolio standard deviation optimized under RBC = 0.3162</code></pre>
 <span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a><span class="fu">set_silent</span>(model)</span>
 <span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a><span class="co"># Set up weights as variables to optimize</span></span>
 <span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a><span class="pp">@variable</span>(model, w[<span class="fl">1</span><span class="op">:</span>n_assets] <span class="op">&gt;=</span> <span class="fl">0.0</span>)</span>
-<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a><span class="co"># Objective: maximize sharpe ratio</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a><span class="co"># Objective: maximize mean-variance utility under posterior returns</span></span>
 <span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a><span class="pp">@objective</span>(model, Max, <span class="fu">dot</span>(μ_BL, w) <span class="op">-</span> (λ <span class="op">/</span> <span class="fl">2</span>) <span class="op">*</span> <span class="fu">dot</span>(w, Σ_prior <span class="op">*</span> w))</span>
 <span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a><span class="co"># Constraints: Sum of portfolio weights should equal to 1, </span></span>
 <span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a><span class="co"># and all weights should be zero or positive</span></span>
@@ -986,7 +992,7 @@ Portfolio standard deviation optimized under Black-Litterman = 0.245</code></pre
 \text{subject to} \quad &amp; \sum_{i=1}^{N} w_i = 1, \\
 &amp; w_i \ge 0, \quad i = 1, \dots, N \\
 \text{where} \quad
-RC_i = \frac{w_i (\Sigma w)_i}{w^{T} \Sigma w + \epsilon}
+RC_i = \frac{w_i (\Sigma w)_i}{w^{T} \Sigma w + \epsilon}, \quad t = \frac{1}{N}
 \end{aligned}
 \]</span></p>
 <div id="14" class="cell" data-execution_count="1">
@@ -1001,7 +1007,7 @@ RC_i = \frac{w_i (\Sigma w)_i}{w^{T} \Sigma w + \epsilon}
 <span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="pp">@expression</span>(model, Σw[i<span class="op">=</span><span class="fl">1</span><span class="op">:</span>n_assets], <span class="fu">sum</span>(Σ[i, j] <span class="op">*</span> w[j] <span class="cf">for</span> j <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>n_assets))</span>
 <span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="pp">@expression</span>(model, var_p, <span class="fu">sum</span>(w[i] <span class="op">*</span> Σw[i] <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>n_assets))</span>
 <span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="pp">@expression</span>(model, RC[i<span class="op">=</span><span class="fl">1</span><span class="op">:</span>n_assets], (w[i] <span class="op">*</span> Σw[i]) <span class="op">/</span> (var_p <span class="op">+</span> <span class="fu">eps</span>()))</span>
-<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="pp">@expression</span>(model, target_contribution, var_p <span class="op">/</span> n_assets)</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="pp">@expression</span>(model, target_contribution, <span class="fl">1</span> <span class="op">/</span> n_assets)</span>
 <span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="pp">@objective</span>(model, Min, <span class="fu">sum</span>((RC[i] <span class="op">-</span> target_contribution)<span class="op">^</span><span class="fl">2</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>n_assets))</span>
 <span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Constraints: Sum of portfolio weights should equal to 1, </span></span>
 <span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="co"># and all weights should be zero or positive</span></span>
@@ -1020,12 +1026,12 @@ RC_i = \frac{w_i (\Sigma w)_i}{w^{T} \Sigma w + \epsilon}
 <span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Optimal portfolio weights under risk parity:
-Asset 1: 0.3309
-RC share 1: 0.3334
-Asset 2: 0.2951
-RC share 2: 0.3369
-Asset 3: 0.3741
-RC share 3: 0.3297</code></pre>
+Asset 1: 0.3307
+RC share 1: 0.3333
+Asset 2: 0.2925
+RC share 2: 0.3333
+Asset 3: 0.3769
+RC share 3: 0.3333</code></pre>
 </div>
 </div>
 <p>Each asset contributes one third of total portfolio variance at the optimum, a hallmark of risk parity construction. Compared with the minimum-variance allocation, the solution spreads weight more evenly because it penalizes large disparities in marginal risk contributions.</p>
@@ -1109,7 +1115,7 @@ Portfolio standard deviation optimized using Sharpe Ratio = 0.266</code></pre>
 \text{minimize} \quad &amp; w^T \Sigma w + \gamma \|w - w_0\|_2^2 \\
 \text{subject to} \quad &amp; \sum_{i=1}^{N} w_i = 1 \\
 &amp; w_i \geq 0, \quad \forall i \\
-&amp; \|(\Sigma^{1/2} (w - w_0))\|_2 \leq \epsilon
+&amp; (w - w_0)^{T} \Sigma (w - w_0) \leq \epsilon
 \end{aligned}
 \]</span></p>
 <div id="18" class="cell" data-execution_count="1">
@@ -1180,7 +1186,7 @@ Portfolio standard deviation under robust optimization = 0.2427</code></pre>
 </tr>
 <tr class="even">
 <td>Risk parity</td>
-<td>[0.33, 0.30, 0.37]</td>
+<td>[0.33, 0.29, 0.38]</td>
 </tr>
 <tr class="odd">
 <td>Sharpe ratio</td>

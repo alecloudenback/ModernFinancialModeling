@@ -388,6 +388,12 @@ window.Quarto = {
  <span class="menu-text">Purchase Print Edition</span></a>
   </div>
 </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./errata.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Errata</span></a>
+  </div>
+</li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a href="./intro.html" class="sidebar-item-text sidebar-link">
@@ -756,7 +762,7 @@ window.Quarto = {
 
 
 <blockquote class="blockquote">
-<p>Quantity has a quality all its own. - Attributed to Vladimir Lenin</p>
+<p>Quantity has a quality all its own. - Apocryphal; popularly attributed to Joseph Stalin</p>
 </blockquote>
 <section id="chapter-overview" class="level2" data-number="11.1">
 <h2 data-number="11.1" class="anchored" data-anchor-id="chapter-overview"><span class="header-section-number">11.1</span> Chapter Overview</h2>
@@ -797,7 +803,7 @@ S(n) = \frac{1}{(1-p) + \frac{p}{n}}
 <span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> <span class="fl">2</span> <span class="op">.^</span> (<span class="fl">0</span><span class="op">:</span><span class="fl">16</span>)</span>
 <span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>    parallel_portions <span class="op">=</span> [<span class="fl">0.5</span>, <span class="fl">0.75</span>, <span class="fl">0.9</span>, <span class="fl">0.95</span>]</span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    linestyles <span class="op">=</span> [<span class="op">:</span>solid, <span class="op">:</span>dash, <span class="op">:</span>dashdot, <span class="op">:</span>solid]</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    linestyles <span class="op">=</span> [<span class="op">:</span>solid, <span class="op">:</span>dash, <span class="op">:</span>dashdot, <span class="op">:</span>dot]</span>
 <span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> (i, p) <span class="kw">in</span> <span class="fu">enumerate</span>(parallel_portions)</span>
 <span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>        speedup <span class="op">=</span> [<span class="fu">amdahl_speedup</span>(p, ni) for ni <span class="kw">in</span> n]</span>
@@ -896,7 +902,7 @@ Tip
 <p>Note that indexing an array actually introduces a branch in the code, as two cases could arise: the index is either inbounds or out-of-bounds. To avoid this, either use <code>for x in collection</code>, <code>for i in eachindex(collection)</code> or <code>for i in 1:n; @inbounds collection[i]</code>, though the last of these is discouraged in favor of the prior, safer options.</p>
 </div>
 </div>
-<div id="ad6eb2d3" class="cell" data-execution_count="4">
+<div id="034368eb" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">BenchmarkTools</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">prevent_simd</span>(arr)</span>
@@ -924,14 +930,27 @@ Tip
 <span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@btime</span> <span class="fu">allow_simd</span>(<span class="op">$</span>x)</span>
 <span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  44.166 μs (0 allocations: 0 bytes)
+<pre><code>  44.208 μs (0 allocations: 0 bytes)
   4.815 μs (0 allocations: 0 bytes)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="5">
-<pre><code>5037.956338413078</code></pre>
+<pre><code>4954.327397745228</code></pre>
 </div>
 </div>
 <p>In testing the above code, the <code>allow_simd</code> version should be several times faster than the <code>prevent_simd</code> example. The reason is that <code>prevent_simd</code> has a branch (<code>if x &gt; 0</code>) where the behavior of the code may change depending on the value in <code>arr</code>. Conversely, the behavior of <code>allow_simd</code> is always the same in each iteration, no matter the value of <code>x</code>. This allows the compiler to generate vectorized code automatically.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>A second effect compounds the branch in <code>prevent_simd</code>: the accumulator is initialized to the integer <code>0</code>, so whether it has been promoted to a <code>Float64</code> yet depends on the branch history, and the loop body is not type-stable (see <a href="performance-single.html" class="quarto-xref"><span>Chapter 10</span></a>). The branchless <code>allow_simd</code> settles into a single concrete type after the first iteration and vectorizes. Modern compilers can sometimes rewrite a <em>simple</em> branch into branchless code on their own, but it takes little — a type that changes across iterations as here, an early exit, or a more complex loop body — to defeat both that rewrite and vectorization.</p>
+</div>
+</div>
 <div class="callout callout-style-default callout-tip callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -958,9 +977,9 @@ Tip
 <section id="sec-tasks" class="level3" data-number="11.5.1">
 <h3 data-number="11.5.1" class="anchored" data-anchor-id="sec-tasks"><span class="header-section-number">11.5.1</span> Tasks</h3>
 <p>To understand multi-threading examples, we first need to discuss <strong>Tasks</strong>, which are chunks of computation that get performed together, but after which the computer is free to switch to a new task. Technically, there are some instructions within a task that will let the computer pause and come back to that task later (such as <code>sleep</code>).</p>
-<p>Tasks do not, by themselves, allow for multiple computations to be performed in parallel. For example, one task might be loading a data file from persistent storage into RAM. After that task is complete, the computer continues on with another task in the queue (rendering a web page, playing a song, etc.). In this way even a single processor computer could be “doing multiple things at once” (or “multi-tasking”) even though nothing is running in parallel. The scheduling of the tasks is handled automatically by the program’s compiler or the operating system.</p>
+<p>Tasks do not, by themselves, allow for multiple computations to be performed in parallel. For example, one task might be loading a data file from persistent storage into RAM. After that task is complete, the computer continues on with another task in the queue (rendering a web page, playing a song, etc.). In this way even a single processor computer could be “doing multiple things at once” (or “multi-tasking”) even though nothing is running in parallel. The scheduling of the tasks is handled automatically by the language runtime or the operating system.</p>
 <p>Here’s an example of a couple of tasks where we write to an array. Despite being called last, the second task should actually write to the array before the first task. This is because we asked the first task to <code>sleep</code> (pause, while allowing the computer to yield to other tasks in the queue)<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>.</p>
-<div id="c10c3cf9" class="cell" data-execution_count="5">
+<div id="4cc32947" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    shared_array <span class="op">=</span> <span class="fu">zeros</span>(<span class="fl">5</span>)</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -993,7 +1012,7 @@ Main: [1.0, 2.0, 0.0, 0.0, 0.0]</code></pre>
 <h4 data-number="11.5.1.1" class="anchored" data-anchor-id="sec-channels"><span class="header-section-number">11.5.1.1</span> Channels</h4>
 <p><strong>Channels</strong> are a way to communicate data in a managed way between tasks. You specify a type of data that the buffer (a chunk of assigned memory) will contain and how many elements it can hold. It then stores items (via <code>put!</code>) in a first-in-first-out (FIFO) queue, which can be popped off the queue (via <code>take!</code>) by other tasks.</p>
 <p>Here’s an example of a system which generates trades in the financial markets at random time intervals, and a monitoring task takes the results and tabulates running statistics:</p>
-<div id="891d0841" class="cell" data-execution_count="6">
+<div id="5eecdb46" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="annotated-cell-4"><pre class="sourceCode julia code-annotation-code code-with-copy code-annotated"><code class="sourceCode julia"><span id="annotated-cell-4-1"><a href="#annotated-cell-4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span></span>
 <span id="annotated-cell-4-2"><a href="#annotated-cell-4-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="annotated-cell-4-3"><a href="#annotated-cell-4-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># simulate random trades and the associated profits </span></span>
@@ -1021,8 +1040,8 @@ Main: [1.0, 2.0, 0.0, 0.0, 0.0]</code></pre>
 <span id="annotated-cell-4-25"><a href="#annotated-cell-4-25" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Start producer and consumer tasks</span></span>
 <a class="code-annotation-anchor" data-target-cell="annotated-cell-4" data-target-annotation="5" onclick="event.preventDefault();">5</a><span id="annotated-cell-4-26" class="code-annotation-target"><a href="#annotated-cell-4-26" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@sync</span> <span class="cf">begin</span></span>
 <span id="annotated-cell-4-27"><a href="#annotated-cell-4-27" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">5</span></span>
-<span id="annotated-cell-4-28"><a href="#annotated-cell-4-28" aria-hidden="true" tabindex="-1"></a>            <span class="pp">@async</span> <span class="fu">trade_producer</span>(channel, i)</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-4" data-target-annotation="6" onclick="event.preventDefault();">6</a><span id="annotated-cell-4-29" class="code-annotation-target"><a href="#annotated-cell-4-29" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-4" data-target-annotation="6" onclick="event.preventDefault();">6</a><span id="annotated-cell-4-28" class="code-annotation-target"><a href="#annotated-cell-4-28" aria-hidden="true" tabindex="-1"></a>            <span class="pp">@async</span> <span class="fu">trade_producer</span>(channel, i)</span>
+<span id="annotated-cell-4-29"><a href="#annotated-cell-4-29" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
 <span id="annotated-cell-4-30"><a href="#annotated-cell-4-30" aria-hidden="true" tabindex="-1"></a>        <span class="pp">@async</span> <span class="fu">portfolio_monitor</span>(channel, <span class="fl">5</span>)</span>
 <span id="annotated-cell-4-31"><a href="#annotated-cell-4-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
 <span id="annotated-cell-4-32"><a href="#annotated-cell-4-32" aria-hidden="true" tabindex="-1"></a></span>
@@ -1054,21 +1073,21 @@ Main: [1.0, 2.0, 0.0, 0.0, 0.0]</code></pre>
 </dd>
 <dt data-target-cell="annotated-cell-4" data-target-annotation="6">6</dt>
 <dd>
-<span data-code-cell="annotated-cell-4" data-code-lines="29,30" data-code-annotation="6"><code>@async</code> does the combination of creating a task via <code>@task</code> and <code>schedule</code>-ing in one, simpler call.</span>
+<span data-code-cell="annotated-cell-4" data-code-lines="28,30" data-code-annotation="6"><code>@async</code> does the combination of creating a task via <code>@task</code> and <code>schedule</code>-ing in one, simpler call.</span>
 </dd>
 </dl>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Producer: Trade Result #1 -0.047
-Monitor: Received -0.047, Cumulative: -0.047
-Producer: Trade Result #2 0.053
-Monitor: Received 0.053, Cumulative: 0.007
-Producer: Trade Result #4 0.124
-Monitor: Received 0.124, Cumulative: 0.13
-Producer: Trade Result #3 -1.223
-Monitor: Received -1.223, Cumulative: -1.093
-Producer: Trade Result #5 -0.635
-Monitor: Received -0.635, Cumulative: -1.728</code></pre>
+<pre><code>Producer: Trade Result #4 1.035
+Monitor: Received 1.035, Cumulative: 1.035
+Producer: Trade Result #3 0.181
+Monitor: Received 0.181, Cumulative: 1.216
+Producer: Trade Result #2 0.234
+Monitor: Received 0.234, Cumulative: 1.45
+Producer: Trade Result #1 0.306
+Monitor: Received 0.306, Cumulative: 1.756
+Producer: Trade Result #5 -1.957
+Monitor: Received -1.957, Cumulative: -0.201</code></pre>
 </div>
 </div>
 <p>This is really useful for handling events that are “external” to our program. If we were just doing a modeling exercise using static data, then we could control the order of processing and not need to worry about monitoring a volatile source of data. Nonetheless, tasks can still be useful in some cases even if a model is not using “live” data: for example if one of the steps in a model is to load a very large dataset, it may be possible to perform some computations while chunked task requests are queued to load more data from the disk.</p>
@@ -1187,7 +1206,7 @@ Note
 <p>Thread jargon varies. A compact glossary to help:</p>
 <ul>
 <li><strong>Hardware threads</strong> are the execution lanes exposed by the CPU. They are what the operating system schedules on each core.</li>
-<li><strong>Operating-system threads</strong> are managed by the kernel and generally map one-to-one to hardware threads. They are heavier to create and destroy than Julia tasks.</li>
+<li><strong>Operating-system threads</strong> are managed by the kernel, which schedules them onto the available hardware threads. They are heavier to create and destroy than Julia tasks.</li>
 <li><strong>Green threads</strong>, <strong>cooperative threads</strong>, <strong>fibers</strong>, or <strong>user threads</strong> are Julia’s lightweight tasks. They live entirely inside the Julia runtime and can be created in large numbers with minimal overhead.</li>
 <li><strong>Multi-tasking</strong> is a single core rapidly switching between tasks so multiple activities appear to make progress even without true parallel execution.</li>
 </ul>
@@ -1196,12 +1215,12 @@ Note
 </div>
 <section id="multi-threading-pitfalls" class="level4" data-number="11.5.2.1">
 <h4 data-number="11.5.2.1" class="anchored" data-anchor-id="multi-threading-pitfalls"><span class="header-section-number">11.5.2.1</span> Multi-Threading Pitfalls</h4>
-<p>Different threads being able to access the same memory is a double-edged sword. It is useful because we do not need to create multiple copies of the data in RAM or in the cache<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a> and can improve the overall throughput of our usually memory-bandwidth-limited machines. The downside is that if we are mutating the shared data for which our program relies upon, then our program may produce unintended results if the modification occurs carelessly. There are a couple of related issues to be aware of:</p>
+<p>Different threads being able to access the same memory is a double-edged sword. It is useful because we do not need to create multiple copies of the data in RAM or in the cache<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a> and can improve the overall throughput of our usually memory-bandwidth-limited machines. The downside is that if we are mutating the shared data that our program relies upon, then our program may produce unintended results if the modification occurs carelessly. There are a couple of related issues to be aware of:</p>
 <section id="race-conditions" class="level5" data-number="11.5.2.1.1">
 <h5 data-number="11.5.2.1.1" class="anchored" data-anchor-id="race-conditions"><span class="header-section-number">11.5.2.1.1</span> Race Conditions</h5>
 <p>The first issue is known as a <strong>race condition</strong>, which occurs when a block of memory has been read from or written to in an unintended order. For example, if we have two threads which are accumulating a sub-total, each process may read the running sub-total before the other thread has finished its update.</p>
 <p>In the following example, we use the <code>Threads.@threads</code> to tell Julia to automatically distribute the work across threads.</p>
-<div id="de2fa0cb" class="cell" data-execution_count="7">
+<div id="7e9493f6" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">sum_bad</span>(n)</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    subtotal <span class="op">=</span> <span class="fl">0</span></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">Threads</span>.<span class="pp">@threads</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>n</span>
@@ -1212,14 +1231,14 @@ Note
 <span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="fu">sum_bad</span>(<span class="fl">100_000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="8">
-<pre><code>150005000</code></pre>
+<pre><code>550005000</code></pre>
 </div>
 </div>
 <p>The result will be less than the expected sum (<code>5000050000</code>) due to a race condition. Here’s what happens:</p>
 <ol type="1">
 <li><p>Multiple threads read the current value of&nbsp;<code>subtotal</code>&nbsp;simultaneously.</p></li>
 <li><p>Each thread adds its own, local value to that reading.</p></li>
-<li><p>Only one thread writes its result back to&nbsp;<code>subtotal</code> first.</p></li>
+<li><p>One thread writes its result back to&nbsp;<code>subtotal</code> first.</p></li>
 <li><p>A different thread then overwrites&nbsp;<code>subtotal</code>&nbsp;with its calculation based on the out-dated starting point for <code>subtotal</code>.</p></li>
 </ol>
 <p>This means some thread contributions are lost when they overwrite each other’s results. The threads may not see each other’s updates, leading to missing values in the final sum.</p>
@@ -1231,7 +1250,7 @@ Note
 <section id="chunking-up-work-into-single-threaded-work" class="level5" data-number="11.5.2.2.1">
 <h5 data-number="11.5.2.2.1" class="anchored" data-anchor-id="chunking-up-work-into-single-threaded-work"><span class="header-section-number">11.5.2.2.1</span> Chunking up work into single-threaded work</h5>
 <p>First, let’s level-set with a single-threaded result:</p>
-<div id="729232fe" class="cell" data-execution_count="8">
+<div id="7db311f0" class="cell" data-execution_count="8">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">sum_single</span>(a)</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    s <span class="op">=</span> <span class="fl">0</span></span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> a</span>
@@ -1249,7 +1268,7 @@ Note
 </div>
 <p>Note that in the single-threaded case, Julia is able to identify this common pattern and use a shortcut, calculating the sum of the integers <span class="math inline">\(1\)</span> through <span class="math inline">\(n\)</span> as <span class="math inline">\(\frac{n(n+1)}{2}\)</span> through a compiler optimization and essentially avoid the loop entirely.</p>
 <p>We can implement a correct threaded version by splitting the work into different threads, each of which is independent. Then, we can aggregate the results of each of the chunks.</p>
-<div id="a2eb5fe8" class="cell" data-execution_count="9">
+<div id="43927f38" class="cell" data-execution_count="9">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="annotated-cell-7"><pre class="sourceCode julia code-annotation-code code-with-copy code-annotated"><code class="sourceCode julia"><span id="annotated-cell-7-1"><a href="#annotated-cell-7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">sum_chunker</span>(a)</span>
 <span id="annotated-cell-7-2"><a href="#annotated-cell-7-2" aria-hidden="true" tabindex="-1"></a></span>
 <a class="code-annotation-anchor" data-target-cell="annotated-cell-7" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-7-3" class="code-annotation-target"><a href="#annotated-cell-7-3" aria-hidden="true" tabindex="-1"></a>    chunks <span class="op">=</span> <span class="bu">Iterators</span>.<span class="fu">partition</span>(<span class="fl">1</span><span class="op">:</span>a, a <span class="op">÷</span> <span class="bu">Threads</span>.<span class="fu">nthreads</span>())</span>
@@ -1286,7 +1305,7 @@ Note
 </dl>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  9.175 μs (72 allocations: 4.16 KiB)</code></pre>
+<pre><code>  5.750 μs (72 allocations: 4.16 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="10">
 <pre><code>5000050000</code></pre>
@@ -1296,7 +1315,7 @@ Note
 <section id="using-locks" class="level5" data-number="11.5.2.2.2">
 <h5 data-number="11.5.2.2.2" class="anchored" data-anchor-id="using-locks"><span class="header-section-number">11.5.2.2.2</span> Using Locks</h5>
 <p><strong>Locks</strong> prevent memory from being accessed from more than one thread at a time.</p>
-<div id="5b5bc801" class="cell" data-execution_count="10">
+<div id="62a4c828" class="cell" data-execution_count="10">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="annotated-cell-8"><pre class="sourceCode julia code-annotation-code code-with-copy code-annotated"><code class="sourceCode julia"><span id="annotated-cell-8-1"><a href="#annotated-cell-8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">sum_with_lock</span>(n)</span>
 <a class="code-annotation-anchor" data-target-cell="annotated-cell-8" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-8-2" class="code-annotation-target"><a href="#annotated-cell-8-2" aria-hidden="true" tabindex="-1"></a>    subtotal <span class="op">=</span> <span class="fl">0</span></span>
 <span id="annotated-cell-8-3"><a href="#annotated-cell-8-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -1332,7 +1351,7 @@ Note
 </dl>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  6.074 ms (199514 allocations: 3.05 MiB)</code></pre>
+<pre><code>  6.341 ms (199514 allocations: 3.05 MiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="11">
 <pre><code>5000050000</code></pre>
@@ -1341,8 +1360,8 @@ Note
 </section>
 <section id="using-atomics" class="level5" data-number="11.5.2.2.3">
 <h5 data-number="11.5.2.2.3" class="anchored" data-anchor-id="using-atomics"><span class="header-section-number">11.5.2.2.3</span> Using Atomics</h5>
-<p><strong>Atomics</strong> are certain primitive values with a reduced set of operations for which Julia and the compiler can automatically create thread-safe code. This is often significantly faster than the context-switching overhead needed with locking and unlocking memory for threaded tasks. Compared with locks, atomics are simpler to implement and easier to reason about. The downside is that atomics are limited to the available primitive atomics types and methods.</p>
-<div id="9548492f" class="cell" data-execution_count="11">
+<p><strong>Atomics</strong> are certain primitive values with a reduced set of operations for which Julia and the compiler can automatically create thread-safe code. This is often significantly faster than the context-switching overhead needed with locking and unlocking memory for threaded tasks. Compared with locks, atomics are simpler to implement and easier to reason about. The downside is that atomics are limited to the available primitive atomic types and methods.</p>
+<div id="7b942377" class="cell" data-execution_count="11">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="annotated-cell-9"><pre class="sourceCode julia code-annotation-code code-with-copy code-annotated"><code class="sourceCode julia"><span id="annotated-cell-9-1"><a href="#annotated-cell-9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">sum_with_atomic</span>(n)</span>
 <a class="code-annotation-anchor" data-target-cell="annotated-cell-9" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-9-2" class="code-annotation-target"><a href="#annotated-cell-9-2" aria-hidden="true" tabindex="-1"></a>    subtotal <span class="op">=</span> <span class="bu">Threads</span>.<span class="fu">Atomic</span><span class="dt">{Int}</span>(<span class="fl">0</span>)</span>
 <span id="annotated-cell-9-3"><a href="#annotated-cell-9-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">Threads</span>.<span class="pp">@threads</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>n</span>
@@ -1365,7 +1384,7 @@ Note
 </dl>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  1.321 ms (53 allocations: 3.75 KiB)</code></pre>
+<pre><code>  1.353 ms (53 allocations: 3.75 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="12">
 <pre><code>5000050000</code></pre>
@@ -1454,7 +1473,7 @@ Note
 <p>With some of the key conceptual differences between CPUs and GPUs explained, let’s explore how to incorporate these powerful hardware accelerators. We will use Julia libraries to illustrate GPU programming, though the concepts are generally applicable to other high-level languages that offer GPU interface libraries.</p>
 <section id="julia-gpu-libraries" class="level4" data-number="11.6.2.1">
 <h4 data-number="11.6.2.1" class="anchored" data-anchor-id="julia-gpu-libraries"><span class="header-section-number">11.6.2.1</span> Julia GPU Libraries</h4>
-<p>There’s essentially two types of GPU programming we will discuss here:</p>
+<p>There are essentially two types of GPU programming we will discuss here:</p>
 <ol type="1">
 <li><strong>Array-based programming</strong>, where arrays are stored and operated on directly on the GPU memory. This approach abstracts away the low-level details, allowing you to work with familiar array operations that are automatically executed on the GPU.</li>
 <li><strong>Custom kernels</strong>, which are specialized functions that define exactly how each GPU thread should process data in parallel. A kernel explicitly specifies the computation that each GPU thread will perform on its portion of the data.</li>
@@ -1472,7 +1491,7 @@ Note
 <p><strong>Kernels</strong> in this context are specialized functions that run directly on the GPU. Rather than relying solely on high-level array operations, kernels explicitly define the sequence of low-level, parallel instructions executed across many GPU threads. In other words, a kernel directly expresses the computation you want to perform on the data, enabling fine-grained control over GPU execution.</p>
 </div>
 </div>
-<p>A third approach would be to implement GPU code in a low-level vendor toolkit (such as C++ and associate CUDA libraries), but this approach will not be illustrated here.</p>
+<p>A third approach would be to implement GPU code in a low-level vendor toolkit (such as C++ and associated CUDA libraries), but this approach will not be illustrated here.</p>
 <p>Julia has wonderful support for several of the primary vendors (at the time of writing, CUDA, Metal, OneAPI, and ROCm) via the <a href="https://juliagpu.org">JuliaGPU organization</a>. Installation of the required dependencies is also very straightforward and the interfaces at the array and generated kernel levels are very similar. The differences are obvious at the lower level vendor-API wrappers (which is the lower-level technique that will not be covered here).</p>
 <p>The benefit of the consistency of the higher level libraries we will use here is that examples written for one of the types of accelerators will be largely directly translatable to another. This is especially true for array programming, though less so for the kernel style as architecture-specific considerations often creep in<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a>.</p>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -1524,7 +1543,7 @@ Note
 <h4 data-number="11.6.2.2" class="anchored" data-anchor-id="sec-GPU-array"><span class="header-section-number">11.6.2.2</span> Array Programming on the GPU</h4>
 <p>First described in <a href="first-abstractions.html#sec-array-oriented-styles" class="quarto-xref"><span>Section 6.5</span></a>, array programming eschews writing loops and instead favors initializing blocks of heap-allocated memory and filling it with data to be operated on at a single point in time. While this is often not the most efficient way to utilize CPUs, it’s essentially the required style of code to utilize GPUs.</p>
 <p>For the example below, we will calculate the present value of a series of cashflows across a number of different scenarios. An explanation of the code is given below the example.</p>
-<div id="a6dbe1fb" class="cell" data-execution_count="12">
+<div id="a81ea44b" class="cell" data-execution_count="12">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="annotated-cell-10"><pre class="sourceCode julia code-annotation-code code-with-copy code-annotated"><code class="sourceCode julia"><span id="annotated-cell-10-1"><a href="#annotated-cell-10-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Metal</span></span>
 <span id="annotated-cell-10-2"><a href="#annotated-cell-10-2" aria-hidden="true" tabindex="-1"></a></span>
 <a class="code-annotation-anchor" data-target-cell="annotated-cell-10" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-10-3" class="code-annotation-target"><a href="#annotated-cell-10-3" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">calculate_present_values!</span>(present_values, cashflows, discount_matrices)</span>
@@ -1544,7 +1563,7 @@ Note
 <span id="annotated-cell-10-17"><a href="#annotated-cell-10-17" aria-hidden="true" tabindex="-1"></a>discount_matrices_GPU <span class="op">=</span> <span class="fu">MtlArray</span>(discount_matrices)</span>
 <span id="annotated-cell-10-18"><a href="#annotated-cell-10-18" aria-hidden="true" tabindex="-1"></a></span>
 <span id="annotated-cell-10-19"><a href="#annotated-cell-10-19" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">calculate_present_values!</span>(<span class="op">$</span>pvs, <span class="op">$</span>cashflows, <span class="op">$</span>discount_matrices)</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-10" data-target-annotation="6" onclick="event.preventDefault();">6</a><span id="annotated-cell-10-20" class="code-annotation-target"><a href="#annotated-cell-10-20" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">calculate_present_values!</span>(<span class="op">$</span>pvs_GPU, <span class="op">$</span>cashflows_GPU, <span class="op">$</span>discount_matrices_GPU)</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-10" data-target-annotation="6" onclick="event.preventDefault();">6</a><span id="annotated-cell-10-20" class="code-annotation-target"><a href="#annotated-cell-10-20" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> Metal.<span class="pp">@sync</span> <span class="fu">calculate_present_values!</span>(<span class="op">$</span>pvs_GPU, <span class="op">$</span>cashflows_GPU, <span class="op">$</span>discount_matrices_GPU)</span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-annotation">
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-10" data-target-annotation="1">1</dt>
@@ -1569,38 +1588,38 @@ Note
 </dd>
 <dt data-target-cell="annotated-cell-10" data-target-annotation="6">6</dt>
 <dd>
-<span data-code-cell="annotated-cell-10" data-code-lines="20" data-code-annotation="6">Note that the data still lives on the GPU and is of the <code>MtlMatrix</code> (a type alias for a 2-D <code>MtlArray</code>).</span>
+<span data-code-cell="annotated-cell-10" data-code-lines="20" data-code-annotation="6">Note that the data still lives on the GPU and is of the <code>MtlMatrix</code> type (an alias for a 2-D <code>MtlArray</code>). Also note the <code>Metal.@sync</code>: GPU operations are launched asynchronously, so we must wait for the GPU to actually finish its work — without it, the benchmark would mostly measure the cost of <em>queueing</em> the work rather than performing it.</span>
 </dd>
 </dl>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  1.114 ms (6 allocations: 38.55 MiB)
-  128.458 μs (316 allocations: 9.98 KiB)</code></pre>
+<pre><code>  1.045 ms (6 allocations: 38.55 MiB)
+  1.780 ms (196 allocations: 6.95 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="13">
 <pre><code>1×100000 MtlMatrix{Float32, Metal.PrivateStorage}:
- 26.3897  27.7333  27.8416  25.4519  …  29.7803  29.5955  28.5825  26.2654</code></pre>
+ 27.0607  28.2528  28.2492  23.5317  …  26.8294  25.8183  28.3363  23.1901</code></pre>
 </div>
 </div>
 <p>The testing suggests significantly faster computation when performed on the GPU (the exact speedup depends on hardware and problem size). Note, however, that this does not include the overhead of (1) moving the data to the GPU (in the initial <code>MtlArray(cashflows)</code> call), or (2) returning the data to the CPU (since the return type for the GPU version is <code>MtlArray</code>). We can measure this overhead by wrapping the data transfer inside another function and benchmarking it:</p>
-<div id="64c22634" class="cell" data-execution_count="13">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="annotated-cell-11"><pre class="sourceCode julia code-annotation-code code-with-copy"><code class="sourceCode julia"><span id="annotated-cell-11-1"><a href="#annotated-cell-11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">GPU_overhead_test</span>(present_values, cashflows, discount_matrices)</span>
-<span id="annotated-cell-11-2"><a href="#annotated-cell-11-2" aria-hidden="true" tabindex="-1"></a>    pvs_GPU <span class="op">=</span> <span class="fu">MtlArray</span>(present_values)</span>
-<span id="annotated-cell-11-3"><a href="#annotated-cell-11-3" aria-hidden="true" tabindex="-1"></a>    cashflows_GPU <span class="op">=</span> <span class="fu">MtlArray</span>(cashflows)</span>
-<span id="annotated-cell-11-4"><a href="#annotated-cell-11-4" aria-hidden="true" tabindex="-1"></a>    discount_matrices_GPU <span class="op">=</span> <span class="fu">MtlArray</span>(discount_matrices)</span>
-<span id="annotated-cell-11-5"><a href="#annotated-cell-11-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-11-6"><a href="#annotated-cell-11-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">calculate_present_values!</span>(pvs_GPU, cashflows_GPU, discount_matrices_GPU)</span>
-<span id="annotated-cell-11-7"><a href="#annotated-cell-11-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-11-8"><a href="#annotated-cell-11-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Array</span>(pvs_GPU) <span class="co"># convert to CPU array</span></span>
-<span id="annotated-cell-11-9"><a href="#annotated-cell-11-9" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
-<span id="annotated-cell-11-10"><a href="#annotated-cell-11-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-11-11"><a href="#annotated-cell-11-11" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">GPU_overhead_test</span>(<span class="op">$</span>pvs, <span class="op">$</span>cashflows, <span class="op">$</span>discount_matrices)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="1f516956" class="cell" data-execution_count="13">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">GPU_overhead_test</span>(present_values, cashflows, discount_matrices)</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    pvs_GPU <span class="op">=</span> <span class="fu">MtlArray</span>(present_values)</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    cashflows_GPU <span class="op">=</span> <span class="fu">MtlArray</span>(cashflows)</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>    discount_matrices_GPU <span class="op">=</span> <span class="fu">MtlArray</span>(discount_matrices)</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">calculate_present_values!</span>(pvs_GPU, cashflows_GPU, discount_matrices_GPU)</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Array</span>(pvs_GPU) <span class="co"># convert to CPU array</span></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">GPU_overhead_test</span>(<span class="op">$</span>pvs, <span class="op">$</span>cashflows, <span class="op">$</span>discount_matrices)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  4.957 ms (514 allocations: 415.78 KiB)</code></pre>
+<pre><code>  4.868 ms (399 allocations: 412.06 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="14">
 <pre><code>1×100000 Matrix{Float32}:
- 26.3897  27.7333  27.8416  25.4519  …  29.7803  29.5955  28.5825  26.2654</code></pre>
+ 27.0607  28.2528  28.2492  23.5317  …  26.8294  25.8183  28.3363  23.1901</code></pre>
 </div>
 </div>
 <p>With the additional overhead, the computation on the GPU takes more total time than if the work were done just on the CPU. This is a very simple example, and the balance tips heavily in favor of the GPU when:</p>
@@ -1651,18 +1670,20 @@ Warning
 <li>How to chunk (group) the data to distribute the data to the different GPU threads</li>
 </ol>
 <p>Our strategy for the present values example will be to distribute the work such that different GPU threads are working on different scenarios. Within a scenario, the loop is a very familiar approach: initialize a subtotal to zero and then accumulate the calculated present values.</p>
-<div id="b7a21b49" class="cell" data-execution_count="14">
+<div id="0ae2d5bc" class="cell" data-execution_count="14">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="annotated-cell-12"><pre class="sourceCode julia code-annotation-code code-with-copy code-annotated"><code class="sourceCode julia"><span id="annotated-cell-12-1"><a href="#annotated-cell-12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">calculate_present_values_kernel!</span>(present_values, cashflows, discount_matrices)</span>
 <a class="code-annotation-anchor" data-target-cell="annotated-cell-12" data-target-annotation="1" onclick="event.preventDefault();">1</a><span id="annotated-cell-12-2" class="code-annotation-target"><a href="#annotated-cell-12-2" aria-hidden="true" tabindex="-1"></a>    idx <span class="op">=</span> <span class="fu">thread_position_in_grid_1d</span>()</span>
 <span id="annotated-cell-12-3"><a href="#annotated-cell-12-3" aria-hidden="true" tabindex="-1"></a></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-12" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-12-4" class="code-annotation-target"><a href="#annotated-cell-12-4" aria-hidden="true" tabindex="-1"></a>    pv <span class="op">=</span> <span class="fl">0.0f0</span></span>
-<span id="annotated-cell-12-5"><a href="#annotated-cell-12-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> t <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fu">size</span>(cashflows, <span class="fl">1</span>)</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-12" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-12-6" class="code-annotation-target"><a href="#annotated-cell-12-6" aria-hidden="true" tabindex="-1"></a>        pv <span class="op">+=</span> cashflows[t] <span class="op">*</span> discount_matrices[t, idx]</span>
-<span id="annotated-cell-12-7"><a href="#annotated-cell-12-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
-<span id="annotated-cell-12-8"><a href="#annotated-cell-12-8" aria-hidden="true" tabindex="-1"></a></span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-12" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-12-9" class="code-annotation-target"><a href="#annotated-cell-12-9" aria-hidden="true" tabindex="-1"></a>    present_values[idx] <span class="op">=</span> pv</span>
-<a class="code-annotation-anchor" data-target-cell="annotated-cell-12" data-target-annotation="5" onclick="event.preventDefault();">5</a><span id="annotated-cell-12-10" class="code-annotation-target"><a href="#annotated-cell-12-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="cn">nothing</span></span>
-<span id="annotated-cell-12-11"><a href="#annotated-cell-12-11" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-12" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-12-4" class="code-annotation-target"><a href="#annotated-cell-12-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> idx <span class="op">&lt;=</span> <span class="fu">size</span>(discount_matrices, <span class="fl">2</span>)</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-12" data-target-annotation="3" onclick="event.preventDefault();">3</a><span id="annotated-cell-12-5" class="code-annotation-target"><a href="#annotated-cell-12-5" aria-hidden="true" tabindex="-1"></a>        pv <span class="op">=</span> <span class="fl">0.0f0</span></span>
+<span id="annotated-cell-12-6"><a href="#annotated-cell-12-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> t <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fu">size</span>(cashflows, <span class="fl">1</span>)</span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-12" data-target-annotation="4" onclick="event.preventDefault();">4</a><span id="annotated-cell-12-7" class="code-annotation-target"><a href="#annotated-cell-12-7" aria-hidden="true" tabindex="-1"></a>            pv <span class="op">+=</span> cashflows[t] <span class="op">*</span> discount_matrices[t, idx]</span>
+<span id="annotated-cell-12-8"><a href="#annotated-cell-12-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="annotated-cell-12-9"><a href="#annotated-cell-12-9" aria-hidden="true" tabindex="-1"></a></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-12" data-target-annotation="5" onclick="event.preventDefault();">5</a><span id="annotated-cell-12-10" class="code-annotation-target"><a href="#annotated-cell-12-10" aria-hidden="true" tabindex="-1"></a>        present_values[idx] <span class="op">=</span> pv</span>
+<span id="annotated-cell-12-11"><a href="#annotated-cell-12-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<a class="code-annotation-anchor" data-target-cell="annotated-cell-12" data-target-annotation="6" onclick="event.preventDefault();">6</a><span id="annotated-cell-12-12" class="code-annotation-target"><a href="#annotated-cell-12-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="cn">nothing</span></span>
+<span id="annotated-cell-12-13"><a href="#annotated-cell-12-13" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span><div class="code-annotation-gutter-bg"></div><div class="code-annotation-gutter"></div></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-annotation">
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-12" data-target-annotation="1">1</dt>
@@ -1671,19 +1692,23 @@ Warning
 </dd>
 <dt data-target-cell="annotated-cell-12" data-target-annotation="2">2</dt>
 <dd>
-<span data-code-cell="annotated-cell-12" data-code-lines="4" data-code-annotation="2">Recall that we are working with <code>Float32</code> on the GPU here, so the zero value is set via the <code>f0</code> notation indicating a 32-bit floating point number.</span>
+<span data-code-cell="annotated-cell-12" data-code-lines="4" data-code-annotation="2">The launch configuration below rounds the thread count up to a whole number of threadgroups, so a few trailing threads will receive an <code>idx</code> beyond the number of scenarios; the bounds check keeps them from reading or writing out of bounds.</span>
 </dd>
 <dt data-target-cell="annotated-cell-12" data-target-annotation="3">3</dt>
 <dd>
-<span data-code-cell="annotated-cell-12" data-code-lines="6" data-code-annotation="3">The loop is across timesteps within each thread, while the thread index is tracked with <code>idx</code>.</span>
+<span data-code-cell="annotated-cell-12" data-code-lines="5" data-code-annotation="3">Recall that we are working with <code>Float32</code> on the GPU here, so the zero value is set via the <code>f0</code> notation indicating a 32-bit floating point number.</span>
 </dd>
 <dt data-target-cell="annotated-cell-12" data-target-annotation="4">4</dt>
 <dd>
-<span data-code-cell="annotated-cell-12" data-code-lines="9" data-code-annotation="4">The result is written to the pre-allocated array of present values, and we avoid race conditions because the different threads are working on different scenarios.</span>
+<span data-code-cell="annotated-cell-12" data-code-lines="7" data-code-annotation="4">The loop is across timesteps within each thread, while the thread index is tracked with <code>idx</code>.</span>
 </dd>
 <dt data-target-cell="annotated-cell-12" data-target-annotation="5">5</dt>
 <dd>
-<span data-code-cell="annotated-cell-12" data-code-lines="10" data-code-annotation="5">We don’t explicitly have to <code>return nothing</code> here, but it makes it extra clear that the intention of the function is to mutate the <code>present_values</code> array given to it. This mutation intention is also signaled by the <code>!</code> convention in the function name.</span>
+<span data-code-cell="annotated-cell-12" data-code-lines="10" data-code-annotation="5">The result is written to the pre-allocated array of present values, and we avoid race conditions because the different threads are working on different scenarios.</span>
+</dd>
+<dt data-target-cell="annotated-cell-12" data-target-annotation="6">6</dt>
+<dd>
+<span data-code-cell="annotated-cell-12" data-code-lines="12" data-code-annotation="6">We don’t explicitly have to <code>return nothing</code> here, but it makes it extra clear that the intention of the function is to mutate the <code>present_values</code> array given to it. This mutation intention is also signaled by the <code>!</code> convention in the function name.</span>
 </dd>
 </dl>
 </div>
@@ -1691,23 +1716,23 @@ Warning
 <pre><code>calculate_present_values_kernel! (generic function with 1 method)</code></pre>
 </div>
 </div>
-<p>The kernel above was fairly similar to how we might write code for CPU-threaded approaches, but we now need to specify the technicals of launching this on the GPU. The <code>threads</code> defines how many independent calculations to run at a given time, and the maximum will be dependent on the hardware used. The <code>groups</code> argument defines the number of threads that share memory and synchronize results together (meaning that group will wait for all threads to finish before moving onto the next chunk of data). The push-pull here is that threads that can share data avoid needing to create duplicate copies of that data in memory. However, if there is variability in how long each calculation will take, then the waiting time for synchronizing results may slow the overall computation down.</p>
-<p>Our task utilizes shared memory of the cashflows for each thread, so through some experimentation in advance, we find that a relatively large group size of ~512 is optimal.</p>
+<p>The kernel above was fairly similar to how we might write code for CPU-threaded approaches, but we now need to specify the technicals of launching this on the GPU. The <code>threads</code> argument defines how many threads run within each <em>threadgroup</em>; threads in the same group execute together, can share fast threadgroup memory, and can synchronize with one another, and the maximum group size depends on the hardware used. The <code>groups</code> argument defines how many such groups are launched — together, <code>threads × groups</code> determines the total number of GPU threads. The push-pull here is that threads that can share data avoid needing to create duplicate copies of that data in memory. However, if there is variability in how long each calculation will take, then the waiting time for synchronizing results may slow the overall computation down.</p>
+<p>Through some experimentation in advance, we find that a relatively large group size of ~512 works well for this kernel.</p>
 <p>We bring this all together through the use of the kernel macro <code>@metal</code>:</p>
-<div id="88609661" class="cell" data-execution_count="15">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>threads <span class="op">=</span> <span class="fl">1024</span></span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>groups <span class="op">=</span> <span class="fu">cld</span>(num_scenarios, <span class="fl">512</span>)</span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="pp">@metal</span> threads <span class="op">=</span> <span class="op">$</span>threads groups <span class="op">=</span> <span class="op">$</span>groups <span class="fu">calculate_present_values_kernel!</span>(</span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">$</span>pvs_GPU,</span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">$</span>cashflows_GPU,</span>
-<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">$</span>discount_matrices_GPU</span>
-<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>);</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="d151a1a7" class="cell" data-execution_count="15">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>threads <span class="op">=</span> <span class="fl">512</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>groups <span class="op">=</span> <span class="fu">cld</span>(num_scenarios, threads)</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> Metal.<span class="pp">@sync</span> <span class="pp">@metal</span> threads <span class="op">=</span> <span class="op">$</span>threads groups <span class="op">=</span> <span class="op">$</span>groups <span class="fu">calculate_present_values_kernel!</span>(</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">$</span>pvs_GPU,</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">$</span>cashflows_GPU,</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">$</span>discount_matrices_GPU</span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>);</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  17.333 μs (81 allocations: 2.20 KiB)</code></pre>
+<pre><code>  240.666 μs (42 allocations: 1.12 KiB)</code></pre>
 </div>
 </div>
-<p>The kernel version is faster than the array-oriented style above, meaning that the GPU kernel version’s computation is significantly faster than the CPU version. However, we saw previously that the cost of moving the data to the GPU memory and then back to the CPU memory was the biggest time sink of all - again we’d need to have more scale in the problem to make offloading to the GPU beneficial overall.</p>
+<p>The kernel version is faster than the array-oriented style above (and thus also significantly faster than the CPU version). However, we saw previously that the cost of moving the data to the GPU memory and then back to the CPU memory was the biggest time sink of all - again we’d need to have more scale in the problem to make offloading to the GPU beneficial overall.</p>
 <div class="callout callout-style-default callout-note callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -1736,43 +1761,43 @@ Note
 <ul>
 <li>The thread indexing would be <code>idx = (blockIdx().x - 1) * blockDim().x + threadIdx().x</code> instead of <code>idx = thread_position_in_grid_1d()</code>.</li>
 <li>The GPU arrays should be created with <code>CuArray</code> instead of <code>MtlArray</code>.</li>
-<li>The kernel macro would be <code>@cuda threads=threads blocks=blocks calculate_present_values_kernel!(...)</code> instead of <code>@metal threads=threads groups=groups calculate_present_values_kernel(...)</code>.</li>
-<li>The kernel needs a bounds check (<code>if idx &lt;= ...</code>) because <code>threads × blocks</code> will typically overshoot the data size. For example, <code>cld(100_000, 1024)</code> gives 98 blocks, launching 100,352 threads for only 100,000 scenarios. Metal handles this differently via <code>thread_position_in_grid_1d()</code>.</li>
+<li>The kernel macro would be <code>@cuda threads=threads blocks=blocks calculate_present_values_kernel!(...)</code> instead of <code>@metal threads=threads groups=groups calculate_present_values_kernel!(...)</code>.</li>
+<li>As in the Metal version, the kernel needs a bounds check (<code>if idx &lt;= ...</code>) because <code>threads × blocks</code> will typically overshoot the data size. For example, <code>cld(100_000, 1024)</code> gives 98 blocks, launching 100,352 threads for only 100,000 scenarios.</li>
 </ul>
 <p>Here is a complete, standalone example:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb26"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">CUDA</span></span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>num_scenarios <span class="op">=</span> <span class="fl">10</span><span class="op">^</span><span class="fl">5</span></span>
-<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>cashflows <span class="op">=</span> <span class="fu">rand</span>(<span class="dt">Float32</span>, <span class="fl">100</span>)</span>
-<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>discount_matrices <span class="op">=</span> <span class="fu">rand</span>(<span class="dt">Float32</span>, <span class="fl">100</span>, num_scenarios)</span>
-<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>pvs <span class="op">=</span> <span class="fu">zeros</span>(<span class="dt">Float32</span>, num_scenarios)</span>
-<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>cashflows_GPU <span class="op">=</span> <span class="fu">CuArray</span>(cashflows)</span>
-<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>discount_matrices_GPU <span class="op">=</span> <span class="fu">CuArray</span>(discount_matrices)</span>
-<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>pvs_GPU <span class="op">=</span> <span class="fu">CuArray</span>(pvs)</span>
-<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">calculate_present_values_kernel!</span>(present_values, cashflows, discount_matrices)</span>
-<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a>    idx <span class="op">=</span> (<span class="fu">blockIdx</span>().x <span class="op">-</span> <span class="fl">1</span>) <span class="op">*</span> <span class="fu">blockDim</span>().x <span class="op">+</span> <span class="fu">threadIdx</span>().x</span>
-<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> idx <span class="op">&lt;=</span> <span class="fu">size</span>(discount_matrices, <span class="fl">2</span>)</span>
-<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a>        pv <span class="op">=</span> <span class="fl">0.0f0</span></span>
-<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> t <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fu">size</span>(cashflows, <span class="fl">1</span>)</span>
-<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a>            pv <span class="op">+=</span> cashflows[t] <span class="op">*</span> discount_matrices[t, idx]</span>
-<span id="cb26-19"><a href="#cb26-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
-<span id="cb26-20"><a href="#cb26-20" aria-hidden="true" tabindex="-1"></a>        present_values[idx] <span class="op">=</span> pv</span>
-<span id="cb26-21"><a href="#cb26-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
-<span id="cb26-22"><a href="#cb26-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-23"><a href="#cb26-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="cn">nothing</span></span>
-<span id="cb26-24"><a href="#cb26-24" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
-<span id="cb26-25"><a href="#cb26-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-26"><a href="#cb26-26" aria-hidden="true" tabindex="-1"></a>threads <span class="op">=</span> <span class="fl">1024</span></span>
-<span id="cb26-27"><a href="#cb26-27" aria-hidden="true" tabindex="-1"></a>blocks <span class="op">=</span> <span class="fu">cld</span>(num_scenarios, threads)</span>
-<span id="cb26-28"><a href="#cb26-28" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-29"><a href="#cb26-29" aria-hidden="true" tabindex="-1"></a><span class="pp">@cuda</span> threads<span class="op">=</span>threads blocks<span class="op">=</span>blocks <span class="fu">calculate_present_values_kernel!</span>(</span>
-<span id="cb26-30"><a href="#cb26-30" aria-hidden="true" tabindex="-1"></a>    pvs_GPU,</span>
-<span id="cb26-31"><a href="#cb26-31" aria-hidden="true" tabindex="-1"></a>    cashflows_GPU,</span>
-<span id="cb26-32"><a href="#cb26-32" aria-hidden="true" tabindex="-1"></a>    discount_matrices_GPU</span>
-<span id="cb26-33"><a href="#cb26-33" aria-hidden="true" tabindex="-1"></a>    )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb27"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">CUDA</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>num_scenarios <span class="op">=</span> <span class="fl">10</span><span class="op">^</span><span class="fl">5</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>cashflows <span class="op">=</span> <span class="fu">rand</span>(<span class="dt">Float32</span>, <span class="fl">100</span>)</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>discount_matrices <span class="op">=</span> <span class="fu">rand</span>(<span class="dt">Float32</span>, <span class="fl">100</span>, num_scenarios)</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>pvs <span class="op">=</span> <span class="fu">zeros</span>(<span class="dt">Float32</span>, num_scenarios)</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>cashflows_GPU <span class="op">=</span> <span class="fu">CuArray</span>(cashflows)</span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>discount_matrices_GPU <span class="op">=</span> <span class="fu">CuArray</span>(discount_matrices)</span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>pvs_GPU <span class="op">=</span> <span class="fu">CuArray</span>(pvs)</span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">calculate_present_values_kernel!</span>(present_values, cashflows, discount_matrices)</span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a>    idx <span class="op">=</span> (<span class="fu">blockIdx</span>().x <span class="op">-</span> <span class="fl">1</span>) <span class="op">*</span> <span class="fu">blockDim</span>().x <span class="op">+</span> <span class="fu">threadIdx</span>().x</span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> idx <span class="op">&lt;=</span> <span class="fu">size</span>(discount_matrices, <span class="fl">2</span>)</span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a>        pv <span class="op">=</span> <span class="fl">0.0f0</span></span>
+<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> t <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fu">size</span>(cashflows, <span class="fl">1</span>)</span>
+<span id="cb27-18"><a href="#cb27-18" aria-hidden="true" tabindex="-1"></a>            pv <span class="op">+=</span> cashflows[t] <span class="op">*</span> discount_matrices[t, idx]</span>
+<span id="cb27-19"><a href="#cb27-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb27-20"><a href="#cb27-20" aria-hidden="true" tabindex="-1"></a>        present_values[idx] <span class="op">=</span> pv</span>
+<span id="cb27-21"><a href="#cb27-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb27-22"><a href="#cb27-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-23"><a href="#cb27-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="cn">nothing</span></span>
+<span id="cb27-24"><a href="#cb27-24" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb27-25"><a href="#cb27-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-26"><a href="#cb27-26" aria-hidden="true" tabindex="-1"></a>threads <span class="op">=</span> <span class="fl">1024</span></span>
+<span id="cb27-27"><a href="#cb27-27" aria-hidden="true" tabindex="-1"></a>blocks <span class="op">=</span> <span class="fu">cld</span>(num_scenarios, threads)</span>
+<span id="cb27-28"><a href="#cb27-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-29"><a href="#cb27-29" aria-hidden="true" tabindex="-1"></a><span class="pp">@cuda</span> threads<span class="op">=</span>threads blocks<span class="op">=</span>blocks <span class="fu">calculate_present_values_kernel!</span>(</span>
+<span id="cb27-30"><a href="#cb27-30" aria-hidden="true" tabindex="-1"></a>    pvs_GPU,</span>
+<span id="cb27-31"><a href="#cb27-31" aria-hidden="true" tabindex="-1"></a>    cashflows_GPU,</span>
+<span id="cb27-32"><a href="#cb27-32" aria-hidden="true" tabindex="-1"></a>    discount_matrices_GPU</span>
+<span id="cb27-33"><a href="#cb27-33" aria-hidden="true" tabindex="-1"></a>    )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </div>
 </section>
@@ -1780,7 +1805,7 @@ Note
 </section>
 <section id="sec-multi-device" class="level2" data-number="11.7">
 <h2 data-number="11.7" class="anchored" data-anchor-id="sec-multi-device"><span class="header-section-number">11.7</span> Multi-Processing / Multi-Device</h2>
-<p>Multiple device, or <strong>multi-device</strong> computer refers to using separate groups of memory/processor combinations to accomplish tasks in parallel. This can be as simple as multiple distinct cores on within a single desktop computer, or many separate computers networked across the internet, or many processors within a high performance cluster or a computing-as-a-service provider like Amazon Web Services or JuliaHub.</p>
+<p>Multiple device, or <strong>multi-device</strong>, computing refers to using separate groups of memory/processor combinations to accomplish tasks in parallel. This can be as simple as multiple distinct cores within a single desktop computer, or many separate computers networked across the internet, or many processors within a high performance cluster or a computing-as-a-service provider like Amazon Web Services or JuliaHub.</p>
 <p>Everything discussed previously related to hardware (<a href="hardware.html" class="quarto-xref"><span>Chapter 9</span></a>, <a href="#sec-multithreading" class="quarto-xref"><span>Section 11.5</span></a>, <a href="#sec-GPUs" class="quarto-xref"><span>Section 11.6</span></a>) continues to apply. The additional complexity is attempting to synchronize the computation across multiple sets of the same (homogeneous) or different (heterogeneous) hardware.</p>
 <p>As you might imagine, approaches to multi-device computing can vary widely. Julia’s approach tries to strike the balance between capability and user-friendliness and uses a primary/worker model wherein one of the processors is the main coordinator while other processors are “workers”. If only one processor is started, then the main processor is also a worker processor. This main/worker approach uses a “one-sided” approach to coordination. The main worker utilizes high level calls and the workers respond, with some of the communication and hand-off handled by Julia transparently from the user’s perspective.</p>
 <p>A useful mental model is the asynchronous task-based concepts discussed in <a href="#sec-tasks" class="quarto-xref"><span>Section 11.5.1</span></a>, as the main worker will effectively queue work with the worker processors. Because there may be a delay associated with the computation or the communication between the processors, the worker runs asynchronously.</p>
@@ -1811,7 +1836,7 @@ Note
 <tr class="even">
 <td>Wait for task completion</td>
 <td><code>@sync</code></td>
-<td><code>sync</code></td>
+<td><code>@sync</code></td>
 </tr>
 <tr class="odd">
 <td>Communication between tasks</td>
@@ -1823,71 +1848,71 @@ Note
 <p>Adapting the trade producer and monitor example from above to run on multiple processors (see <a href="#sec-channels" class="quarto-xref"><span>Section 11.5.1.1</span></a> to review the base model and algorithm), we make a few key changes:</p>
 <ul>
 <li><code>using Distributed</code> loads the Distributed standard Julia library, providing the interface for multi-processing across different hardware.</li>
-<li><code>addprocs(n)</code> will add <code>n</code> worker processors (the main processor is already counted as one worker). When adding local machine processors, the processors are part of the local machine. This starts new Julia processes (you can see this in the task manager of the machine) which inherit the package environment (i.e.&nbsp;<code>Project.toml</code> and environment variables) from the main process; this does not occur automatically if not part of the same local machine.
+<li><code>addprocs(n)</code> will add <code>n</code> worker processes (before any workers are added, the main process acts as the sole worker, which is why we check <code>nworkers() == 1</code> below). This starts new Julia processes (you can see this in the task manager of the machine) which inherit the package environment (i.e.&nbsp;<code>Project.toml</code> and environment variables) from the main process; this does not occur automatically if not part of the same local machine.
 <ul>
 <li>To add processors from other machines, see the <a href="https://docs.julialang.org/en/v1/stdlib/Distributed/">Distributed Computing</a> section of the Julia docs.</li>
 </ul></li>
-<li><code>myid()</code> is the identification number of the given processor that’s been spun up.</li>
+<li><code>myid()</code> is the identification number of the given process that’s been spun up.</li>
 <li>We use a <code>RemoteChannel</code> instead of a <code>Channel</code> to facilitate communication across processors.</li>
-<li>Instead of <code>@async</code>, we use <code>@spawnat n</code> to create a task for processor number <code>n</code> (or <code>:any</code> will automatically assign a processor).</li>
+<li>Instead of <code>@async</code>, we use <code>@spawnat n</code> to create a task for process number <code>n</code> (or <code>:any</code> will automatically assign a process).</li>
 </ul>
-<div id="51427dd0" class="cell" data-execution_count="16">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="annotated-cell-14"><pre class="sourceCode julia code-annotation-code code-with-copy"><code class="sourceCode julia"><span id="annotated-cell-14-1"><a href="#annotated-cell-14-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Distributed</span></span>
-<span id="annotated-cell-14-2"><a href="#annotated-cell-14-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-14-3"><a href="#annotated-cell-14-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Add worker processes if not already added</span></span>
-<span id="annotated-cell-14-4"><a href="#annotated-cell-14-4" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="fu">nworkers</span>() <span class="op">==</span> <span class="fl">1</span></span>
-<span id="annotated-cell-14-5"><a href="#annotated-cell-14-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">addprocs</span>(<span class="fl">4</span>)  <span class="co"># Add 4 worker processes</span></span>
-<span id="annotated-cell-14-6"><a href="#annotated-cell-14-6" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
-<span id="annotated-cell-14-7"><a href="#annotated-cell-14-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-14-8"><a href="#annotated-cell-14-8" aria-hidden="true" tabindex="-1"></a><span class="pp">@everywhere</span> <span class="im">using</span> <span class="bu">Random</span></span>
-<span id="annotated-cell-14-9"><a href="#annotated-cell-14-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-14-10"><a href="#annotated-cell-14-10" aria-hidden="true" tabindex="-1"></a><span class="pp">@everywhere</span> <span class="kw">function</span> <span class="fu">trade_producer</span>(channel, i)</span>
-<span id="annotated-cell-14-11"><a href="#annotated-cell-14-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sleep</span>(<span class="fu">rand</span>())</span>
-<span id="annotated-cell-14-12"><a href="#annotated-cell-14-12" aria-hidden="true" tabindex="-1"></a>    profit <span class="op">=</span> <span class="fu">randn</span>()</span>
-<span id="annotated-cell-14-13"><a href="#annotated-cell-14-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">put!</span>(channel, profit)</span>
-<span id="annotated-cell-14-14"><a href="#annotated-cell-14-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">"Producer </span><span class="sc">$</span>(<span class="fu">myid</span>())<span class="st">: Trade #</span><span class="sc">$</span>i<span class="st"> </span><span class="sc">$</span>(<span class="fu">round</span>(profit, digits<span class="op">=</span><span class="fl">3</span>))<span class="st">"</span>)</span>
-<span id="annotated-cell-14-15"><a href="#annotated-cell-14-15" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
-<span id="annotated-cell-14-16"><a href="#annotated-cell-14-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-14-17"><a href="#annotated-cell-14-17" aria-hidden="true" tabindex="-1"></a><span class="pp">@everywhere</span> <span class="kw">function</span> <span class="fu">portfolio_monitor</span>(channel, n)</span>
-<span id="annotated-cell-14-18"><a href="#annotated-cell-14-18" aria-hidden="true" tabindex="-1"></a>    total <span class="op">=</span> <span class="fl">0.0</span></span>
-<span id="annotated-cell-14-19"><a href="#annotated-cell-14-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> _ <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>n</span>
-<span id="annotated-cell-14-20"><a href="#annotated-cell-14-20" aria-hidden="true" tabindex="-1"></a>        profit <span class="op">=</span> <span class="fu">take!</span>(channel)</span>
-<span id="annotated-cell-14-21"><a href="#annotated-cell-14-21" aria-hidden="true" tabindex="-1"></a>        total <span class="op">+=</span> profit</span>
-<span id="annotated-cell-14-22"><a href="#annotated-cell-14-22" aria-hidden="true" tabindex="-1"></a>        p <span class="op">=</span> <span class="fu">round</span>(profit, digits<span class="op">=</span><span class="fl">3</span>)</span>
-<span id="annotated-cell-14-23"><a href="#annotated-cell-14-23" aria-hidden="true" tabindex="-1"></a>        s <span class="op">=</span> <span class="fu">round</span>(total, digits<span class="op">=</span><span class="fl">3</span>)</span>
-<span id="annotated-cell-14-24"><a href="#annotated-cell-14-24" aria-hidden="true" tabindex="-1"></a>        <span class="fu">println</span>(<span class="st">"Monitor </span><span class="sc">$</span>(<span class="fu">myid</span>())<span class="st">: Received </span><span class="sc">$</span>p<span class="st">, Cumulative: </span><span class="sc">$</span>s<span class="st">"</span>)</span>
-<span id="annotated-cell-14-25"><a href="#annotated-cell-14-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
-<span id="annotated-cell-14-26"><a href="#annotated-cell-14-26" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
-<span id="annotated-cell-14-27"><a href="#annotated-cell-14-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-14-28"><a href="#annotated-cell-14-28" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">run_distributed_simulation</span>()</span>
-<span id="annotated-cell-14-29"><a href="#annotated-cell-14-29" aria-hidden="true" tabindex="-1"></a>    channel <span class="op">=</span> <span class="fu">RemoteChannel</span>(() <span class="op">-&gt;</span> <span class="fu">Channel</span><span class="dt">{Float64}</span>(<span class="fl">32</span>))</span>
-<span id="annotated-cell-14-30"><a href="#annotated-cell-14-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-14-31"><a href="#annotated-cell-14-31" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Start producer and consumer tasks</span></span>
-<span id="annotated-cell-14-32"><a href="#annotated-cell-14-32" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@sync</span> <span class="cf">begin</span></span>
-<span id="annotated-cell-14-33"><a href="#annotated-cell-14-33" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">5</span></span>
-<span id="annotated-cell-14-34"><a href="#annotated-cell-14-34" aria-hidden="true" tabindex="-1"></a>            <span class="pp">@spawnat</span> <span class="op">:</span>any <span class="fu">trade_producer</span>(channel, i)</span>
-<span id="annotated-cell-14-35"><a href="#annotated-cell-14-35" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
-<span id="annotated-cell-14-36"><a href="#annotated-cell-14-36" aria-hidden="true" tabindex="-1"></a>        <span class="pp">@spawnat</span> <span class="op">:</span>any <span class="fu">portfolio_monitor</span>(channel, <span class="fl">5</span>)</span>
-<span id="annotated-cell-14-37"><a href="#annotated-cell-14-37" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
-<span id="annotated-cell-14-38"><a href="#annotated-cell-14-38" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-14-39"><a href="#annotated-cell-14-39" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Close the channel and wait for tasks to finish</span></span>
-<span id="annotated-cell-14-40"><a href="#annotated-cell-14-40" aria-hidden="true" tabindex="-1"></a>    <span class="fu">close</span>(channel)</span>
-<span id="annotated-cell-14-41"><a href="#annotated-cell-14-41" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="cn">nothing</span></span>
-<span id="annotated-cell-14-42"><a href="#annotated-cell-14-42" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
-<span id="annotated-cell-14-43"><a href="#annotated-cell-14-43" aria-hidden="true" tabindex="-1"></a></span>
-<span id="annotated-cell-14-44"><a href="#annotated-cell-14-44" aria-hidden="true" tabindex="-1"></a><span class="co"># Run the simulation</span></span>
-<span id="annotated-cell-14-45"><a href="#annotated-cell-14-45" aria-hidden="true" tabindex="-1"></a><span class="fu">run_distributed_simulation</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="42d8715f" class="cell" data-execution_count="16">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Distributed</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Add worker processes if not already added</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="fu">nworkers</span>() <span class="op">==</span> <span class="fl">1</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">addprocs</span>(<span class="fl">4</span>)  <span class="co"># Add 4 worker processes</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a><span class="cf">end</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a><span class="pp">@everywhere</span> <span class="im">using</span> <span class="bu">Random</span></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a><span class="pp">@everywhere</span> <span class="kw">function</span> <span class="fu">trade_producer</span>(channel, i)</span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sleep</span>(<span class="fu">rand</span>())</span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a>    profit <span class="op">=</span> <span class="fu">randn</span>()</span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">put!</span>(channel, profit)</span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">println</span>(<span class="st">"Producer </span><span class="sc">$</span>(<span class="fu">myid</span>())<span class="st">: Trade #</span><span class="sc">$</span>i<span class="st"> </span><span class="sc">$</span>(<span class="fu">round</span>(profit, digits<span class="op">=</span><span class="fl">3</span>))<span class="st">"</span>)</span>
+<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-17"><a href="#cb28-17" aria-hidden="true" tabindex="-1"></a><span class="pp">@everywhere</span> <span class="kw">function</span> <span class="fu">portfolio_monitor</span>(channel, n)</span>
+<span id="cb28-18"><a href="#cb28-18" aria-hidden="true" tabindex="-1"></a>    total <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb28-19"><a href="#cb28-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> _ <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>n</span>
+<span id="cb28-20"><a href="#cb28-20" aria-hidden="true" tabindex="-1"></a>        profit <span class="op">=</span> <span class="fu">take!</span>(channel)</span>
+<span id="cb28-21"><a href="#cb28-21" aria-hidden="true" tabindex="-1"></a>        total <span class="op">+=</span> profit</span>
+<span id="cb28-22"><a href="#cb28-22" aria-hidden="true" tabindex="-1"></a>        p <span class="op">=</span> <span class="fu">round</span>(profit, digits<span class="op">=</span><span class="fl">3</span>)</span>
+<span id="cb28-23"><a href="#cb28-23" aria-hidden="true" tabindex="-1"></a>        s <span class="op">=</span> <span class="fu">round</span>(total, digits<span class="op">=</span><span class="fl">3</span>)</span>
+<span id="cb28-24"><a href="#cb28-24" aria-hidden="true" tabindex="-1"></a>        <span class="fu">println</span>(<span class="st">"Monitor </span><span class="sc">$</span>(<span class="fu">myid</span>())<span class="st">: Received </span><span class="sc">$</span>p<span class="st">, Cumulative: </span><span class="sc">$</span>s<span class="st">"</span>)</span>
+<span id="cb28-25"><a href="#cb28-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb28-26"><a href="#cb28-26" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb28-27"><a href="#cb28-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-28"><a href="#cb28-28" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">run_distributed_simulation</span>()</span>
+<span id="cb28-29"><a href="#cb28-29" aria-hidden="true" tabindex="-1"></a>    channel <span class="op">=</span> <span class="fu">RemoteChannel</span>(() <span class="op">-&gt;</span> <span class="fu">Channel</span><span class="dt">{Float64}</span>(<span class="fl">32</span>))</span>
+<span id="cb28-30"><a href="#cb28-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-31"><a href="#cb28-31" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Start producer and consumer tasks</span></span>
+<span id="cb28-32"><a href="#cb28-32" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@sync</span> <span class="cf">begin</span></span>
+<span id="cb28-33"><a href="#cb28-33" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">5</span></span>
+<span id="cb28-34"><a href="#cb28-34" aria-hidden="true" tabindex="-1"></a>            <span class="pp">@spawnat</span> <span class="op">:</span>any <span class="fu">trade_producer</span>(channel, i)</span>
+<span id="cb28-35"><a href="#cb28-35" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb28-36"><a href="#cb28-36" aria-hidden="true" tabindex="-1"></a>        <span class="pp">@spawnat</span> <span class="op">:</span>any <span class="fu">portfolio_monitor</span>(channel, <span class="fl">5</span>)</span>
+<span id="cb28-37"><a href="#cb28-37" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb28-38"><a href="#cb28-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-39"><a href="#cb28-39" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Close the channel and wait for tasks to finish</span></span>
+<span id="cb28-40"><a href="#cb28-40" aria-hidden="true" tabindex="-1"></a>    <span class="fu">close</span>(channel)</span>
+<span id="cb28-41"><a href="#cb28-41" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="cn">nothing</span></span>
+<span id="cb28-42"><a href="#cb28-42" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb28-43"><a href="#cb28-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-44"><a href="#cb28-44" aria-hidden="true" tabindex="-1"></a><span class="co"># Run the simulation</span></span>
+<span id="cb28-45"><a href="#cb28-45" aria-hidden="true" tabindex="-1"></a><span class="fu">run_distributed_simulation</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>      From worker 4:    Producer 4: Trade #3 0.674
-      From worker 3:    Monitor 3: Received 0.674, Cumulative: 0.674
-      From worker 3:    Producer 3: Trade #2 0.828
-      From worker 3:    Monitor 3: Received 0.828, Cumulative: 1.501
-      From worker 3:    Monitor 3: Received -0.832, Cumulative: 0.669
-      From worker 5:    Producer 5: Trade #4 -0.832
-      From worker 3:    Monitor 3: Received -1.082, Cumulative: -0.413
-      From worker 2:    Producer 2: Trade #1 -1.082
-      From worker 2:    Producer 2: Trade #5 0.413
-      From worker 3:    Monitor 3: Received 0.413, Cumulative: 0.0</code></pre>
+<pre><code>      From worker 2:    Producer 2: Trade #5 -0.823
+      From worker 3:    Monitor 3: Received -0.823, Cumulative: -0.823
+      From worker 3:    Monitor 3: Received -0.212, Cumulative: -1.034
+      From worker 4:    Producer 4: Trade #3 -0.212
+      From worker 5:    Producer 5: Trade #4 0.794
+      From worker 3:    Monitor 3: Received 0.794, Cumulative: -0.24
+      From worker 3:    Producer 3: Trade #2 -1.777
+      From worker 3:    Monitor 3: Received -1.777, Cumulative: -2.018
+      From worker 2:    Producer 2: Trade #1 0.18
+      From worker 3:    Monitor 3: Received 0.18, Cumulative: -1.838</code></pre>
 </div>
 </div>
 <p>Given the similarity to the single-process task-based version above, what’s the motivation for bothering with a distributed approach? A few differences:</p>
@@ -1912,11 +1937,11 @@ Note
 <section id="ohmythreads" class="level5" data-number="11.8.1.1.1">
 <h5 data-number="11.8.1.1.1" class="anchored" data-anchor-id="ohmythreads"><span class="header-section-number">11.8.1.1.1</span> OhMyThreads</h5>
 <p><a href="https://github.com/JuliaFolds2/OhMyThreads.jl">OhMyThreads.jl</a> provides the threaded versions of essential functions such as <code>tmap</code>, <code>tmapreduce</code>, <code>tcollect</code>, and <code>tforeach</code> (see <a href="first-abstractions.html#tbl-functional-methods" class="quarto-xref">Table&nbsp;<span>6.1</span></a>). In most cases, the chunking and data sharing is handled automatically for you.</p>
-<div id="02f2bedf" class="cell" data-execution_count="17">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> <span class="bu">OhMyThreads</span></span>
-<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> OhMyThreads.<span class="fu">tmapreduce</span>(x <span class="op">-&gt;</span> x, <span class="op">+</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">100_000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="c57357f8" class="cell" data-execution_count="17">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> <span class="bu">OhMyThreads</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> OhMyThreads.<span class="fu">tmapreduce</span>(x <span class="op">-&gt;</span> x, <span class="op">+</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">100_000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  11.208 μs (75 allocations: 4.20 KiB)</code></pre>
+<pre><code>  11.292 μs (75 allocations: 4.20 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="18">
 <pre><code>5000050000</code></pre>
@@ -1926,11 +1951,68 @@ Note
 <section id="threadsx" class="level5" data-number="11.8.1.1.2">
 <h5 data-number="11.8.1.1.2" class="anchored" data-anchor-id="threadsx"><span class="header-section-number">11.8.1.1.2</span> ThreadsX</h5>
 <p><a href="https://github.com/JuliaFolds2/ThreadsX.jl">ThreadsX.jl</a> is built off of the wonderful <a href="https://github.com/JuliaFolds2/Transducers.jl">Transducers.jl</a> package, though the latter is a bit more advanced (more abstract, but as a result more composable and powerful). ThreadsX provides threaded versions of many popular base functions. It offers a wider set of ready-made threaded functions, but has a much more complex codebase. For the vast majority of threading needs, OhMyThreads.jl should be sufficient and performant. See the documentation for all of the implemented functions, but for our illustrative example:</p>
-<div id="e3ecb4ee" class="cell" data-execution_count="18">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> <span class="bu">ThreadsX</span></span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> ThreadsX.<span class="fu">mapreduce</span>(x <span class="op">-&gt;</span> x, <span class="op">+</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">100_000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="e086acb9" class="cell" data-execution_count="18">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> <span class="bu">ThreadsX</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> ThreadsX.<span class="fu">mapreduce</span>(x <span class="op">-&gt;</span> x, <span class="op">+</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">100_000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<div class="ansi-escaped-output">
+<pre><span class="ansi-cyan-fg ansi-bold">[ </span><span class="ansi-cyan-fg ansi-bold">Info: </span>Precompiling DistributionsTestExt [ffbe0ea5-a612-5ff7-aaf5-cac02eef3019] (cache misses: wrong dep version loaded (14), wrong source (2), mismatched flags (2))
+
+
+
+SYSTEM: caught exception of type :MethodError while trying to print a failed Task notice; giving up
+</pre>
+</div>
+</div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  41.333 μs (890 allocations: 47.64 KiB)</code></pre>
+<div class="ansi-escaped-output">
+<pre>      From worker 5:   <span class="ansi-green-fg ansi-bold">Precompiling</span> packages...
+
+      From worker 3:    <span class="ansi-green-fg ansi-bold">Precompiling</span> packages...
+
+      From worker 2:    <span class="ansi-green-fg ansi-bold">Precompiling</span> packages...
+
+      From worker 4:    <span class="ansi-green-fg ansi-bold">Precompiling</span> packages...
+
+      From worker 3:        Transducers → TransducersReferenceablesExt<span class="ansi-cyan-fg"> Being precompiled by another process (pid: 80541, pidfile: /Users/alecloudenback/.julia/compiled/v1.12/TransducersReferenceablesExt/jN4bn_bZo5r.ji.pidfile)</span>
+
+      From worker 2:        Transducers → TransducersReferenceablesExt<span class="ansi-cyan-fg"> Being precompiled by another process (pid: 80541, pidfile: /Users/alecloudenback/.julia/compiled/v1.12/TransducersReferenceablesExt/jN4bn_bZo5r.ji.pidfile)</span>
+
+      From worker 4:        Transducers → TransducersReferenceablesExt<span class="ansi-cyan-fg"> Being precompiled by another process (pid: 80541, pidfile: /Users/alecloudenback/.julia/compiled/v1.12/TransducersReferenceablesExt/jN4bn_bZo5r.ji.pidfile)</span>
+
+      From worker 5:        330.2 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Transducers → TransducersReferenceablesExt</span>
+
+      From worker 3:        294.9 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Transducers → TransducersReferenceablesExt</span>
+
+      From worker 3:        ThreadsX<span class="ansi-cyan-fg"> Being precompiled by another process (pid: 80541, pidfile: /Users/alecloudenback/.julia/compiled/v1.12/ThreadsX/jgtwe_bZo5r.ji.pidfile)</span>
+
+      From worker 4:        310.4 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Transducers → TransducersReferenceablesExt</span>
+
+      From worker 4:        ThreadsX<span class="ansi-cyan-fg"> Being precompiled by another process (pid: 80541, pidfile: /Users/alecloudenback/.julia/compiled/v1.12/ThreadsX/jgtwe_bZo5r.ji.pidfile)</span>
+
+      From worker 2:        338.7 ms<span class="ansi-green-fg">  ✓ </span><span class="ansi-bright-black-fg">Transducers → TransducersReferenceablesExt</span>
+
+      From worker 2:        ThreadsX<span class="ansi-cyan-fg"> Being precompiled by another process (pid: 80541, pidfile: /Users/alecloudenback/.julia/compiled/v1.12/ThreadsX/jgtwe_bZo5r.ji.pidfile)</span>
+
+      From worker 5:       1269.7 ms<span class="ansi-green-fg">  ✓ </span>ThreadsX
+
+      From worker 5:      2 dependencies successfully precompiled in 2 seconds. 44 already precompiled.
+
+      From worker 2:       1225.0 ms<span class="ansi-green-fg">  ✓ </span>ThreadsX
+
+      From worker 2:      2 dependencies successfully precompiled in 2 seconds. 44 already precompiled.
+
+      From worker 3:       1303.7 ms<span class="ansi-green-fg">  ✓ </span>ThreadsX
+
+      From worker 3:      2 dependencies successfully precompiled in 2 seconds. 44 already precompiled.
+
+      From worker 4:       1312.7 ms<span class="ansi-green-fg">  ✓ </span>ThreadsX
+
+      From worker 4:      2 dependencies successfully precompiled in 2 seconds. 44 already precompiled.
+
+  41.209 μs (890 allocations: 47.64 KiB)
+</pre>
+</div>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="19">
 <pre><code>5000050000</code></pre>
@@ -1942,32 +2024,32 @@ Note
 <h4 data-number="11.8.1.2" class="anchored" data-anchor-id="multi-processing"><span class="header-section-number">11.8.1.2</span> Multi-Processing</h4>
 <p><code>reduce(op,pmap(f,collection))</code> will use a distributed map and reduce the resulting map on the main thread. This pattern works well if each application of <code>f</code> to elements of <code>collection</code> is costly.</p>
 <p><code>@distributed (op) for x in collection; f(x); end</code> is a way to write the loop with the reduction <code>op</code> for which the <code>f</code> need not be costly.</p>
-<p>The difference between the two approaches is that, with <code>pmap</code>, <code>collection</code> is made available to all workers. In the <code>@distributed</code> approach, the collection is partitioned and only a subset is sent to the designated workers.</p>
+<p>The difference between the two approaches is how the work is assigned. <code>pmap</code> dynamically sends each element of <code>collection</code> to the next available worker as it finishes its prior work, which balances load well when each call of <code>f</code> is expensive but incurs communication overhead on every element. <code>@distributed</code> statically partitions the iteration range up front into one contiguous block per worker, which has minimal per-iteration overhead and suits cheap loop bodies. (Note that any outside variables referenced inside the <code>@distributed</code> loop body — including a collection that is indexed into — are serialized to every worker.)</p>
 <p>Here’s an example of both of these, calculating a simple example of counting coin flips:</p>
-<div id="7b0249d8" class="cell" data-execution_count="19">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co"># this is an example of poor utilization of pmap, since the operation is </span></span>
-<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="co"># fast and the overhead of moving the whole collection dominates</span></span>
-<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">reduce</span>(<span class="op">+</span>, <span class="fu">pmap</span>(x <span class="op">-&gt;</span> <span class="fu">rand</span>((<span class="fl">0</span>, <span class="fl">1</span>)), <span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">^</span><span class="fl">3</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="60d4f249" class="cell" data-execution_count="19">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co"># this is an example of poor utilization of pmap, since the operation is</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="co"># fast and the per-element communication overhead dominates</span></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">reduce</span>(<span class="op">+</span>, <span class="fu">pmap</span>(x <span class="op">-&gt;</span> <span class="fu">rand</span>((<span class="fl">0</span>, <span class="fl">1</span>)), <span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">^</span><span class="fl">3</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  75.195 ms (71605 allocations: 2.87 MiB)</code></pre>
+<pre><code>  80.414 ms (71599 allocations: 2.87 MiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="20">
-<pre><code>501</code></pre>
+<pre><code>495</code></pre>
 </div>
 </div>
-<div id="41531263" class="cell" data-execution_count="20">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">dist_demo</span>()</span>
-<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@distributed</span> (<span class="op">+</span>) <span class="cf">for</span> _ <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">^</span><span class="fl">5</span></span>
-<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>        <span class="fu">rand</span>((<span class="fl">0</span>, <span class="fl">1</span>))</span>
-<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
-<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
-<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">dist_demo</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="f7eb6fdb" class="cell" data-execution_count="20">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">dist_demo</span>()</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@distributed</span> (<span class="op">+</span>) <span class="cf">for</span> _ <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">10</span><span class="op">^</span><span class="fl">5</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>        <span class="fu">rand</span>((<span class="fl">0</span>, <span class="fl">1</span>))</span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a><span class="pp">@btime</span> <span class="fu">dist_demo</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  176.208 μs (335 allocations: 14.52 KiB)</code></pre>
+<pre><code>  180.041 μs (335 allocations: 14.52 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="21">
-<pre><code>50046</code></pre>
+<pre><code>50154</code></pre>
 </div>
 </div>
 </section>
@@ -1975,19 +2057,19 @@ Note
 <section id="array-based" class="level3" data-number="11.8.2">
 <h3 data-number="11.8.2" class="anchored" data-anchor-id="array-based"><span class="header-section-number">11.8.2</span> Array-Based</h3>
 <p>Array-based approaches will often utilize the parallelism of SIMD on the CPU or many cores on the GPU. It’s as simple as using generic library calls which will often be optimized at the compiler level. Examples:</p>
-<div id="686c1fdb" class="cell" data-execution_count="21">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span></span>
-<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>    x <span class="op">=</span> <span class="fu">rand</span>(<span class="dt">Float32</span>, <span class="fl">10</span><span class="op">^</span><span class="fl">8</span>)</span>
-<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>    x_GPU <span class="op">=</span> <span class="fu">MtlArray</span>(x)</span>
-<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@btime</span> <span class="fu">sum</span>(<span class="op">$</span>x)</span>
-<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@btime</span> <span class="fu">sum</span>(<span class="op">$</span>x_GPU)</span>
-<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="a28c808b" class="cell" data-execution_count="21">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span></span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>    x <span class="op">=</span> <span class="fu">rand</span>(<span class="dt">Float32</span>, <span class="fl">10</span><span class="op">^</span><span class="fl">8</span>)</span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>    x_GPU <span class="op">=</span> <span class="fu">MtlArray</span>(x)</span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@btime</span> <span class="fu">sum</span>(<span class="op">$</span>x)</span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@btime</span> <span class="fu">sum</span>(<span class="op">$</span>x_GPU)</span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>  4.949 ms (0 allocations: 0 bytes)
-  1.257 ms (513 allocations: 15.44 KiB)</code></pre>
+<pre><code>  4.790 ms (0 allocations: 0 bytes)
+  1.279 ms (351 allocations: 10.11 KiB)</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="22">
-<pre><code>5.0000816f7</code></pre>
+<pre><code>5.0002224f7</code></pre>
 </div>
 </div>
 <p><code>sum(x)</code> compiles to SIMD instructions on the CPU, while using the GPU array type in <code>sum(x_GPU)</code> is enough to let the compiler dispatch on the GPU type and emit efficient, parallelized code for the GPU.</p>
@@ -1997,14 +2079,14 @@ Note
 <h3 data-number="11.8.3" class="anchored" data-anchor-id="loop-based"><span class="header-section-number">11.8.3</span> Loop-Based</h3>
 <p>Loops that don’t have race conditions can easily become multi-threaded. Here, we have three versions of updating a collection to square the contained values:</p>
 <p>Basic single-threaded:</p>
-<div id="6375e3cf" class="cell" data-execution_count="22">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> v <span class="op">=</span> <span class="fu">collect</span>(<span class="fl">1</span><span class="op">:</span><span class="fl">10000</span>)</span>
-<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="fu">eachindex</span>(v)</span>
-<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>        v[i] <span class="op">=</span> v[i]<span class="op">^</span><span class="fl">2</span></span>
-<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
-<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>    v[<span class="fl">1</span><span class="op">:</span><span class="fl">3</span>]</span>
-<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="6a9d7030" class="cell" data-execution_count="22">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> v <span class="op">=</span> <span class="fu">collect</span>(<span class="fl">1</span><span class="op">:</span><span class="fl">10000</span>)</span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="fu">eachindex</span>(v)</span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>        v[i] <span class="op">=</span> v[i]<span class="op">^</span><span class="fl">2</span></span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a>    v[<span class="fl">1</span><span class="op">:</span><span class="fl">3</span>]</span>
+<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="23">
 <pre><code>3-element Vector{Int64}:
  1
@@ -2013,13 +2095,13 @@ Note
 </div>
 </div>
 <p>Using multi-threading:</p>
-<div id="5f90e168" class="cell" data-execution_count="23">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> v <span class="op">=</span> <span class="fu">collect</span>(<span class="fl">1</span><span class="op">:</span><span class="fl">10000</span>)</span>
-<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">Threads</span>.<span class="pp">@threads</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="fu">eachindex</span>(v)</span>
-<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>        v[i] <span class="op">=</span> v[i]<span class="op">^</span><span class="fl">2</span></span>
-<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
-<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>    v[<span class="fl">1</span><span class="op">:</span><span class="fl">3</span>]</span>
-<span id="cb45-6"><a href="#cb45-6" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="5b282ff0" class="cell" data-execution_count="23">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb46"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> v <span class="op">=</span> <span class="fu">collect</span>(<span class="fl">1</span><span class="op">:</span><span class="fl">10000</span>)</span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">Threads</span>.<span class="pp">@threads</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="fu">eachindex</span>(v)</span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>        v[i] <span class="op">=</span> v[i]<span class="op">^</span><span class="fl">2</span></span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>    v[<span class="fl">1</span><span class="op">:</span><span class="fl">3</span>]</span>
+<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="24">
 <pre><code>3-element Vector{Int64}:
  1
@@ -2028,16 +2110,16 @@ Note
 </div>
 </div>
 <p>Using multi-processing:</p>
-<div id="129eaec6" class="cell" data-execution_count="24">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">SharedArrays</span></span>
-<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span></span>
-<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>    v <span class="op">=</span> <span class="fu">collect</span>(<span class="fl">1</span><span class="op">:</span><span class="fl">10_000</span>)</span>
-<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>    sV <span class="op">=</span> <span class="fu">SharedArray</span><span class="dt">{eltype(v)}</span>(<span class="fu">length</span>(v))</span>
-<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@sync</span> <span class="bu">Distributed</span>.<span class="pp">@distributed</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="fu">eachindex</span>(v)</span>
-<span id="cb47-6"><a href="#cb47-6" aria-hidden="true" tabindex="-1"></a>        sV[i] <span class="op">=</span> v[i]<span class="op">^</span><span class="fl">2</span></span>
-<span id="cb47-7"><a href="#cb47-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
-<span id="cb47-8"><a href="#cb47-8" aria-hidden="true" tabindex="-1"></a>    sV[<span class="fl">1</span><span class="op">:</span><span class="fl">3</span>]</span>
-<span id="cb47-9"><a href="#cb47-9" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="2a0e9c53" class="cell" data-execution_count="24">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb48"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">SharedArrays</span></span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span></span>
+<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>    v <span class="op">=</span> <span class="fu">collect</span>(<span class="fl">1</span><span class="op">:</span><span class="fl">10_000</span>)</span>
+<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a>    sV <span class="op">=</span> <span class="fu">SharedArray</span><span class="dt">{eltype(v)}</span>(<span class="fu">length</span>(v))</span>
+<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a>    <span class="pp">@sync</span> <span class="bu">Distributed</span>.<span class="pp">@distributed</span> <span class="cf">for</span> i <span class="kw">in</span> <span class="fu">eachindex</span>(v)</span>
+<span id="cb48-6"><a href="#cb48-6" aria-hidden="true" tabindex="-1"></a>        sV[i] <span class="op">=</span> v[i]<span class="op">^</span><span class="fl">2</span></span>
+<span id="cb48-7"><a href="#cb48-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb48-8"><a href="#cb48-8" aria-hidden="true" tabindex="-1"></a>    sV[<span class="fl">1</span><span class="op">:</span><span class="fl">3</span>]</span>
+<span id="cb48-9"><a href="#cb48-9" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="25">
 <pre><code>3-element Vector{Int64}:
  1
@@ -2052,18 +2134,18 @@ Note
 <p>Task-based approaches attempt to abstract the scheduling and distribution of work from the user. Instead of saying how the computation should be done, the user specifies the intended operations and allows the library to handle the workflow. The main library for this in Julia is <a href="https://juliaparallel.org/Dagger.jl/dev/darray/">Dagger.jl</a>.</p>
 <p>Effectively, the library establishes a network topology (a map of how different processor nodes can communicate) and models the work as a directed, acyclic graph (a DAG, which is like a map of how the work is related). The library is then able to assign the work in the appropriate order to the available computation devices. The benefit of this is most apparent with complex workflows or network topologies where it would be difficult to manually assign, communicate, and schedule the workflow.</p>
 <p>Here’s a very simple example which demonstrates Dagger waiting for the two tasks which work in parallel (we already added multiple processors to this environment in <a href="#sec-multi-device" class="quarto-xref"><span>Section 11.7</span></a>):</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb49"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> <span class="bu">Dagger</span></span>
-<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a><span class="co"># This runs first:</span></span>
-<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> Dagger.<span class="pp">@spawn</span> <span class="fu">rand</span>(<span class="fl">100</span>, <span class="fl">100</span>)</span>
-<span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb49-6"><a href="#cb49-6" aria-hidden="true" tabindex="-1"></a><span class="co"># These run in parallel:</span></span>
-<span id="cb49-7"><a href="#cb49-7" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> Dagger.<span class="pp">@spawn</span> <span class="fu">sum</span>(a)</span>
-<span id="cb49-8"><a href="#cb49-8" aria-hidden="true" tabindex="-1"></a>c <span class="op">=</span> Dagger.<span class="pp">@spawn</span> <span class="fu">prod</span>(a)</span>
-<span id="cb49-9"><a href="#cb49-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb49-10"><a href="#cb49-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Finally, this runs:</span></span>
-<span id="cb49-11"><a href="#cb49-11" aria-hidden="true" tabindex="-1"></a>d <span class="op">=</span> Dagger.<span class="pp">@spawn</span> <span class="fu">println</span>(<span class="st">"b: "</span>, b, <span class="st">", c: "</span>, c)</span>
-<span id="cb49-12"><a href="#cb49-12" aria-hidden="true" tabindex="-1"></a><span class="fu">wait</span>(d)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb50"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> <span class="bu">Dagger</span></span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a><span class="co"># This runs first:</span></span>
+<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a>a <span class="op">=</span> Dagger.<span class="pp">@spawn</span> <span class="fu">rand</span>(<span class="fl">100</span>, <span class="fl">100</span>)</span>
+<span id="cb50-5"><a href="#cb50-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-6"><a href="#cb50-6" aria-hidden="true" tabindex="-1"></a><span class="co"># These run in parallel:</span></span>
+<span id="cb50-7"><a href="#cb50-7" aria-hidden="true" tabindex="-1"></a>b <span class="op">=</span> Dagger.<span class="pp">@spawn</span> <span class="fu">sum</span>(a)</span>
+<span id="cb50-8"><a href="#cb50-8" aria-hidden="true" tabindex="-1"></a>c <span class="op">=</span> Dagger.<span class="pp">@spawn</span> <span class="fu">prod</span>(a)</span>
+<span id="cb50-9"><a href="#cb50-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-10"><a href="#cb50-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Finally, this runs:</span></span>
+<span id="cb50-11"><a href="#cb50-11" aria-hidden="true" tabindex="-1"></a>d <span class="op">=</span> Dagger.<span class="pp">@spawn</span> <span class="fu">println</span>(<span class="st">"b: "</span>, b, <span class="st">", c: "</span>, c)</span>
+<span id="cb50-12"><a href="#cb50-12" aria-hidden="true" tabindex="-1"></a><span class="fu">wait</span>(d)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 </section>
 <section id="choosing-a-parallelization-strategy" class="level2" data-number="11.9">

@@ -369,6 +369,12 @@ window.Quarto = {
  <span class="menu-text">Purchase Print Edition</span></a>
   </div>
 </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./errata.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Errata</span></a>
+  </div>
+</li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a href="./intro.html" class="sidebar-item-text sidebar-link">
@@ -737,7 +743,7 @@ window.Quarto = {
 <p>The challenge: how do we design an all-purpose <code>value</code> function? Assets in <code>portfolio</code> may be heterogeneous, so we need to define valuation semantics for different asset types. To reach our end goal, we need to:</p>
 <ol type="1">
 <li>Define the different kinds of assets within our portfolio</li>
-<li>How the assets are to be valued.</li>
+<li>Define how the assets are to be valued.</li>
 </ol>
 <p>We will accomplish this by utilizing data types.</p>
 </section>
@@ -749,9 +755,9 @@ window.Quarto = {
 <li><strong>Re-use code</strong>. When a set of types within a hierarchy all share the same logic, then we can define the method at the highest relevant level and avoid writing the method for each possible type. In our simple example we won’t get as much benefit here since the hierarchy is simple and the set of types small.</li>
 <li><strong>Extensibility through dispatch</strong>. By defining types for our assets, we can use multiple dispatch to define specialized behavior for each type. This allows us to write generic code that works with any asset type, and the Julia compiler will automatically select the appropriate method based on the type of the asset at runtime. This is a powerful feature that enables extensibility and modularity in our code.</li>
 <li><strong>Improve readability and clarity</strong>. By defining types for our assets, we make our code more expressive and self-documenting. The types provide a clear indication of what kind of data we are working with, making it easier for other developers (or ourselves in the future) to understand and maintain the codebase.</li>
-<li><strong>Enable type safety</strong>. By specifying the expected types for function arguments and return values, we can catch type-related errors at compile time rather than at runtime. This helps prevent bugs and makes our code more robust.</li>
+<li><strong>Enable type safety</strong>. By specifying the expected types for function arguments, we can catch type-related errors immediately at the call site (as a <code>MethodError</code>) rather than letting bad data propagate deeper into a calculation. This helps prevent bugs and makes our code more robust.</li>
 </ol>
-<p>With these benefits in mind, let’s start by defining the types for our assets. We’ll create an abstract type called Asset that will serve as the parent type for all our asset types. If you haven’t read it already, <a href="foundations-of-programming.html#sec-user-defined-types" class="quarto-xref"><span>Section 5.4.7</span></a> is a good reference for details on types at the language level (this section is focused on organization and building up the abstracted valuation process).</p>
+<p>With these benefits in mind, let’s start by defining the types for our assets. We’ll create an abstract type called <code>AbstractAsset</code> that will serve as the parent type for all our asset types. If you haven’t read it already, <a href="foundations-of-programming.html#sec-user-defined-types" class="quarto-xref"><span>Section 5.4.7</span></a> is a good reference for details on types at the language level (this section is focused on organization and building up the abstracted valuation process).</p>
 </section>
 <section id="defining-types-for-portfolio-valuation" class="level2" data-number="7.4">
 <h2 data-number="7.4" class="anchored" data-anchor-id="defining-types-for-portfolio-valuation"><span class="header-section-number">7.4</span> Defining Types for Portfolio Valuation</h2>
@@ -817,14 +823,14 @@ window.Quarto = {
 <pre><code>EconomicAssumptions{Float64}(0.05)</code></pre>
 </div>
 </div>
-<p>Now on to defining the valuation for <code>Cash</code> and <code>AbstractBonds</code>. Cash is always equal to its balance:</p>
+<p>Now on to defining the valuation for <code>Cash</code> and <code>AbstractBond</code>s. Cash is always equal to its balance:</p>
 <div id="8" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">value</span>(asset<span class="op">::</span><span class="dt">Cash</span>, econ<span class="op">::</span><span class="dt">EconomicAssumptions</span>) <span class="op">=</span> asset.balance</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>value (generic function with 1 method)</code></pre>
 </div>
 </div>
-<p>Risk free bonds are the discounted present value of the riskless cashflows. We first define a method that generically operates on any fixed bond, all that’s left to do is for different types of bonds to define how much cashflow occurs at the given point in time by defining <code>cashflow</code> for the associated type.</p>
+<p>Risk free bonds are the discounted present value of the riskless cashflows. We first define a method that generically operates on any fixed bond; all that’s left to do is for different types of bonds to define how much cashflow occurs at the given point in time by defining <code>cashflow</code> for the associated type.</p>
 <div id="10" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="annotated-cell-6"><pre class="sourceCode julia code-annotation-code code-with-copy code-annotated"><code class="sourceCode julia"><a class="code-annotation-anchor" data-target-cell="annotated-cell-6" data-target-annotation="2" onclick="event.preventDefault();">2</a><span id="annotated-cell-6-1" class="code-annotation-target"><a href="#annotated-cell-6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> <span class="fu">value</span>(asset<span class="op">::</span><span class="dt">AbstractBond</span>, r<span class="op">::</span><span class="dt">Float64</span>)</span>
 <span id="annotated-cell-6-2"><a href="#annotated-cell-6-2" aria-hidden="true" tabindex="-1"></a>    discount_factor <span class="op">=</span> <span class="fl">1.0</span></span>
@@ -904,7 +910,7 @@ window.Quarto = {
 <p>This is the power of dispatch. By defining a <strong>more specific</strong> method, <code>value(bond::ZeroCouponBond, r::Float64)</code>, we are telling Julia: “When you have a <code>ZeroCouponBond</code>, use this highly efficient, direct formula. For any <em>other</em> kind of <code>AbstractBond</code>, you can fall back on the generic looping version.” Dispatch ensures that the most specific, and in this case most performant, implementation is automatically chosen. This allows you to build a system that is both general and extensible, while also being highly optimized for the most common and simple cases.</p>
 <section id="integrating-economic-assumptions" class="level4" data-number="7.4.1.1">
 <h4 data-number="7.4.1.1" class="anchored" data-anchor-id="integrating-economic-assumptions"><span class="header-section-number">7.4.1.1</span> Integrating Economic Assumptions</h4>
-<p>Despite the definitions above, the following will error because we haven’t defined a method for <code>value</code> which takes as its second argument a type of <code>EconomicAssumptions</code>:</p>
+<p>Despite the definitions above, the following will error because we haven’t defined a method for <code>value</code> which takes a bond together with an <code>EconomicAssumptions</code> as its second argument:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">value</span>(<span class="fu">ZeroCouponBond</span>(<span class="fl">100.0</span>,<span class="fl">5</span>),econ_baseline)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Let’s fix that by defining a method which takes the economic assumption type and just relays the relevant risk free rate to the <code>value</code> methods already defined (which take an <code>AbstractBond</code> and a scalar <code>r</code>).</p>
 <div id="12" class="cell" data-execution_count="1">
@@ -971,7 +977,7 @@ Note
 </section>
 <section id="multiple-dispatch" class="level4" data-number="7.4.1.2">
 <h4 data-number="7.4.1.2" class="anchored" data-anchor-id="multiple-dispatch"><span class="header-section-number">7.4.1.2</span> Multiple Dispatch</h4>
-<p>A more general concept is that of <strong>multiple dispatch</strong>, where the types of <em>all arguments</em> are used to determine which method to use. This is a very general paradigm, and in many ways is more extensible than traditional object oriented approaches, (more on that in <a href="#sec-object-oriented" class="quarto-xref"><span>Section 7.5</span></a>). What if instead of a scalar interest rate value we wanted to instead pass an object that represented a term structure of interest rates?</p>
+<p>A more general concept is that of <strong>multiple dispatch</strong>, where the types of <em>all arguments</em> are used to determine which method to use. This is a very general paradigm, and in many ways is more extensible than traditional object oriented approaches (more on that in <a href="#sec-object-oriented" class="quarto-xref"><span>Section 7.5</span></a>). What if instead of a scalar interest rate value we wanted to instead pass an object that represented a term structure of interest rates?</p>
 <p>Extending the example, we can use a time-varying risk free rate instead of a constant. For fun, let’s say that the risk free rate has a sinusoidal pattern:</p>
 <div id="22" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>econ_sin <span class="op">=</span> <span class="fu">EconomicAssumptions</span>(t <span class="op">-&gt;</span> <span class="fl">0.05</span> <span class="op">+</span> <span class="fu">sin</span>(t) <span class="op">/</span> <span class="fl">100</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -1013,7 +1019,7 @@ Stacktrace:
 <dl class="code-annotation-container-grid">
 <dt data-target-cell="annotated-cell-16" data-target-annotation="1">1</dt>
 <dd>
-<span data-code-cell="annotated-cell-16" data-code-lines="1" data-code-annotation="1">The <code>r::Function</code> constraint says use this method if <code>r</code> is any subtype of the (abstract) <code>Function</code> type.</span>
+<span data-code-cell="annotated-cell-16" data-code-lines="1" data-code-annotation="1">The <code>r::Function</code> constraint says to use this method if <code>r</code> is an instance of any subtype of the (abstract) <code>Function</code> type.</span>
 </dd>
 <dt data-target-cell="annotated-cell-16" data-target-annotation="2">2</dt>
 <dd>
@@ -1062,7 +1068,7 @@ Note
 <h3 data-number="7.5.1" class="anchored" data-anchor-id="assigning-behavior"><span class="header-section-number">7.5.1</span> Assigning Behavior</h3>
 <p>Needing to assign methods to a single class can lead to awkward design limitations - when multiple objects are involved in a computation, why dictate that only one of them “controls” the logic?</p>
 <p>The <code>value</code> function is a good example of this. If we had to assign <code>value</code> to one of the objects involved, should it be the economic parameter object or the asset objects? The choice is not obvious at all. Isn’t it the market (economic parameters) that determines the value? But then if <code>value</code> were to be a method wholly owned by the economic parameters, how could it possibly define in advance the valuation semantics of all types of assets? What if one wanted to extend the valuation to a new asset class? Downstream users or developers would need to modify the economic types to handle new assets they wanted to value. However, because the economic types were owned by an upstream package, they can’t be extended this way.</p>
-<p>This is an issue with traditional OO designs and that resolves itself so elegantly with multiple dispatch.</p>
+<p>This is an issue with traditional OO designs, and one that resolves itself so elegantly with multiple dispatch.</p>
 <section id="example-the-expression-problem" class="level4 page-columns page-full" data-number="7.5.1.1">
 <h4 data-number="7.5.1.1" class="anchored" data-anchor-id="example-the-expression-problem"><span class="header-section-number">7.5.1.1</span> Example: The Expression Problem</h4>
 <p>A fundamental limitation of OOP is what’s called the <strong>Expression Problem</strong>. The challenge (or problem) is that with OOP languages it is difficult to extend both datatypes <em>and</em> behavior. In the example that follows, we define types of insurance products with associated methods.</p>
@@ -1137,7 +1143,7 @@ Note
 </div>
 </div>
 <p>Now, say that we want to utilize this package and extend the behavior. Specifically, we want to add a Deferred Annuity type and add functionality (for all products) related to determining a cash surrender value.</p>
-<p>We run into limitations with Python version. We can extend a new representation (dataclass), but adding new functionality (e.g.&nbsp;<code>cash_value</code>) requires modifying other classes which you may not own and for which the method may not apply.</p>
+<p>We run into limitations with the Python version. We can extend a new representation (dataclass), but adding new functionality (e.g.&nbsp;<code>cash_value</code>) requires modifying other classes which you may not own and for which the method may not apply.</p>
 <div class="columns column-body-outset">
 <div class="column" style="width:43%;">
 <p><strong>Julia (Multiple Dispatch)</strong></p>

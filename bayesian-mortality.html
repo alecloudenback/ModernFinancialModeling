@@ -371,6 +371,12 @@ window.Quarto = {
  <span class="menu-text">Purchase Print Edition</span></a>
   </div>
 </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./errata.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Errata</span></a>
+  </div>
+</li>
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a href="./intro.html" class="sidebar-item-text sidebar-link">
@@ -681,7 +687,7 @@ window.Quarto = {
   <ul>
   <li><a href="#chapter-overview" id="toc-chapter-overview" class="nav-link active" data-scroll-target="#chapter-overview"><span class="header-section-number">31.1</span> Chapter Overview</a></li>
   <li><a href="#generating-fake-data" id="toc-generating-fake-data" class="nav-link" data-scroll-target="#generating-fake-data"><span class="header-section-number">31.2</span> Generating fake data</a></li>
-  <li><a href="#a-single-binomial-parameter-model" id="toc-a-single-binomial-parameter-model" class="nav-link" data-scroll-target="#a-single-binomial-parameter-model"><span class="header-section-number">31.3</span> 1: A single binomial parameter model</a>
+  <li><a href="#a-single-binomial-parameter-model" id="toc-a-single-binomial-parameter-model" class="nav-link" data-scroll-target="#a-single-binomial-parameter-model"><span class="header-section-number">31.3</span> 1. A single binomial parameter model</a>
   <ul class="collapse">
   <li><a href="#sampling-from-the-posterior" id="toc-sampling-from-the-posterior" class="nav-link" data-scroll-target="#sampling-from-the-posterior"><span class="header-section-number">31.3.1</span> Sampling from the posterior</a></li>
   </ul></li>
@@ -734,7 +740,7 @@ window.Quarto = {
 <section id="generating-fake-data" class="level2" data-number="31.2">
 <h2 data-number="31.2" class="anchored" data-anchor-id="generating-fake-data"><span class="header-section-number">31.2</span> Generating fake data</h2>
 <p>The problem of interest is to look at mortality rates, which are given in terms of exposures (whether or not a life experienced a death in a given year).</p>
-<p>We’ll grab some example rates from an insurance table, which has a “selection” component: When someone enters observation, say at age 50, their mortality is path dependent (so someone who started being observed at 50 will have a different risk/mortality rate at age 55 than someone who started being observed at 45).</p>
+<p>We’ll grab some example rates from an insurance table, which has a “selection” component: When someone enters observation, say at age 50, their mortality is path dependent (so someone who started being observed at 50 will have a different risk/mortality rate at age 55 than someone who started being observed at 45). For simplicity, though, the simulation below uses the table’s ultimate rates only, so the generated data will not exhibit this selection effect.</p>
 <p>Additionally, there may be additional groups of interest, such as:</p>
 <ul>
 <li>high/medium/low risk classification</li>
@@ -743,49 +749,48 @@ window.Quarto = {
 <li>type of insurance product offered</li>
 </ul>
 <p>The example data will start with only the risk classification above.</p>
-<div id="fc999ec1" class="cell" data-execution_count="2">
+<div id="55698499" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">MortalityTables</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">Turing</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">DataFramesMeta</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">MCMCChains</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">LinearAlgebra</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">CairoMakie</span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">StatsBase</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">LinearAlgebra</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">CairoMakie</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">using</span> <span class="bu">StatsBase</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<div id="502570a8" class="cell" data-execution_count="3">
+<div id="d41ad1ef" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> <span class="fl">10_000</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>inforce <span class="op">=</span> [(issue_age<span class="op">=</span><span class="fu">rand</span>(<span class="fl">30</span><span class="op">:</span><span class="fl">70</span>), risk_level<span class="op">=</span><span class="fu">rand</span>(<span class="fl">1</span><span class="op">:</span><span class="fl">3</span>)) for _ <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>n]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="4">
 <pre><code>10000-element Vector{@NamedTuple{issue_age::Int64, risk_level::Int64}}:
- (issue_age = 41, risk_level = 1)
- (issue_age = 61, risk_level = 3)
- (issue_age = 47, risk_level = 2)
- (issue_age = 51, risk_level = 1)
- (issue_age = 66, risk_level = 2)
- (issue_age = 30, risk_level = 2)
- (issue_age = 65, risk_level = 3)
- (issue_age = 45, risk_level = 2)
+ (issue_age = 43, risk_level = 1)
+ (issue_age = 67, risk_level = 3)
+ (issue_age = 30, risk_level = 1)
+ (issue_age = 68, risk_level = 3)
+ (issue_age = 35, risk_level = 1)
+ (issue_age = 63, risk_level = 1)
+ (issue_age = 46, risk_level = 3)
  (issue_age = 51, risk_level = 2)
- (issue_age = 45, risk_level = 3)
- (issue_age = 61, risk_level = 1)
- (issue_age = 36, risk_level = 2)
+ (issue_age = 52, risk_level = 3)
+ (issue_age = 66, risk_level = 2)
  (issue_age = 58, risk_level = 1)
+ (issue_age = 63, risk_level = 3)
+ (issue_age = 43, risk_level = 1)
  ⋮
- (issue_age = 53, risk_level = 1)
+ (issue_age = 69, risk_level = 1)
+ (issue_age = 38, risk_level = 1)
+ (issue_age = 30, risk_level = 2)
  (issue_age = 48, risk_level = 3)
- (issue_age = 69, risk_level = 3)
- (issue_age = 70, risk_level = 2)
- (issue_age = 70, risk_level = 2)
- (issue_age = 64, risk_level = 2)
- (issue_age = 33, risk_level = 1)
- (issue_age = 55, risk_level = 1)
- (issue_age = 62, risk_level = 2)
- (issue_age = 61, risk_level = 3)
- (issue_age = 50, risk_level = 3)
- (issue_age = 35, risk_level = 2)</code></pre>
+ (issue_age = 57, risk_level = 1)
+ (issue_age = 60, risk_level = 1)
+ (issue_age = 38, risk_level = 1)
+ (issue_age = 68, risk_level = 3)
+ (issue_age = 59, risk_level = 3)
+ (issue_age = 32, risk_level = 3)
+ (issue_age = 37, risk_level = 1)
+ (issue_age = 32, risk_level = 2)</code></pre>
 </div>
 </div>
-<div id="bc98ea31" class="cell" data-execution_count="4">
+<div id="47180f23" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>tbl_name <span class="op">=</span> <span class="st">"2001 VBT Residual Standard Select and Ultimate - Male Nonsmoker, ANB"</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>base_table <span class="op">=</span> MortalityTables.<span class="fu">table</span>(tbl_name)</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -799,7 +804,7 @@ window.Quarto = {
 <pre><code>tabular_mortality (generic function with 1 method)</code></pre>
 </div>
 </div>
-<div id="a72b1e83" class="cell" data-execution_count="5">
+<div id="9fd3f6e9" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="st">"""</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="st">Simulate mortality outcomes for a portfolio of policies.</span></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="st">Returns a DataFrame with one row per policy-year exposure.</span></span>
@@ -887,7 +892,7 @@ window.Quarto = {
 <td style="text-align: right;">30</td>
 <td style="text-align: right;">30</td>
 <td style="text-align: right;">1</td>
-<td style="text-align: right;">69</td>
+<td style="text-align: right;">77</td>
 <td style="text-align: right;">0</td>
 <td style="text-align: right;">0.0</td>
 </tr>
@@ -896,7 +901,7 @@ window.Quarto = {
 <td style="text-align: right;">30</td>
 <td style="text-align: right;">30</td>
 <td style="text-align: right;">2</td>
-<td style="text-align: right;">81</td>
+<td style="text-align: right;">74</td>
 <td style="text-align: right;">0</td>
 <td style="text-align: right;">0.0</td>
 </tr>
@@ -905,7 +910,7 @@ window.Quarto = {
 <td style="text-align: right;">30</td>
 <td style="text-align: right;">30</td>
 <td style="text-align: right;">3</td>
-<td style="text-align: right;">68</td>
+<td style="text-align: right;">80</td>
 <td style="text-align: right;">0</td>
 <td style="text-align: right;">0.0</td>
 </tr>
@@ -914,7 +919,7 @@ window.Quarto = {
 <td style="text-align: right;">30</td>
 <td style="text-align: right;">31</td>
 <td style="text-align: right;">1</td>
-<td style="text-align: right;">69</td>
+<td style="text-align: right;">77</td>
 <td style="text-align: right;">0</td>
 <td style="text-align: right;">0.0</td>
 </tr>
@@ -923,7 +928,7 @@ window.Quarto = {
 <td style="text-align: right;">30</td>
 <td style="text-align: right;">31</td>
 <td style="text-align: right;">2</td>
-<td style="text-align: right;">81</td>
+<td style="text-align: right;">74</td>
 <td style="text-align: right;">0</td>
 <td style="text-align: right;">0.0</td>
 </tr>
@@ -932,7 +937,7 @@ window.Quarto = {
 <td style="text-align: right;">30</td>
 <td style="text-align: right;">31</td>
 <td style="text-align: right;">3</td>
-<td style="text-align: right;">68</td>
+<td style="text-align: right;">80</td>
 <td style="text-align: right;">0</td>
 <td style="text-align: right;">0.0</td>
 </tr>
@@ -941,7 +946,7 @@ window.Quarto = {
 <td style="text-align: right;">30</td>
 <td style="text-align: right;">32</td>
 <td style="text-align: right;">1</td>
-<td style="text-align: right;">69</td>
+<td style="text-align: right;">77</td>
 <td style="text-align: right;">0</td>
 <td style="text-align: right;">0.0</td>
 </tr>
@@ -950,7 +955,7 @@ window.Quarto = {
 <td style="text-align: right;">30</td>
 <td style="text-align: right;">32</td>
 <td style="text-align: right;">2</td>
-<td style="text-align: right;">81</td>
+<td style="text-align: right;">74</td>
 <td style="text-align: right;">0</td>
 <td style="text-align: right;">0.0</td>
 </tr>
@@ -959,7 +964,7 @@ window.Quarto = {
 <td style="text-align: right;">30</td>
 <td style="text-align: right;">32</td>
 <td style="text-align: right;">3</td>
-<td style="text-align: right;">68</td>
+<td style="text-align: right;">80</td>
 <td style="text-align: right;">0</td>
 <td style="text-align: right;">0.0</td>
 </tr>
@@ -968,7 +973,7 @@ window.Quarto = {
 <td style="text-align: right;">30</td>
 <td style="text-align: right;">33</td>
 <td style="text-align: right;">1</td>
-<td style="text-align: right;">69</td>
+<td style="text-align: right;">77</td>
 <td style="text-align: right;">0</td>
 <td style="text-align: right;">0.0</td>
 </tr>
@@ -977,7 +982,7 @@ window.Quarto = {
 <td style="text-align: right;">30</td>
 <td style="text-align: right;">33</td>
 <td style="text-align: right;">2</td>
-<td style="text-align: right;">81</td>
+<td style="text-align: right;">74</td>
 <td style="text-align: right;">0</td>
 <td style="text-align: right;">0.0</td>
 </tr>
@@ -986,7 +991,7 @@ window.Quarto = {
 <td style="text-align: right;">30</td>
 <td style="text-align: right;">33</td>
 <td style="text-align: right;">3</td>
-<td style="text-align: right;">68</td>
+<td style="text-align: right;">80</td>
 <td style="text-align: right;">0</td>
 <td style="text-align: right;">0.0</td>
 </tr>
@@ -995,7 +1000,7 @@ window.Quarto = {
 <td style="text-align: right;">30</td>
 <td style="text-align: right;">34</td>
 <td style="text-align: right;">1</td>
-<td style="text-align: right;">69</td>
+<td style="text-align: right;">77</td>
 <td style="text-align: right;">0</td>
 <td style="text-align: right;">0.0</td>
 </tr>
@@ -1013,108 +1018,108 @@ window.Quarto = {
 <td style="text-align: right;">70</td>
 <td style="text-align: right;">71</td>
 <td style="text-align: right;">1</td>
-<td style="text-align: right;">75</td>
+<td style="text-align: right;">88</td>
 <td style="text-align: right;">1</td>
-<td style="text-align: right;">0.0133333</td>
+<td style="text-align: right;">0.0113636</td>
 </tr>
 <tr class="dataRow even">
 <td class="rowLabel" style="text-align: right; font-weight: bold;">605</td>
 <td style="text-align: right;">70</td>
 <td style="text-align: right;">71</td>
 <td style="text-align: right;">2</td>
-<td style="text-align: right;">93</td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">0.0107527</td>
+<td style="text-align: right;">76</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0.0394737</td>
 </tr>
 <tr class="dataRow odd">
 <td class="rowLabel" style="text-align: right; font-weight: bold;">606</td>
 <td style="text-align: right;">70</td>
 <td style="text-align: right;">71</td>
 <td style="text-align: right;">3</td>
-<td style="text-align: right;">69</td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">0.0144928</td>
+<td style="text-align: right;">81</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0.0246914</td>
 </tr>
 <tr class="dataRow even">
 <td class="rowLabel" style="text-align: right; font-weight: bold;">607</td>
 <td style="text-align: right;">70</td>
 <td style="text-align: right;">72</td>
 <td style="text-align: right;">1</td>
-<td style="text-align: right;">74</td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">0.0135135</td>
+<td style="text-align: right;">87</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">0.045977</td>
 </tr>
 <tr class="dataRow odd">
 <td class="rowLabel" style="text-align: right; font-weight: bold;">608</td>
 <td style="text-align: right;">70</td>
 <td style="text-align: right;">72</td>
 <td style="text-align: right;">2</td>
-<td style="text-align: right;">92</td>
-<td style="text-align: right;">2</td>
-<td style="text-align: right;">0.0217391</td>
+<td style="text-align: right;">73</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0.0410959</td>
 </tr>
 <tr class="dataRow even">
 <td class="rowLabel" style="text-align: right; font-weight: bold;">609</td>
 <td style="text-align: right;">70</td>
 <td style="text-align: right;">72</td>
 <td style="text-align: right;">3</td>
-<td style="text-align: right;">68</td>
-<td style="text-align: right;">6</td>
-<td style="text-align: right;">0.0882353</td>
+<td style="text-align: right;">79</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0.0253165</td>
 </tr>
 <tr class="dataRow odd">
 <td class="rowLabel" style="text-align: right; font-weight: bold;">610</td>
 <td style="text-align: right;">70</td>
 <td style="text-align: right;">73</td>
 <td style="text-align: right;">1</td>
-<td style="text-align: right;">73</td>
-<td style="text-align: right;">5</td>
-<td style="text-align: right;">0.0684932</td>
+<td style="text-align: right;">83</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">0.0722892</td>
 </tr>
 <tr class="dataRow even">
 <td class="rowLabel" style="text-align: right; font-weight: bold;">611</td>
 <td style="text-align: right;">70</td>
 <td style="text-align: right;">73</td>
 <td style="text-align: right;">2</td>
-<td style="text-align: right;">90</td>
-<td style="text-align: right;">3</td>
-<td style="text-align: right;">0.0333333</td>
+<td style="text-align: right;">70</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0.0285714</td>
 </tr>
 <tr class="dataRow odd">
 <td class="rowLabel" style="text-align: right; font-weight: bold;">612</td>
 <td style="text-align: right;">70</td>
 <td style="text-align: right;">73</td>
 <td style="text-align: right;">3</td>
-<td style="text-align: right;">62</td>
-<td style="text-align: right;">8</td>
-<td style="text-align: right;">0.129032</td>
+<td style="text-align: right;">77</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">0.0649351</td>
 </tr>
 <tr class="dataRow even">
 <td class="rowLabel" style="text-align: right; font-weight: bold;">613</td>
 <td style="text-align: right;">70</td>
 <td style="text-align: right;">74</td>
 <td style="text-align: right;">1</td>
-<td style="text-align: right;">68</td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">0.0147059</td>
+<td style="text-align: right;">77</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0.038961</td>
 </tr>
 <tr class="dataRow odd">
 <td class="rowLabel" style="text-align: right; font-weight: bold;">614</td>
 <td style="text-align: right;">70</td>
 <td style="text-align: right;">74</td>
 <td style="text-align: right;">2</td>
-<td style="text-align: right;">87</td>
+<td style="text-align: right;">68</td>
 <td style="text-align: right;">1</td>
-<td style="text-align: right;">0.0114943</td>
+<td style="text-align: right;">0.0147059</td>
 </tr>
 <tr class="dataRow even">
 <td class="rowLabel" style="text-align: right; font-weight: bold;">615</td>
 <td style="text-align: right;">70</td>
 <td style="text-align: right;">74</td>
 <td style="text-align: right;">3</td>
-<td style="text-align: right;">54</td>
+<td style="text-align: right;">72</td>
 <td style="text-align: right;">2</td>
-<td style="text-align: right;">0.037037</td>
+<td style="text-align: right;">0.0277778</td>
 </tr>
 </tbody>
 </table>
@@ -1123,18 +1128,18 @@ window.Quarto = {
 </div>
 </section>
 <section id="a-single-binomial-parameter-model" class="level2" data-number="31.3">
-<h2 data-number="31.3" class="anchored" data-anchor-id="a-single-binomial-parameter-model"><span class="header-section-number">31.3</span> 1: A single binomial parameter model</h2>
+<h2 data-number="31.3" class="anchored" data-anchor-id="a-single-binomial-parameter-model"><span class="header-section-number">31.3</span> 1. A single binomial parameter model</h2>
 <p>Estimate <span class="math inline">\(q\)</span>, the average mortality rate, not accounting for any variation within the population/sample. Our model is defined as a Beta prior on <span class="math inline">\(q\)</span> with a Binomial likelihood:</p>
 <p><span class="math display">\[
 \begin{aligned}
 q &amp;\sim \text{Beta}(1,1) \\
-p(\text{death}) &amp;\sim \text{Binomial}(n, q)
+\text{deaths} &amp;\sim \text{Binomial}(n, q)
 \end{aligned}
 \]</span></p>
-<div id="6326a725" class="cell" data-execution_count="6">
+<div id="a3c5be20" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@model</span> <span class="kw">function</span> <span class="fu">mortality</span>(exposures, deaths)</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    q <span class="op">~</span> <span class="fu">Beta</span>(<span class="fl">1</span>, <span class="fl">1</span>)</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Vectorized: observe all deaths at once</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Observe the death count for each age group</span></span>
 <span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="fu">eachindex</span>(deaths)</span>
 <span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>        deaths[i] <span class="op">~</span> <span class="fu">Binomial</span>(exposures[i], q)</span>
 <span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
@@ -1142,67 +1147,72 @@ p(\text{death}) &amp;\sim \text{Binomial}(n, q)
 <span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>m1 <span class="op">=</span> <span class="fu">mortality</span>(data.exposures, data.deaths)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="7">
-<pre><code>DynamicPPL.Model{typeof(mortality), (:exposures, :deaths), (), (), Tuple{Vector{Int64}, Vector{Int64}}, Tuple{}, DynamicPPL.DefaultContext, false}(Main.mortality, (exposures = [218, 218, 218, 218, 218, 235, 235, 235, 235, 235  …  271, 267, 262, 259, 251, 244, 237, 234, 225, 209], deaths = [0, 0, 0, 0, 0, 0, 0, 0, 0, 1  …  4, 5, 3, 8, 8, 7, 3, 9, 16, 4]), NamedTuple(), DynamicPPL.DefaultContext())</code></pre>
+<pre><code>DynamicPPL.Model{typeof(mortality), (:exposures, :deaths), (), (), Tuple{Vector{Int64}, Vector{Int64}}, Tuple{}, DynamicPPL.DefaultContext, false}(Main.mortality, (exposures = [231, 231, 231, 231, 231, 256, 256, 255, 255, 254  …  246, 241, 231, 223, 219, 253, 245, 239, 230, 217], deaths = [0, 0, 0, 0, 0, 0, 1, 0, 1, 0  …  5, 10, 8, 4, 8, 8, 6, 9, 13, 6]), NamedTuple(), DynamicPPL.DefaultContext())</code></pre>
 </div>
 </div>
 <section id="sampling-from-the-posterior" class="level3" data-number="31.3.1">
 <h3 data-number="31.3.1" class="anchored" data-anchor-id="sampling-from-the-posterior"><span class="header-section-number">31.3.1</span> Sampling from the posterior</h3>
 <p>We use a No-U-Turn-Sampler (NUTS) technique to sample multiple chains at once:</p>
-<div id="f6c85f0a" class="cell" data-execution_count="7">
+<div id="00e1f090" class="cell" data-execution_count="7">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>num_chains <span class="op">=</span> <span class="fl">4</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>chain <span class="op">=</span> <span class="fu">sample</span>(m1, <span class="fu">NUTS</span>(), <span class="fu">MCMCThreads</span>(), <span class="fl">400</span>, num_chains)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="8">
-<pre><code>Chains MCMC chain (400×15×4 Array{Float64, 3}):
-
-Iterations        = 201:1:600
-Number of chains  = 4
-Samples per chain = 400
-Wall duration     = 1.18 seconds
-Compute duration  = 4.71 seconds
-parameters        = q
-internals         = n_steps, is_accept, acceptance_rate, log_density, hamiltonian_energy, hamiltonian_energy_error, max_hamiltonian_energy_error, tree_depth, numerical_error, step_size, nom_step_size, logprior, loglikelihood, logjoint
-
-Use `describe(chains)` for summary statistics and quantiles.</code></pre>
+<div class="ansi-escaped-output">
+<pre><span class="ansi-bright-black-fg">╭─</span><span class="ansi-bold">FlexiChain (400 iterations, 4 chains)</span><span class="ansi-bright-black-fg"> ───────────────────────────────────────</span><span class="ansi-bright-black-fg">╮</span>
+<span class="ansi-bright-black-fg">│</span> <span style="color:rgb(255,135,95)">↓ iter  = 201:600</span>                                                            <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span> <span style="color:rgb(0,135,215)">→ chain = 1:4</span>                                                                <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>                                                                              <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span> <span class="ansi-bold">Parameters (1)</span><span class="ansi-bright-black-fg"> ── AbstractPPL.VarName</span>                                        <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>  <span class="ansi-green-fg">Float64</span>  q                                                                  <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>                                                                              <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span> <span class="ansi-bold">Extras (14)</span>                                                                  <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>  <span class="ansi-green-fg">Int64  </span>  n_steps, tree_depth                                                <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>  <span class="ansi-green-fg">Bool   </span>  is_accept, numerical_error                                         <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>  <span class="ansi-green-fg">Float64</span>  acceptance_rate, log_density, hamiltonian_energy,                  <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>           hamiltonian_energy_error, max_hamiltonian_energy_error, step_size, <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>           nom_step_size, logprior, loglikelihood, logjoint                   <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">╰──────────────────────────────────────────────────────────────────────────────╯</span></pre>
+</div>
 </div>
 </div>
 <p>Here, we have asked for the outcomes to be modeled via a single parameter for the population. We see that the posterior distribution of <span class="math inline">\(q\)</span> is very close to the overall population mortality rate:</p>
-<div id="3c6cabfd" class="cell" data-execution_count="8">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Posterior mean of q should be close to the pooled fraction</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sum</span>(data.deaths) <span class="op">/</span> <span class="fu">sum</span>(data.exposures)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="3a469b30" class="cell" data-execution_count="8">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Posterior mean of q should be close to the pooled fraction</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>(posterior_mean_q<span class="op">=</span><span class="fu">mean</span>(chain[<span class="op">:</span>q]), pooled_fraction<span class="op">=</span><span class="fu">sum</span>(data.deaths) <span class="op">/</span> <span class="fu">sum</span>(data.exposures))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="9">
-<pre><code>0.007585899152164213</code></pre>
+<pre><code>(posterior_mean_q = 0.007951668571004317, pooled_fraction = 0.007932321674916823)</code></pre>
 </div>
 </div>
 <p>However, we can see that the sampling of possible posterior parameters doesn’t really fit the data very well since our model was so simplified. The lines represent the posterior binomial probability.</p>
-<p>This is saying that for the observed data, if there really is just a single probability <code>p</code> that governs the true process that came up with the data, there’s a pretty narrow range of values it could possibly be:</p>
-<div id="84901d30" class="cell" data-execution_count="9">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    data_weight <span class="op">=</span> <span class="fu">sqrt</span>.(data.exposures) <span class="op">/</span> <span class="fl">2</span></span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    f <span class="op">=</span> <span class="fu">Figure</span>()</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    ax <span class="op">=</span> <span class="fu">Axis</span>(f[<span class="fl">1</span>, <span class="fl">1</span>],</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>        xlabel<span class="op">=</span><span class="st">"age"</span>,</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>        ylabel<span class="op">=</span><span class="st">"mortality rate"</span>,</span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>        limits<span class="op">=</span>(<span class="cn">nothing</span>, <span class="cn">nothing</span>, <span class="op">-</span><span class="fl">0.01</span>, <span class="fl">0.10</span>),</span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>        title<span class="op">=</span><span class="st">"Single-parameter Bayesian Mortality"</span></span>
-<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scatter!</span>(ax,</span>
-<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>        data.att_age,</span>
-<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>        data.fraction,</span>
-<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>        markersize<span class="op">=</span>data_weight,</span>
-<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>        color<span class="op">=</span>(<span class="op">:</span>blue, <span class="fl">0.5</span>),</span>
-<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>        label<span class="op">=</span><span class="st">"Experience data (size ~ exposure)"</span>)</span>
-<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Sample from posterior once (more efficient than sampling 1 at a time)</span></span>
-<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>    n_samples <span class="op">=</span> <span class="fl">300</span></span>
-<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>    q_posterior <span class="op">=</span> <span class="fu">vec</span>(<span class="fu">Array</span>(<span class="fu">sample</span>(chain, n_samples)[<span class="op">:</span>q]))</span>
-<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Draw horizontal lines for each posterior sample</span></span>
-<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> q <span class="kw">in</span> q_posterior</span>
-<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>        <span class="fu">hlines!</span>(ax, [q], color<span class="op">=</span>(<span class="op">:</span>grey, <span class="fl">0.1</span>))</span>
-<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
-<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a>    f</span>
-<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>This is saying that for the observed data, if there really is just a single probability <code>q</code> that governs the true process that came up with the data, there’s a pretty narrow range of values it could possibly be:</p>
+<div id="74c9f5e1" class="cell" data-execution_count="9">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    data_weight <span class="op">=</span> <span class="fu">sqrt</span>.(data.exposures) <span class="op">/</span> <span class="fl">2</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    f <span class="op">=</span> <span class="fu">Figure</span>()</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    ax <span class="op">=</span> <span class="fu">Axis</span>(f[<span class="fl">1</span>, <span class="fl">1</span>],</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>        xlabel<span class="op">=</span><span class="st">"age"</span>,</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>        ylabel<span class="op">=</span><span class="st">"mortality rate"</span>,</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>        limits<span class="op">=</span>(<span class="cn">nothing</span>, <span class="cn">nothing</span>, <span class="op">-</span><span class="fl">0.01</span>, <span class="fl">0.10</span>),</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>        title<span class="op">=</span><span class="st">"Single-parameter Bayesian Mortality"</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scatter!</span>(ax,</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>        data.att_age,</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>        data.fraction,</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>        markersize<span class="op">=</span>data_weight,</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>        color<span class="op">=</span>(<span class="op">:</span>blue, <span class="fl">0.5</span>),</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>        label<span class="op">=</span><span class="st">"Experience data (size ~ exposure)"</span>)</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Subsample posterior draws of q</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>    n_samples <span class="op">=</span> <span class="fl">300</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>    q_posterior <span class="op">=</span> <span class="fu">sample</span>(<span class="fu">vec</span>(chain[<span class="op">:</span>q]), n_samples)</span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Draw horizontal lines for each posterior sample</span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> q <span class="kw">in</span> q_posterior</span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>        <span class="fu">hlines!</span>(ax, [q], color<span class="op">=</span>(<span class="op">:</span>grey, <span class="fl">0.1</span>))</span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>    f</span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="10">
 <div>
 <figure class="figure">
@@ -1216,28 +1226,28 @@ Use `describe(chains)` for summary statistics and quantiles.</code></pre>
 <section id="parametric-model" class="level2" data-number="31.4">
 <h2 data-number="31.4" class="anchored" data-anchor-id="parametric-model"><span class="header-section-number">31.4</span> 2. Parametric model</h2>
 <p>In this example, we utilize a <a href="https://juliaactuary.github.io/MortalityTables.jl/stable/ParametricMortalityModels/#MortalityTables.MakehamBeard">MakehamBeard</a> parameterization because it’s already very similar in form to a <a href="https://en.wikipedia.org/wiki/Logistic_function">logistic function</a>. This is important because our desired output is a probability (i.e., the probability of a death at a given age), so the value must be constrained to be in the interval between zero and one.</p>
-<p>The <strong>prior</strong> values for <code>a</code>, <code>b</code>, <code>c</code>, and <code>k</code> are chosen to constrain the hazard (mortality) rate to be between zero and one.</p>
+<p>The <strong>prior</strong> distributions for <code>a</code>, <code>b</code>, and <code>k</code> are chosen to constrain the hazard (mortality) rate to be between zero and one (<code>c</code> is fixed at zero in this model; it becomes a sampled parameter in the final model below).</p>
 <p>This isn’t an ideal parameterization (e.g.&nbsp;we aren’t including information about the select underwriting period), but is an example of utilizing Bayesian techniques on life experience data.</p>
-<div id="4b762ef0" class="cell" data-execution_count="10">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@model</span> <span class="kw">function</span> <span class="fu">mortality2</span>(ages, exposures, deaths)</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    a <span class="op">~</span> <span class="fu">Exponential</span>(<span class="fl">0.1</span>)</span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    b <span class="op">~</span> <span class="fu">Exponential</span>(<span class="fl">0.1</span>)</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    c <span class="op">=</span> <span class="fl">0.0</span></span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    k <span class="op">~</span> <span class="fu">truncated</span>(<span class="fu">Exponential</span>(<span class="fl">1</span>), <span class="fl">1</span>, <span class="cn">Inf</span>)</span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Create parametric mortality model once</span></span>
-<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    m <span class="op">=</span> MortalityTables.<span class="fu">MakehamBeard</span>(; a, b, c, k)</span>
-<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Observe deaths for each age/exposure combination</span></span>
-<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="fu">eachindex</span>(deaths)</span>
-<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>        q <span class="op">=</span> MortalityTables.<span class="fu">hazard</span>(m, ages[i])</span>
-<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> !<span class="fu">isfinite</span>(q) <span class="op">||</span> q <span class="op">&lt;</span> <span class="fl">0</span> <span class="op">||</span> q <span class="op">&gt;</span> <span class="fl">1</span></span>
-<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>            Turing.<span class="pp">@addlogprob</span>! <span class="op">-</span><span class="cn">Inf</span></span>
-<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span></span>
-<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
-<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>        deaths[i] <span class="op">~</span> <span class="fu">Binomial</span>(exposures[i], q)</span>
-<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
-<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="5caf937b" class="cell" data-execution_count="10">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@model</span> <span class="kw">function</span> <span class="fu">mortality2</span>(ages, exposures, deaths)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    a <span class="op">~</span> <span class="fu">Exponential</span>(<span class="fl">0.1</span>)</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    b <span class="op">~</span> <span class="fu">Exponential</span>(<span class="fl">0.1</span>)</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    c <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    k <span class="op">~</span> <span class="fu">truncated</span>(<span class="fu">Exponential</span>(<span class="fl">1</span>), <span class="fl">1</span>, <span class="cn">Inf</span>)</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Create parametric mortality model once</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    m <span class="op">=</span> MortalityTables.<span class="fu">MakehamBeard</span>(; a, b, c, k)</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Observe deaths for each age/exposure combination</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="fu">eachindex</span>(deaths)</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>        q <span class="op">=</span> MortalityTables.<span class="fu">hazard</span>(m, ages[i])</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> !<span class="fu">isfinite</span>(q) <span class="op">||</span> q <span class="op">&lt;</span> <span class="fl">0</span> <span class="op">||</span> q <span class="op">&gt;</span> <span class="fl">1</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>            Turing.<span class="pp">@addlogprob</span>! <span class="op">-</span><span class="cn">Inf</span></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>        deaths[i] <span class="op">~</span> <span class="fu">Binomial</span>(exposures[i], q)</span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="11">
 <pre><code>mortality2 (generic function with 2 methods)</code></pre>
 </div>
@@ -1256,60 +1266,65 @@ Use `describe(chains)` for summary statistics and quantiles.</code></pre>
 </div>
 </div>
 <p>We combine the model with the data and sample from the posterior using a similar call as before:</p>
-<div id="3741e207" class="cell" data-execution_count="11">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>m2 <span class="op">=</span> <span class="fu">mortality2</span>(data.att_age, data.exposures, data.deaths)</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>chain2 <span class="op">=</span> <span class="fu">sample</span>(m2, <span class="fu">NUTS</span>(), <span class="fu">MCMCThreads</span>(), <span class="fl">400</span>, num_chains)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="65c95640" class="cell" data-execution_count="11">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>m2 <span class="op">=</span> <span class="fu">mortality2</span>(data.att_age, data.exposures, data.deaths)</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>chain2 <span class="op">=</span> <span class="fu">sample</span>(m2, <span class="fu">NUTS</span>(), <span class="fu">MCMCThreads</span>(), <span class="fl">400</span>, num_chains)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="12">
-<pre><code>Chains MCMC chain (400×17×4 Array{Float64, 3}):
-
-Iterations        = 201:1:600
-Number of chains  = 4
-Samples per chain = 400
-Wall duration     = 3.86 seconds
-Compute duration  = 14.39 seconds
-parameters        = a, b, k
-internals         = n_steps, is_accept, acceptance_rate, log_density, hamiltonian_energy, hamiltonian_energy_error, max_hamiltonian_energy_error, tree_depth, numerical_error, step_size, nom_step_size, logprior, loglikelihood, logjoint
-
-Use `describe(chains)` for summary statistics and quantiles.</code></pre>
+<div class="ansi-escaped-output">
+<pre><span class="ansi-bright-black-fg">╭─</span><span class="ansi-bold">FlexiChain (400 iterations, 4 chains)</span><span class="ansi-bright-black-fg"> ───────────────────────────────────────</span><span class="ansi-bright-black-fg">╮</span>
+<span class="ansi-bright-black-fg">│</span> <span style="color:rgb(255,135,95)">↓ iter  = 201:600</span>                                                            <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span> <span style="color:rgb(0,135,215)">→ chain = 1:4</span>                                                                <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>                                                                              <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span> <span class="ansi-bold">Parameters (3)</span><span class="ansi-bright-black-fg"> ── AbstractPPL.VarName</span>                                        <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>  <span class="ansi-green-fg">Float64</span>  a, b, k                                                            <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>                                                                              <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span> <span class="ansi-bold">Extras (14)</span>                                                                  <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>  <span class="ansi-green-fg">Int64  </span>  n_steps, tree_depth                                                <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>  <span class="ansi-green-fg">Bool   </span>  is_accept, numerical_error                                         <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>  <span class="ansi-green-fg">Float64</span>  acceptance_rate, log_density, hamiltonian_energy,                  <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>           hamiltonian_energy_error, max_hamiltonian_energy_error, step_size, <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>           nom_step_size, logprior, loglikelihood, logjoint                   <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">╰──────────────────────────────────────────────────────────────────────────────╯</span></pre>
+</div>
 </div>
 </div>
 <section id="plotting-samples-from-the-posterior" class="level3" data-number="31.4.1">
 <h3 data-number="31.4.1" class="anchored" data-anchor-id="plotting-samples-from-the-posterior"><span class="header-section-number">31.4.1</span> Plotting samples from the posterior</h3>
 <p>We can see that the sampling of possible posterior parameters fits the data well:</p>
-<div id="9e13dd26" class="cell" data-execution_count="12">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span></span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    data_weight <span class="op">=</span> <span class="fu">sqrt</span>.(data.exposures) <span class="op">/</span> <span class="fl">2</span></span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    f <span class="op">=</span> <span class="fu">Figure</span>()</span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    ax <span class="op">=</span> <span class="fu">Axis</span>(f[<span class="fl">1</span>, <span class="fl">1</span>],</span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>        xlabel<span class="op">=</span><span class="st">"age"</span>,</span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>        ylabel<span class="op">=</span><span class="st">"mortality rate"</span>,</span>
-<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>        limits<span class="op">=</span>(<span class="cn">nothing</span>, <span class="cn">nothing</span>, <span class="op">-</span><span class="fl">0.01</span>, <span class="fl">0.10</span>),</span>
-<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>        title<span class="op">=</span><span class="st">"Parametric Bayesian Mortality"</span></span>
-<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scatter!</span>(ax,</span>
-<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>        data.att_age,</span>
-<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>        data.fraction,</span>
-<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>        markersize<span class="op">=</span>data_weight,</span>
-<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>        color<span class="op">=</span>(<span class="op">:</span>blue, <span class="fl">0.5</span>),</span>
-<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>        label<span class="op">=</span><span class="st">"Experience data (size ~ exposure)"</span>)</span>
-<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Sample from posterior once (much faster than sampling 1 at a time in loop)</span></span>
-<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>    n_samples <span class="op">=</span> <span class="fl">300</span></span>
-<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>    posterior <span class="op">=</span> <span class="fu">sample</span>(chain2, n_samples)</span>
-<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>    a_samples <span class="op">=</span> <span class="fu">vec</span>(<span class="fu">Array</span>(posterior[<span class="op">:</span>a]))</span>
-<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>    b_samples <span class="op">=</span> <span class="fu">vec</span>(<span class="fu">Array</span>(posterior[<span class="op">:</span>b]))</span>
-<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>    k_samples <span class="op">=</span> <span class="fu">vec</span>(<span class="fu">Array</span>(posterior[<span class="op">:</span>k]))</span>
-<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>    ages <span class="op">=</span> <span class="fu">sort!</span>(<span class="fu">unique</span>(data.att_age))</span>
-<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>n_samples</span>
-<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a>        m <span class="op">=</span> MortalityTables.<span class="fu">MakehamBeard</span>(; a<span class="op">=</span>a_samples[i], b<span class="op">=</span>b_samples[i], c<span class="op">=</span><span class="fl">0.0</span>, k<span class="op">=</span>k_samples[i])</span>
-<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a>        qs <span class="op">=</span> MortalityTables.<span class="fu">hazard</span>.(m, ages)</span>
-<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a>        <span class="fu">lines!</span>(ax, ages, qs, color<span class="op">=</span>(<span class="op">:</span>grey, <span class="fl">0.1</span>))</span>
-<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
-<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a>    f</span>
-<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="b5597407" class="cell" data-execution_count="12">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    data_weight <span class="op">=</span> <span class="fu">sqrt</span>.(data.exposures) <span class="op">/</span> <span class="fl">2</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    f <span class="op">=</span> <span class="fu">Figure</span>()</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    ax <span class="op">=</span> <span class="fu">Axis</span>(f[<span class="fl">1</span>, <span class="fl">1</span>],</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>        xlabel<span class="op">=</span><span class="st">"age"</span>,</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>        ylabel<span class="op">=</span><span class="st">"mortality rate"</span>,</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>        limits<span class="op">=</span>(<span class="cn">nothing</span>, <span class="cn">nothing</span>, <span class="op">-</span><span class="fl">0.01</span>, <span class="fl">0.10</span>),</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>        title<span class="op">=</span><span class="st">"Parametric Bayesian Mortality"</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scatter!</span>(ax,</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>        data.att_age,</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>        data.fraction,</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>        markersize<span class="op">=</span>data_weight,</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>        color<span class="op">=</span>(<span class="op">:</span>blue, <span class="fl">0.5</span>),</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>        label<span class="op">=</span><span class="st">"Experience data (size ~ exposure)"</span>)</span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Subsample joint posterior draws (a, b, and k taken from the same iteration)</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>    n_samples <span class="op">=</span> <span class="fl">300</span></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>    idx <span class="op">=</span> <span class="fu">sample</span>(<span class="fl">1</span><span class="op">:</span><span class="fu">length</span>(<span class="fu">vec</span>(chain2[<span class="op">:</span>a])), n_samples)</span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>    a_samples <span class="op">=</span> <span class="fu">vec</span>(chain2[<span class="op">:</span>a])[idx]</span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>    b_samples <span class="op">=</span> <span class="fu">vec</span>(chain2[<span class="op">:</span>b])[idx]</span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>    k_samples <span class="op">=</span> <span class="fu">vec</span>(chain2[<span class="op">:</span>k])[idx]</span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>    ages <span class="op">=</span> <span class="fu">sort!</span>(<span class="fu">unique</span>(data.att_age))</span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>n_samples</span>
+<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a>        m <span class="op">=</span> MortalityTables.<span class="fu">MakehamBeard</span>(; a<span class="op">=</span>a_samples[i], b<span class="op">=</span>b_samples[i], c<span class="op">=</span><span class="fl">0.0</span>, k<span class="op">=</span>k_samples[i])</span>
+<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>        qs <span class="op">=</span> MortalityTables.<span class="fu">hazard</span>.(m, ages)</span>
+<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a>        <span class="fu">lines!</span>(ax, ages, qs, color<span class="op">=</span>(<span class="op">:</span>grey, <span class="fl">0.1</span>))</span>
+<span id="cb16-30"><a href="#cb16-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a>    f</span>
+<span id="cb16-32"><a href="#cb16-32" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="13">
 <div>
 <figure class="figure">
@@ -1324,86 +1339,99 @@ Use `describe(chains)` for summary statistics and quantiles.</code></pre>
 <section id="multi-level-model" class="level2" data-number="31.5">
 <h2 data-number="31.5" class="anchored" data-anchor-id="multi-level-model"><span class="header-section-number">31.5</span> 3. Multi-level model</h2>
 <p>This model extends the prior to create a multi-level model. Each risk class (<code>risk_level</code>) gets its own <span class="math inline">\(a\)</span> parameter in the <code>MakehamBeard</code> model. The prior for <span class="math inline">\(a_i\)</span> is determined by the hyper-parameter <span class="math inline">\(\bar{a}\)</span>.</p>
-<div id="e1aca84b" class="cell" data-execution_count="13">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@model</span> <span class="kw">function</span> <span class="fu">mortality3</span>(ages, exposures, risk_levels, deaths, n_risk_levels)</span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    b <span class="op">~</span> <span class="fu">Exponential</span>(<span class="fl">0.1</span>)</span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    ā <span class="op">~</span> <span class="fu">Exponential</span>(<span class="fl">0.1</span>)</span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>    a <span class="op">~</span> <span class="fu">filldist</span>(<span class="fu">Exponential</span>(ā), n_risk_levels)</span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>    c <span class="op">=</span> <span class="fl">0.0</span></span>
-<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>    k <span class="op">~</span> <span class="fu">truncated</span>(<span class="fu">Exponential</span>(<span class="fl">1</span>), <span class="fl">1</span>, <span class="cn">Inf</span>)</span>
-<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Observe deaths for each row</span></span>
-<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="fu">eachindex</span>(deaths)</span>
-<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>        m <span class="op">=</span> MortalityTables.<span class="fu">MakehamBeard</span>(; a<span class="op">=</span>a[risk_levels[i]], b, c, k)</span>
-<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>        q <span class="op">=</span> MortalityTables.<span class="fu">hazard</span>(m, ages[i])</span>
-<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> !<span class="fu">isfinite</span>(q) <span class="op">||</span> q <span class="op">&lt;</span> <span class="fl">0</span> <span class="op">||</span> q <span class="op">&gt;</span> <span class="fl">1</span></span>
-<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>            Turing.<span class="pp">@addlogprob</span>! <span class="op">-</span><span class="cn">Inf</span></span>
-<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span></span>
-<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
-<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>        deaths[i] <span class="op">~</span> <span class="fu">Binomial</span>(exposures[i], q)</span>
-<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
-<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
-<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>n_risk_levels <span class="op">=</span> <span class="fu">length</span>(<span class="fu">unique</span>(data2.risk_level))</span>
-<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>m3 <span class="op">=</span> <span class="fu">mortality3</span>(data2.att_age, data2.exposures, data2.risk_level, data2.deaths, n_risk_levels)</span>
-<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a>chain3 <span class="op">=</span> <span class="fu">sample</span>(m3, <span class="fu">NUTS</span>(), <span class="fl">1000</span>)</span>
-<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a><span class="fu">summarize</span>(chain3)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="57a1b17f" class="cell" data-execution_count="13">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@model</span> <span class="kw">function</span> <span class="fu">mortality3</span>(ages, exposures, risk_levels, deaths, n_risk_levels)</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    b <span class="op">~</span> <span class="fu">Exponential</span>(<span class="fl">0.1</span>)</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    ā <span class="op">~</span> <span class="fu">Exponential</span>(<span class="fl">0.1</span>)</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    a <span class="op">~</span> <span class="fu">filldist</span>(<span class="fu">Exponential</span>(ā), n_risk_levels)</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    c <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    k <span class="op">~</span> <span class="fu">truncated</span>(<span class="fu">Exponential</span>(<span class="fl">1</span>), <span class="fl">1</span>, <span class="cn">Inf</span>)</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Observe deaths for each row</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="fu">eachindex</span>(deaths)</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>        m <span class="op">=</span> MortalityTables.<span class="fu">MakehamBeard</span>(; a<span class="op">=</span>a[risk_levels[i]], b, c, k)</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>        q <span class="op">=</span> MortalityTables.<span class="fu">hazard</span>(m, ages[i])</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> !<span class="fu">isfinite</span>(q) <span class="op">||</span> q <span class="op">&lt;</span> <span class="fl">0</span> <span class="op">||</span> q <span class="op">&gt;</span> <span class="fl">1</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>            Turing.<span class="pp">@addlogprob</span>! <span class="op">-</span><span class="cn">Inf</span></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span></span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>        deaths[i] <span class="op">~</span> <span class="fu">Binomial</span>(exposures[i], q)</span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a>n_risk_levels <span class="op">=</span> <span class="fu">length</span>(<span class="fu">unique</span>(data2.risk_level))</span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a>m3 <span class="op">=</span> <span class="fu">mortality3</span>(data2.att_age, data2.exposures, data2.risk_level, data2.deaths, n_risk_levels)</span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a>chain3 <span class="op">=</span> <span class="fu">sample</span>(m3, <span class="fu">NUTS</span>(), <span class="fl">1000</span>)</span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a><span class="fu">summarystats</span>(chain3)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="14">
 <div class="ansi-escaped-output">
-<pre> <span class="ansi-bold"> parameters </span> <span class="ansi-bold">    mean </span> <span class="ansi-bold">     std </span> <span class="ansi-bold">    mcse </span> <span class="ansi-bold"> ess_bulk </span> <span class="ansi-bold"> ess_tail </span> <span class="ansi-bold">    rhat </span> <span class="ansi-bold"> e</span> ⋯
- <span class="ansi-bright-black-fg">     Symbol </span> <span class="ansi-bright-black-fg"> Float64 </span> <span class="ansi-bright-black-fg"> Float64 </span> <span class="ansi-bright-black-fg"> Float64 </span> <span class="ansi-bright-black-fg">  Float64 </span> <span class="ansi-bright-black-fg">  Float64 </span> <span class="ansi-bright-black-fg"> Float64 </span> <span class="ansi-bright-black-fg">  </span> ⋯
-           b    0.0934    0.0057    0.0003   314.9468   440.3180    1.0070     ⋯
-           ā    0.0001    0.0002    0.0000   511.4813   448.5876    1.0004     ⋯
-        a[1]    0.0000    0.0000    0.0000   337.8657   505.3573    1.0048     ⋯
-        a[2]    0.0000    0.0000    0.0000   315.8095   454.4266    1.0105     ⋯
-        a[3]    0.0001    0.0000    0.0000   329.8736   486.1069    1.0060     ⋯
-           k    1.8970    0.8496    0.0383   287.6231   211.4789    1.0039     ⋯
-<span class="ansi-cyan-fg">                                                                1 column omitted</span>
-</pre>
+<pre><span class="ansi-bright-black-fg">╭─</span><span class="ansi-bold">FlexiSummary (9 statistics)</span><span class="ansi-bright-black-fg"> ─────────────────────────────────────────────────</span><span class="ansi-bright-black-fg">╮</span>
+<span class="ansi-bright-black-fg">│</span> <span class="ansi-white-fg">  iter    collapsed</span>                                                          <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span> <span class="ansi-white-fg">  chain   collapsed</span>                                                          <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span> <span style="color:rgb(255,135,95)">↓ stat  = [mean, std, mcse, ess_bulk, ess_tail, rhat, q5, q50, q95]</span>          <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>                                                                              <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span> <span class="ansi-bold">Parameters (6)</span><span class="ansi-bright-black-fg"> ── AbstractPPL.VarName</span>                                        <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>  <span class="ansi-green-fg">Float64</span>  b, ā, a[1], a[2], a[3], k                                          <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>                                                                              <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span> <span class="ansi-bold">Extras (14)</span>                                                                  <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>  <span class="ansi-green-fg">Float64</span>  n_steps, is_accept, acceptance_rate, log_density,                  <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>           hamiltonian_energy, hamiltonian_energy_error,                      <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>           max_hamiltonian_energy_error, tree_depth, numerical_error,         <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>           step_size, nom_step_size, logprior, loglikelihood, logjoint        <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>                                                                              <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span> <span class="ansi-bold">Summary</span>                                                                      <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span> <span class="ansi-bold">  param</span><span class="ansi-bold">    mean</span><span class="ansi-bold">     std</span><span class="ansi-bold">    mcse</span><span class="ansi-bold">  ess_bulk</span><span class="ansi-bold">  ess_tail</span><span class="ansi-bold">    rhat</span><span class="ansi-bold">      q5</span><span class="ansi-bright-black-fg">  …</span>       <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span> <span class="ansi-bold">      b</span>  4.8239  0.0002  0.0001    3.7195   21.1839  1.6339  4.8236<span class="ansi-bright-black-fg">  …</span>       <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span> <span class="ansi-bold">      ā</span>  0.7550  0.0000  0.0000   10.5756   20.3236  1.0798  0.7550<span class="ansi-bright-black-fg">  …</span>       <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span> <span class="ansi-bold">   a[1]</span>  1.5925  0.0001  0.0000    2.5889   22.1047  2.0531  1.5924<span class="ansi-bright-black-fg">  …</span>       <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span> <span class="ansi-bold">   a[2]</span>  2.4170  0.0001  0.0001    2.4599   13.3781  2.0539  2.4169<span class="ansi-bright-black-fg">  …</span>       <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span> <span class="ansi-bold">   a[3]</span>  0.6748  0.0000  0.0000    2.6350   26.7112  1.9214  0.6748<span class="ansi-bright-black-fg">  …</span>       <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span> <span class="ansi-bold">      k</span>  1.1493  0.0000  0.0000    6.4504   16.8189  1.0637  1.1493<span class="ansi-bright-black-fg">  …</span>       <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">╰──────────────────────────────────────────────────────────────────────────────╯</span></pre>
 </div>
 </div>
 </div>
-<div id="36b4e45c" class="cell" data-execution_count="14">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    colors <span class="op">=</span> Makie.<span class="fu">wong_colors</span>()</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    data_weight <span class="op">=</span> <span class="fu">sqrt</span>.(data2.exposures)</span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    p, ax, _ <span class="op">=</span> <span class="fu">scatter</span>(</span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>        data2.att_age,</span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>        data2.fraction,</span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>        markersize<span class="op">=</span>data_weight,</span>
-<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>        alpha<span class="op">=</span><span class="fl">0.5</span>,</span>
-<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>        color<span class="op">=</span>[(colors[c], <span class="fl">0.7</span>) for c <span class="kw">in</span> data2.risk_level],</span>
-<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>        label<span class="op">=</span><span class="st">"Experience data point"</span>,</span>
-<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>        axis<span class="op">=</span>(</span>
-<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>            xlabel<span class="op">=</span><span class="st">"age"</span>,</span>
-<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>            limits<span class="op">=</span>(<span class="cn">nothing</span>, <span class="cn">nothing</span>, <span class="op">-</span><span class="fl">0.01</span>, <span class="fl">0.10</span>),</span>
-<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>            ylabel<span class="op">=</span><span class="st">"mortality rate"</span>,</span>
-<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>            title<span class="op">=</span><span class="st">"Multi-level Bayesian Mortality"</span></span>
-<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Sample from posterior once (much faster than sampling 1 at a time in loop)</span></span>
-<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>    n_samples <span class="op">=</span> <span class="fl">100</span></span>
-<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>    posterior <span class="op">=</span> <span class="fu">sample</span>(chain3, n_samples)</span>
-<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a>    b_samples <span class="op">=</span> <span class="fu">vec</span>(<span class="fu">Array</span>(posterior[<span class="op">:</span>b]))</span>
-<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a>    k_samples <span class="op">=</span> <span class="fu">vec</span>(<span class="fu">Array</span>(posterior[<span class="op">:</span>k]))</span>
-<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a>    ages <span class="op">=</span> <span class="fu">sort!</span>(<span class="fu">unique</span>(data2.att_age))</span>
-<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-28"><a href="#cb20-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> r <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span></span>
-<span id="cb20-29"><a href="#cb20-29" aria-hidden="true" tabindex="-1"></a>        a_samples <span class="op">=</span> <span class="fu">vec</span>(<span class="fu">Array</span>(posterior[<span class="fu">Symbol</span>(<span class="st">"a[</span><span class="sc">$</span>r<span class="st">]"</span>)]))</span>
-<span id="cb20-30"><a href="#cb20-30" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>n_samples</span>
-<span id="cb20-31"><a href="#cb20-31" aria-hidden="true" tabindex="-1"></a>            m <span class="op">=</span> MortalityTables.<span class="fu">MakehamBeard</span>(; a<span class="op">=</span>a_samples[i], b<span class="op">=</span>b_samples[i], c<span class="op">=</span><span class="fl">0.0</span>, k<span class="op">=</span>k_samples[i])</span>
-<span id="cb20-32"><a href="#cb20-32" aria-hidden="true" tabindex="-1"></a>            qs <span class="op">=</span> MortalityTables.<span class="fu">hazard</span>.(m, ages)</span>
-<span id="cb20-33"><a href="#cb20-33" aria-hidden="true" tabindex="-1"></a>            <span class="fu">lines!</span>(ages, qs, label<span class="op">=</span><span class="st">"risk level </span><span class="sc">$</span>r<span class="st">"</span>, alpha<span class="op">=</span><span class="fl">0.2</span>, color<span class="op">=</span>(colors[r], <span class="fl">0.2</span>))</span>
-<span id="cb20-34"><a href="#cb20-34" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
-<span id="cb20-35"><a href="#cb20-35" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
-<span id="cb20-36"><a href="#cb20-36" aria-hidden="true" tabindex="-1"></a>    <span class="fu">axislegend</span>(ax, merge<span class="op">=</span><span class="cn">true</span>)</span>
-<span id="cb20-37"><a href="#cb20-37" aria-hidden="true" tabindex="-1"></a>    p</span>
-<span id="cb20-38"><a href="#cb20-38" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="a6c5d27d" class="cell" data-execution_count="14">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    colors <span class="op">=</span> Makie.<span class="fu">wong_colors</span>()</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    data_weight <span class="op">=</span> <span class="fu">sqrt</span>.(data2.exposures)</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    p, ax, _ <span class="op">=</span> <span class="fu">scatter</span>(</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>        data2.att_age,</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>        data2.fraction,</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>        markersize<span class="op">=</span>data_weight,</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>        alpha<span class="op">=</span><span class="fl">0.5</span>,</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>        color<span class="op">=</span>[(colors[c], <span class="fl">0.7</span>) for c <span class="kw">in</span> data2.risk_level],</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>        label<span class="op">=</span><span class="st">"Experience data point"</span>,</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>        axis<span class="op">=</span>(</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>            xlabel<span class="op">=</span><span class="st">"age"</span>,</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>            limits<span class="op">=</span>(<span class="cn">nothing</span>, <span class="cn">nothing</span>, <span class="op">-</span><span class="fl">0.01</span>, <span class="fl">0.10</span>),</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>            ylabel<span class="op">=</span><span class="st">"mortality rate"</span>,</span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>            title<span class="op">=</span><span class="st">"Multi-level Bayesian Mortality"</span></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Subsample joint posterior draws (a, b, and k taken from the same iteration)</span></span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>    n_samples <span class="op">=</span> <span class="fl">100</span></span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>    idx <span class="op">=</span> <span class="fu">sample</span>(<span class="fl">1</span><span class="op">:</span><span class="fu">length</span>(<span class="fu">vec</span>(chain3[<span class="op">:</span>b])), n_samples)</span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>    b_samples <span class="op">=</span> <span class="fu">vec</span>(chain3[<span class="op">:</span>b])[idx]</span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>    k_samples <span class="op">=</span> <span class="fu">vec</span>(chain3[<span class="op">:</span>k])[idx]</span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>    ages <span class="op">=</span> <span class="fu">sort!</span>(<span class="fu">unique</span>(data2.att_age))</span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> r <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span></span>
+<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a>        a_samples <span class="op">=</span> <span class="fu">vec</span>(chain3[<span class="pp">@varname</span>(a[r])])[idx]</span>
+<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>n_samples</span>
+<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a>            m <span class="op">=</span> MortalityTables.<span class="fu">MakehamBeard</span>(; a<span class="op">=</span>a_samples[i], b<span class="op">=</span>b_samples[i], c<span class="op">=</span><span class="fl">0.0</span>, k<span class="op">=</span>k_samples[i])</span>
+<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a>            qs <span class="op">=</span> MortalityTables.<span class="fu">hazard</span>.(m, ages)</span>
+<span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a>            <span class="fu">lines!</span>(ages, qs, label<span class="op">=</span><span class="st">"risk level </span><span class="sc">$</span>r<span class="st">"</span>, alpha<span class="op">=</span><span class="fl">0.2</span>, color<span class="op">=</span>(colors[r], <span class="fl">0.2</span>))</span>
+<span id="cb18-34"><a href="#cb18-34" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb18-35"><a href="#cb18-35" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb18-36"><a href="#cb18-36" aria-hidden="true" tabindex="-1"></a>    <span class="fu">axislegend</span>(ax, merge<span class="op">=</span><span class="cn">true</span>)</span>
+<span id="cb18-37"><a href="#cb18-37" aria-hidden="true" tabindex="-1"></a>    p</span>
+<span id="cb18-38"><a href="#cb18-38" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="15">
 <div>
 <figure class="figure">
@@ -1417,85 +1445,95 @@ Use `describe(chains)` for summary statistics and quantiles.</code></pre>
 <section id="handling-non-unit-exposures" class="level2" data-number="31.6">
 <h2 data-number="31.6" class="anchored" data-anchor-id="handling-non-unit-exposures"><span class="header-section-number">31.6</span> Handling non-unit exposures</h2>
 <p>The key is to use the Poisson distribution, which is a limiting approximation to the Binomial distribution:</p>
-<div id="4cc3eeac" class="cell" data-execution_count="15">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@model</span> <span class="kw">function</span> <span class="fu">mortality4</span>(ages, exposures, risk_levels, deaths, n_risk_levels)</span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    b <span class="op">~</span> <span class="fu">Exponential</span>(<span class="fl">0.1</span>)</span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    ā <span class="op">~</span> <span class="fu">Exponential</span>(<span class="fl">0.1</span>)</span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>    a <span class="op">~</span> <span class="fu">filldist</span>(<span class="fu">Exponential</span>(ā), n_risk_levels)</span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>    c <span class="op">~</span> <span class="fu">Beta</span>(<span class="fl">4</span>, <span class="fl">18</span>)</span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>    k <span class="op">~</span> <span class="fu">truncated</span>(<span class="fu">Exponential</span>(<span class="fl">1</span>), <span class="fl">1</span>, <span class="cn">Inf</span>)</span>
-<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Observe deaths for each row using Poisson likelihood</span></span>
-<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="fu">eachindex</span>(deaths)</span>
-<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>        m <span class="op">=</span> MortalityTables.<span class="fu">MakehamBeard</span>(; a<span class="op">=</span>a[risk_levels[i]], b, c, k)</span>
-<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>        q <span class="op">=</span> MortalityTables.<span class="fu">hazard</span>(m, ages[i])</span>
-<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>        deaths[i] <span class="op">~</span> <span class="fu">Poisson</span>(exposures[i] <span class="op">*</span> q)</span>
-<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
-<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
-<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>m4 <span class="op">=</span> <span class="fu">mortality4</span>(data2.att_age, data2.exposures, data2.risk_level, data2.deaths, n_risk_levels)</span>
-<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>chain4 <span class="op">=</span> <span class="fu">sample</span>(m4, <span class="fu">NUTS</span>(), <span class="fl">1000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="8f1fe6f3" class="cell" data-execution_count="15">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="pp">@model</span> <span class="kw">function</span> <span class="fu">mortality4</span>(ages, exposures, risk_levels, deaths, n_risk_levels)</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    b <span class="op">~</span> <span class="fu">Exponential</span>(<span class="fl">0.1</span>)</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    ā <span class="op">~</span> <span class="fu">Exponential</span>(<span class="fl">0.1</span>)</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>    a <span class="op">~</span> <span class="fu">filldist</span>(<span class="fu">Exponential</span>(ā), n_risk_levels)</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>    c <span class="op">~</span> <span class="fu">Beta</span>(<span class="fl">4</span>, <span class="fl">18</span>)</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>    k <span class="op">~</span> <span class="fu">truncated</span>(<span class="fu">Exponential</span>(<span class="fl">1</span>), <span class="fl">1</span>, <span class="cn">Inf</span>)</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Observe deaths for each row using Poisson likelihood</span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="fu">eachindex</span>(deaths)</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>        m <span class="op">=</span> MortalityTables.<span class="fu">MakehamBeard</span>(; a<span class="op">=</span>a[risk_levels[i]], b, c, k)</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>        q <span class="op">=</span> MortalityTables.<span class="fu">hazard</span>(m, ages[i])</span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> !<span class="fu">isfinite</span>(q) <span class="op">||</span> q <span class="op">&lt;</span> <span class="fl">0</span> <span class="op">||</span> q <span class="op">&gt;</span> <span class="fl">1</span></span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>            Turing.<span class="pp">@addlogprob</span>! <span class="op">-</span><span class="cn">Inf</span></span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span></span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>        deaths[i] <span class="op">~</span> <span class="fu">Poisson</span>(exposures[i] <span class="op">*</span> q)</span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>m4 <span class="op">=</span> <span class="fu">mortality4</span>(data2.att_age, data2.exposures, data2.risk_level, data2.deaths, n_risk_levels)</span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a>chain4 <span class="op">=</span> <span class="fu">sample</span>(m4, <span class="fu">NUTS</span>(), <span class="fl">1000</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="16">
-<pre><code>Chains MCMC chain (1000×21×1 Array{Float64, 3}):
-
-Iterations        = 501:1:1500
-Number of chains  = 1
-Samples per chain = 1000
-Wall duration     = 26.98 seconds
-Compute duration  = 26.98 seconds
-parameters        = b, ā, a[1], a[2], a[3], c, k
-internals         = n_steps, is_accept, acceptance_rate, log_density, hamiltonian_energy, hamiltonian_energy_error, max_hamiltonian_energy_error, tree_depth, numerical_error, step_size, nom_step_size, logprior, loglikelihood, logjoint
-
-Use `describe(chains)` for summary statistics and quantiles.</code></pre>
+<div class="ansi-escaped-output">
+<pre><span class="ansi-bright-black-fg">╭─</span><span class="ansi-bold">FlexiChain (1000 iterations, 1 chain)</span><span class="ansi-bright-black-fg"> ───────────────────────────────────────</span><span class="ansi-bright-black-fg">╮</span>
+<span class="ansi-bright-black-fg">│</span> <span style="color:rgb(255,135,95)">↓ iter  = 501:1500</span>                                                           <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span> <span style="color:rgb(0,135,215)">→ chain = 1:1</span>                                                                <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>                                                                              <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span> <span class="ansi-bold">Parameters (5)</span><span class="ansi-bright-black-fg"> ── AbstractPPL.VarName</span>                                        <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>  <span class="ansi-green-fg">Float64        </span>  b, ā, c, k                                                 <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>  <span class="ansi-green-fg">Vector{Float64}</span>  a <span class="ansi-white-fg">(3,)</span>                                                     <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>                                                                              <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span> <span class="ansi-bold">Extras (14)</span>                                                                  <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>  <span class="ansi-green-fg">Int64  </span>  n_steps, tree_depth                                                <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>  <span class="ansi-green-fg">Bool   </span>  is_accept, numerical_error                                         <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>  <span class="ansi-green-fg">Float64</span>  acceptance_rate, log_density, hamiltonian_energy,                  <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>           hamiltonian_energy_error, max_hamiltonian_energy_error, step_size, <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">│</span>           nom_step_size, logprior, loglikelihood, logjoint                   <span class="ansi-bright-black-fg">│</span>
+<span class="ansi-bright-black-fg">╰──────────────────────────────────────────────────────────────────────────────╯</span></pre>
 </div>
 </div>
-<div id="3e282de5" class="cell" data-execution_count="16">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract posterior means for risk factors and compute relative factors</span></span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>risk_factors4 <span class="op">=</span> [<span class="fu">mean</span>(chain4[<span class="fu">Symbol</span>(<span class="st">"a[</span><span class="sc">$</span>f<span class="st">]"</span>)]) for f <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span>]</span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Risk factors relative to standard (level 2): "</span>, risk_factors4 <span class="op">./</span> risk_factors4[<span class="fl">2</span>])</span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span></span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>    colors <span class="op">=</span> Makie.<span class="fu">wong_colors</span>()</span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>    data_weight <span class="op">=</span> <span class="fu">sqrt</span>.(data2.exposures) <span class="op">/</span> <span class="fl">2</span></span>
-<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>    p, ax, _ <span class="op">=</span> <span class="fu">scatter</span>(</span>
-<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>        data2.att_age,</span>
-<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>        data2.fraction,</span>
-<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>        markersize<span class="op">=</span>data_weight,</span>
-<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>        alpha<span class="op">=</span><span class="fl">0.5</span>,</span>
-<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>        color<span class="op">=</span>data2.risk_level,</span>
-<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>        label<span class="op">=</span><span class="st">"Experience data point"</span>,</span>
-<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a>        axis<span class="op">=</span>(</span>
-<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a>            xlabel<span class="op">=</span><span class="st">"age"</span>,</span>
-<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a>            limits<span class="op">=</span>(<span class="cn">nothing</span>, <span class="cn">nothing</span>, <span class="op">-</span><span class="fl">0.01</span>, <span class="fl">0.10</span>),</span>
-<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a>            ylabel<span class="op">=</span><span class="st">"mortality rate"</span>,</span>
-<span id="cb23-20"><a href="#cb23-20" aria-hidden="true" tabindex="-1"></a>            title<span class="op">=</span><span class="st">"Poisson Multi-level Bayesian Mortality"</span></span>
-<span id="cb23-21"><a href="#cb23-21" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="cb23-22"><a href="#cb23-22" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb23-23"><a href="#cb23-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-24"><a href="#cb23-24" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Sample from posterior once (much faster than sampling 1 at a time in loop)</span></span>
-<span id="cb23-25"><a href="#cb23-25" aria-hidden="true" tabindex="-1"></a>    n_samples <span class="op">=</span> <span class="fl">100</span></span>
-<span id="cb23-26"><a href="#cb23-26" aria-hidden="true" tabindex="-1"></a>    posterior <span class="op">=</span> <span class="fu">sample</span>(chain4, n_samples)</span>
-<span id="cb23-27"><a href="#cb23-27" aria-hidden="true" tabindex="-1"></a>    b_samples <span class="op">=</span> <span class="fu">vec</span>(<span class="fu">Array</span>(posterior[<span class="op">:</span>b]))</span>
-<span id="cb23-28"><a href="#cb23-28" aria-hidden="true" tabindex="-1"></a>    c_samples <span class="op">=</span> <span class="fu">vec</span>(<span class="fu">Array</span>(posterior[<span class="op">:</span>c]))</span>
-<span id="cb23-29"><a href="#cb23-29" aria-hidden="true" tabindex="-1"></a>    k_samples <span class="op">=</span> <span class="fu">vec</span>(<span class="fu">Array</span>(posterior[<span class="op">:</span>k]))</span>
-<span id="cb23-30"><a href="#cb23-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-31"><a href="#cb23-31" aria-hidden="true" tabindex="-1"></a>    ages <span class="op">=</span> <span class="fu">sort!</span>(<span class="fu">unique</span>(data2.att_age))</span>
-<span id="cb23-32"><a href="#cb23-32" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-33"><a href="#cb23-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> r <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span></span>
-<span id="cb23-34"><a href="#cb23-34" aria-hidden="true" tabindex="-1"></a>        a_samples <span class="op">=</span> <span class="fu">vec</span>(<span class="fu">Array</span>(posterior[<span class="fu">Symbol</span>(<span class="st">"a[</span><span class="sc">$</span>r<span class="st">]"</span>)]))</span>
-<span id="cb23-35"><a href="#cb23-35" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>n_samples</span>
-<span id="cb23-36"><a href="#cb23-36" aria-hidden="true" tabindex="-1"></a>            m <span class="op">=</span> MortalityTables.<span class="fu">MakehamBeard</span>(; a<span class="op">=</span>a_samples[i], b<span class="op">=</span>b_samples[i], c<span class="op">=</span>c_samples[i], k<span class="op">=</span>k_samples[i])</span>
-<span id="cb23-37"><a href="#cb23-37" aria-hidden="true" tabindex="-1"></a>            qs <span class="op">=</span> MortalityTables.<span class="fu">hazard</span>.(m, ages)</span>
-<span id="cb23-38"><a href="#cb23-38" aria-hidden="true" tabindex="-1"></a>            <span class="fu">lines!</span>(ages, qs, label<span class="op">=</span><span class="st">"risk level </span><span class="sc">$</span>r<span class="st">"</span>, alpha<span class="op">=</span><span class="fl">0.2</span>, color<span class="op">=</span>(colors[r], <span class="fl">0.2</span>))</span>
-<span id="cb23-39"><a href="#cb23-39" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
-<span id="cb23-40"><a href="#cb23-40" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
-<span id="cb23-41"><a href="#cb23-41" aria-hidden="true" tabindex="-1"></a>    <span class="fu">axislegend</span>(ax, merge<span class="op">=</span><span class="cn">true</span>)</span>
-<span id="cb23-42"><a href="#cb23-42" aria-hidden="true" tabindex="-1"></a>    p</span>
-<span id="cb23-43"><a href="#cb23-43" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="0f28e93e" class="cell" data-execution_count="16">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract posterior means for risk factors and compute relative factors</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>risk_factors4 <span class="op">=</span> [<span class="fu">mean</span>(chain4[<span class="pp">@varname</span>(a[f])]) for f <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span>]</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="fu">println</span>(<span class="st">"Risk factors relative to standard (level 2): "</span>, risk_factors4 <span class="op">./</span> risk_factors4[<span class="fl">2</span>])</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>    colors <span class="op">=</span> Makie.<span class="fu">wong_colors</span>()</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>    data_weight <span class="op">=</span> <span class="fu">sqrt</span>.(data2.exposures) <span class="op">/</span> <span class="fl">2</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>    p, ax, _ <span class="op">=</span> <span class="fu">scatter</span>(</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>        data2.att_age,</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>        data2.fraction,</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>        markersize<span class="op">=</span>data_weight,</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>        alpha<span class="op">=</span><span class="fl">0.5</span>,</span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>        color<span class="op">=</span>data2.risk_level,</span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>        label<span class="op">=</span><span class="st">"Experience data point"</span>,</span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>        axis<span class="op">=</span>(</span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>            xlabel<span class="op">=</span><span class="st">"age"</span>,</span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>            limits<span class="op">=</span>(<span class="cn">nothing</span>, <span class="cn">nothing</span>, <span class="op">-</span><span class="fl">0.01</span>, <span class="fl">0.10</span>),</span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>            ylabel<span class="op">=</span><span class="st">"mortality rate"</span>,</span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>            title<span class="op">=</span><span class="st">"Poisson Multi-level Bayesian Mortality"</span></span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Subsample joint posterior draws (a, b, c, and k taken from the same iteration)</span></span>
+<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a>    n_samples <span class="op">=</span> <span class="fl">100</span></span>
+<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a>    idx <span class="op">=</span> <span class="fu">sample</span>(<span class="fl">1</span><span class="op">:</span><span class="fu">length</span>(<span class="fu">vec</span>(chain4[<span class="op">:</span>b])), n_samples)</span>
+<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a>    b_samples <span class="op">=</span> <span class="fu">vec</span>(chain4[<span class="op">:</span>b])[idx]</span>
+<span id="cb20-28"><a href="#cb20-28" aria-hidden="true" tabindex="-1"></a>    c_samples <span class="op">=</span> <span class="fu">vec</span>(chain4[<span class="op">:</span>c])[idx]</span>
+<span id="cb20-29"><a href="#cb20-29" aria-hidden="true" tabindex="-1"></a>    k_samples <span class="op">=</span> <span class="fu">vec</span>(chain4[<span class="op">:</span>k])[idx]</span>
+<span id="cb20-30"><a href="#cb20-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-31"><a href="#cb20-31" aria-hidden="true" tabindex="-1"></a>    ages <span class="op">=</span> <span class="fu">sort!</span>(<span class="fu">unique</span>(data2.att_age))</span>
+<span id="cb20-32"><a href="#cb20-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-33"><a href="#cb20-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> r <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">3</span></span>
+<span id="cb20-34"><a href="#cb20-34" aria-hidden="true" tabindex="-1"></a>        a_samples <span class="op">=</span> <span class="fu">vec</span>(chain4[<span class="pp">@varname</span>(a[r])])[idx]</span>
+<span id="cb20-35"><a href="#cb20-35" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span>n_samples</span>
+<span id="cb20-36"><a href="#cb20-36" aria-hidden="true" tabindex="-1"></a>            m <span class="op">=</span> MortalityTables.<span class="fu">MakehamBeard</span>(; a<span class="op">=</span>a_samples[i], b<span class="op">=</span>b_samples[i], c<span class="op">=</span>c_samples[i], k<span class="op">=</span>k_samples[i])</span>
+<span id="cb20-37"><a href="#cb20-37" aria-hidden="true" tabindex="-1"></a>            qs <span class="op">=</span> MortalityTables.<span class="fu">hazard</span>.(m, ages)</span>
+<span id="cb20-38"><a href="#cb20-38" aria-hidden="true" tabindex="-1"></a>            <span class="fu">lines!</span>(ages, qs, label<span class="op">=</span><span class="st">"risk level </span><span class="sc">$</span>r<span class="st">"</span>, alpha<span class="op">=</span><span class="fl">0.2</span>, color<span class="op">=</span>(colors[r], <span class="fl">0.2</span>))</span>
+<span id="cb20-39"><a href="#cb20-39" aria-hidden="true" tabindex="-1"></a>        <span class="cf">end</span></span>
+<span id="cb20-40"><a href="#cb20-40" aria-hidden="true" tabindex="-1"></a>    <span class="cf">end</span></span>
+<span id="cb20-41"><a href="#cb20-41" aria-hidden="true" tabindex="-1"></a>    <span class="fu">axislegend</span>(ax, merge<span class="op">=</span><span class="cn">true</span>)</span>
+<span id="cb20-42"><a href="#cb20-42" aria-hidden="true" tabindex="-1"></a>    p</span>
+<span id="cb20-43"><a href="#cb20-43" aria-hidden="true" tabindex="-1"></a><span class="kw">end</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Risk factors relative to standard (level 2): [0.7172377542550609, 1.0, 1.69632476350233]</code></pre>
+<pre><code>Risk factors relative to standard (level 2): [0.8663552552791414, 1.0, 1.9008056839792784]</code></pre>
 </div>
 <div class="cell-output cell-output-display" data-execution_count="17">
 <div>
@@ -1510,17 +1548,258 @@ Use `describe(chains)` for summary statistics and quantiles.</code></pre>
 <h2 data-number="31.7" class="anchored" data-anchor-id="model-predictions"><span class="header-section-number">31.7</span> Model Predictions</h2>
 <p>We can generate predictive estimates by passing a vector of <code>missing</code> in place of the outcome variables and then calling <code>predict</code>.</p>
 <p>We get a table of values where each row is the prediction implied by the corresponding chain sample, and the columns are the predicted value for each of the outcomes in our original dataset.</p>
-<div id="3377d96d" class="cell" data-execution_count="17">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create model with missing deaths to generate predictions</span></span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>pred_model <span class="op">=</span> <span class="fu">mortality4</span>(</span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>    data2.att_age,</span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>    data2.exposures,</span>
-<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>    data2.risk_level,</span>
-<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">fill</span>(<span class="cn">missing</span>, <span class="fu">length</span>(data2.deaths)),</span>
-<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>    n_risk_levels</span>
-<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>preds <span class="op">=</span> <span class="fu">predict</span>(pred_model, chain4);</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div id="546644a7" class="cell" data-execution_count="17">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create model with missing deaths to generate predictions</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>pred_model <span class="op">=</span> <span class="fu">mortality4</span>(</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    data2.att_age,</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>    data2.exposures,</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>    data2.risk_level,</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">fill</span>(<span class="cn">missing</span>, <span class="fu">length</span>(data2.deaths)),</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>    n_risk_levels</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>preds <span class="op">=</span> <span class="fu">predict</span>(pred_model, chain4; include_all<span class="op">=</span><span class="cn">false</span>);</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<p>Averaging the predictions across the chain samples gives the posterior-mean predicted deaths for each row of the data, which we can compare directly with the observed counts:</p>
+<div id="556c8c13" class="cell" data-execution_count="18">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode julia code-with-copy"><code class="sourceCode julia"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>predicted_deaths <span class="op">=</span> [<span class="fu">mean</span>(preds[<span class="pp">@varname</span>(deaths[i])]) for i <span class="kw">in</span> <span class="fu">eachindex</span>(data2.deaths)]</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="pp">@transform</span>(<span class="fu">select</span>(data2, <span class="op">:</span>att_age, <span class="op">:</span>risk_level, <span class="op">:</span>exposures, <span class="op">:</span>deaths),</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">:</span>predicted_deaths <span class="op">=</span> <span class="fu">round</span>.(predicted_deaths; digits<span class="op">=</span><span class="fl">1</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-display" data-execution_count="19">
+<div><div style="float: left;"><span>615×5 DataFrame</span></div><div style="float: right; font-style: italic;"><span>590 rows omitted</span></div><div style="clear: both;"></div></div><div class="data-frame" style="overflow-x: scroll;">
+<table class="data-frame caption-top table table-sm table-striped small">
+<thead>
+<tr class="columnLabelRow header">
+<th class="stubheadLabel" data-quarto-table-cell-role="th" style="text-align: right; font-weight: bold;">Row</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">att_age</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">risk_level</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">exposures</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">deaths</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th">predicted_deaths</th>
+</tr>
+<tr class="columnLabelRow even">
+<th class="stubheadLabel" data-quarto-table-cell-role="th" style="text-align: right; font-weight: bold;"></th>
+<th style="text-align: left;" data-quarto-table-cell-role="th" title="Int64">Int64</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th" title="Int64">Int64</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th" title="Int64">Int64</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th" title="Int64">Int64</th>
+<th style="text-align: left;" data-quarto-table-cell-role="th" title="Float64">Float64</th>
+</tr>
+</thead>
+<tbody>
+<tr class="dataRow odd">
+<td class="rowLabel" style="text-align: right; font-weight: bold;">1</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">77</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.1</td>
+</tr>
+<tr class="dataRow even">
+<td class="rowLabel" style="text-align: right; font-weight: bold;">2</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">74</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.1</td>
+</tr>
+<tr class="dataRow odd">
+<td class="rowLabel" style="text-align: right; font-weight: bold;">3</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">80</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.1</td>
+</tr>
+<tr class="dataRow even">
+<td class="rowLabel" style="text-align: right; font-weight: bold;">4</td>
+<td style="text-align: right;">31</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">77</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.1</td>
+</tr>
+<tr class="dataRow odd">
+<td class="rowLabel" style="text-align: right; font-weight: bold;">5</td>
+<td style="text-align: right;">31</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">74</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.1</td>
+</tr>
+<tr class="dataRow even">
+<td class="rowLabel" style="text-align: right; font-weight: bold;">6</td>
+<td style="text-align: right;">31</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">80</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.1</td>
+</tr>
+<tr class="dataRow odd">
+<td class="rowLabel" style="text-align: right; font-weight: bold;">7</td>
+<td style="text-align: right;">32</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">77</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.1</td>
+</tr>
+<tr class="dataRow even">
+<td class="rowLabel" style="text-align: right; font-weight: bold;">8</td>
+<td style="text-align: right;">32</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">74</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.1</td>
+</tr>
+<tr class="dataRow odd">
+<td class="rowLabel" style="text-align: right; font-weight: bold;">9</td>
+<td style="text-align: right;">32</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">80</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.1</td>
+</tr>
+<tr class="dataRow even">
+<td class="rowLabel" style="text-align: right; font-weight: bold;">10</td>
+<td style="text-align: right;">33</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">77</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.1</td>
+</tr>
+<tr class="dataRow odd">
+<td class="rowLabel" style="text-align: right; font-weight: bold;">11</td>
+<td style="text-align: right;">33</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">74</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.1</td>
+</tr>
+<tr class="dataRow even">
+<td class="rowLabel" style="text-align: right; font-weight: bold;">12</td>
+<td style="text-align: right;">33</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">80</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.1</td>
+</tr>
+<tr class="dataRow odd">
+<td class="rowLabel" style="text-align: right; font-weight: bold;">13</td>
+<td style="text-align: right;">34</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">77</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.1</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">⋮</td>
+<td style="text-align: right;">⋮</td>
+<td style="text-align: right;">⋮</td>
+<td style="text-align: right;">⋮</td>
+<td style="text-align: right;">⋮</td>
+<td style="text-align: right;">⋮</td>
+</tr>
+<tr class="dataRow odd">
+<td class="rowLabel" style="text-align: right; font-weight: bold;">604</td>
+<td style="text-align: right;">71</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">88</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.7</td>
+</tr>
+<tr class="dataRow even">
+<td class="rowLabel" style="text-align: right; font-weight: bold;">605</td>
+<td style="text-align: right;">71</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">76</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">1.7</td>
+</tr>
+<tr class="dataRow odd">
+<td class="rowLabel" style="text-align: right; font-weight: bold;">606</td>
+<td style="text-align: right;">71</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">81</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">3.1</td>
+</tr>
+<tr class="dataRow even">
+<td class="rowLabel" style="text-align: right; font-weight: bold;">607</td>
+<td style="text-align: right;">72</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">87</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">1.8</td>
+</tr>
+<tr class="dataRow odd">
+<td class="rowLabel" style="text-align: right; font-weight: bold;">608</td>
+<td style="text-align: right;">72</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">73</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">1.7</td>
+</tr>
+<tr class="dataRow even">
+<td class="rowLabel" style="text-align: right; font-weight: bold;">609</td>
+<td style="text-align: right;">72</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">79</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">3.4</td>
+</tr>
+<tr class="dataRow odd">
+<td class="rowLabel" style="text-align: right; font-weight: bold;">610</td>
+<td style="text-align: right;">73</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">83</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">1.9</td>
+</tr>
+<tr class="dataRow even">
+<td class="rowLabel" style="text-align: right; font-weight: bold;">611</td>
+<td style="text-align: right;">73</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">70</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">1.9</td>
+</tr>
+<tr class="dataRow odd">
+<td class="rowLabel" style="text-align: right; font-weight: bold;">612</td>
+<td style="text-align: right;">73</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">77</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">3.6</td>
+</tr>
+<tr class="dataRow even">
+<td class="rowLabel" style="text-align: right; font-weight: bold;">613</td>
+<td style="text-align: right;">74</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">77</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">1.9</td>
+</tr>
+<tr class="dataRow odd">
+<td class="rowLabel" style="text-align: right; font-weight: bold;">614</td>
+<td style="text-align: right;">74</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">68</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1.9</td>
+</tr>
+<tr class="dataRow even">
+<td class="rowLabel" style="text-align: right; font-weight: bold;">615</td>
+<td style="text-align: right;">74</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">72</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">3.7</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<p>The posterior-mean predictions track the observed deaths closely across ages and risk levels — a compact posterior predictive check that the final multi-level model has captured the structure of the data.</p>
 
 
 </section>
