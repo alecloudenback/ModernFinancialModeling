@@ -311,19 +311,30 @@ using Recommendation
 using SparseArrays
 using Random
 
-# 1. Synthetic events
+Random.seed!(1234)
+
+# 1. Synthetic events: ratings are generated from known user and
+#    item latent factors so that there is real signal to recover
 num_users = 100
 num_items = 50
-num_ratings = 500
-user_ids = rand(1:num_users, num_ratings)
-item_ids = rand(1:num_items, num_ratings)
-ratings = rand(1:5, num_ratings)
+num_ratings = 2000
+n_factors = 2
 
-events = [Event(user_ids[i], item_ids[i], Float64(ratings[i])) for i in 1:num_ratings]
+user_factors = randn(n_factors, num_users)
+item_factors = randn(n_factors, num_items)
 
-# 2. Train/test split
-Random.seed!(1234)
-shuffle!(events)
+# sample unique user-item pairs so that no pair
+# appears in both the training and test sets
+pairs = shuffle!([(u, i) for u in 1:num_users for i in 1:num_items])[1:num_ratings]
+
+ratings = map(pairs) do (u, i)
+    raw = user_factors[:, u]' * item_factors[:, i] + 0.1 * randn()
+    clamp(round(3 + raw), 1, 5)
+end
+
+events = [Event(u, i, Float64(r)) for ((u, i), r) in zip(pairs, ratings)]
+
+# 2. Train/test split (the pairs are already shuffled)
 train_size = round(Int, 0.8 * num_ratings)
 train_events = events[1:train_size]
 test_events = events[train_size+1:end]
@@ -331,15 +342,15 @@ test_events = events[train_size+1:end]
 # 3. DataAccessor
 da_train = DataAccessor(train_events, num_users, num_items)
 
-# 4. Instantiate MatrixFactorization recommender
-recommender = MatrixFactorization(da_train)
+# 4. Instantiate MatrixFactorization recommender with two latent factors
+recommender = MatrixFactorization(da_train, 2)
 
 # 5. Train with hyperparameters
 build!(recommender;
     reg=0.05,
-    learning_rate=0.007,
+    learning_rate=0.01,
     eps=1e-4,
-    max_iter=20,
+    max_iter=100,
     random_init=true)
 
 # 6. Recommend for a user
@@ -355,7 +366,7 @@ Next we evaluate the RMSE:
 
 ```{julia}
 
-# 7. Evaluate RMSE
+# 7. Evaluate RMSE against a predict-the-mean baseline
 predicted = Float64[]
 actual = Float64[]
 for ev in test_events
@@ -365,9 +376,14 @@ for ev in test_events
 end
 
 rmse = measure(RMSE(), predicted, actual)
+
+train_mean = sum(ev.value for ev in train_events) / length(train_events)
+baseline_rmse = measure(RMSE(), fill(train_mean, length(actual)), actual)
+
+(rmse=rmse, baseline=baseline_rmse)
 ```
 
-Lower RMSE indicates better out-of-sample accuracy. In production you would also monitor business metrics — such as product uptake or credit conversion — but RMSE is a good sanity check that the latent factors are capturing the signal.
+Lower RMSE indicates better out-of-sample accuracy. On its own, though, an RMSE number tells us little — we need something to compare it against. Here the model beats the naive baseline of always predicting the training-set mean rating, which is evidence that the learned latent factors are recovering the structure we embedded in the synthetic data. In production you would also monitor business metrics — such as product uptake or credit conversion — but an RMSE comparison against a simple baseline is a good sanity check.
 
 ### Principal component analysis
 

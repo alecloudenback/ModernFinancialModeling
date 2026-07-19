@@ -67,7 +67,7 @@ Short-rate models`\index{short-rate models}`{=latex} produce mean-reverting`\ind
 
 #### Vasicek and Cox-Ingersoll-Ross (CIR)
 
-The Vasicek model`\index{Vasicek model}`{=latex} is a one-factor model commonly used for simulating interest rate scenarios. It describes the dynamics of short-term interest rates using a stochastic differential equation (SDE). In a Monte Carlo simulation, we can use the Vasicek model to generate multiple interest rate paths. The CIR model`\index{Cox-Ingersoll-Ross (CIR) model}`{=latex} is an extension of the Vasicek model with non-constant volatility. It is a square‑root diffusion with state‑dependent volatility that helps keep rates positive (strictly so when the Feller condition $2\kappa\theta \geq \sigma^2$ holds).
+The Vasicek model`\index{Vasicek model}`{=latex} is a one-factor model commonly used for simulating interest rate scenarios. It describes the dynamics of short-term interest rates using a stochastic differential equation (SDE). In a Monte Carlo simulation, we can use the Vasicek model to generate multiple interest rate paths. The CIR model`\index{Cox-Ingersoll-Ross (CIR) model}`{=latex} is an extension of the Vasicek model with non-constant volatility. It is a square‑root diffusion with state‑dependent volatility that helps keep rates positive (for the continuous-time process, strictly so when the Feller condition $2\kappa\theta \geq \sigma^2$ holds and $r(0) > 0$).
 
 Vasicek is defined as
 
@@ -97,7 +97,7 @@ where
 -   $σ$ is the volatility of the interest rate.
 -   $dW(t)$ is a Wiener process or Brownian motion, representing a random shock.
 
-The following code shows a simplified implementation of a CIR model. The specification of $dr$ can be changed to make it a Vasicek model.
+The following code shows a simplified implementation of a CIR model, discretized with a truncated Euler–Maruyama`\index{Euler-Maruyama method}`{=latex} scheme. The specification of $dr$ can be changed to make it a Vasicek model.
 
 ```{julia}
 using Random, Statistics, CairoMakie
@@ -163,6 +163,10 @@ let
     f
 end
 ```
+
+::: callout-note
+The positivity guarantee above belongs to the continuous-time process; the discretized simulation is another matter. Over a finite time step the Gaussian shock can push the rate negative even when the Feller condition holds, which is why the code clamps at zero (`max(r_prev, 0.0)` inside the square root, and truncation of the updated rate). This truncation is convenient and common in practice, but it means the code is an *approximation* of CIR: the clamping slightly biases the simulated distribution near zero, and the discretization error shrinks only as the time step is refined. The exact simulation scheme below avoids both issues.
+:::
 
 The CIR process can also be simulated exactly, because conditional on $r_t$ the distribution of $r_{t+\Delta t}$ is a scaled non-central chi-squared distribution.
 
