@@ -112,7 +112,8 @@ Parallel processing comes in different flavors and is related to the details of 
 The requirements for SIMD-able code are that:
 
 -   The intended section for SIMD is inside the inner-most loop.
--   There are no branches (if-statements) inside the loop body.
+-   The loop body is type-stable and free of complex control flow: cross-iteration dependencies, early exits, and functions that cannot be inlined all prevent vectorization. (The compiler can often convert a *simple* branch, like the `if` in the example below, into a branchless "masked" operation.)
+-   Reordering the iterations must not change the result — or the programmer must explicitly permit reordering, as discussed below.
 
 ::: callout-tip
 Note that indexing an array actually introduces a branch in the code, as two cases could arise: the index is either inbounds or out-of-bounds. To avoid this, either use `for x in collection`, `for i in eachindex(collection)` or `for i in 1:n; @inbounds collection[i]`, though the last of these is discouraged in favor of the prior, safer options.
@@ -121,43 +122,42 @@ Note that indexing an array actually introduces a branch in the code, as two cas
 ```{julia}
 using BenchmarkTools
 
-function prevent_simd(arr)
-    sum = 0
+function sum_positive(arr)
+    s = zero(eltype(arr))
     for x in arr
         if x > 0
-            sum += x
+            s += x
         end
     end
-    return sum
+    return s
 end
 
-function allow_simd(arr)
-    sum = 0
-    for x in arr
-        sum += max(x, 0)
+function sum_positive_simd(arr)
+    s = zero(eltype(arr))
+    @simd for i in eachindex(arr)
+        x = arr[i]
+        if x > 0
+            s += x
+        end
     end
-    return sum
+    return s
 end
 
 let
-    x = rand(10000)
+    x = randn(10000)
 
-    @btime prevent_simd($x)
-    @btime allow_simd($x)
+    @btime sum_positive($x)
+    @btime sum_positive_simd($x)
 end
 ```
 
-In testing the above code, the `allow_simd` version should be several times faster than the `prevent_simd` example. The reason is that `prevent_simd` has a branch (`if x > 0`) where the behavior of the code may change depending on the value in `arr`. Conversely, the behavior of `allow_simd` is always the same in each iteration, no matter the value of `x`. This allows the compiler to generate vectorized code automatically.
+In testing the above code, the `sum_positive_simd` version should be several times faster than `sum_positive`. Perhaps surprisingly, the branch is not the obstacle here: the compiler converts the simple `if x > 0` into a branchless masked operation in both versions. What actually prevents `sum_positive` from vectorizing is the summation itself. Floating point addition is not associative — accumulating the elements four or eight at a time produces a (very slightly) different result than adding them one-by-one in order, and the compiler will not silently change the answer your code would produce. The `@simd` macro is our explicit permission to reorder the accumulation, which unlocks vectorization (enter `?@simd` in the REPL for details, and see @sec-optimizing-SIMD for more).
 
 ::: callout-note
-A second effect compounds the branch in `prevent_simd`: the accumulator is initialized to the integer `0`, so whether it has been promoted to a `Float64` yet depends on the branch history, and the loop body is not type-stable (see @sec-performance-single). The branchless `allow_simd` settles into a single concrete type after the first iteration and vectorizes. Modern compilers can sometimes rewrite a *simple* branch into branchless code on their own, but it takes little — a type that changes across iterations as here, an early exit, or a more complex loop body — to defeat both that rewrite and vectorization.
+Note that the accumulator is initialized with `zero(eltype(arr))` rather than the integer literal `0`. With `s = 0`, the accumulator would start as an `Int` and only be promoted to `Float64` once the first positive element is added, making the loop body type-unstable (see @sec-performance-single) — which by itself is enough to defeat vectorization and slow the loop several-fold, independent of any branching.
 :::
 
-::: callout-tip
-Note that Julia's compiler is able to identify vectorizable code in many cases, though some cases may benefit from a more manual hint to the compiler through macro annotations (enter `?@simd` in the REPL for details). See @sec-optimizing-SIMD for more.
-:::
-
-Other types of parallelism that we will discuss in this chapter have some risk of errors or data corruption if not used correctly. SIMD isn't prone to issues like this because if the code is not SIMD-able then the compiler will not auto-vectorize the code block. Note that this safety guarantee applies to Julia's built-in `@simd` macro. Third-party macros like `@turbo` (from LoopVectorization.jl) are more aggressive and may produce incorrect results if loop iterations have data dependencies (e.g., `x[i] = x[i-1]`).
+Other types of parallelism that we will discuss in this chapter have some risk of errors or data corruption if not used correctly. *Automatic* vectorization isn't prone to issues like this, because the compiler only vectorizes code when it can prove the transformation does not change the result. Annotations shift that responsibility to the programmer, however. `@simd` is a promise to the compiler that iterations may be safely reordered — including reordering floating point reductions, which can change results in the last few digits — and applying it to a loop with cross-iteration dependencies can produce silently incorrect results. Third-party macros like `@turbo` (from LoopVectorization.jl) are more aggressive still and carry the same caveat (e.g., `x[i] = x[i-1]` inside the loop).
 
 ### Hardware
 

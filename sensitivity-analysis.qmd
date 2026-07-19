@@ -145,7 +145,7 @@ end
 
 ### Finite Differences
 
-Central finite differences`\index{finite differences}`{=latex} approximate derivatives by shocking one input up and down while holding everything else fixed. The result can be interpreted as a "delta" (absolute change per unit of input) or as an elasticity if we scale by the base reserve.
+Central finite differences`\index{finite differences}`{=latex} approximate derivatives by shocking one input up and down while holding everything else fixed. The result can be interpreted as a "delta" (absolute change per unit of input) or, if we scale by the base reserve as in the code below, as a *semi-elasticity*: the proportional change in the reserve per unit change in the input, $\frac{1}{V}\frac{\partial V}{\partial r}$. (A true elasticity would additionally scale by the base input level, $\frac{r}{V}\frac{\partial V}{\partial r}$, giving the percentage change in output per percentage change in input.)
 
 ```{julia}
 function res_wrt_r_fd(y::Int, pol::Policy, r::Float64, h=1e-3)
@@ -154,8 +154,9 @@ function res_wrt_r_fd(y::Int, pol::Policy, r::Float64, h=1e-3)
     (res(y, p₊) - res(y, p₋)) / (2 * h * res(y, pol))
 end
 
-# percentage change in reserve at year 2 when
-# the interest rate is at 3% with a perturbation of 0.1%
+# semi-elasticity: proportional change in the year-2 reserve
+# per unit change in the interest rate, evaluated at r = 3%
+# with a 10-basis-point (h = 0.001) perturbation
 res_wrt_r_fd(2, policies[1], 0.03)
 ```
 
